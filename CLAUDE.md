@@ -86,6 +86,10 @@ lib/
     ├── sent-history.ts                # query the audit log
     ├── export.ts                      # JSON dump of all user data
     ├── weather.ts                     # weather — wttr.in primary, Open-Meteo fallback (both keyless)
+    ├── finance.ts                     # fx rates, stock quotes, crypto prices — keyless, ~3s timeout
+    ├── news.ts                        # news search via Tavily
+    ├── lists.ts                       # named lists (grocery, packing, custom) — 7 CRUD tools, Redis-backed
+    ├── docs.ts                        # Google Docs create/edit + Slides create with structured slides
     └── staged-media.ts                # list / clear LINE media staged for attach/upload
 ```
 
@@ -193,3 +197,27 @@ See README.md "Manual smoke tests" — covers settings, tasks, contacts, gmail i
 
 ## Cron sweep setup
 The proactive layer needs a QStash schedule pointing at `/api/cron/sweep` every 15 min. See SETUP.md step 11. Without it, morning briefings + pre-meeting alerts are silent (everything else still works).
+
+## Collaboration
+
+Two developers, one repo (`assistantforyou/lekha`), one Vercel project, one production LINE bot. No staging environment — all changes go straight to prod.
+
+**Workflow:**
+- Message each other before pushing to avoid conflicts
+- Always `git pull origin main` before starting work and before pushing
+- Push directly to `main` — Vercel auto-deploys on every push
+- No force pushes to main
+
+**For a developer without a Vercel account or GitHub connector:**
+1. Clone: `git clone https://github.com/assistantforyou/lekha.git`
+2. Set git credentials using the shared PAT: `git remote set-url origin https://assistantforyou:<PAT>@github.com/assistantforyou/lekha.git`
+3. Get `.env.local` from the other developer (contains all secrets — do not commit this file)
+4. `npm install && npm run dev` to run locally (no LINE events hit localhost; use typecheck to validate changes)
+5. `npm run typecheck` before pushing — Vercel build will fail on TS errors
+6. Push: `git add -A && git commit -m "..." && git push origin main`
+
+**Shared infrastructure (coordinate before changing):**
+- Vercel env vars (owner's account only)
+- Upstash Redis keys and QStash schedules
+- LINE channel webhook URL and credentials
+- Google Cloud OAuth credentials
