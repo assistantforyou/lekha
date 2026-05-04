@@ -696,6 +696,13 @@ async function runWithCascade<T extends ReturnType<typeof toolsForUser>>(opts: {
   // and go straight to the Groq fallback path. Avoids burning ~5s per request
   // hitting an upstream that's known to be unhealthy.
   let geminiRanToolCalls = false;
+  // Completed steps are captured so Groq can pick up where Gemini left off
+  // (tool results already fetched → no duplication, just generate the response).
+  const geminiCompletedSteps: Array<{
+    text: string;
+    toolCalls: Array<{ type: "tool-call"; toolCallId: string; toolName: string; input: unknown }>;
+    toolResults: Array<{ type: "tool-result"; toolCallId: string; toolName: string; output: unknown }>;
+  }> = [];
   try {
     const skipGemini = !opts.hasMultimodal && (await isGeminiDown());
     if (skipGemini) {
@@ -712,7 +719,24 @@ async function runWithCascade<T extends ReturnType<typeof toolsForUser>>(opts: {
         stopWhen: stepCountIs(3),
         maxRetries: 0,
         onStepFinish: (step) => {
-          if (step.toolCalls.length > 0) geminiRanToolCalls = true;
+          if (step.toolCalls.length > 0) {
+            geminiRanToolCalls = true;
+            geminiCompletedSteps.push({
+              text: step.text,
+              toolCalls: step.toolCalls.map((tc) => ({
+                type: "tool-call" as const,
+                toolCallId: tc.toolCallId,
+                toolName: tc.toolName as string,
+                input: tc.input,
+              })),
+              toolResults: step.toolResults.map((tr) => ({
+                type: "tool-result" as const,
+                toolCallId: tr.toolCallId,
+                toolName: tr.toolName as string,
+                output: (tr as { output?: unknown }).output ?? null,
+              })),
+            });
+          }
           console.log("[agent] gemini step", {
             ms: Date.now() - tStart,
             toolCalls: step.toolCalls.map((c) => c?.toolName),
@@ -746,27 +770,38 @@ async function runWithCascade<T extends ReturnType<typeof toolsForUser>>(opts: {
     if (!quota && !isTimeout && !isSkip) throw err;
     const fallbacks = fallbackChatModels();
     if (!fallbacks.length || opts.hasMultimodal) throw err;
-    // If Gemini already executed tool calls before timing out, the side effects
-    // (reminder scheduled, email drafted, etc.) already happened. Cascading to
-    // Groq would re-run those same tools and cause duplicates.
-    if (isTimeout && geminiRanToolCalls) {
-      console.warn("[agent] gemini timed out after tool calls — skipping cascade to avoid duplicates");
-      throw err;
-    }
     if (!isSkip) {
       // Mark Gemini down so the next ~60s of requests skip it.
       await markGeminiDown(60).catch(() => {});
     }
-    console.warn(
-      "[agent] cascading to groq",
-      isSkip ? "(gemini pre-skipped)" : isTimeout ? "(gemini timeout)" : `(gemini quota/overload, retry-after ~${quota?.retryAfterSec}s)`,
-      { totalMs: Date.now() - tStart, fallbackModels: fallbacks.length },
-    );
     // On the fallback path, ship a slim system prompt + the core tool subset.
     // The full registry is ~50 tools (~5K tokens of descriptions) which blows
     // Groq's tighter TPM limits and confuses weaker models.
     const slimSystem = opts.slimSystem ?? opts.system;
     const slimTools = opts.slimTools ?? opts.tools;
+    // If Gemini completed some tool steps before timing out, inject those results
+    // into the Groq message history so Groq only needs to generate the final
+    // response — no re-execution of tools (no duplicates, no wasted API calls).
+    const groqMessages: ModelMessage[] =
+      isTimeout && geminiCompletedSteps.length > 0
+        ? [
+            ...opts.messages,
+            ...geminiCompletedSteps.flatMap((step): ModelMessage[] => {
+              const assistantContent: Array<{ type: "text"; text: string } | { type: "tool-call"; toolCallId: string; toolName: string; input: unknown }> = [];
+              if (step.text) assistantContent.push({ type: "text", text: step.text });
+              for (const tc of step.toolCalls) assistantContent.push(tc);
+              const msgs: ModelMessage[] = [];
+              if (assistantContent.length > 0) msgs.push({ role: "assistant", content: assistantContent as never });
+              if (step.toolResults.length > 0) msgs.push({ role: "tool", content: step.toolResults as never });
+              return msgs;
+            }),
+          ]
+        : opts.messages;
+    console.warn(
+      "[agent] cascading to groq",
+      isSkip ? "(gemini pre-skipped)" : isTimeout ? "(gemini timeout)" : `(gemini quota/overload, retry-after ~${quota?.retryAfterSec}s)`,
+      { totalMs: Date.now() - tStart, fallbackModels: fallbacks.length, injectedSteps: geminiCompletedSteps.length },
+    );
     const groqErrors: { model: string; error: unknown }[] = [];
     for (const m of fallbacks) {
       const tGroq = Date.now();
@@ -779,7 +814,7 @@ async function runWithCascade<T extends ReturnType<typeof toolsForUser>>(opts: {
           generateText({
             model: m as LanguageModel,
             system: slimSystem,
-            messages: opts.messages,
+            messages: groqMessages,
             tools: slimTools,
             temperature: 0.4,
             stopWhen: stepCountIs(3),
