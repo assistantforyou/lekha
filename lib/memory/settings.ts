@@ -33,7 +33,7 @@ const DEFAULTS: UserSettings = {
   inboxBriefingEnabled: false,
   lastMorningBriefingTs: null,
   disabledCategories: [],
-  eveningSummaryEnabled: false,
+  eveningSummaryEnabled: true,
   lastEveningSummaryTs: null,
   updatedAt: 0,
 };
