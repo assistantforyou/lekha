@@ -32,7 +32,7 @@ export function chatModel() {
  * NOTE: text-only — no multimodal. Caller must skip on image/audio/video turns.
  *
  * Order picked for current Groq free-tier headroom + tool-use reliability:
- *   1. llama-4-maverick: 60K TPM (8× more than gpt-oss-120b), strong tool use
+ *   1. llama-4-maverick: 60K TPM, strong tool use, best headroom
  *   2. llama-4-scout:    30K TPM, smaller/faster
  *   3. gpt-oss-120b:     8K TPM but very reliable when it fits
  */
@@ -40,11 +40,12 @@ export function fallbackChatModels() {
   const g = groqClient();
   if (!g) return [];
   return [
+    // llama-4-maverick: 60K TPM — twice the headroom of scout, handles full
+    // multi-step conversations without hitting per-minute token limits.
+    g("meta-llama/llama-4-maverick-17b-128e-instruct"),
     // llama-4-scout: 30K TPM, completes multi-step tool calls reliably in 1-2s.
-    // Primary fallback — high TPM headroom means it handles full conversations.
     g("meta-llama/llama-4-scout-17b-16e-instruct"),
-    // gpt-oss-120b: 8K TPM ceiling — can handle single-step queries but hits
-    // the limit on second step if there's been recent usage. Last resort.
+    // gpt-oss-120b: 8K TPM ceiling — last resort for short single-step queries.
     g("openai/gpt-oss-120b"),
   ];
 }
