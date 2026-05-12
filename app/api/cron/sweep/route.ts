@@ -8,6 +8,7 @@ import { hasGoogleConnection, getGoogleClient } from "@/lib/tools/google-auth";
 import { redis } from "@/lib/memory/redis";
 import { push, text as textMsg } from "@/lib/line/client";
 import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
+import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
 import { listTasks } from "@/lib/memory/tasks";
 
 export const runtime = "nodejs";
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   const users = await listAllUsers();
-  const stats = { briefings: 0, preMeetingPushes: 0, taskWarnings: 0, errors: 0, users: users.length };
+  const stats = { briefings: 0, eveningSummaries: 0, preMeetingPushes: 0, taskWarnings: 0, errors: 0, users: users.length };
 
   await Promise.all(
     users.map(async (userId) => {
@@ -71,6 +72,19 @@ export async function POST(req: NextRequest) {
             await push(userId, [textMsg(briefing)]);
             await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
             stats.briefings++;
+          }
+        }
+
+        // Evening summary — 9 PM wrap-up (tasks + calendar + news).
+        if (
+          settings.eveningSummaryEnabled &&
+          shouldFireEveningSummaryNow(settings.lastEveningSummaryTs, settings.timezone)
+        ) {
+          const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
+          if (summary) {
+            await push(userId, [textMsg(summary)]);
+            await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
+            stats.eveningSummaries++;
           }
         }
 

@@ -17,6 +17,10 @@ export type UserSettings = {
   lastMorningBriefingTs: number | null;
   /** Set of disabled tool categories — used to gate tools the user opted out of. */
   disabledCategories: string[];
+  /** Whether to push a 9 PM evening summary (tasks leftover, tomorrow's events, top news). */
+  eveningSummaryEnabled: boolean;
+  /** Last time we ran the evening summary for this user (ms). */
+  lastEveningSummaryTs: number | null;
   updatedAt: number;
 };
 
@@ -29,6 +33,8 @@ const DEFAULTS: UserSettings = {
   inboxBriefingEnabled: false,
   lastMorningBriefingTs: null,
   disabledCategories: [],
+  eveningSummaryEnabled: false,
+  lastEveningSummaryTs: null,
   updatedAt: 0,
 };
 

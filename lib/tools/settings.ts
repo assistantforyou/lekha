@@ -82,6 +82,25 @@ export function buildSettingsTools(userId: string) {
       },
     }),
 
+    enable_evening_summary: tool({
+      description:
+        "Turn on a daily 9 PM push with leftover tasks, tomorrow's next 5 calendar events, and today's geopolitics + economics news headlines.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        await updateSettings(userId, { eveningSummaryEnabled: true });
+        return { ok: true, note: "Evening summary enabled. I'll push you a wrap-up each night at 9 PM." };
+      },
+    }),
+
+    disable_evening_summary: tool({
+      description: "Turn off the 9 PM evening summary push.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        await updateSettings(userId, { eveningSummaryEnabled: false });
+        return { ok: true };
+      },
+    }),
+
     enable_pre_meeting_alerts: tool({
       description:
         "Push the user a heads-up at multiple intervals before each upcoming calendar event. Pass an array of minutes-before. Common picks: [1440, 60, 30] = 1 day, 1 hour, 30 min before. Pass [] to disable.",
