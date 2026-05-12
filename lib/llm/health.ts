@@ -1,18 +1,32 @@
 import { redis } from "@/lib/memory/redis";
 
-const GEMINI_DOWN_KEY = "llm:gemini:down_until";
+const keyDownKey = (index: number) => `llm:gemini:key:${index}:down_until`;
 
 /**
- * After Gemini returns a 503/quota error, mark it "down" for a short window
- * so subsequent requests skip straight to the Groq fallback. Avoids burning
- * 5-10s on a Gemini call we know will fail.
+ * Mark a specific Gemini API key as down (quota / timeout).
+ * Subsequent requests skip that key for `forSec` seconds.
  */
+export async function markKeyDown(keyIndex: number, forSec = 60): Promise<void> {
+  const until = Date.now() + forSec * 1000;
+  await redis().set(keyDownKey(keyIndex), until, { ex: forSec });
+}
+
+/** Returns true if this specific key is currently in its cooldown window. */
+export async function isKeyDown(keyIndex: number): Promise<boolean> {
+  const until = await redis().get<number>(keyDownKey(keyIndex));
+  if (!until) return false;
+  return Date.now() < until;
+}
+
+// ── Legacy global mark (kept for backward compat with any external callers) ──
+
+const GEMINI_DOWN_KEY = "llm:gemini:down_until";
+
 export async function markGeminiDown(forSec = 60): Promise<void> {
   const until = Date.now() + forSec * 1000;
   await redis().set(GEMINI_DOWN_KEY, until, { ex: forSec });
 }
 
-/** Returns true if we marked Gemini as down within the cooldown window. */
 export async function isGeminiDown(): Promise<boolean> {
   const until = await redis().get<number>(GEMINI_DOWN_KEY);
   if (!until) return false;

@@ -1,7 +1,7 @@
 import { generateText, stepCountIs, type ModelMessage } from "ai";
 import type { LanguageModel } from "ai";
-import { chatModel, fallbackChatModels } from "@/lib/llm/provider";
-import { isGeminiDown, markGeminiDown } from "@/lib/llm/health";
+import { getGeminiApiKeys, geminiWithKey, fallbackChatModels, openRouterFallbackModels } from "@/lib/llm/provider";
+import { markKeyDown, isKeyDown } from "@/lib/llm/health";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { factsToPromptBlock, loadFacts } from "@/lib/memory/facts";
 import { toolsForUser, coreToolsForUser } from "@/lib/tools";
@@ -114,6 +114,50 @@ export function unwrap(err: unknown): unknown {
 
 // ─── Cascade ──────────────────────────────────────────────────────────────────
 
+type CompletedStep = {
+  text: string;
+  toolCalls: Array<{ type: "tool-call"; toolCallId: string; toolName: string; input: unknown }>;
+  toolResults: Array<{ type: "tool-result"; toolCallId: string; toolName: string; output: unknown }>;
+};
+
+function buildMessagesWithSteps(base: ModelMessage[], steps: CompletedStep[]): ModelMessage[] {
+  if (steps.length === 0) return base;
+  return [
+    ...base,
+    ...steps.flatMap((step): ModelMessage[] => {
+      const assistantContent: Array<
+        { type: "text"; text: string } | { type: "tool-call"; toolCallId: string; toolName: string; input: unknown }
+      > = [];
+      if (step.text) assistantContent.push({ type: "text", text: step.text });
+      for (const tc of step.toolCalls) assistantContent.push(tc);
+      const msgs: ModelMessage[] = [];
+      if (assistantContent.length > 0) msgs.push({ role: "assistant", content: assistantContent as never });
+      if (step.toolResults.length > 0) msgs.push({ role: "tool", content: step.toolResults as never });
+      return msgs;
+    }),
+  ];
+}
+
+function modelLabel(m: unknown): string {
+  return (
+    (m as { modelId?: string }).modelId ??
+    (m as { provider?: string }).provider ??
+    "unknown"
+  );
+}
+
+
+/**
+ * Multi-provider cascade:
+ *   1. Gemini key pool (per-key cooldowns, shuffled order)
+ *   2. Groq: maverick → scout → gpt-oss-120b
+ *   3. OpenRouter free: gemini-2.0-flash-exp → llama-4-maverick → gemini-flash-1.5-8b
+ *
+ * Per-key Gemini cooldowns mean one exhausted key never blocks the others.
+ * Groq and OpenRouter are independent rate-limit pools — exhausting one
+ * doesn't affect the other. Together the probability of ALL failing on a
+ * personal bot is essentially zero.
+ */
 export async function runWithCascade<T extends ReturnType<typeof toolsForUser>>(opts: {
   hasMultimodal: boolean;
   system: string;
@@ -123,154 +167,146 @@ export async function runWithCascade<T extends ReturnType<typeof toolsForUser>>(
   slimTools?: ReturnType<typeof coreToolsForUser>;
 }) {
   const tStart = Date.now();
-  let geminiRanToolCalls = false;
-  const geminiCompletedSteps: Array<{
-    text: string;
-    toolCalls: Array<{ type: "tool-call"; toolCallId: string; toolName: string; input: unknown }>;
-    toolResults: Array<{ type: "tool-result"; toolCallId: string; toolName: string; output: unknown }>;
-  }> = [];
-  try {
-    const skipGemini = !opts.hasMultimodal && (await isGeminiDown());
-    if (skipGemini) {
-      console.log("[agent] skipping gemini (recent overload mark)");
-      throw new Error("gemini-skipped");
+  const slimSystem = opts.slimSystem ?? opts.system;
+  const slimTools = opts.slimTools ?? opts.tools;
+
+  // ── Phase 1: Gemini key pool ────────────────────────────────────────────────
+  const keys = getGeminiApiKeys();
+  // Shuffle so load distributes across keys rather than always hammering key[0].
+  const order = keys.map((_, i) => i).sort(() => Math.random() - 0.5);
+
+  let geminiCompletedSteps: CompletedStep[] = [];
+
+  for (const idx of order) {
+    if (await isKeyDown(idx)) {
+      console.log(`[agent] skipping gemini key ${idx} (cooldown)`);
+      continue;
     }
-    const r = await withTimeout(
-      generateText({
-        model: chatModel(),
-        system: opts.system,
-        messages: opts.messages,
-        tools: opts.tools,
-        temperature: 0.4,
-        stopWhen: stepCountIs(3),
-        maxRetries: 0,
-        onStepFinish: (step) => {
-          if (step.toolCalls.length > 0) {
-            geminiRanToolCalls = true;
-            geminiCompletedSteps.push({
-              text: step.text,
-              toolCalls: step.toolCalls.map((tc) => ({
-                type: "tool-call" as const,
-                toolCallId: tc.toolCallId,
-                toolName: tc.toolName as string,
-                input: tc.input,
-              })),
-              toolResults: step.toolResults.map((tr) => ({
-                type: "tool-result" as const,
-                toolCallId: tr.toolCallId,
-                toolName: tr.toolName as string,
-                output: (tr as { output?: unknown }).output ?? null,
-              })),
-            });
-          }
-          console.log("[agent] gemini step", {
-            ms: Date.now() - tStart,
-            toolCalls: step.toolCalls.map((c) => c?.toolName),
-            toolResults: step.toolResults.map((r) => ({
-              tool: (r as { toolName?: string }).toolName,
-              result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
-            })),
-            text: step.text?.slice(0, 200) || undefined,
-            finish: step.finishReason,
-          });
-        },
-        providerOptions: {
-          google: {
-            safetySettings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-            ],
-          },
-        },
-      }),
-      20_000,
-    );
-    console.log("[agent] gemini done", { ms: Date.now() - tStart, steps: r.steps.length });
-    return r;
-  } catch (err) {
-    const isTimeout = err instanceof AgentTimeoutError;
-    const isSkip = err instanceof Error && err.message === "gemini-skipped";
-    const quota = parseQuotaError(err);
-    if (!quota && !isTimeout && !isSkip) throw err;
-    const fallbacks = fallbackChatModels();
-    if (!fallbacks.length || opts.hasMultimodal) throw err;
-    if (!isSkip) {
-      await markGeminiDown(60).catch(() => {});
-    }
-    const slimSystem = opts.slimSystem ?? opts.system;
-    const slimTools = opts.slimTools ?? opts.tools;
-    const groqMessages: ModelMessage[] =
-      isTimeout && geminiCompletedSteps.length > 0
-        ? [
-            ...opts.messages,
-            ...geminiCompletedSteps.flatMap((step): ModelMessage[] => {
-              const assistantContent: Array<{ type: "text"; text: string } | { type: "tool-call"; toolCallId: string; toolName: string; input: unknown }> = [];
-              if (step.text) assistantContent.push({ type: "text", text: step.text });
-              for (const tc of step.toolCalls) assistantContent.push(tc);
-              const msgs: ModelMessage[] = [];
-              if (assistantContent.length > 0) msgs.push({ role: "assistant", content: assistantContent as never });
-              if (step.toolResults.length > 0) msgs.push({ role: "tool", content: step.toolResults as never });
-              return msgs;
-            }),
-          ]
-        : opts.messages;
-    console.warn(
-      "[agent] cascading to groq",
-      isSkip ? "(gemini pre-skipped)" : isTimeout ? "(gemini timeout)" : `(gemini quota/overload, retry-after ~${quota?.retryAfterSec}s)`,
-      { totalMs: Date.now() - tStart, fallbackModels: fallbacks.length, injectedSteps: geminiCompletedSteps.length },
-    );
-    const groqErrors: { model: string; error: unknown }[] = [];
-    for (const m of fallbacks) {
-      const tGroq = Date.now();
-      const modelLabel =
-        (m as unknown as { modelId?: string }).modelId ??
-        (m as unknown as { provider?: string }).provider ??
-        "groq";
-      try {
-        const r = await withTimeout(
-          generateText({
-            model: m as LanguageModel,
-            system: slimSystem,
-            messages: groqMessages,
-            tools: slimTools,
-            temperature: 0.4,
-            stopWhen: stepCountIs(3),
-            maxRetries: 0,
-            onStepFinish: (step) => {
-              console.log("[agent] groq step", {
-                model: modelLabel,
-                ms: Date.now() - tGroq,
-                toolCalls: step.toolCalls.map((c) => c?.toolName),
-                toolResults: step.toolResults.map((r) => ({
-                  tool: (r as { toolName?: string }).toolName,
-                  result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
+
+    const thisKeySteps: CompletedStep[] = [];
+    let thisKeyRanToolCalls = false;
+
+    try {
+      const r = await withTimeout(
+        generateText({
+          model: geminiWithKey(keys[idx]!),
+          system: opts.system,
+          messages: opts.messages,
+          tools: opts.tools,
+          temperature: 0.4,
+          stopWhen: stepCountIs(3),
+          maxRetries: 0,
+          onStepFinish: (step) => {
+            if (step.toolCalls.length > 0) {
+              thisKeyRanToolCalls = true;
+              thisKeySteps.push({
+                text: step.text,
+                toolCalls: step.toolCalls.map((tc) => ({
+                  type: "tool-call" as const,
+                  toolCallId: tc.toolCallId,
+                  toolName: tc.toolName as string,
+                  input: tc.input,
                 })),
-                text: step.text?.slice(0, 200) || undefined,
-                finish: step.finishReason,
+                toolResults: step.toolResults.map((tr) => ({
+                  type: "tool-result" as const,
+                  toolCallId: tr.toolCallId,
+                  toolName: tr.toolName as string,
+                  output: (tr as { output?: unknown }).output ?? null,
+                })),
               });
+            }
+            console.log(`[agent] gemini[${idx}] step`, {
+              ms: Date.now() - tStart,
+              toolCalls: step.toolCalls.map((c) => c?.toolName),
+              finish: step.finishReason,
+            });
+          },
+          providerOptions: {
+            google: {
+              safetySettings: [
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+              ],
             },
-          }),
-          45_000,
-        );
-        console.log("[agent] groq done", { model: modelLabel, ms: Date.now() - tGroq, steps: r.steps.length });
-        return r;
-      } catch (groqErr) {
-        console.warn("[agent] groq fallback failed", { model: modelLabel, err: groqErr instanceof Error ? `${groqErr.name}: ${groqErr.message}` : groqErr });
-        groqErrors.push({ model: modelLabel, error: groqErr });
+          },
+        }),
+        20_000,
+      );
+      console.log(`[agent] gemini[${idx}] done`, { ms: Date.now() - tStart, steps: r.steps.length });
+      return r;
+    } catch (err) {
+      const isTimeout = err instanceof AgentTimeoutError;
+      const quota = parseQuotaError(err);
+      if (!isTimeout && !quota) throw err;
+
+      await markKeyDown(idx, 60).catch(() => {});
+      console.warn(`[agent] gemini[${idx}] failed (${isTimeout ? "timeout" : `quota ~${quota?.retryAfterSec}s`})`);
+
+      if (isTimeout && thisKeyRanToolCalls) {
+        // Gemini started tool work but timed out — hand partial results to
+        // the text-only fallback so tools aren't re-executed.
+        geminiCompletedSteps = thisKeySteps;
+        break;
       }
+      // quota error (no partial work) → try next key immediately
     }
-    const wrapped = new Error(
-      `Both providers failed.\n\nGEMINI:\n${verboseError(err)}\n\nGROQ ATTEMPTS:\n${groqErrors
-        .map((g) => `--- ${g.model} ---\n${verboseError(g.error)}`)
-        .join("\n\n")}`,
-    );
-    wrapped.name = "AllProvidersFailed";
-    throw wrapped;
   }
-  // suppress TS unreachable — geminiRanToolCalls is set inside onStepFinish
-  void geminiRanToolCalls;
+
+  // ── Phase 2 + 3: text-only fallbacks (Groq + OpenRouter) ───────────────────
+  if (opts.hasMultimodal) {
+    const e = new Error("All Gemini keys exhausted and no text-only fallback for multimodal turns");
+    e.name = "AllProvidersFailed";
+    throw e;
+  }
+
+  const fallbackMessages = buildMessagesWithSteps(opts.messages, geminiCompletedSteps);
+  const allFallbacks = [...fallbackChatModels(), ...openRouterFallbackModels()];
+  const fallbackErrors: { model: string; error: unknown }[] = [];
+
+  for (const m of allFallbacks) {
+    const label = modelLabel(m);
+    const tFallback = Date.now();
+    try {
+      const r = await withTimeout(
+        generateText({
+          model: m as LanguageModel,
+          system: slimSystem,
+          messages: fallbackMessages,
+          tools: slimTools,
+          temperature: 0.4,
+          stopWhen: stepCountIs(3),
+          maxRetries: 0,
+          onStepFinish: (step) => {
+            console.log(`[agent] fallback step`, {
+              model: label,
+              ms: Date.now() - tFallback,
+              toolCalls: step.toolCalls.map((c) => c?.toolName),
+              finish: step.finishReason,
+            });
+          },
+        }),
+        45_000,
+      );
+      console.log(`[agent] fallback done`, { model: label, ms: Date.now() - tStart, steps: r.steps.length });
+      return r;
+    } catch (err) {
+      console.warn(`[agent] fallback failed`, { model: label, err: err instanceof Error ? `${err.name}: ${err.message}` : err });
+      fallbackErrors.push({ model: label, error: err });
+    }
+  }
+
+  const geminiSummary = keys.length
+    ? `${keys.length} key(s) tried — all hit quota or timeout`
+    : "no Gemini keys configured";
+  const wrapped = new Error(
+    `All providers failed.\n\nGEMINI: ${geminiSummary}\n\nFALLBACKS:\n${fallbackErrors
+      .map((f) => `--- ${f.model} ---\n${verboseError(f.error)}`)
+      .join("\n\n")}`,
+  );
+  wrapped.name = "AllProvidersFailed";
+  throw wrapped;
 }
 
 // ─── Main agent ───────────────────────────────────────────────────────────────

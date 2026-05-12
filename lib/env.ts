@@ -7,7 +7,11 @@ const Env = z.object({
 
   // LLM (one of)
   AI_GATEWAY_API_KEY: z.string().optional(),
+  // Comma-separated for multiple keys (key rotation): "key1,key2,key3"
   GEMINI_API_KEY: z.string().optional(),
+
+  // OpenRouter (free-tier fallback after Groq)
+  OPENROUTER_API_KEY: z.string().optional(),
 
   // Google OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
