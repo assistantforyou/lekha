@@ -38,6 +38,8 @@ const Env = z.object({
   // App
   APP_BASE_URL: z.string().url(),
   ADMIN_LINE_USER_ID: z.string().optional(),
+  // Developer testing — set a long random secret; keep undefined in prod if unused
+  TEST_API_SECRET: z.string().min(16).optional(),
 });
 
 export type EnvShape = z.infer<typeof Env>;
