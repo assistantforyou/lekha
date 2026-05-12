@@ -121,27 +121,14 @@ In the LINE console → Messaging API tab:
 
 ---
 
-## 11. (Optional but recommended) Schedule the proactive cron sweep
+## 11. Proactive cron sweep (LIVE — completed)
 
-The bot can push you a daily morning briefing and pre-meeting reminders, but the proactive layer needs a recurring trigger. Set up a QStash schedule that hits `/api/cron/sweep` every 15 minutes:
+The bot's proactive features (morning briefing at 7 AM, pre-meeting reminders at 1d/1h/15m, and 9 PM evening summary) are powered by a QStash schedule that hits `/api/cron/sweep` every 15 minutes.
 
-**Option A — Upstash QStash dashboard:**
-1. <https://console.upstash.com/qstash> → **Schedules** → **Create**.
-2. Destination: `https://YOUR-VERCEL-URL/api/cron/sweep`
-3. Cron: `*/15 * * * *`
-4. Method: POST
-5. Body: `{}`
-6. Save.
-
-**Option B — curl from your terminal** (fill in your QSTASH_TOKEN — pulled from `vercel env pull .env.local`):
-
-```bash
-curl -XPOST https://qstash.upstash.io/v2/schedules/https://YOUR-VERCEL-URL/api/cron/sweep \
-  -H "Authorization: Bearer $QSTASH_TOKEN" \
-  -H "Upstash-Cron: */15 * * * *" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
+**Status: LIVE as of this session.**
+- **Schedule ID:** `scd_7n4QEk86a7ENn6fghPQagcw2TRNS`
+- **Endpoint:** `https://lekha-iota.vercel.app/api/cron/sweep`
+- **Cron:** Every 15 minutes (`*/15 * * * *`)
 
 To test the sweep manually without waiting for the schedule:
 
@@ -150,8 +137,6 @@ To test the sweep manually without waiting for the schedule:
 curl -XPOST https://YOUR-VERCEL-URL/api/cron/sweep \
   -H "Authorization: Bearer $OAUTH_STATE_SECRET"
 ```
-
-If you skip this step, the bot still works — you just won't get morning briefings or pre-meeting alerts.
 
 ---
 

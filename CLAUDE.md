@@ -51,7 +51,8 @@ lib/
 │   ├── prompts.ts                     # base personality + system prompt builder
 │   ├── extract-facts.ts               # background fact extraction + archive summarization
 │   ├── render-drafts.ts               # canonical verbatim draft block
-│   └── briefing.ts                    # builds morning briefing text from calendar/tasks/inbox
+│   ├── briefing.ts                    # builds morning briefing text from calendar/tasks/inbox
+│   └── evening-summary.ts             # builds 9 PM evening summary — tasks, next 5 calendar events, news via Tavily
 ├── memory/
 │   ├── redis.ts                       # singleton Upstash client
 │   ├── crypto.ts                      # AES-256-GCM + HMAC + safeEqual
@@ -68,7 +69,7 @@ lib/
 └── tools/
     ├── index.ts                       # toolsForUser(userId) — registry, env-gated
     ├── help.ts                        # show_help text dump
-    ├── settings.ts                    # set_timezone/location/language/morning_briefing/pre_meeting
+    ├── settings.ts                    # set_timezone/location/language/morning_briefing/pre_meeting + enable/disable_evening_summary
     ├── memory.ts                      # remember/list/update/forget/clear + archive search
     ├── tasks.ts                       # CRUD on tasks
     ├── reminders.ts                   # set/list/cancel/set_recurring (one-shot via publish, recurring via schedule)
@@ -126,13 +127,15 @@ OAuth tokens AES-256-GCM with `TOKEN_ENCRYPTION_KEY` (32-byte hex). `OAUTH_STATE
 Upstash sliding window, 30/hr/user. Protects free Gemini quota and LINE push quota.
 
 ### 11. Settings injected into every system prompt
-Timezone, location, language, connected Google accounts, staged media — all live in the system prompt so the model behaves correctly without needing to call lookup tools.
+Timezone, location, language, connected Google accounts, staged media — all live in the system prompt so the model behaves correctly without needing to call lookup tools. Settings default to: 7 AM morning briefing, 1d/1h/15m pre-meeting reminders, 9 PM evening summary, inbox briefing enabled.
+
+Settings use versioning + migration: `CURRENT_VERSION` in `lib/memory/settings.ts` defines the schema. When a new schema is deployed, `applyMigrations()` runs on read and writes back once, never overriding explicit user choices tracked in `userConfigured` array.
 
 ### 12. Long-term memory via summarization, not vectors
 Every fact-extraction cycle (every 10 turns) ALSO writes a 2-4 sentence chunk summary to `archive`. `search_archived_memory` does substring match. Cheap, no vector store needed for personal-bot scale.
 
 ### 13. Proactive layer via QStash schedule
-`/api/cron/sweep` is hit every 15 min. Iterates `users:active` set, decides per-user whether to push (morning briefing window check, pre-meeting lead-time check). Idempotent per event via `premeet:{userId}:{eventId}` keys.
+`/api/cron/sweep` is hit every 15 min via live QStash schedule (ID `scd_7n4QEk86a7ENn6fghPQagcw2TRNS`). Iterates `users:active` set, decides per-user whether to push (morning briefing window check, pre-meeting lead-time check, evening summary window check). Idempotent per event via `premeet:{userId}:{eventId}` and `evening_summary:{userId}` keys.
 
 ### 14. Email body is base64-encoded
 For Thai/UTF-8 fidelity. `Content-Transfer-Encoding: base64` on the text body part. Some MTAs corrupt non-ASCII under `7bit`.
@@ -196,7 +199,7 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 See README.md "Manual smoke tests" — covers settings, tasks, contacts, gmail inbox, OCR/voice/PDF, scheduled email, sent history, briefing.
 
 ## Cron sweep setup
-The proactive layer needs a QStash schedule pointing at `/api/cron/sweep` every 15 min. See SETUP.md step 11. Without it, morning briefings + pre-meeting alerts are silent (everything else still works).
+The proactive layer (morning briefings, pre-meeting alerts, evening summaries) requires a live QStash schedule pointing at `/api/cron/sweep` every 15 min. This is live as of this session (schedule ID `scd_7n4QEk86a7ENn6fghPQagcw2TRNS`). See SETUP.md step 11 for details.
 
 ## Collaboration
 
