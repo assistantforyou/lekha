@@ -368,6 +368,12 @@ async function respondToOtherMedia(
     fileName?.toLowerCase().endsWith(".zip") ||
     fileName?.toLowerCase().endsWith(".gz") ||
     fileName?.toLowerCase().endsWith(".tar");
+  const isReadableDoc =
+    !isZip && (
+      contentType === "application/pdf" ||
+      /\.(pdf|docx?|xlsx?|pptx?|txt|csv|md|rtf)$/i.test(fileName ?? "") ||
+      contentType.startsWith("text/")
+    );
   const description = [
     `(User just sent a ${kind} via LINE.`,
     fileName ? ` Filename: "${fileName}".` : "",
@@ -376,7 +382,9 @@ async function respondToOtherMedia(
     ` Mime: ${contentType}.`,
     isZip
       ? " NOTE: This is a ZIP/archive file. It is staged for email attachment via attach_recent_media, but you CANNOT open, extract, or read its contents. Tell the user this explicitly.)"
-      : " It's staged for attachment via attach_recent_media on draft_email if they want it sent somewhere.)",
+      : isReadableDoc
+      ? " This is a readable document staged in recent media. CALL summarize_document RIGHT NOW to read and summarize it — do not ask the user to resend or wait. If the user previously asked to read or summarize a file, fulfill that request immediately.)"
+      : " It's staged in recent media for email attachment (attach_recent_media) or media AI tools (transcribe_audio, ocr_image, etc.).)",
   ].join("");
 
   const history = await loadHistory(userId);
