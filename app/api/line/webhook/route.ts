@@ -23,8 +23,10 @@ import { classify, clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
 import { appendRecentMedia } from "@/lib/memory/recent-media";
 import { registerUser } from "@/lib/memory/user-registry";
+import { getSettings } from "@/lib/memory/settings";
 import { logSent } from "@/lib/memory/sent-log";
 import { runAgent } from "@/lib/agent";
+import { ensureUserSchedules } from "@/lib/proactive/schedule";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -96,6 +98,11 @@ async function handleEvent(event: LineEvent): Promise<void> {
         `Hi${name}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
       ),
     ]);
+    // Bootstrap proactive schedules for the new user (fire-and-forget).
+    const newUserSettings = await getSettings(userId).catch(() => null);
+    if (newUserSettings) {
+      ensureUserSchedules(userId, newUserSettings).catch(() => {});
+    }
     return;
   }
 

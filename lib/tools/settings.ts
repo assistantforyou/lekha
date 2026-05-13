@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { getSettings, updateSettings } from "@/lib/memory/settings";
+import {
+  ensureMorningSchedule,
+  cancelMorningSchedule,
+  ensureEveningSchedule,
+  cancelEveningSchedule,
+} from "@/lib/proactive/schedule";
 
 const TZ_REGEX = /^[A-Za-z][A-Za-z_]*\/[A-Za-z][A-Za-z_]*(?:\/[A-Za-z][A-Za-z_]*)?$/;
 
@@ -27,12 +33,18 @@ export function buildSettingsTools(userId: string) {
       }),
       execute: async ({ timezone }) => {
         try {
-          // Validate by attempting to format with it.
           new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format(new Date());
         } catch {
           return { ok: false, error: `'${timezone}' isn't recognized. Use an IANA name.` };
         }
         const next = await updateSettings(userId, { timezone });
+        // Reschedule briefings at the new timezone's UTC offset.
+        if (next.morningBriefingTime) {
+          ensureMorningSchedule(userId, next.morningBriefingTime, timezone).catch(() => {});
+        }
+        if (next.eveningSummaryEnabled) {
+          ensureEveningSchedule(userId, timezone).catch(() => {});
+        }
         return { ok: true, timezone: next.timezone };
       },
     }),
@@ -65,10 +77,11 @@ export function buildSettingsTools(userId: string) {
         include_inbox: z.boolean().default(false),
       }),
       execute: async ({ time, include_inbox }) => {
-        await updateSettings(userId, {
+        const next = await updateSettings(userId, {
           morningBriefingTime: time,
           inboxBriefingEnabled: include_inbox,
         });
+        ensureMorningSchedule(userId, time, next.timezone).catch(() => {});
         return { ok: true, morningBriefingTime: time, inboxBriefingEnabled: include_inbox };
       },
     }),
@@ -78,6 +91,7 @@ export function buildSettingsTools(userId: string) {
       inputSchema: z.object({}),
       execute: async () => {
         await updateSettings(userId, { morningBriefingTime: null });
+        cancelMorningSchedule(userId).catch(() => {});
         return { ok: true };
       },
     }),
@@ -87,7 +101,8 @@ export function buildSettingsTools(userId: string) {
         "Turn on a daily 9 PM push with leftover tasks, tomorrow's next 5 calendar events, and today's geopolitics + economics news headlines.",
       inputSchema: z.object({}),
       execute: async () => {
-        await updateSettings(userId, { eveningSummaryEnabled: true });
+        const next = await updateSettings(userId, { eveningSummaryEnabled: true });
+        ensureEveningSchedule(userId, next.timezone).catch(() => {});
         return { ok: true, note: "Evening summary enabled. I'll push you a wrap-up each night at 9 PM." };
       },
     }),
@@ -97,6 +112,7 @@ export function buildSettingsTools(userId: string) {
       inputSchema: z.object({}),
       execute: async () => {
         await updateSettings(userId, { eveningSummaryEnabled: false });
+        cancelEveningSchedule(userId).catch(() => {});
         return { ok: true };
       },
     }),

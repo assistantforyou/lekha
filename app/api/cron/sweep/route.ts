@@ -3,13 +3,12 @@ import { Receiver } from "@upstash/qstash";
 import { google } from "googleapis";
 import { env, hasQStash } from "@/lib/env";
 import { listAllUsers } from "@/lib/memory/user-registry";
-import { getSettings, updateSettings } from "@/lib/memory/settings";
+import { getSettings } from "@/lib/memory/settings";
 import { hasGoogleConnection, getGoogleClient } from "@/lib/tools/google-auth";
 import { redis } from "@/lib/memory/redis";
 import { push, text as textMsg } from "@/lib/line/client";
-import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
-import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
 import { listTasks } from "@/lib/memory/tasks";
+import { ensureUserSchedules } from "@/lib/proactive/schedule";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,48 +46,20 @@ export async function POST(req: NextRequest) {
   }
 
   const users = await listAllUsers();
-  const stats = { briefings: 0, eveningSummaries: 0, preMeetingPushes: 0, taskWarnings: 0, errors: 0, users: users.length };
+  const stats = { schedulesBootstrapped: 0, preMeetingPushes: 0, taskWarnings: 0, errors: 0, users: users.length };
 
   await Promise.all(
     users.map(async (userId) => {
       try {
         const settings = await getSettings(userId);
 
-        // Morning briefing
-        if (
-          settings.morningBriefingTime &&
-          shouldFireBriefingNow(
-            settings.morningBriefingTime,
-            settings.lastMorningBriefingTs,
-            settings.timezone,
-          )
-        ) {
-          const briefing = await buildMorningBriefing(userId, {
-            timezone: settings.timezone,
-            location: settings.location,
-            includeInbox: settings.inboxBriefingEnabled,
-          });
-          if (briefing) {
-            await push(userId, [textMsg(briefing)]);
-            await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
-            stats.briefings++;
-          }
-        }
+        // Bootstrap QStash recurring schedules for morning briefing + evening summary.
+        // Idempotent — only creates/updates when something is missing or changed.
+        await ensureUserSchedules(userId, settings);
+        stats.schedulesBootstrapped++;
 
-        // Evening summary — 9 PM wrap-up (tasks + calendar + news).
-        if (
-          settings.eveningSummaryEnabled &&
-          shouldFireEveningSummaryNow(settings.lastEveningSummaryTs, settings.timezone)
-        ) {
-          const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
-          if (summary) {
-            await push(userId, [textMsg(summary)]);
-            await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
-            stats.eveningSummaries++;
-          }
-        }
-
-        // Pre-meeting reminders — fire at EACH configured lead time.
+        // Pre-meeting reminders — still cron-based because calendar events are added
+        // dynamically and we can't know in advance when to schedule a one-shot.
         if (
           settings.preMeetingLeads.length > 0 &&
           (await hasGoogleConnection(userId))
