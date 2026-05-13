@@ -63,7 +63,24 @@ export async function buildConnectUrl(userId: string): Promise<string> {
   return `${env().APP_BASE_URL}/connect/${token}`;
 }
 
-/** Validate AND consume a connect-link token. Returns the userId; subsequent uses fail. */
+/**
+ * Validate a connect-link token and return the userId.
+ *
+ * LINE's in-app browser fires two requests to the same URL within ~1 second
+ * when following a server redirect. A pure GETDEL (single-use) would let the
+ * first request succeed and immediately show "Link expired" on the second.
+ *
+ * Instead we use a two-phase approach:
+ *   1. First call: key is present and unused → mark it "used" with a 90-second
+ *      grace TTL, then allow the OAuth redirect.
+ *   2. Subsequent calls within 90 s: key still present but marked used → allow
+ *      again (idempotent; starts another OAuth state nonce, harmless).
+ *   3. After 90 s: key gone → throw "expired".
+ *
+ * The OAuth state nonce created by startOAuth() is still single-use, so no
+ * security regression: an attacker who replays the link within the grace window
+ * only starts a second OAuth flow under their own Google account.
+ */
 export async function verifyConnectToken(token: string): Promise<string> {
   const decoded = Buffer.from(token, "base64url").toString("utf8");
   const parts = decoded.split(".");
@@ -73,9 +90,15 @@ export async function verifyConnectToken(token: string): Promise<string> {
   if (!safeEqual(sig, expected)) throw new Error("bad signature");
   const expiresAt = Number(expiresAtStr);
   if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) throw new Error("expired");
-  // Atomic single-use consumption.
-  const consumed = await redis().getdel<{ userId: string }>(connectLinkKey(sig));
-  if (!consumed || consumed.userId !== userId) throw new Error("link already used or expired");
+
+  const stored = await redis().get<{ userId: string; used?: boolean }>(connectLinkKey(sig));
+  if (!stored || stored.userId !== userId) throw new Error("link already used or expired");
+
+  if (!stored.used) {
+    // First use: shrink TTL to 90-second grace window so double-requests work.
+    await redis().set(connectLinkKey(sig), { userId, used: true }, { ex: 90 });
+  }
+
   return userId;
 }
 
