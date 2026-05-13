@@ -165,7 +165,7 @@ export function shouldFireBriefingNow(
   briefingTime: string | null,
   lastFiredTs: number | null,
   timezone: string,
-  windowMinutes = 15,
+  windowMinutes = 29,
 ): boolean {
   if (!briefingTime) return false;
   const m = /^(\d{1,2}):(\d{2})$/.exec(briefingTime);
