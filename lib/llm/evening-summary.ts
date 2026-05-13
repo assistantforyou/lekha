@@ -49,9 +49,10 @@ export async function buildEveningSummary(
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
 
-  const [tasksResult, calendarResult, geoResult, econResult, polyResult] =
+  const [tasksResult, doneResult, calendarResult, geoResult, econResult, polyResult] =
     await Promise.allSettled([
       listTasks(userId, "open"),
+      listTasks(userId, "done"),
 
       hasGoogleConnection(userId).then(async (has) => {
         if (!has) return null;
@@ -84,7 +85,19 @@ export async function buildEveningSummary(
 
   const sections: string[] = [];
 
-  // 1. Leftover tasks
+  // 1. Completed today
+  const allDone = doneResult.status === "fulfilled" ? doneResult.value : [];
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const doneToday = allDone.filter((t) => t.doneAt && t.doneAt >= startOfToday.getTime());
+  if (doneToday.length) {
+    const lines = doneToday.map((t) => `• ✓ ${t.title}`);
+    sections.push(`✅ Done today\n${lines.join("\n")}`);
+  } else {
+    sections.push("✅ Done today\n• Nothing completed today.");
+  }
+
+  // 2. Leftover open tasks
   const tasks = tasksResult.status === "fulfilled" ? tasksResult.value : [];
   const overdue = tasks
     .filter((t) => t.dueAt && t.dueAt < now)
@@ -107,11 +120,11 @@ export async function buildEveningSummary(
   const taskLines = [...overdue, ...remaining];
   sections.push(
     taskLines.length
-      ? `📋 Open tasks\n${taskLines.join("\n")}`
-      : "📋 Open tasks\n• All clear — nothing left open.",
+      ? `📋 Still open\n${taskLines.join("\n")}`
+      : "📋 Still open\n• All clear — nothing left.",
   );
 
-  // 2. Tomorrow's schedule (next 5 events from now)
+  // 3. Upcoming schedule (next 5 events from now)
   const calEvents =
     calendarResult.status === "fulfilled" ? calendarResult.value : null;
   if (calEvents && calEvents.length > 0) {
@@ -137,7 +150,7 @@ export async function buildEveningSummary(
     sections.push(`📅 Coming up\n${lines.join("\n")}`);
   }
 
-  // 3. News — geopolitics + economics + polymarket (if any results)
+  // 4. News — geopolitics + economics + polymarket (if any results)
   const geo = geoResult.status === "fulfilled" ? geoResult.value : [];
   const econ = econResult.status === "fulfilled" ? econResult.value : [];
   const poly = polyResult.status === "fulfilled" ? polyResult.value : [];

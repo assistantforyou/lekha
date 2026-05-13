@@ -3,22 +3,41 @@ import { generateText } from "ai";
 import { extractorModel } from "./provider";
 import { getGoogleClient, hasGoogleConnection } from "@/lib/tools/google-auth";
 import { listTasks } from "@/lib/memory/tasks";
-import { listReminders } from "@/lib/tools/reminders";
 import { env } from "@/lib/env";
 
-function formatTimeRemaining(ms: number): string {
-  const totalMin = Math.floor(ms / 60_000);
-  if (totalMin < 1) return "< 1m";
-  if (totalMin < 60) return `${totalMin}m`;
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+type NewsStory = { title: string };
+
+async function fetchNews(query: string, apiKey: string): Promise<NewsStory[]> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const r = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: apiKey,
+        query,
+        max_results: 4,
+        search_depth: "basic",
+        topic: "news",
+        days: 1,
+      }),
+      signal: ctrl.signal,
+    });
+    if (!r.ok) return [];
+    const data = (await r.json()) as { results?: Array<{ title: string }> };
+    return (data.results ?? []).map((s) => ({ title: s.title }));
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 /**
- * Build a daily morning briefing for a single user. Pulls today's calendar,
- * open tasks, and (optionally) recent unread Gmail. Returns a single short
- * push-ready string.
+ * Build a daily morning briefing for a single user. Pulls all open tasks,
+ * the next 5 upcoming calendar events, optional unread Gmail, and today's news.
+ * Returns a single push-ready string.
  */
 export async function buildMorningBriefing(
   userId: string,
@@ -26,131 +45,164 @@ export async function buildMorningBriefing(
 ): Promise<string | null> {
   const sections: string[] = [];
   const now = Date.now();
+  const apiKey = env().TAVILY_API_KEY;
 
-  // ⏰ Upcoming reminders (next 24h), with time remaining
-  try {
-    const allReminders = await listReminders(userId);
-    const upcoming = allReminders
-      .filter((r) => !r.cron && r.fireAt > now && r.fireAt < now + 24 * 60 * 60 * 1000)
-      .sort((a, b) => a.fireAt - b.fireAt);
-    if (upcoming.length) {
-      const lines = upcoming.map((r) => `• ${r.message} — in ${formatTimeRemaining(r.fireAt - now)}`);
-      sections.push(`⏰ Reminders today\n${lines.join("\n")}`);
-    }
-  } catch {
-    // reminders not configured or Redis error — skip silently
-  }
+  // Fetch everything in parallel
+  const [tasksResult, calendarResult, geoResult, econResult, inboxResult] =
+    await Promise.allSettled([
+      listTasks(userId, "open"),
 
-  // Calendar today
-  if (await hasGoogleConnection(userId)) {
-    try {
-      const { client } = await getGoogleClient(userId, undefined, [
-        "https://www.googleapis.com/auth/calendar.readonly",
-      ]);
-      const calendar = google.calendar({ version: "v3", auth: client });
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
-      const r = await calendar.events.list({
-        calendarId: "primary",
-        timeMin: startOfDay.toISOString(),
-        timeMax: endOfDay.toISOString(),
-        singleEvents: true,
-        orderBy: "startTime",
-        maxResults: 10,
-      });
-      const events = (r.data.items ?? []).map((e) => ({
-        summary: e.summary ?? "(untitled)",
-        start: e.start?.dateTime ?? e.start?.date ?? "",
-      }));
-      if (events.length) {
-        const lines = events
-          .map((e) => {
-            const t = e.start
-              ? new Date(e.start).toLocaleTimeString("en-US", {
-                  timeZone: opts.timezone,
-                  hour: "numeric",
-                  minute: "2-digit",
-                })
-              : "?";
-            return `• ${t} — ${e.summary}`;
-          })
-          .join("\n");
-        sections.push(`📅 Today\n${lines}`);
-      } else {
-        sections.push("📅 Today\nNo events on your calendar.");
-      }
-    } catch (err) {
-      console.warn("[briefing] calendar fetch failed", err);
-    }
-  }
-
-  // Open tasks — overdue first, then due within 24h
-  const open = await listTasks(userId, "open");
-  if (open.length) {
-    const overdue = open
-      .filter((t) => t.dueAt && t.dueAt < now)
-      .slice(0, 5)
-      .map((t) => `• [OVERDUE] ${t.title}`);
-    const dueSoon = open
-      .filter((t) => t.dueAt && t.dueAt >= now && t.dueAt < now + 24 * 60 * 60 * 1000)
-      .slice(0, 5)
-      .map((t) => `• ${t.title} (due ${new Date(t.dueAt!).toLocaleTimeString("en-US", { timeZone: opts.timezone, hour: "numeric", minute: "2-digit" })})`);
-    const taskLines = [...overdue, ...dueSoon];
-    if (taskLines.length) {
-      sections.push(`📋 Tasks\n${taskLines.join("\n")}`);
-    } else {
-      sections.push(`📋 ${open.length} open task(s) — none due today.`);
-    }
-  }
-
-  // Inbox
-  if (opts.includeInbox && (await hasGoogleConnection(userId))) {
-    try {
-      const { client } = await getGoogleClient(userId, undefined, [
-        "https://www.googleapis.com/auth/gmail.readonly",
-      ]);
-      const gmail = google.gmail({ version: "v1", auth: client });
-      const list = await gmail.users.messages.list({
-        userId: "me",
-        q: "newer_than:1d is:unread category:primary",
-        maxResults: 8,
-      });
-      const ids = (list.data.messages ?? []).map((m) => m.id ?? "").filter(Boolean);
-      if (ids.length) {
-        const fetched = await Promise.all(
-          ids.map((id) =>
-            gmail.users.messages.get({
-              userId: "me",
-              id,
-              format: "metadata",
-              metadataHeaders: ["From", "Subject"],
-            }),
-          ),
-        );
-        const items = fetched.map((r) => {
-          const headers = r.data.payload?.headers ?? [];
-          const from = headers.find((h) => h.name?.toLowerCase() === "from")?.value ?? "";
-          const subject = headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
-          return `• ${subject} — ${from.split("<")[0]?.trim() || from}`;
+      hasGoogleConnection(userId).then(async (has) => {
+        if (!has) return null;
+        const { client } = await getGoogleClient(userId, undefined, [
+          "https://www.googleapis.com/auth/calendar.readonly",
+        ]);
+        const calendar = google.calendar({ version: "v3", auth: client });
+        const r = await calendar.events.list({
+          calendarId: "primary",
+          timeMin: new Date(now).toISOString(),
+          maxResults: 5,
+          singleEvents: true,
+          orderBy: "startTime",
         });
-        sections.push(`📧 Unread (last 24h)\n${items.join("\n")}`);
-      }
-    } catch (err) {
-      console.warn("[briefing] gmail fetch failed", err);
-    }
+        return r.data.items ?? [];
+      }),
+
+      apiKey
+        ? fetchNews("geopolitics world news today major outlets", apiKey)
+        : Promise.resolve([] as NewsStory[]),
+
+      apiKey
+        ? fetchNews("global economics finance markets today", apiKey)
+        : Promise.resolve([] as NewsStory[]),
+
+      opts.includeInbox
+        ? hasGoogleConnection(userId).then(async (has) => {
+            if (!has) return null;
+            const { client } = await getGoogleClient(userId, undefined, [
+              "https://www.googleapis.com/auth/gmail.readonly",
+            ]);
+            const gmail = google.gmail({ version: "v1", auth: client });
+            const list = await gmail.users.messages.list({
+              userId: "me",
+              q: "newer_than:1d is:unread category:primary",
+              maxResults: 8,
+            });
+            const ids = (list.data.messages ?? []).map((m) => m.id ?? "").filter(Boolean);
+            if (!ids.length) return [];
+            const fetched = await Promise.all(
+              ids.map((id) =>
+                gmail.users.messages.get({
+                  userId: "me",
+                  id,
+                  format: "metadata",
+                  metadataHeaders: ["From", "Subject"],
+                }),
+              ),
+            );
+            return fetched.map((r) => {
+              const headers = r.data.payload?.headers ?? [];
+              const from = headers.find((h) => h.name?.toLowerCase() === "from")?.value ?? "";
+              const subject = headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
+              return `• ${subject} — ${from.split("<")[0]?.trim() || from}`;
+            });
+          })
+        : Promise.resolve(null),
+    ]);
+
+  // 1. All open tasks — overdue first, then by due date, then undated
+  const openTasks = tasksResult.status === "fulfilled" ? tasksResult.value : [];
+  if (openTasks.length) {
+    const overdue = openTasks
+      .filter((t) => t.dueAt && t.dueAt < now)
+      .sort((a, b) => a.dueAt! - b.dueAt!)
+      .map((t) => {
+        const when = new Date(t.dueAt!).toLocaleDateString("en-US", {
+          timeZone: opts.timezone,
+          month: "short",
+          day: "numeric",
+        });
+        return `• [OVERDUE ${when}] ${t.title}`;
+      });
+    const upcoming = openTasks
+      .filter((t) => !t.dueAt || t.dueAt >= now)
+      .sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity))
+      .slice(0, 10)
+      .map((t) => {
+        if (t.dueAt) {
+          const when = new Date(t.dueAt).toLocaleDateString("en-US", {
+            timeZone: opts.timezone,
+            month: "short",
+            day: "numeric",
+          });
+          return `• ${t.title} (due ${when})`;
+        }
+        return `• ${t.title}`;
+      });
+    const taskLines = [...overdue, ...upcoming].slice(0, 10);
+    sections.push(`📋 Tasks (${openTasks.length} open)\n${taskLines.join("\n")}`);
+  } else {
+    sections.push("📋 Tasks\n• All clear — nothing open.");
+  }
+
+  // 2. Next 5 upcoming calendar events (from now, across any day)
+  const calEvents = calendarResult.status === "fulfilled" ? calendarResult.value : null;
+  if (calEvents && calEvents.length > 0) {
+    const lines = calEvents.map((e) => {
+      const startRaw = e.start?.dateTime ?? e.start?.date ?? "";
+      const dateStr = startRaw
+        ? new Date(startRaw).toLocaleDateString("en-US", {
+            timeZone: opts.timezone,
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })
+        : "?";
+      const timeStr = e.start?.dateTime
+        ? new Date(startRaw).toLocaleTimeString("en-US", {
+            timeZone: opts.timezone,
+            hour: "numeric",
+            minute: "2-digit",
+          })
+        : "all day";
+      return `• ${dateStr}, ${timeStr} — ${e.summary ?? "(untitled)"}`;
+    });
+    sections.push(`📅 Upcoming\n${lines.join("\n")}`);
+  } else if (calEvents !== null) {
+    sections.push("📅 Upcoming\n• Nothing on your calendar.");
+  }
+
+  // 3. News — geopolitics + economics
+  const geo = geoResult.status === "fulfilled" ? geoResult.value : [];
+  const econ = econResult.status === "fulfilled" ? econResult.value : [];
+  const newsLines: string[] = [];
+  if (geo.length) {
+    newsLines.push("🌍 World");
+    geo.slice(0, 3).forEach((s) => newsLines.push(`  • ${s.title}`));
+  }
+  if (econ.length) {
+    newsLines.push("📈 Markets");
+    econ.slice(0, 2).forEach((s) => newsLines.push(`  • ${s.title}`));
+  }
+  if (newsLines.length) {
+    sections.push(`📰 News\n${newsLines.join("\n")}`);
+  }
+
+  // 4. Inbox (optional)
+  const inboxItems = inboxResult.status === "fulfilled" ? inboxResult.value : null;
+  if (inboxItems && inboxItems.length > 0) {
+    sections.push(`📧 Unread (last 24h)\n${inboxItems.join("\n")}`);
   }
 
   if (!sections.length) return null;
 
-  // Optional: have the LLM polish the briefing into a friendly intro.
+  // Let the LLM add a warm one-line intro, but keep all sections verbatim.
   try {
     const prelude = `Good morning! Here's your day:\n\n${sections.join("\n\n")}`;
     const r = await generateText({
       model: extractorModel(),
       system:
-        "You are Lekha, a personal assistant. Take this briefing skeleton and add a single warm one-line intro. Output the briefing in full — keep all sections verbatim. No emoji headers should be removed. Total under 1500 chars.",
+        "You are Lekha, a personal assistant. Take this briefing skeleton and add a single warm one-line intro. Output the briefing in full — keep all sections verbatim. No emoji headers should be removed. Total under 1600 chars.",
       prompt: prelude,
     });
     const polished = r.text.trim();
