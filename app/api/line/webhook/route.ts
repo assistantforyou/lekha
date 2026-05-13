@@ -619,23 +619,21 @@ SOURCE RULE: when presenting live data (prices, rates, weather), always cite the
     if (inner instanceof RateLimited) {
       return `I'm being rate-limited. Try again in ~${inner.retryAfterSec}s.`;
     }
-    // VERBOSE DEBUG MODE — surface the entire error chain to LINE so we can
-    // diagnose remaining failures in production. Revert when stable.
     if (err instanceof AgentTimeoutError) {
       console.warn("[agent] timeout", { seconds: err.seconds });
       return `⏱ Timed out after ${err.seconds}s. Both Gemini and Groq took too long. Try again in a sec.`;
     }
     if (err instanceof Error && err.name === "AllProvidersFailed") {
       console.error("[agent] all providers failed");
-      return `🚦 All providers failed:\n\n${err.message}`;
+      return `🚦 All providers failed. Try again in a moment.`;
     }
     const quota = parseQuotaError(err);
     if (quota) {
       console.warn("[agent] gemini quota/overload (no fallback configured)", { retryAfter: quota.retryAfterSec });
-      return `🚦 Gemini overloaded for ~${quota.retryAfterSec}s.\n\n${verboseError(err)}`;
+      return `🚦 Gemini is overloaded. Try again in ~${quota.retryAfterSec}s.`;
     }
     console.error("[agent] unhandled", err);
-    return `🐛 Unhandled agent error:\n\n${verboseError(err)}`;
+    return `Something went wrong on my end. Try again in a moment.`;
   }
 }
 
