@@ -12,6 +12,7 @@ const Body = z.object({
   userId: z.string().min(1),
   id: z.string().min(1),
   message: z.string().min(1),
+  type: z.enum(["warning_3h", "warning_1h", "final"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -46,12 +47,22 @@ export async function POST(req: NextRequest) {
     return new NextResponse("bad body", { status: 400 });
   }
 
-  const reminder = await consumeReminder(body.userId, body.id);
+  const { userId, id, message, type = "final" } = body;
+
+  // Pre-warnings push a heads-up but do NOT consume the reminder — the final fire will.
+  if (type === "warning_3h" || type === "warning_1h") {
+    const label = type === "warning_3h" ? "3 hours" : "1 hour";
+    await push(userId, [textMsg(`⏰ Heads up — in ${label}: ${message}`)]);
+    return NextResponse.json({ ok: true });
+  }
+
+  // Final fire: consume (idempotency gate) then push.
+  const reminder = await consumeReminder(userId, id);
   if (!reminder) {
     // Already fired or cancelled — return 200 so QStash doesn't retry.
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  await push(body.userId, [textMsg(`⏰ Reminder: ${body.message}`)]);
+  await push(userId, [textMsg(`⏰ Reminder: ${message}`)]);
   return NextResponse.json({ ok: true });
 }

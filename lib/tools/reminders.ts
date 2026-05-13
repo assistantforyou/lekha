@@ -14,7 +14,8 @@ type StoredReminder = {
   id: string;
   message: string;
   fireAt: number;
-  qstashId: string;
+  qstashId: string; // final reminder QStash message id
+  warningIds?: string[]; // pre-warning message ids (3h and/or 1h ahead)
   /** If set, this is a recurring reminder; the QStash id is a schedule, not a one-shot. */
   cron?: string;
 };
@@ -57,23 +58,50 @@ export function buildReminderTools(userId: string) {
         const id = crypto.randomUUID();
         const callbackUrl = `${env().APP_BASE_URL}/api/reminders/fire`;
         try {
+          const warningIds: string[] = [];
+
+          // 3-hour heads-up (only if reminder is more than 3h out)
+          const delay3h = delaySec - 3 * 3600;
+          if (delay3h > 0) {
+            const r3 = await qstash().publishJSON({
+              url: callbackUrl,
+              body: { userId, id, message, type: "warning_3h" },
+              delay: delay3h,
+            });
+            warningIds.push(r3.messageId);
+          }
+
+          // 1-hour heads-up (only if reminder is more than 1h out)
+          const delay1h = delaySec - 3600;
+          if (delay1h > 0) {
+            const r1 = await qstash().publishJSON({
+              url: callbackUrl,
+              body: { userId, id, message, type: "warning_1h" },
+              delay: delay1h,
+            });
+            warningIds.push(r1.messageId);
+          }
+
+          // Final reminder at the requested time
           const res = await qstash().publishJSON({
             url: callbackUrl,
-            body: { userId, id, message },
+            body: { userId, id, message, type: "final" },
             delay: delaySec,
           });
+
           const stored: StoredReminder = {
             id,
             message,
             fireAt,
             qstashId: res.messageId,
+            ...(warningIds.length > 0 ? { warningIds } : {}),
           };
           await redis().set(reminderKey(userId, id), stored, { ex: delaySec + 60 });
           await redis().sadd(reminderListKey(userId), id);
           // Roll the set's TTL forward to ~14 months so it can never outlive
           // the longest possible reminder (1 year max) without housekeeping.
           await redis().expire(reminderListKey(userId), 60 * 60 * 24 * 400);
-          console.log("[reminder] scheduled", { userId, id, fireAt: new Date(fireAt).toISOString(), delaySec });
+          console.log("[reminder] scheduled", { userId, id, fireAt: new Date(fireAt).toISOString(), delaySec, warnings: warningIds.length });
           return { ok: true, id, fireAt: new Date(fireAt).toISOString() };
         } catch (err) {
           console.error("[reminder] qstash/redis failed", err);
@@ -106,6 +134,10 @@ export function buildReminderTools(userId: string) {
       execute: async ({ id }) => {
         const r = await redis().get<StoredReminder>(reminderKey(userId, id));
         if (!r) return { ok: false, error: "Reminder not found" };
+        // Cancel pre-warning messages first (fire and forget errors — may already be delivered)
+        if (r.warningIds?.length) {
+          await Promise.allSettled(r.warningIds.map((wid) => qstash().messages.delete(wid)));
+        }
         try {
           if (r.cron) {
             await qstash().schedules.delete(r.qstashId);
