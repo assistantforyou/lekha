@@ -149,12 +149,13 @@ export function buildDriveTools(userId: string) {
         if (!staged.length) {
           return { ok: false, error: "No staged LINE media. Send the file(s) first." };
         }
-        const targets = (indexes ?? staged.map((_, i) => i + 1)).map((i) => {
-          if (i < 1 || i > staged.length) {
-            throw new Error(`Index ${i} out of range (only ${staged.length} staged).`);
-          }
-          return staged[i - 1]!;
-        });
+        const badIndex = (indexes ?? staged.map((_, i) => i + 1)).find(
+          (i) => i < 1 || i > staged.length,
+        );
+        if (badIndex !== undefined) {
+          return { ok: false, error: `Index ${badIndex} out of range (only ${staged.length} staged).` };
+        }
+        const targets = (indexes ?? staged.map((_, i) => i + 1)).map((i) => staged[i - 1]!);
         return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
           const drive = google.drive({ version: "v3", auth: client });
           const uploaded: { id: string; name: string; webViewLink: string | null }[] = [];
