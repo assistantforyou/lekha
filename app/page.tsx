@@ -14,8 +14,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Reveal } from "@/components/marketing/reveal";
+import { TrackedLink } from "@/components/marketing/tracked-link";
 import { buttonVariantsForLink } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const lineUrl = "https://line.me/R/ti/p/%40737gfqnj";
 
 const capabilities = [
   {
@@ -142,30 +145,52 @@ export default function HomePage() {
   return (
     <main className="min-h-screen">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
-        <a href="#top" className="flex items-center gap-3" aria-label="Lekha home">
+        <TrackedLink
+          href="#top"
+          className="flex items-center gap-3"
+          aria-label="Lekha home"
+          eventName="Landing logo clicked"
+        >
           <div className="flex size-9 items-center justify-center rounded-lg border border-white/12 bg-white/[0.055] text-sm font-semibold text-white">
             L
           </div>
           <span className="text-sm font-semibold tracking-[0.18em] text-white/90">LEKHA</span>
-        </a>
+        </TrackedLink>
         <nav className="hidden items-center gap-6 text-sm text-[#bdb6ad] md:flex">
-          <a className="transition hover:text-white" href="#capabilities">
+          <TrackedLink
+            className="transition hover:text-white"
+            href="#capabilities"
+            eventName="Landing nav clicked"
+            eventData={{ destination: "capabilities" }}
+          >
             Capabilities
-          </a>
-          <a className="transition hover:text-white" href="#trust">
+          </TrackedLink>
+          <TrackedLink
+            className="transition hover:text-white"
+            href="#trust"
+            eventName="Landing nav clicked"
+            eventData={{ destination: "trust" }}
+          >
             Trust
-          </a>
-          <a className="transition hover:text-white" href="#rhythm">
+          </TrackedLink>
+          <TrackedLink
+            className="transition hover:text-white"
+            href="#rhythm"
+            eventName="Landing nav clicked"
+            eventData={{ destination: "rhythm" }}
+          >
             Rhythm
-          </a>
+          </TrackedLink>
         </nav>
-        <a
-          href="https://line.me/"
+        <TrackedLink
+          href={lineUrl}
           className={buttonVariantsForLink({ variant: "secondary", size: "sm" })}
+          eventName="Line CTA clicked"
+          eventData={{ location: "header" }}
         >
           Open LINE
           <ArrowRight size={14} />
-        </a>
+        </TrackedLink>
       </header>
 
       <section id="top" className="mx-auto grid w-full max-w-7xl gap-12 px-5 pb-16 pt-10 sm:px-8 sm:pb-24 sm:pt-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-10">
@@ -183,13 +208,23 @@ export default function HomePage() {
             stay on top of your schedule, and handle everyday tasks with less effort.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <a href="#capabilities" className={buttonVariantsForLink({ size: "lg" })}>
+            <TrackedLink
+              href="#capabilities"
+              className={buttonVariantsForLink({ size: "lg" })}
+              eventName="Landing CTA clicked"
+              eventData={{ location: "hero", destination: "capabilities" }}
+            >
               See the product
               <ChevronRight size={16} />
-            </a>
-            <a href="#trust" className={buttonVariantsForLink({ variant: "secondary", size: "lg" })}>
+            </TrackedLink>
+            <TrackedLink
+              href="#trust"
+              className={buttonVariantsForLink({ variant: "secondary", size: "lg" })}
+              eventName="Landing CTA clicked"
+              eventData={{ location: "hero", destination: "trust" }}
+            >
               Review safeguards
-            </a>
+            </TrackedLink>
           </div>
           <div className="mt-10 grid max-w-xl grid-cols-3 gap-4">
             <MiniMetric value="Private" label="built for personal use" />
