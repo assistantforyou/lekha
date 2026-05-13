@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+:root {
+  --background: #090a0a;
+  --foreground: #f5f3ef;
+  --muted: #a8a29a;
+  --line: rgba(245, 243, 239, 0.12);
+  --line-strong: rgba(245, 243, 239, 0.2);
+  --panel: rgba(255, 255, 255, 0.045);
+  --panel-strong: rgba(255, 255, 255, 0.075);
+  --accent: #8de3c2;
+  --accent-strong: #d7fff1;
+  --warm: #e7c88d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-panel: var(--panel);
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  color: var(--foreground);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    linear-gradient(180deg, rgba(141, 227, 194, 0.055), transparent 34rem),
+    radial-gradient(circle at 50% -20%, rgba(231, 200, 141, 0.13), transparent 34rem),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.027) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(to bottom, black 0%, transparent 78%);
+}
+
+::selection {
+  background: rgba(141, 227, 194, 0.26);
+  color: var(--foreground);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass-panel {
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0.034)),
+    rgba(255, 255, 255, 0.028);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(22px);
+}
+
+.hairline {
+  background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+}
+
+.serif {
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+}
