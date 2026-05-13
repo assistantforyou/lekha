@@ -92,9 +92,6 @@ function unwrapAuthRequired(err: unknown): boolean {
   while (cur && typeof cur === "object" && !seen.has(cur)) {
     seen.add(cur);
     if (cur instanceof GoogleAuthRequired) return true;
-    // Raw OAuth errors thrown by googleapis (not caught upstream) also require reauth.
-    const msg = String((cur as { message?: unknown }).message ?? "");
-    if (/invalid_grant|invalid_client|Token has been expired or revoked|unauthorized_client/i.test(msg)) return true;
     const next =
       (cur as { cause?: unknown; originalError?: unknown }).cause ??
       (cur as { originalError?: unknown }).originalError;

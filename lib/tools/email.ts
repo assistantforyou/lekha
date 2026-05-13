@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { google } from "googleapis";
-import { withGoogleClient } from "./with-google";
+import { withGoogleClient, guardGoogleApiCall } from "./with-google";
 import { getGoogleClient } from "./google-auth";
 import { appendPending, type SendEmailAction } from "@/lib/confirm";
 import { listRecentMedia, clearRecentMedia } from "@/lib/memory/recent-media";
@@ -176,16 +176,16 @@ export async function sendEmail(
     references: args.references,
   });
 
-  await gmail.users.messages.send({
-    userId: "me",
-    requestBody: { raw, ...(args.threadId ? { threadId: args.threadId } : {}) },
+  return guardGoogleApiCall(async () => {
+    await gmail.users.messages.send({
+      userId: "me",
+      requestBody: { raw, ...(args.threadId ? { threadId: args.threadId } : {}) },
+    });
+    // Once successfully sent with staged media, clear the staged list so the
+    // user doesn't accidentally re-attach the same files in the next email.
+    if (usedRecentMedia) await clearRecentMedia(userId);
+    return { from };
   });
-
-  // Once successfully sent with staged media, clear the staged list so the
-  // user doesn't accidentally re-attach the same files in the next email.
-  if (usedRecentMedia) await clearRecentMedia(userId);
-
-  return { from };
 }
 
 type FetchedAttachment = {

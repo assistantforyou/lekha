@@ -2,7 +2,7 @@ import { z } from "zod";
 import { tool } from "ai";
 import { google } from "googleapis";
 import { getGoogleClient } from "./google-auth";
-import { withGoogleClient } from "./with-google";
+import { withGoogleClient, guardGoogleApiCall } from "./with-google";
 import { appendPending, type CreateCalendarEventAction } from "@/lib/confirm";
 
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
@@ -224,17 +224,19 @@ export async function createCalendarEvent(
 ): Promise<{ htmlLink: string | null; from: string }> {
   const { client, email: from } = await getGoogleClient(userId, args.fromEmail);
   const calendar = google.calendar({ version: "v3", auth: client });
-  const r = await calendar.events.insert({
-    calendarId: "primary",
-    requestBody: {
-      summary: args.summary,
-      description: args.description,
-      location: args.location,
-      start: { dateTime: args.startISO },
-      end: { dateTime: args.endISO },
-      attendees: args.attendees?.map((email) => ({ email })),
-    },
-    sendUpdates: args.attendees?.length ? "all" : "none",
+  return guardGoogleApiCall(async () => {
+    const r = await calendar.events.insert({
+      calendarId: "primary",
+      requestBody: {
+        summary: args.summary,
+        description: args.description,
+        location: args.location,
+        start: { dateTime: args.startISO },
+        end: { dateTime: args.endISO },
+        attendees: args.attendees?.map((email) => ({ email })),
+      },
+      sendUpdates: args.attendees?.length ? "all" : "none",
+    });
+    return { htmlLink: r.data.htmlLink ?? null, from };
   });
-  return { htmlLink: r.data.htmlLink ?? null, from };
 }

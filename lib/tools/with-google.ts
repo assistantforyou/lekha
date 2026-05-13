@@ -24,6 +24,25 @@ export type GoogleErrorResult = {
 };
 
 /**
+ * Wrap any Google API call so that OAuth failures (invalid_grant, expired tokens, etc.)
+ * are re-thrown as GoogleAuthRequired instead of leaking raw error strings.
+ * Use this in functions that call getGoogleClient directly (e.g. sendEmail, createCalendarEvent)
+ * where returning a structured result isn't possible due to complex return types.
+ */
+export async function guardGoogleApiCall<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof GoogleAuthRequired) throw err;
+    const msg = String((err as { message?: unknown }).message ?? err);
+    if (/invalid_grant|invalid_client|Token has been expired or revoked|unauthorized_client/i.test(msg)) {
+      throw new GoogleAuthRequired([]);
+    }
+    throw err;
+  }
+}
+
+/**
  * Run `fn` with an authorized Google client. Catches three classes of failure
  * and returns structured results so the orchestrator can surface them cleanly
  * (the AI SDK swallows tool exceptions, so we can't rely on throws):
