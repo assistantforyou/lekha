@@ -20,33 +20,33 @@ import { cn } from "@/lib/utils";
 const capabilities = [
   {
     icon: CalendarDays,
-    title: "Calendar that thinks ahead",
-    body: "Briefings, pre-meeting nudges, event drafts, and timezone-aware scheduling without leaving LINE.",
+    title: "Keeps your schedule in view",
+    body: "See what is coming up, get helpful reminders, and stay prepared for the next thing on your day.",
   },
   {
     icon: Mail,
-    title: "Email with approval built in",
-    body: "Draft, schedule, reply, attach recent media, and send through Gmail only after the right confirmation.",
+    title: "Helps with email before you send",
+    body: "Draft replies, prepare follow-ups, and double-check the message before anything goes out.",
   },
   {
     icon: Search,
-    title: "Search across your day",
-    body: "Recall conversations, lists, tasks, recent inbox threads, Drive files, contacts, weather, news, and finance.",
+    title: "Finds what you need quickly",
+    body: "Pull up past notes, tasks, files, contacts, and useful details without digging through everything yourself.",
   },
   {
     icon: Bell,
-    title: "Quiet proactive layer",
-    body: "Morning briefings and reminders arrive when useful, with idempotent delivery and per-user preferences.",
+    title: "Checks in without being noisy",
+    body: "Morning summaries and timely nudges show up when they are useful, not all day long.",
   },
 ];
 
 const stack = [
-  "LINE-native",
-  "Allowlist gated",
-  "Google multi-account",
-  "Encrypted tokens",
-  "QStash schedules",
-  "Redis memory",
+  "Works inside LINE",
+  "Private by default",
+  "Connects with Google",
+  "Your approval comes first",
+  "Reminders that arrive on time",
+  "Keeps track of helpful details",
 ];
 
 const flow = [
@@ -68,10 +68,10 @@ const flow = [
 ];
 
 const principles = [
-  "No global memory. Every key is scoped by LINE user ID.",
-  "Side-effectful actions are queued atomically before confirmation.",
-  "Tool failures are relayed directly instead of softened into vague apologies.",
-  "OAuth resumes pending work automatically after consent.",
+  "Your conversations stay personal to you, not mixed into someone else's account.",
+  "Anything important can be reviewed before it is sent or scheduled.",
+  "If something goes wrong, Lekha says so clearly instead of pretending everything is fine.",
+  "Connecting your account is simple, and Lekha picks back up once you are done.",
 ];
 
 function MiniMetric({ value, label }: { value: string; label: string }) {
@@ -172,15 +172,15 @@ export default function HomePage() {
         <Reveal className="max-w-3xl">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.045] px-3 py-1.5 text-xs font-medium text-[#cfc8bd]">
             <span className="size-1.5 rounded-full bg-[#8de3c2]" />
-            Private AI assistant for LINE
+            Personal assistant for LINE
           </div>
           <h1 className="text-balance text-5xl font-semibold tracking-[-0.045em] text-white sm:text-6xl lg:text-7xl">
             Lekha
             <span className="serif block pt-2 text-[#d8d1c6]">keeps the day moving.</span>
           </h1>
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-8 text-[#bdb6ad] sm:text-xl">
-            A calm personal operator inside LINE: it remembers what matters, drafts the work,
-            checks your calendar, finds the file, and asks before anything consequential happens.
+            A calm assistant inside LINE that helps you remember things, prepare messages,
+            stay on top of your schedule, and handle everyday tasks with less effort.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <a href="#capabilities" className={buttonVariantsForLink({ size: "lg" })}>
@@ -192,9 +192,9 @@ export default function HomePage() {
             </a>
           </div>
           <div className="mt-10 grid max-w-xl grid-cols-3 gap-4">
-            <MiniMetric value="30/hr" label="per-user rate limit" />
-            <MiniMetric value="15m" label="proactive sweep cadence" />
-            <MiniMetric value="90d" label="rolling context TTL" />
+            <MiniMetric value="Private" label="built for personal use" />
+            <MiniMetric value="Helpful" label="checks in at the right time" />
+            <MiniMetric value="Careful" label="asks before big actions" />
           </div>
         </Reveal>
 
@@ -209,10 +209,10 @@ export default function HomePage() {
         <Reveal className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8de3c2]">
-              Capability Map
+              What It Helps With
             </p>
             <h2 className="mt-4 max-w-xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
-              Built for the small handoffs that consume a day.
+              Built for the small tasks that quietly take up your day.
             </h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -241,10 +241,10 @@ export default function HomePage() {
             <div className="flex items-start justify-between gap-6">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#e7c88d]">
-                  Trust Model
+                  Peace of Mind
                 </p>
                 <h2 className="mt-4 max-w-2xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
-                  Private first, useful second, never the other way around.
+                  Helpful, careful, and respectful of your personal space.
                 </h2>
               </div>
               <div className="hidden size-12 items-center justify-center rounded-xl border border-white/12 bg-white/[0.045] text-[#e7c88d] sm:flex">
@@ -263,7 +263,7 @@ export default function HomePage() {
 
           <Reveal delay={0.08} className="rounded-2xl border border-white/10 bg-[#0f100f] p-6 sm:p-8">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8de3c2]">
-              Runtime Stack
+              Works With Your Day
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               {stack.map((item) => (
@@ -277,9 +277,9 @@ export default function HomePage() {
             </div>
             <div className="mt-8 space-y-4">
               {[
-                ["Gemini primary", "12s timeout with a Groq fallback cascade"],
-                ["Google APIs", "Gmail, Calendar, Drive, People, Docs, Slides"],
-                ["Proactive jobs", "QStash reminders, scheduled email, cron sweep"],
+                ["Messages and email", "Helps you draft replies, prepare follow-ups, and keep conversations moving."],
+                ["Calendar and files", "Brings together your schedule, documents, and important context when you need them."],
+                ["Reminders and check-ins", "Can nudge you at the right moment so fewer things slip through the cracks."],
               ].map(([title, body]) => (
                 <div key={title} className="border-t border-white/10 pt-4">
                   <div className="text-sm font-semibold text-white">{title}</div>
@@ -301,8 +301,8 @@ export default function HomePage() {
               Assistance that feels timely instead of noisy.
             </h2>
             <p className="mt-5 text-base leading-7 text-[#b4ada4]">
-              Lekha’s value is not more chat. It is fewer loose ends: prepared context,
-              clean drafts, visible approvals, and reminders that land at the right moment.
+              Lekha is most useful when it helps you feel a little more prepared:
+              fewer loose ends, less backtracking, and gentle support at the moments that matter.
             </p>
           </div>
 
@@ -331,10 +331,10 @@ export default function HomePage() {
 
       <footer className="border-t border-white/10 px-5 py-8 sm:px-8 lg:px-10">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-[#8f887f] sm:flex-row sm:items-center sm:justify-between">
-          <div>Lekha runs as a private LINE assistant on Vercel.</div>
+          <div>Lekha is a private personal assistant that lives in LINE.</div>
           <div className="flex items-center gap-2">
             <FileText size={15} />
-            Built for permissioned personal automation.
+            Designed to be helpful without taking over.
           </div>
         </div>
       </footer>
