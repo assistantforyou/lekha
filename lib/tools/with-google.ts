@@ -36,6 +36,7 @@ export async function guardGoogleApiCall<T>(fn: () => Promise<T>): Promise<T> {
     if (err instanceof GoogleAuthRequired) throw err;
     const msg = String((err as { message?: unknown }).message ?? err);
     if (/invalid_grant|invalid_client|Token has been expired or revoked|unauthorized_client/i.test(msg)) {
+      console.warn("[google] raw OAuth error converted to GoogleAuthRequired:", msg.slice(0, 200));
       throw new GoogleAuthRequired([]);
     }
     throw err;

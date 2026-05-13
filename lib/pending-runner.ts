@@ -45,7 +45,8 @@ async function executeOne(userId: string, action: PendingAction): Promise<string
       return `✅ Sent to ${recipients} (from ${r.from})${att}.`;
     } catch (err) {
       if (unwrapAuthRequired(err)) {
-        return `I need Google access first. Connect here:\n${await buildConnectUrl(userId)}`;
+        console.warn("[send] Google auth expired/revoked for user", userId, "—", errMsg(err));
+        return `Your Google account needs to be reconnected (the authorization token has expired or been revoked). Tap the link to reconnect:\n${await buildConnectUrl(userId)}`;
       }
       console.error("[send] failed", err);
       return `I couldn't send the email: ${errMsg(err)}`;
@@ -72,10 +73,11 @@ async function executeOne(userId: string, action: PendingAction): Promise<string
       return r.htmlLink ? `${intro}\n${hint}\n${r.htmlLink}` : intro;
     } catch (err) {
       if (unwrapAuthRequired(err)) {
-        return `I need Google access first. Connect here:\n${await buildConnectUrl(userId)}`;
+        console.warn("[calendar] Google auth expired/revoked for user", userId, "—", errMsg(err));
+        return `Your Google account needs to be reconnected (the authorization token has expired or been revoked). Tap the link to reconnect:\n${await buildConnectUrl(userId)}`;
       }
       console.error("[calendar] failed", err);
-      return `I couldn't create the event: ${errMsg(err)}`;
+      return `I couldn't create the calendar event: ${errMsg(err)}`;
     }
   }
   return "Done.";
