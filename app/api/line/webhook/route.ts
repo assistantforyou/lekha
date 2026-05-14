@@ -20,6 +20,8 @@ import { chatModel, fallbackChatModels } from "@/lib/llm/provider";
 import { isGeminiDown, markGeminiDown } from "@/lib/llm/health";
 import type { LanguageModel } from "ai";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
+import { buildMorningBriefing } from "@/lib/llm/briefing";
+import { buildEveningSummary } from "@/lib/llm/evening-summary";
 import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
 import { toolsForUser, coreToolsForUser } from "@/lib/tools";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
@@ -208,6 +210,36 @@ async function handleEvent(event: LineEvent): Promise<void> {
         ? `Connect your Google account here (link expires in 10 min):\n${url}`
         : "Couldn't generate a connect link — make sure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.";
       await reply(event.replyToken, [textMsg(msg)]);
+      return;
+    }
+
+    // Shortcut: morning briefing — bypass LLM entirely, call builder directly.
+    if (/\b(morning briefing|daily briefing|daily summary)\b/i.test(userText) ||
+        /^(give me|show me|what'?s|send me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary)[\s?!.]*$/i.test(userText)) {
+      showLoading(userId, 25).catch(() => {});
+      const settings = await getSettings(userId);
+      const briefing = await buildMorningBriefing(userId, {
+        timezone: settings.timezone,
+        location: settings.location,
+        includeInbox: settings.inboxBriefingEnabled,
+      });
+      const out = briefing ?? "Nothing to show in your briefing right now.";
+      await reply(event.replyToken, [textMsg(out)]);
+      await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
+      await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
+      return;
+    }
+
+    // Shortcut: evening summary — bypass LLM entirely, call builder directly.
+    if (/\b(evening summary|evening briefing|evening wrap.?up|nightly summary)\b/i.test(userText) ||
+        /^(give me|show me|what'?s|send me)?\s*(my\s*)?(evening|nightly)\s*(summary|briefing|wrap.?up)[\s?!.]*$/i.test(userText)) {
+      showLoading(userId, 25).catch(() => {});
+      const settings = await getSettings(userId);
+      const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
+      const out = summary ?? "Nothing to show in your evening summary right now.";
+      await reply(event.replyToken, [textMsg(out)]);
+      await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
+      await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
       return;
     }
 
