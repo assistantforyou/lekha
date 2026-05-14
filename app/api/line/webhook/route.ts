@@ -671,11 +671,10 @@ function parseQuotaError(err: unknown): { retryAfterSec: number } | null {
       return String(err);
     }
   })();
-  // Match real quota AND transient overload AND any AI SDK API call error.
-  // AI_APICallError is the SDK's wrapper for ANY provider HTTP error — almost
-  // always transient at the provider, so cascading to Groq is the right move.
+  // Only match genuinely transient/quota errors — not bad requests or model errors.
+  // Excluding 400/404 so invalid model names or malformed requests surface as real errors.
   if (
-    !/quota|rate.?limit|RESOURCE_EXHAUSTED|429|UNAVAILABLE|overloaded|503|500|502|504|INTERNAL|timeout|temporarily|AI_APICallError|AI_RetryError|fetch failed|ECONN|ENOTFOUND/i.test(
+    !/quota|rate.?limit|RESOURCE_EXHAUSTED|429|UNAVAILABLE|overloaded|503|502|504|INTERNAL|temporarily|AI_RetryError|fetch failed|ECONN|ENOTFOUND/i.test(
       text,
     )
   ) {
