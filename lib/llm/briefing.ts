@@ -1,6 +1,4 @@
 import { google } from "googleapis";
-import { generateText } from "ai";
-import { extractorModel } from "./provider";
 import { getGoogleClient, hasGoogleConnection } from "@/lib/tools/google-auth";
 import { listTasks } from "@/lib/memory/tasks";
 import { env } from "@/lib/env";
@@ -34,10 +32,51 @@ async function fetchNews(query: string, apiKey: string): Promise<NewsStory[]> {
   }
 }
 
+type WeatherResult = {
+  tempC: number | null;
+  description: string;
+  highC: number | null;
+  lowC: number | null;
+  rainChancePct: number | null;
+};
+
+async function fetchWeather(location: string): Promise<WeatherResult | null> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    const data = await fetch(
+      `https://wttr.in/${encodeURIComponent(location)}?format=j1`,
+      { signal: ctrl.signal, headers: { "user-agent": "lekha-bot" } },
+    ).then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json() as Promise<{
+        current_condition?: Array<{ temp_C?: string; weatherDesc?: Array<{ value?: string }> }>;
+        weather?: Array<{
+          maxtempC?: string; mintempC?: string;
+          hourly?: Array<{ chanceofrain?: string }>;
+        }>;
+      }>;
+    });
+    const cur = data.current_condition?.[0];
+    const today = data.weather?.[0];
+    return {
+      tempC: cur?.temp_C ? Number(cur.temp_C) : null,
+      description: cur?.weatherDesc?.[0]?.value ?? "",
+      highC: today?.maxtempC ? Number(today.maxtempC) : null,
+      lowC: today?.mintempC ? Number(today.mintempC) : null,
+      rainChancePct: today?.hourly?.[4]?.chanceofrain ? Number(today.hourly[4]!.chanceofrain) : null,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 /**
- * Build a daily morning briefing for a single user. Pulls all open tasks,
+ * Build a daily morning briefing for a single user. Pulls weather, open tasks,
  * the next 5 upcoming calendar events, optional unread Gmail, and today's news.
- * Returns a single push-ready string.
+ * Returns a single push-ready plain-text string.
  */
 export async function buildMorningBriefing(
   userId: string,
@@ -47,9 +86,10 @@ export async function buildMorningBriefing(
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
 
-  // Fetch everything in parallel
-  const [tasksResult, calendarResult, geoResult, econResult, inboxResult] =
+  const [weatherResult, tasksResult, calendarResult, geoResult, econResult, inboxResult] =
     await Promise.allSettled([
+      opts.location ? fetchWeather(opts.location) : Promise.resolve(null),
+
       listTasks(userId, "open"),
 
       hasGoogleConnection(userId).then(async (has) => {
@@ -110,6 +150,20 @@ export async function buildMorningBriefing(
         : Promise.resolve(null),
     ]);
 
+  // 0. Weather
+  const wx = weatherResult.status === "fulfilled" ? weatherResult.value : null;
+  if (wx && wx.tempC !== null) {
+    const parts: string[] = [`${wx.tempC}°C`];
+    if (wx.description) parts.push(wx.description);
+    let line = parts.join(" · ");
+    const forecastParts: string[] = [];
+    if (wx.highC !== null) forecastParts.push(`High ${wx.highC}°`);
+    if (wx.lowC !== null) forecastParts.push(`Low ${wx.lowC}°`);
+    if (wx.rainChancePct !== null) forecastParts.push(`${wx.rainChancePct}% rain`);
+    if (forecastParts.length) line += `\n${forecastParts.join(" · ")}`;
+    sections.push(`🌤 Weather\n${line}`);
+  }
+
   // 1. All open tasks — overdue first, then by due date, then undated
   const openTasks = tasksResult.status === "fulfilled" ? tasksResult.value : [];
   if (openTasks.length) {
@@ -141,8 +195,6 @@ export async function buildMorningBriefing(
       });
     const taskLines = [...overdue, ...upcoming].slice(0, 10);
     sections.push(`📋 Tasks (${openTasks.length} open)\n${taskLines.join("\n")}`);
-  } else {
-    sections.push("📋 Tasks\n• All clear — nothing open.");
   }
 
   // 2. Next 5 upcoming calendar events (from now, across any day)
@@ -168,8 +220,6 @@ export async function buildMorningBriefing(
       return `• ${dateStr}, ${timeStr} — ${e.summary ?? "(untitled)"}`;
     });
     sections.push(`📅 Upcoming\n${lines.join("\n")}`);
-  } else if (calEvents !== null) {
-    sections.push("📅 Upcoming\n• Nothing on your calendar.");
   }
 
   // 3. News — geopolitics + economics
@@ -197,20 +247,7 @@ export async function buildMorningBriefing(
 
   if (!sections.length) return null;
 
-  // Let the LLM add a warm one-line intro, but keep all sections verbatim.
-  try {
-    const prelude = `Good morning! Here's your day:\n\n${sections.join("\n\n")}`;
-    const r = await generateText({
-      model: extractorModel(),
-      system:
-        "You are Lekha, a personal assistant. Take this briefing skeleton and add a single warm one-line intro. Output the briefing in full — keep all sections verbatim. No emoji headers should be removed. Total under 1600 chars.",
-      prompt: prelude,
-    });
-    const polished = r.text.trim();
-    return polished.length > 50 ? polished : prelude;
-  } catch {
-    return `Good morning. Here's your day:\n\n${sections.join("\n\n")}`;
-  }
+  return `Good morning! Here's your day:\n\n${sections.join("\n\n")}`;
 }
 
 /** Used by the cron sweep to know if we should push the briefing now. */
