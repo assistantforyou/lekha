@@ -21,6 +21,7 @@ import { buildNewsTools } from "./news";
 import { buildListTools } from "./lists";
 import { buildDocsTools } from "./docs";
 import { buildMorningBriefingTool } from "./morning-briefing";
+import { buildEveningSummaryTool } from "./evening-summary";
 import { hasGoogleOAuth, hasQStash, env } from "@/lib/env";
 
 /**
@@ -31,6 +32,7 @@ export function toolsForUser(userId: string) {
   return {
     ...buildHelpTools(),
     ...buildMorningBriefingTool(userId),
+    ...buildEveningSummaryTool(userId),
     ...buildFinanceTools(),
     ...buildWeatherTools(),
     ...(env().TAVILY_API_KEY ? buildNewsTools() : {}),
@@ -65,6 +67,7 @@ export function coreToolsForUser(userId: string) {
   const keep = [
     "show_help",
     "get_morning_briefing",
+    "get_evening_summary",
     "remember", "list_memories",
     "stock_price", "stock_history", "crypto_price", "fx_rate", "weather", "web_search", "news_search",
     "set_reminder", "list_reminders",
