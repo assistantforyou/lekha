@@ -76,7 +76,14 @@ async function runMediaPrompt(
   instruction: string,
   maxChars?: number,
 ) {
-  const staged = await listRecentMedia(userId);
+  // Brief retry: file and text events can arrive as separate webhook requests
+  // processed concurrently. If the file's staging hasn't landed in Redis yet,
+  // wait 3s and try once more before giving up.
+  let staged = await listRecentMedia(userId);
+  if (!staged.length) {
+    await new Promise((r) => setTimeout(r, 3000));
+    staged = await listRecentMedia(userId);
+  }
   if (!staged.length) {
     return { ok: false as const, error: "No staged LINE media. Send the file first." };
   }

@@ -50,7 +50,11 @@ export function buildReceiptTools(userId: string) {
         notes: z.string().max(200).optional().describe("Optional note to attach (e.g. 'client dinner', 'reimbursable')."),
       }),
       execute: async ({ index, notes }) => {
-        const staged = await listRecentMedia(userId);
+        let staged = await listRecentMedia(userId);
+        if (!staged.length) {
+          await new Promise((r) => setTimeout(r, 3000));
+          staged = await listRecentMedia(userId);
+        }
         if (!staged.length) {
           return { ok: false as const, error: "No staged media. Send the receipt photo first." };
         }
