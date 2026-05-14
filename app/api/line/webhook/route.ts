@@ -360,8 +360,6 @@ async function respondToOtherMedia(
   fileSize: number | undefined,
   durationMs: number | undefined,
 ): Promise<void> {
-  await showLoading(userId, 60);
-
   // We don't fetch the bytes now — just record the LINE pointer + metadata.
   // Bytes are pulled at send time (cheap, avoids burning Redis on big files).
   // To get the contentType we'd need to HEAD-request LINE; do a lightweight
@@ -404,36 +402,26 @@ async function respondToOtherMedia(
       /\.(pdf|docx?|xlsx?|pptx?|txt|csv|md|rtf)$/i.test(fileName ?? "") ||
       contentType.startsWith("text/")
     );
-  const description = [
-    `(User just sent a ${kind} via LINE.`,
-    fileName ? ` Filename: "${fileName}".` : "",
-    fileSize ? ` Size: ~${(fileSize / 1024).toFixed(0)} KB.` : "",
-    durationMs ? ` Duration: ${(durationMs / 1000).toFixed(1)}s.` : "",
-    ` Mime: ${contentType}.`,
-    isZip
-      ? " NOTE: This is a ZIP/archive file. It is staged for email attachment via attach_recent_media, but you CANNOT open, extract, or read its contents. Tell the user this explicitly.)"
-      : isReadableDoc
-      ? " This is a readable document staged in recent media. CALL summarize_document RIGHT NOW to read and summarize it — do not ask the user to resend or wait. If the user previously asked to read or summarize a file, fulfill that request immediately.)"
-      : " It's staged in recent media for email attachment (attach_recent_media) or media AI tools (transcribe_audio, ocr_image, etc.).)",
-  ].join("");
 
-  const history = await loadHistory(userId);
-  const facts = await loadFacts(userId);
-  const messages: ModelMessage[] = [
-    ...history.map<ModelMessage>((t) => ({ role: t.role, content: t.content })),
-    { role: "user", content: description },
-  ];
+  // Don't call runAgent here — just ack and stage. The file is now in Redis
+  // before any concurrent text-message handler runs, eliminating the race.
+  // Auto-summarizing here caused 3-minute hangs (no timeout on the inner
+  // generateText) and duplicate responses when the user immediately follows up.
+  const ack = isZip
+    ? `Got your zip file${fileName ? ` (${fileName})` : ""} — I can attach it to emails but I can't open or extract the contents.`
+    : isReadableDoc
+    ? `Got your document${fileName ? ` (${fileName})` : ""} — what would you like to know about it?`
+    : kind === "audio"
+    ? `Got your voice memo — want me to transcribe or summarize it?`
+    : `Got your ${kind}${fileName ? ` (${fileName})` : ""} — it's ready. What would you like to do with it?`;
 
-  const replyText = await runAgent(userId, profile, facts, messages);
-  await reply(replyToken, [textMsg(replyText)]);
-
+  await reply(replyToken, [textMsg(ack)]);
   await appendTurn(userId, {
     role: "user",
     content: `[sent a ${kind}${fileName ? `: ${fileName}` : ""}]`,
     ts: Date.now(),
   });
-  await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
-  await maybeExtractFacts(userId);
+  await appendTurn(userId, { role: "assistant", content: ack, ts: Date.now() });
 }
 
 function guessMimeFromFilename(name: string | undefined): string | null {

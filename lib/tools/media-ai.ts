@@ -76,12 +76,16 @@ async function runMediaPrompt(
   instruction: string,
   maxChars?: number,
 ) {
-  // Brief retry: file and text events can arrive as separate webhook requests
-  // processed concurrently. If the file's staging hasn't landed in Redis yet,
-  // wait 3s and try once more before giving up.
+  // File and text events arrive as separate webhook requests processed concurrently.
+  // The file handler does a HEAD probe + Redis write before the text handler checks.
+  // Retry up to ~8s total to absorb that delay.
   let staged = await listRecentMedia(userId);
   if (!staged.length) {
-    await new Promise((r) => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 4000));
+    staged = await listRecentMedia(userId);
+  }
+  if (!staged.length) {
+    await new Promise((r) => setTimeout(r, 4000));
     staged = await listRecentMedia(userId);
   }
   if (!staged.length) {

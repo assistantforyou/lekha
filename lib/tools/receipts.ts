@@ -52,7 +52,11 @@ export function buildReceiptTools(userId: string) {
       execute: async ({ index, notes }) => {
         let staged = await listRecentMedia(userId);
         if (!staged.length) {
-          await new Promise((r) => setTimeout(r, 3000));
+          await new Promise((r) => setTimeout(r, 4000));
+          staged = await listRecentMedia(userId);
+        }
+        if (!staged.length) {
+          await new Promise((r) => setTimeout(r, 4000));
           staged = await listRecentMedia(userId);
         }
         if (!staged.length) {
