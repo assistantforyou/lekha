@@ -3,7 +3,7 @@ import { getGoogleClient, hasGoogleConnection } from "@/lib/tools/google-auth";
 import { listTasks } from "@/lib/memory/tasks";
 import { env } from "@/lib/env";
 
-type NewsStory = { title: string };
+type NewsStory = { title: string; url: string };
 
 async function fetchNews(query: string, apiKey: string): Promise<NewsStory[]> {
   const ctrl = new AbortController();
@@ -23,8 +23,8 @@ async function fetchNews(query: string, apiKey: string): Promise<NewsStory[]> {
       signal: ctrl.signal,
     });
     if (!r.ok) return [];
-    const data = (await r.json()) as { results?: Array<{ title: string }> };
-    return (data.results ?? []).map((s) => ({ title: s.title }));
+    const data = (await r.json()) as { results?: Array<{ title: string; url: string }> };
+    return (data.results ?? []).map((s) => ({ title: s.title, url: s.url }));
   } catch {
     return [];
   } finally {
@@ -158,15 +158,17 @@ export async function buildEveningSummary(
   const newsLines: string[] = [];
   if (geo.length) {
     newsLines.push("🌍 Geopolitics");
-    geo.slice(0, 3).forEach((s) => newsLines.push(`  • ${s.title}`));
+    geo.slice(0, 3).forEach((s) => newsLines.push(`\n• ${s.title}\n${s.url}`));
   }
   if (econ.length) {
+    if (newsLines.length) newsLines.push("");
     newsLines.push("📈 Economics");
-    econ.slice(0, 3).forEach((s) => newsLines.push(`  • ${s.title}`));
+    econ.slice(0, 3).forEach((s) => newsLines.push(`\n• ${s.title}\n${s.url}`));
   }
   if (poly.length) {
+    if (newsLines.length) newsLines.push("");
     newsLines.push("🎲 Polymarket");
-    poly.slice(0, 2).forEach((s) => newsLines.push(`  • ${s.title}`));
+    poly.slice(0, 2).forEach((s) => newsLines.push(`\n• ${s.title}\n${s.url}`));
   }
   if (newsLines.length) {
     sections.push(`📰 Today's news\n${newsLines.join("\n")}`);
