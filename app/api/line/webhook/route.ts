@@ -642,8 +642,9 @@ async function runAgent(
       console.warn("[agent] quota/overload", { retryAfter: quota.retryAfterSec });
       return `I'm overloaded right now. Try again in ~${quota.retryAfterSec}s.`;
     }
+    const msg = err instanceof Error ? err.message : String(err);
     console.error("[agent] unhandled", err);
-    return `Something went wrong on my end. Try again in a moment.`;
+    return `Error: ${msg.slice(0, 300)}`;
   }
 }
 
