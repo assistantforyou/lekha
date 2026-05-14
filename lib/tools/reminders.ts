@@ -96,7 +96,10 @@ export function buildReminderTools(userId: string) {
             qstashId: res.messageId,
             ...(warningIds.length > 0 ? { warningIds } : {}),
           };
-          await redis().set(reminderKey(userId, id), stored, { ex: delaySec + 60 });
+          // TTL = delay + 24h buffer — QStash delivery can lag by minutes; a 60s
+          // buffer caused the final-fire key to expire before delivery, silently
+          // dropping the reminder while pre-warnings (which need no Redis lookup) still sent.
+          await redis().set(reminderKey(userId, id), stored, { ex: delaySec + 86400 });
           await redis().sadd(reminderListKey(userId), id);
           // Roll the set's TTL forward to ~14 months so it can never outlive
           // the longest possible reminder (1 year max) without housekeeping.
