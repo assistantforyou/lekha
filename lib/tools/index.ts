@@ -22,6 +22,7 @@ import { buildListTools } from "./lists";
 import { buildDocsTools } from "./docs";
 import { buildMorningBriefingTool } from "./morning-briefing";
 import { buildEveningSummaryTool } from "./evening-summary";
+import { buildReceiptTools } from "./receipts";
 import { hasGoogleOAuth, hasQStash, env } from "@/lib/env";
 
 /**
@@ -42,6 +43,7 @@ export function toolsForUser(userId: string) {
     ...buildExportTools(userId),
     ...buildSentHistoryTools(userId),
     ...buildMediaAiTools(userId),
+    ...buildReceiptTools(userId),
     ...(hasQStash() ? buildReminderTools(userId) : {}),
     ...(env().TAVILY_API_KEY ? buildWebSearchTool() : {}),
     ...(hasGoogleOAuth() ? buildEmailTools(userId) : {}),

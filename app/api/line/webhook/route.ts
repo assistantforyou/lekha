@@ -16,14 +16,12 @@ import { appendTurn, loadHistory, turnCounter } from "@/lib/memory/history";
 import { loadFacts, factsToPromptBlock } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
 import { isAllowed, addToAllowlist, removeFromAllowlist, listAllowed } from "@/lib/memory/allowlist";
-import { chatModel, fallbackChatModels } from "@/lib/llm/provider";
-import { isGeminiDown, markGeminiDown } from "@/lib/llm/health";
-import type { LanguageModel } from "ai";
+import { chatModel } from "@/lib/llm/provider";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
 import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
-import { toolsForUser, coreToolsForUser } from "@/lib/tools";
+import { toolsForUser } from "@/lib/tools";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { checkRateLimit } from "@/lib/ratelimit";
@@ -499,67 +497,43 @@ async function runAgent(
     accountsBlock +
     recentBlock;
 
-  // Detect whether the conversation has a multimodal user turn (image/audio/video/file part).
-  // If so, the Groq fallback (text-only) can't service it — Gemini-only.
-  const hasMultimodal = messages.some(
-    (m) =>
-      Array.isArray(m.content) &&
-      m.content.some((p) => {
-        if (typeof p !== "object" || !p) return false;
-        const t = (p as { type?: string }).type;
-        return t === "image" || t === "file";
-      }),
-  );
-
-  // Build a minimal system prompt for the fallback path. We explicitly enumerate
-  // the available tools because some Groq-hosted models (Llama 4 in particular)
-  // will refuse a request with "I don't have access to X" if the tool isn't
-  // mentioned in the system prompt — even though the schema IS being passed to
-  // them through the API. Listing them here forces the model to actually use them.
-  const slimLocationHint = settings?.location ? `\nUser's location: ${settings.location}.` : "";
-  const slimSystem = `You are Lekha (เลขา), ${profile.displayName}'s personal secretary on LINE. You are a lady — in Thai always use ค่ะ, never ครับ. Warm but professional, concise (1-3 sentences). Match the user's language. Never reveal the underlying AI model or provider; if asked, say you're Lekha, a personal assistant, and leave it at that. Current time: ${new Date().toISOString()} (UTC).${slimLocationHint}
-
-You have these tools available right now — use them whenever the user's request matches. NEVER reply 'I don't have access to X' if a matching tool exists below; CALL the tool:
-
-- stock_price(ticker)         — current stock price.
-- stock_history(ticker, range) — historical movement: 1mo / 3mo / 6mo / 1y / 2y / 5y / ytd / max. USE for "1-year movement of X" / "YTD performance".
-- crypto_price(coin)          — current crypto price (bitcoin, ethereum, btc, eth, …). USE THIS for any crypto question.
-- fx_rate(from, to, amount)   — currency conversion. USE THIS for any FX question.
-- weather(location)           — current weather + 3-day forecast. USE THIS for any weather question. If no location is known, ASK the user before calling.
-- news_search(query, days?)   — recent news headlines + sources. USE THIS for any news question.
-- web_search(query)           — general web search for everything else (articles, who-is-X). NOT for stocks/crypto/weather/news.
-- set_reminder(when, message) — schedule a reminder push.
-- list_reminders / list_tasks / list_memories — show stored items.
-- add_task(title, dueAt?)     — add a persistent task.
-- complete_task(id)           — mark a task done.
-- remember(fact)              — save a durable fact about the user.
-- contacts_search(query)      — find an email/phone in the user's Google Contacts.
-- add_to_list(list_name, item)     — add item to a named list (grocery list, packing list, etc.).
-- list_items(list_name)            — show all items in a named list.
-- remove_from_list(list_name, item) — remove an item from a named list.
-- show_all_lists()                 — list all named lists + item counts.
-- create_google_doc(title, body)   — create a Google Doc and return the link.
-- draft_email({to, subject, body, …})       — compose an email (queues for YES confirm). If the user sent a file in LINE (staged below), pass attach_recent_media: true or attach_recent_media_indexes: [n] — do NOT use drive_search for files the user just uploaded in chat.
-- draft_calendar_event({summary, startISO, endISO, attendees?, …}) — compose a calendar event.
-- calendar_today / calendar_week — see today's or this week's events.
-- ocr_image / transcribe_audio — extract text from a recently-sent image / voice memo.
-- show_help                   — list all capabilities to the user.
-
-If none of these tools fit the question, answer briefly from your own knowledge. Don't make up tool capabilities that aren't listed.
-
-CRITICAL: when a tool returns { ok: false, error: "..." }, RELAY THE EXACT ERROR to the user (one short sentence). Never say "I'm having a technical hiccup" or "let me get that sorted" — those are useless evasions. Tell the user what actually broke so they can react.
-
-SOURCE RULE: when presenting live data (prices, rates, weather), always cite the source at the end in this exact format: "35.06 THB (source: Frankfurter)" or "28°C (source: wttr.in)".` + recentBlock;
-
+  const tStart = Date.now();
   try {
-    const result = await runWithCascade({
-      hasMultimodal,
-      system,
-      messages,
-      tools: toolsForUser(userId),
-      slimSystem,
-      slimTools: coreToolsForUser(userId),
-    });
+    const result = await withTimeout(
+      generateText({
+        model: chatModel(),
+        system,
+        messages,
+        tools: toolsForUser(userId),
+        temperature: 0.4,
+        stopWhen: stepCountIs(8),
+        maxRetries: 0,
+        onStepFinish: (step) => {
+          console.log("[agent] step", {
+            ms: Date.now() - tStart,
+            toolCalls: step.toolCalls.map((c) => c?.toolName),
+            toolResults: step.toolResults.map((r) => ({
+              tool: (r as { toolName?: string }).toolName,
+              result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
+            })),
+            text: step.text?.slice(0, 200) || undefined,
+            finish: step.finishReason,
+          });
+        },
+        providerOptions: {
+          google: {
+            safetySettings: [
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+            ],
+          },
+        },
+      }),
+      45_000,
+    );
+    console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
 
     // Collect tool calls + outputs across steps.
     const allCalls: { toolName: string; input: unknown }[] = [];
@@ -661,234 +635,15 @@ SOURCE RULE: when presenting live data (prices, rates, weather), always cite the
     }
     if (err instanceof AgentTimeoutError) {
       console.warn("[agent] timeout", { seconds: err.seconds });
-      return `⏱ Timed out after ${err.seconds}s. Both Gemini and Groq took too long. Try again in a sec.`;
-    }
-    if (err instanceof Error && err.name === "AllProvidersFailed") {
-      console.error("[agent] all providers failed");
-      return `🚦 All providers failed. Try again in a moment.`;
+      return `Timed out after ${err.seconds}s — that was a heavy request. Try again in a sec.`;
     }
     const quota = parseQuotaError(err);
     if (quota) {
-      console.warn("[agent] gemini quota/overload (no fallback configured)", { retryAfter: quota.retryAfterSec });
-      return `🚦 Gemini is overloaded. Try again in ~${quota.retryAfterSec}s.`;
+      console.warn("[agent] quota/overload", { retryAfter: quota.retryAfterSec });
+      return `I'm overloaded right now. Try again in ~${quota.retryAfterSec}s.`;
     }
     console.error("[agent] unhandled", err);
     return `Something went wrong on my end. Try again in a moment.`;
-  }
-}
-
-/** Dump everything we can extract from an error — class, message, cause chain, response text. */
-function verboseError(err: unknown): string {
-  const lines: string[] = [];
-  const seen = new Set<unknown>();
-  let cur: unknown = err;
-  let depth = 0;
-  while (cur && typeof cur === "object" && !seen.has(cur) && depth < 4) {
-    seen.add(cur);
-    const e = cur as {
-      name?: string;
-      message?: string;
-      statusCode?: number;
-      responseBody?: string;
-      url?: string;
-      cause?: unknown;
-    };
-    const part = [
-      `${depth === 0 ? "" : "↳ "}${e.name ?? "Error"}: ${e.message ?? "(no message)"}`,
-      e.statusCode ? `  status: ${e.statusCode}` : null,
-      e.url ? `  url: ${e.url}` : null,
-      e.responseBody ? `  body: ${String(e.responseBody).slice(0, 400)}` : null,
-    ]
-      .filter(Boolean)
-      .join("\n");
-    lines.push(part);
-    cur = e.cause;
-    depth++;
-  }
-  const out = lines.join("\n\n");
-  return out.length > 1500 ? `${out.slice(0, 1500)}\n…(truncated)` : out;
-}
-
-/**
- * Try Gemini first; on quota error fall back to Groq for text-only conversations.
- * Multimodal turns can't fall back (Groq has no vision), so they re-throw and the
- * caller surfaces a friendly "out of free quota" message.
- */
-/**
- * Gemini primary (smarter at tool routing), Groq fallback for text-only turns
- * when Gemini hits a rate limit. `maxRetries: 0` disables the SDK's built-in
- * exponential backoff so a quota error cascades to Groq in milliseconds, not
- * after ~10s of silent retries.
- */
-async function runWithCascade<T extends ReturnType<typeof toolsForUser>>(opts: {
-  hasMultimodal: boolean;
-  system: string;
-  messages: ModelMessage[];
-  tools: T;
-  /** Optional slim variants used only on the Groq fallback path (saves TPM, helps weaker models). */
-  slimSystem?: string;
-  slimTools?: ReturnType<typeof coreToolsForUser>;
-}) {
-  const tStart = Date.now();
-  // If we marked Gemini as down recently (after a 503/quota), skip it entirely
-  // and go straight to the Groq fallback path. Avoids burning ~5s per request
-  // hitting an upstream that's known to be unhealthy.
-  let geminiRanToolCalls = false;
-  // Completed steps are captured so Groq can pick up where Gemini left off
-  // (tool results already fetched → no duplication, just generate the response).
-  const geminiCompletedSteps: Array<{
-    text: string;
-    toolCalls: Array<{ type: "tool-call"; toolCallId: string; toolName: string; input: unknown }>;
-    toolResults: Array<{ type: "tool-result"; toolCallId: string; toolName: string; output: unknown }>;
-  }> = [];
-  try {
-    const skipGemini = !opts.hasMultimodal && (await isGeminiDown());
-    if (skipGemini) {
-      console.log("[agent] skipping gemini (recent overload mark)");
-      throw new Error("gemini-skipped");
-    }
-    const r = await withTimeout(
-      generateText({
-        model: chatModel(),
-        system: opts.system,
-        messages: opts.messages,
-        tools: opts.tools,
-        temperature: 0.4,
-        stopWhen: stepCountIs(3),
-        maxRetries: 0,
-        onStepFinish: (step) => {
-          if (step.toolCalls.length > 0) {
-            geminiRanToolCalls = true;
-            geminiCompletedSteps.push({
-              text: step.text,
-              toolCalls: step.toolCalls.map((tc) => ({
-                type: "tool-call" as const,
-                toolCallId: tc.toolCallId,
-                toolName: tc.toolName as string,
-                input: tc.input,
-              })),
-              toolResults: step.toolResults.map((tr) => ({
-                type: "tool-result" as const,
-                toolCallId: tr.toolCallId,
-                toolName: tr.toolName as string,
-                output: (tr as { output?: unknown }).output ?? null,
-              })),
-            });
-          }
-          console.log("[agent] gemini step", {
-            ms: Date.now() - tStart,
-            toolCalls: step.toolCalls.map((c) => c?.toolName),
-            toolResults: step.toolResults.map((r) => ({
-              tool: (r as { toolName?: string }).toolName,
-              result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
-            })),
-            text: step.text?.slice(0, 200) || undefined,
-            finish: step.finishReason,
-          });
-        },
-        providerOptions: {
-          google: {
-            safetySettings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-            ],
-          },
-        },
-      }),
-      20_000,
-    );
-    console.log("[agent] gemini done", { ms: Date.now() - tStart, steps: r.steps.length });
-    return r;
-  } catch (err) {
-    const isTimeout = err instanceof AgentTimeoutError;
-    const isSkip = err instanceof Error && err.message === "gemini-skipped";
-    const quota = parseQuotaError(err);
-    if (!quota && !isTimeout && !isSkip) throw err;
-    const fallbacks = fallbackChatModels();
-    if (!fallbacks.length || opts.hasMultimodal) throw err;
-    if (!isSkip) {
-      // Mark Gemini down so the next ~60s of requests skip it.
-      await markGeminiDown(60).catch(() => {});
-    }
-    // On the fallback path, ship a slim system prompt + the core tool subset.
-    // The full registry is ~50 tools (~5K tokens of descriptions) which blows
-    // Groq's tighter TPM limits and confuses weaker models.
-    const slimSystem = opts.slimSystem ?? opts.system;
-    const slimTools = opts.slimTools ?? opts.tools;
-    // If Gemini completed some tool steps before timing out, inject those results
-    // into the Groq message history so Groq only needs to generate the final
-    // response — no re-execution of tools (no duplicates, no wasted API calls).
-    const groqMessages: ModelMessage[] =
-      isTimeout && geminiCompletedSteps.length > 0
-        ? [
-            ...opts.messages,
-            ...geminiCompletedSteps.flatMap((step): ModelMessage[] => {
-              const assistantContent: Array<{ type: "text"; text: string } | { type: "tool-call"; toolCallId: string; toolName: string; input: unknown }> = [];
-              if (step.text) assistantContent.push({ type: "text", text: step.text });
-              for (const tc of step.toolCalls) assistantContent.push(tc);
-              const msgs: ModelMessage[] = [];
-              if (assistantContent.length > 0) msgs.push({ role: "assistant", content: assistantContent as never });
-              if (step.toolResults.length > 0) msgs.push({ role: "tool", content: step.toolResults as never });
-              return msgs;
-            }),
-          ]
-        : opts.messages;
-    console.warn(
-      "[agent] cascading to groq",
-      isSkip ? "(gemini pre-skipped)" : isTimeout ? "(gemini timeout)" : `(gemini quota/overload, retry-after ~${quota?.retryAfterSec}s)`,
-      { totalMs: Date.now() - tStart, fallbackModels: fallbacks.length, injectedSteps: geminiCompletedSteps.length },
-    );
-    const groqErrors: { model: string; error: unknown }[] = [];
-    for (const m of fallbacks) {
-      const tGroq = Date.now();
-      const modelLabel =
-        (m as unknown as { modelId?: string }).modelId ??
-        (m as unknown as { provider?: string }).provider ??
-        "groq";
-      try {
-        const r = await withTimeout(
-          generateText({
-            model: m as LanguageModel,
-            system: slimSystem,
-            messages: groqMessages,
-            tools: slimTools,
-            temperature: 0.4,
-            stopWhen: stepCountIs(3),
-            maxRetries: 0,
-            onStepFinish: (step) => {
-              console.log("[agent] groq step", {
-                model: modelLabel,
-                ms: Date.now() - tGroq,
-                toolCalls: step.toolCalls.map((c) => c?.toolName),
-                toolResults: step.toolResults.map((r) => ({
-                  tool: (r as { toolName?: string }).toolName,
-                  result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
-                })),
-                text: step.text?.slice(0, 200) || undefined,
-                finish: step.finishReason,
-              });
-            },
-          }),
-          45_000,
-        );
-        console.log("[agent] groq done", { model: modelLabel, ms: Date.now() - tGroq, steps: r.steps.length });
-        return r;
-      } catch (groqErr) {
-        console.warn("[agent] groq fallback failed", { model: modelLabel, err: groqErr instanceof Error ? `${groqErr.name}: ${groqErr.message}` : groqErr });
-        groqErrors.push({ model: modelLabel, error: groqErr });
-      }
-    }
-    // All fallbacks failed — wrap original error with the groq attempts so the
-    // user-facing dump shows what each provider said.
-    const wrapped = new Error(
-      `Both providers failed.\n\nGEMINI:\n${verboseError(err)}\n\nGROQ ATTEMPTS:\n${groqErrors
-        .map((g) => `--- ${g.model} ---\n${verboseError(g.error)}`)
-        .join("\n\n")}`,
-    );
-    wrapped.name = "AllProvidersFailed";
-    throw wrapped;
   }
 }
 

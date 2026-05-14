@@ -52,6 +52,20 @@ export function buildMediaAiTools(userId: string) {
       execute: async ({ index }) =>
         runMediaPrompt(userId, index, "file", "Summarize this document in 4-8 bullets. Highlight: purpose, key facts, dates, names, action items, conclusion."),
     }),
+
+    read_document: tool({
+      description:
+        "Extract the full text of a PDF or document the user sent in LINE so you can answer specific questions about it. Use this instead of summarize_document when the user wants to discuss contents in detail, ask about specific clauses, or reference exact wording.",
+      inputSchema: z.object({ index: z.number().int().min(1).optional() }),
+      execute: async ({ index }) =>
+        runMediaPrompt(
+          userId,
+          index,
+          "file",
+          "Extract the full text of this document. Preserve headings, section numbers, and paragraph breaks. Do not summarize or skip anything. If the document is very long and you must truncate, say '--- truncated ---' at the end.",
+          8000,
+        ),
+    }),
   };
 }
 
@@ -60,6 +74,7 @@ async function runMediaPrompt(
   index: number | undefined,
   expectedKind: "audio" | "image" | "video" | "file",
   instruction: string,
+  maxChars?: number,
 ) {
   const staged = await listRecentMedia(userId);
   if (!staged.length) {
@@ -104,7 +119,9 @@ async function runMediaPrompt(
         },
       ],
     });
-    return { ok: true as const, kind: item.kind, mediaType, output: r.text.trim() };
+    const text = r.text.trim();
+    const output = maxChars && text.length > maxChars ? text.slice(0, maxChars) + "\n--- truncated ---" : text;
+    return { ok: true as const, kind: item.kind, mediaType, output };
   } catch (err) {
     return {
       ok: false as const,
