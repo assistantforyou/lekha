@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     const events = payload.events;
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
+      if (!event) continue;
       // If this is an image event immediately followed by a text event in the same batch,
       // skip the image-only response — the text handler will receive the image via staged
       // media and respond to both together in one turn.
