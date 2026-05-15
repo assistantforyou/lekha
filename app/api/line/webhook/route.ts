@@ -54,9 +54,23 @@ export async function POST(req: NextRequest) {
 
   // Respond 200 immediately; do all real work after the response.
   after(async () => {
-    for (const event of payload.events) {
+    const events = payload.events;
+    for (let i = 0; i < events.length; i++) {
+      const event = events[i];
+      // If this is an image event immediately followed by a text event in the same batch,
+      // skip the image-only response — the text handler will receive the image via staged
+      // media and respond to both together in one turn.
+      const nextEvent = events[i + 1];
+      const nextIsText =
+        nextEvent?.type === "message" &&
+        "message" in nextEvent &&
+        nextEvent.message.type === "text";
+      const thisIsImage =
+        event.type === "message" &&
+        "message" in event &&
+        event.message.type === "image";
       try {
-        await handleEvent(event);
+        await handleEvent(event, thisIsImage && nextIsText ? "stage_only" : "normal");
       } catch (err) {
         console.error("[webhook] event handler crashed", err);
       }
@@ -66,7 +80,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true });
 }
 
-async function handleEvent(event: LineEvent): Promise<void> {
+async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "normal"): Promise<void> {
   // Idempotency: drop duplicate webhook deliveries.
   if ("webhookEventId" in event && event.webhookEventId) {
     const seenKey = `seen:${event.webhookEventId}`;
@@ -247,7 +261,7 @@ async function handleEvent(event: LineEvent): Promise<void> {
 
   // Image messages → multimodal turn (Gemini sees it AND we stash it for attach).
   if (message.type === "image" && "id" in message && typeof message.id === "string") {
-    await respondToImage(event.replyToken, userId, profile, message.id);
+    await respondToImage(event.replyToken, userId, profile, message.id, mode);
     return;
   }
 
@@ -288,11 +302,37 @@ async function respondToText(
 ): Promise<void> {
   const t0 = Date.now();
   showLoading(userId, 60).catch(() => {});  // fire-and-forget; LLM doesn't wait for LINE ack
-  const [history, facts] = await Promise.all([loadHistory(userId), loadFacts(userId)]);
+  const [history, facts, staged] = await Promise.all([
+    loadHistory(userId),
+    loadFacts(userId),
+    listRecentMedia(userId),
+  ]);
   console.log("[webhook] preload done", { ms: Date.now() - t0 });
+
+  // If a fresh image was just staged (< 30s ago, e.g. sent in same batch),
+  // bundle its bytes directly into the message so the model sees both at once.
+  const freshImage = staged.find(
+    (m) => m.kind === "image" && Date.now() - m.ts < 30_000,
+  );
+  let userContent: ModelMessage["content"];
+  if (freshImage) {
+    try {
+      const { bytes, contentType } = await getMessageContent(freshImage.messageId);
+      userContent = [
+        { type: "image", image: bytes, mediaType: contentType },
+        { type: "text", text: userText },
+      ];
+    } catch {
+      // Couldn't fetch the image — fall back to text-only
+      userContent = userText;
+    }
+  } else {
+    userContent = userText;
+  }
+
   const messages: ModelMessage[] = [
     ...history.map<ModelMessage>((t) => ({ role: t.role, content: t.content })),
-    { role: "user", content: userText },
+    { role: "user", content: userContent },
   ];
 
   const replyText = await runAgent(userId, profile, facts, messages);
@@ -309,13 +349,15 @@ async function respondToImage(
   userId: string,
   profile: { displayName: string },
   messageId: string,
+  mode: "normal" | "stage_only" = "normal",
 ): Promise<void> {
   const t0 = Date.now();
-  showLoading(userId, 60).catch(() => {});
-  let imagePart: { type: "image"; image: Uint8Array; mediaType: string };
+  let imageBytes: Uint8Array;
+  let imageContentType: string;
   try {
     const { bytes, contentType } = await getMessageContent(messageId);
-    imagePart = { type: "image", image: bytes, mediaType: contentType };
+    imageBytes = bytes;
+    imageContentType = contentType;
     await appendRecentMedia(userId, {
       kind: "image",
       messageId,
@@ -325,26 +367,67 @@ async function respondToImage(
     });
   } catch (err) {
     console.warn("[webhook] image fetch failed", err);
-    await reply(replyToken, [textMsg("I couldn't load that image — can you resend it?")]);
+    if (mode === "normal") {
+      await reply(replyToken, [textMsg("I couldn't load that image — can you resend it?")]);
+    }
     return;
   }
 
-  const [history, facts] = await Promise.all([loadHistory(userId), loadFacts(userId)]);
-  console.log("[webhook] preload done", { ms: Date.now() - t0 });
+  // stage_only: a text message follows in the same batch, so skip responding here.
+  // The text handler will pick up the staged image and respond to both together.
+  if (mode === "stage_only") return;
+
+  showLoading(userId, 60).catch(() => {});
+  const [history, facts, settings] = await Promise.all([
+    loadHistory(userId),
+    loadFacts(userId),
+    getSettings(userId),
+  ]);
+  console.log("[webhook] image preload done", { ms: Date.now() - t0 });
+
+  // Use generateText directly (no tools) so Gemini just looks at the image bytes
+  // and responds in plain text. Passing through runAgent triggers summarize_image /
+  // ocr_image tool calls which then return empty model text → "(…)".
+  const imagePart = { type: "image" as const, image: imageBytes, mediaType: imageContentType };
   const messages: ModelMessage[] = [
     ...history.map<ModelMessage>((t) => ({ role: t.role, content: t.content })),
     {
       role: "user",
       content: [
-        { type: "text", text: "(image)" },
         imagePart,
+        { type: "text", text: "What do you see? If there's text, extract it. If it's a photo or document, describe it. Reply naturally and helpfully." },
       ],
     },
   ];
 
-  const replyText = await runAgent(userId, profile, facts, messages);
-  await reply(replyToken, [textMsg(replyText)]);
+  let replyText: string;
+  try {
+    const result = await withTimeout(
+      generateText({
+        model: chatModel(),
+        system: buildSystemPrompt(factsToPromptBlock(facts), profile, settings),
+        messages,
+        maxRetries: 0,
+        providerOptions: {
+          google: {
+            safetySettings: [
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+            ],
+          },
+        },
+      }),
+      30_000,
+    );
+    replyText = result.text?.trim() || "Hmm, I couldn't read that image. Can you try sending it again?";
+  } catch (err) {
+    console.warn("[webhook] image generateText failed", err);
+    replyText = "Couldn't analyze that image. Try resending it?";
+  }
 
+  await reply(replyToken, [textMsg(replyText)]);
   await appendTurn(userId, { role: "user", content: "[sent an image]", ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
   await maybeExtractFacts(userId);
