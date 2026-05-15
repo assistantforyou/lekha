@@ -2,7 +2,7 @@
 
 A personal AI assistant that lives in [LINE](https://line.me). Add the Official Account, message it like a friend, and it can chat, remember things about you, set reminders, search the web, look at photos you send, manage your Google Calendar, search your Google Drive, and send email **from your own Gmail with real attachments** — including files you forwarded to it directly in LINE.
 
-Built on Next.js 16 + Vercel AI SDK v6 + Gemini, deployed on Vercel Functions. Public by design — every LINE user who adds the bot gets isolated memory, OAuths their own Google account(s), and is rate-limited individually.
+Built on Next.js 16 + Vercel AI SDK v6 + Gemini, deployed on Vercel Functions. **Private bot** (allowlist-gated) — per-user isolated memory, Google OAuth, and rate limiting. Production: `https://lekha-iota.vercel.app`.
 
 ---
 
@@ -506,32 +506,42 @@ Edit `lib/llm/provider.ts`. Just `chatModel()` and `extractorModel()`. Could be 
 app/
 ├── api/
 │   ├── line/webhook/route.ts          # main orchestrator
+│   ├── dev/chat/route.ts              # Claude testing endpoint (x-dev-secret auth)
 │   ├── oauth/google/callback/route.ts # OAuth callback + auto-resume
 │   ├── reminders/fire/route.ts        # QStash callback
+│   ├── scheduled-email/fire/route.ts  # QStash callback
+│   ├── cron/sweep/route.ts            # proactive layer (every 15 min)
+│   ├── subscribe/route.ts             # email capture
 │   └── health/route.ts
 ├── connect/[token]/page.tsx           # OAuth landing
-└── layout.tsx, page.tsx
+├── components/marketing/, components/ui/
+└── layout.tsx, page.tsx               # marketing landing page
 lib/
-├── env.ts                             # zod env + redisCreds()
-├── errors.ts                          # GoogleAuthRequired, RateLimited, NeedsConfirmation
-├── ratelimit.ts                       # 30/hr/user
-├── confirm.ts                         # pending action queue (RPUSH)
-├── pending-runner.ts                  # executePendingAll
+├── env.ts, errors.ts, ratelimit.ts, confirm.ts, pending-runner.ts, cron.ts, utils.ts
 ├── line/{verify, client, types}.ts
-├── llm/{provider, prompts, extract-facts, render-drafts}.ts
-├── memory/{redis, crypto, history, facts, profile, recent-media}.ts
+├── llm/
+│   ├── provider.ts, prompts.ts, agent.ts, health.ts
+│   ├── extract-facts.ts, render-drafts.ts
+│   ├── briefing.ts                    # morning briefing: weather/tasks/reminders/calendar/news/inbox
+│   └── evening-summary.ts
+├── memory/
+│   ├── redis.ts, crypto.ts, history.ts, facts.ts, archive.ts
+│   ├── profile.ts, recent-media.ts, settings.ts, tasks.ts
+│   ├── receipts.ts, sent-log.ts, user-registry.ts, allowlist.ts
 └── tools/
     ├── index.ts                       # toolsForUser(userId)
-    ├── google-auth.ts                 # multi-account OAuth + encrypted tokens
-    ├── with-google.ts                 # auth/api/quota error → structured marker
-    ├── google-accounts.ts             # list/connect/switch/disconnect
-    ├── reminders.ts                   # set/list/cancel via QStash
-    ├── email.ts                       # draft + sendEmail (multi-recip + Drive + LINE attachments)
-    ├── calendar.ts                    # draft + create + list_upcoming
-    ├── drive.ts                       # search + recent + link + read
-    ├── web-search.ts                  # Tavily
-    ├── memory.ts                      # remember + list_memories
-    └── staged-media.ts                # list + clear staged LINE media
+    ├── google-auth.ts, with-google.ts, google-accounts.ts
+    ├── reminders.ts, tasks.ts, lists.ts
+    ├── email.ts, gmail-inbox.ts, scheduled-email.ts
+    ├── calendar.ts, drive.ts, docs.ts, contacts.ts
+    ├── media-ai.ts, receipts.ts       # Gemini-powered vision/audio/receipt tools
+    ├── web-search.ts, news.ts, weather.ts, finance.ts
+    ├── memory.ts, settings.ts, help.ts
+    ├── morning-briefing.ts, evening-summary.ts
+    ├── sent-history.ts, export.ts, staged-media.ts
+tests/
+├── briefing-gate.test.ts, confirm.test.ts, cron.test.ts
+├── crypto.test.ts, verify.test.ts
 ```
 
 ---

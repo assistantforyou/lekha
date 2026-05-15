@@ -21,6 +21,7 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated), per-u
 npm run dev          # next dev (needs .env.local; pull via `vercel env pull`)
 npm run build        # production build (turbopack)
 npm run typecheck    # tsc --noEmit
+npm test             # vitest (unit tests — no network, no Redis)
 npx vercel deploy --prod --yes   # ship
 npx vercel logs --no-follow --since 1h --no-branch --expand   # recent prod logs with full output
 ```
@@ -31,13 +32,19 @@ npx vercel logs --no-follow --since 1h --no-branch --expand   # recent prod logs
 app/
 ├── api/
 │   ├── line/webhook/route.ts          # main orchestrator
+│   ├── dev/chat/route.ts              # Claude testing endpoint — bypass LINE, POST {userId,text}
 │   ├── oauth/google/callback/route.ts # OAuth code exchange + auto-resume pending
 │   ├── reminders/fire/route.ts        # QStash callback for one-shot/recurring reminders
 │   ├── scheduled-email/fire/route.ts  # QStash callback for deferred email sends
 │   ├── cron/sweep/route.ts            # QStash callback every 15 min — proactive layer
+│   ├── subscribe/route.ts             # marketing email capture
 │   └── health/route.ts
 ├── connect/[token]/page.tsx           # signed-token landing → Google consent
-└── layout.tsx, page.tsx
+├── components/
+│   ├── marketing/reveal.tsx           # scroll-reveal animation
+│   ├── marketing/tracked-link.tsx     # outbound link tracker
+│   └── ui/button.tsx
+└── layout.tsx, page.tsx               # page.tsx = marketing landing page
 lib/
 ├── env.ts                             # zod env + redisCreds() (KV_* and UPSTASH_REDIS_REST_*)
 ├── errors.ts                          # GoogleAuthRequired, RateLimited, NeedsConfirmation
@@ -45,13 +52,16 @@ lib/
 ├── confirm.ts                         # pending action queue (atomic RPUSH)
 ├── pending-runner.ts                  # executePendingAll — runs queue on YES, logs sends
 ├── cron.ts                            # QStash schedule helpers + local→UTC cron conversion
+├── utils.ts                           # shared utilities (cn, etc.)
 ├── line/{verify,client,types}.ts      # HMAC, REST client, zod schemas (text/image/video/audio/file/sticker)
 ├── llm/
 │   ├── provider.ts                    # chatModel + extractorModel — swap here for new LLMs
 │   ├── prompts.ts                     # base personality + system prompt builder
+│   ├── agent.ts                       # runAgent + helpers (shared by webhook + dev endpoint)
+│   ├── health.ts                      # Gemini down-detection (redis key llm:gemini:down_until)
 │   ├── extract-facts.ts               # background fact extraction + archive summarization
 │   ├── render-drafts.ts               # canonical verbatim draft block
-│   ├── briefing.ts                    # builds morning briefing text from calendar/tasks/inbox
+│   ├── briefing.ts                    # builds morning briefing: weather/tasks/reminders/calendar/news/inbox
 │   └── evening-summary.ts             # builds 9 PM evening summary — tasks, next 5 calendar events, news via Tavily
 ├── memory/
 │   ├── redis.ts                       # singleton Upstash client
@@ -63,6 +73,7 @@ lib/
 │   ├── recent-media.ts                # staged LINE media list (RPUSH, 10 max, TTL 30 min)
 │   ├── settings.ts                    # per-user tz/locale/loc/briefing prefs
 │   ├── tasks.ts                       # persistent open work items
+│   ├── receipts.ts                    # receipt store (200 max, 1-year TTL, category-indexed)
 │   ├── sent-log.ts                    # audit log (last 200, 6 month TTL)
 │   ├── user-registry.ts               # set of all known userIds for cron sweep
 │   └── allowlist.ts                   # private access control — Redis set `users:allowed`
@@ -70,6 +81,8 @@ lib/
     ├── index.ts                       # toolsForUser(userId) — registry, env-gated
     ├── help.ts                        # show_help text dump
     ├── settings.ts                    # set_timezone/location/language/morning_briefing/pre_meeting + enable/disable_evening_summary
+    ├── morning-briefing.ts            # get_morning_briefing tool (calls lib/llm/briefing.ts)
+    ├── evening-summary.ts             # get_evening_summary tool (calls lib/llm/evening-summary.ts)
     ├── memory.ts                      # remember/list/update/forget/clear + archive search
     ├── tasks.ts                       # CRUD on tasks
     ├── reminders.ts                   # set/list/cancel/set_recurring (one-shot via publish, recurring via schedule)
@@ -84,6 +97,7 @@ lib/
     ├── calendar.ts                    # draft + create + list_upcoming
     ├── drive.ts                       # search/list_recent/get_link/read_text/upload_recent_media
     ├── media-ai.ts                    # transcribe/summarize_audio + ocr/summarize_image + summarize_document
+    ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt — Gemini extraction
     ├── sent-history.ts                # query the audit log
     ├── export.ts                      # JSON dump of all user data
     ├── weather.ts                     # weather — wttr.in primary, Open-Meteo fallback (both keyless)
@@ -92,6 +106,12 @@ lib/
     ├── lists.ts                       # named lists (grocery, packing, custom) — 7 CRUD tools, Redis-backed
     ├── docs.ts                        # Google Docs create/edit + Slides create with structured slides
     └── staged-media.ts                # list / clear LINE media staged for attach/upload
+tests/
+├── briefing-gate.test.ts              # shouldFireBriefingNow logic
+├── confirm.test.ts                    # pending action queue
+├── cron.test.ts                       # cron schedule helpers
+├── crypto.test.ts                     # AES-256-GCM + HMAC
+└── verify.test.ts                     # LINE signature verification
 ```
 
 ## Key architectural decisions (do NOT undo without thinking)
@@ -195,6 +215,36 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
 
+## Claude bot access (testing without LINE)
+
+Claude Code has a direct testing channel into the production bot via `/api/dev/chat`. This lets Claude send messages to the bot, read the reply, and have a full back-and-forth conversation without going through LINE at all.
+
+**Credentials (stored in `.env.local`, never commit):**
+- `DEV_CHAT_SECRET` — bearer secret for the endpoint
+- `DEV_LINE_USER_ID` — James's LINE userId (`U9b7215b2294a271c8c1d70be910a77cb`)
+- `APP_BASE_URL` — `https://lekha-iota.vercel.app`
+
+**How to use:**
+```bash
+curl -s -X POST https://lekha-iota.vercel.app/api/dev/chat \
+  -H "Content-Type: application/json" \
+  -H "x-dev-secret: $(grep DEV_CHAT_SECRET .env.local | cut -d= -f2)" \
+  -d "{\"userId\":\"$(grep DEV_LINE_USER_ID .env.local | cut -d= -f2)\",\"text\":\"your message here\"}" \
+  --max-time 60
+```
+
+**What it does:** Runs the full agent (same history, tools, facts as a real LINE message), pushes the reply to James's LINE chat, and returns `{ reply: "..." }` as JSON. Replies are visible in LINE in real time.
+
+**Endpoint details (`app/api/dev/chat/route.ts`):**
+- Auth: `x-dev-secret` header must match `DEV_CHAT_SECRET` env var (503 if env var unset, 401 if wrong)
+- Body: `{ userId: string, text: string }`
+- Returns: `{ reply: string }`
+- Uses `runAgent` from `lib/llm/agent.ts` — same core as the webhook
+- Fires fact extraction every 10 turns (same cadence as webhook)
+- No rate limiting, no allowlist check — dev use only
+
+**Known quirk:** Gemini sometimes returns empty text (`(…)`) when a tool returns structured JSON (empty array, settings object). This also happens in the real webhook. Weather, briefing, and conversational replies work consistently.
+
 ## Manual smoke tests
 See README.md "Manual smoke tests" — covers settings, tasks, contacts, gmail inbox, OCR/voice/PDF, scheduled email, sent history, briefing.
 
@@ -203,12 +253,14 @@ The proactive layer (morning briefings, pre-meeting alerts, evening summaries) r
 
 ## Collaboration
 
-Two developers, one repo (`assistantforyou/lekha`), one Vercel project, one production LINE bot. No staging environment — all changes go straight to prod.
+Two developers (James + Claude Code), one repo (`assistantforyou/lekha`), one Vercel project, one production LINE bot. No staging environment — all changes go straight to prod.
+
+**Production:** `https://lekha-iota.vercel.app`
 
 **Workflow:**
-- Message each other before pushing to avoid conflicts
-- Always `git pull origin main` before starting work and before pushing
-- Push directly to `main` — Vercel auto-deploys on every push
+- Claude Code works on feature branches and opens PRs; James reviews and merges
+- Always `git pull origin main` before starting work
+- Vercel auto-deploys on every merge to `main`
 - No force pushes to main
 
 **For a developer without a Vercel account or GitHub connector:**
