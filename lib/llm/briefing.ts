@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { getGoogleClient, hasGoogleConnection } from "@/lib/tools/google-auth";
 import { listTasks } from "@/lib/memory/tasks";
+import { listReminders } from "@/lib/tools/reminders";
 import { env } from "@/lib/env";
 
 type NewsStory = { title: string; url: string };
@@ -86,11 +87,17 @@ export async function buildMorningBriefing(
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
 
-  const [weatherResult, tasksResult, calendarResult, geoResult, econResult, inboxResult] =
+  // "Today's date" string in the user's timezone, used to bucket reminders/events as "today"
+  const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone }); // "2026-05-15"
+  const endOfToday = new Date(`${todayDateStr}T23:59:59`).getTime(); // close enough for bucketing
+
+  const [weatherResult, tasksResult, remindersResult, calendarResult, geoResult, econResult, inboxResult] =
     await Promise.allSettled([
       opts.location ? fetchWeather(opts.location) : Promise.resolve(null),
 
       listTasks(userId, "open"),
+
+      listReminders(userId),
 
       hasGoogleConnection(userId).then(async (has) => {
         if (!has) return null;
@@ -150,21 +157,20 @@ export async function buildMorningBriefing(
         : Promise.resolve(null),
     ]);
 
-  // 0. Weather
+  // Weather
   const wx = weatherResult.status === "fulfilled" ? weatherResult.value : null;
   if (wx && wx.tempC !== null) {
-    const parts: string[] = [`${wx.tempC}°C`];
-    if (wx.description) parts.push(wx.description);
-    let line = parts.join(" · ");
-    const forecastParts: string[] = [];
-    if (wx.highC !== null) forecastParts.push(`High ${wx.highC}°`);
-    if (wx.lowC !== null) forecastParts.push(`Low ${wx.lowC}°`);
-    if (wx.rainChancePct !== null) forecastParts.push(`${wx.rainChancePct}% rain`);
-    if (forecastParts.length) line += `\n${forecastParts.join(" · ")}`;
-    sections.push(`🌤 Weather\n${line}`);
+    const desc = wx.description ? `, ${wx.description.toLowerCase()}` : "";
+    let line = `${wx.tempC}°C${desc}`;
+    const extras: string[] = [];
+    if (wx.highC !== null && wx.lowC !== null) extras.push(`${wx.highC}° / ${wx.lowC}°`);
+    if (wx.rainChancePct !== null && wx.rainChancePct > 0) extras.push(`${wx.rainChancePct}% rain`);
+    if (extras.length) line += ` · ${extras.join(" · ")}`;
+    const loc = opts.location ? `${opts.location} · ` : "";
+    sections.push(`🌤 ${loc}${line}`);
   }
 
-  // 1. All open tasks — overdue first, then by due date, then undated
+  // Tasks — overdue flagged, then upcoming
   const openTasks = tasksResult.status === "fulfilled" ? tasksResult.value : [];
   if (openTasks.length) {
     const overdue = openTasks
@@ -176,9 +182,9 @@ export async function buildMorningBriefing(
           month: "short",
           day: "numeric",
         });
-        return `• [OVERDUE ${when}] ${t.title}`;
+        return `• ⚠️ ${t.title} (overdue since ${when})`;
       });
-    const upcoming = openTasks
+    const rest = openTasks
       .filter((t) => !t.dueAt || t.dueAt >= now)
       .sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity))
       .slice(0, 10)
@@ -189,65 +195,117 @@ export async function buildMorningBriefing(
             month: "short",
             day: "numeric",
           });
-          return `• ${t.title} (due ${when})`;
+          return `• ${t.title} — due ${when}`;
         }
         return `• ${t.title}`;
       });
-    const taskLines = [...overdue, ...upcoming].slice(0, 10);
-    sections.push(`📋 Tasks (${openTasks.length} open)\n${taskLines.join("\n")}`);
+    const taskLines = [...overdue, ...rest].slice(0, 10);
+    const header = openTasks.length === 1 ? "📋 1 task open" : `📋 ${openTasks.length} tasks open`;
+    sections.push(`${header}\n${taskLines.join("\n")}`);
   }
 
-  // 2. Next 5 upcoming calendar events (from now, across any day)
-  const calEvents = calendarResult.status === "fulfilled" ? calendarResult.value : null;
-  if (calEvents && calEvents.length > 0) {
-    const lines = calEvents.map((e) => {
-      const startRaw = e.start?.dateTime ?? e.start?.date ?? "";
-      const dateStr = startRaw
-        ? new Date(startRaw).toLocaleDateString("en-US", {
+  // Reminders — today's + next 48h if nothing today
+  const allReminders = remindersResult.status === "fulfilled" ? remindersResult.value : [];
+  const upcomingReminders = allReminders.filter((r) => !r.cron && r.fireAt > now);
+  const todayReminders = upcomingReminders.filter((r) => r.fireAt <= endOfToday);
+  const showReminders = todayReminders.length > 0 ? todayReminders : upcomingReminders.slice(0, 3);
+  if (showReminders.length > 0) {
+    const lines = showReminders.map((r) => {
+      const timeStr = new Date(r.fireAt).toLocaleTimeString("en-US", {
+        timeZone: opts.timezone,
+        hour: "numeric",
+        minute: "2-digit",
+      });
+      const isToday = r.fireAt <= endOfToday;
+      const dateStr = isToday
+        ? timeStr
+        : new Date(r.fireAt).toLocaleDateString("en-US", {
             timeZone: opts.timezone,
             weekday: "short",
             month: "short",
             day: "numeric",
-          })
-        : "?";
-      const timeStr = e.start?.dateTime
-        ? new Date(startRaw).toLocaleTimeString("en-US", {
-            timeZone: opts.timezone,
             hour: "numeric",
             minute: "2-digit",
-          })
-        : "all day";
-      return `• ${dateStr}, ${timeStr} — ${e.summary ?? "(untitled)"}`;
+          });
+      return `• ${dateStr} — ${r.message}`;
     });
-    sections.push(`📅 Upcoming\n${lines.join("\n")}`);
+    const label = todayReminders.length > 0 ? "⏰ Reminders today" : "⏰ Coming up";
+    sections.push(`${label}\n${lines.join("\n")}`);
   }
 
-  // 3. News — geopolitics + economics
+  // Calendar — next 5 events
+  const calEvents = calendarResult.status === "fulfilled" ? calendarResult.value : null;
+  if (calEvents && calEvents.length > 0) {
+    const lines = calEvents.map((e) => {
+      const startRaw = e.start?.dateTime ?? e.start?.date ?? "";
+      const isAllDay = !e.start?.dateTime;
+      const startMs = startRaw ? new Date(startRaw).getTime() : null;
+      const isToday = startMs !== null && startMs <= endOfToday;
+      let when: string;
+      if (!startRaw) {
+        when = "?";
+      } else if (isToday && !isAllDay) {
+        when = new Date(startRaw).toLocaleTimeString("en-US", {
+          timeZone: opts.timezone,
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      } else if (isAllDay) {
+        when = new Date(startRaw).toLocaleDateString("en-US", {
+          timeZone: opts.timezone,
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        }) + ", all day";
+      } else {
+        when = new Date(startRaw).toLocaleDateString("en-US", {
+          timeZone: opts.timezone,
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        });
+      }
+      return `• ${when} — ${e.summary ?? "(untitled)"}`;
+    });
+    sections.push(`📅 Schedule\n${lines.join("\n")}`);
+  }
+
+  // News
   const geo = geoResult.status === "fulfilled" ? geoResult.value : [];
   const econ = econResult.status === "fulfilled" ? econResult.value : [];
   const newsLines: string[] = [];
   if (geo.length) {
     newsLines.push("🌍 World");
-    geo.slice(0, 3).forEach((s) => newsLines.push(`\n• ${s.title}\n${s.url}`));
+    geo.slice(0, 3).forEach((s) => newsLines.push(`• ${s.title}\n  ${s.url}`));
   }
   if (econ.length) {
     if (newsLines.length) newsLines.push("");
     newsLines.push("📈 Markets");
-    econ.slice(0, 2).forEach((s) => newsLines.push(`\n• ${s.title}\n${s.url}`));
+    econ.slice(0, 2).forEach((s) => newsLines.push(`• ${s.title}\n  ${s.url}`));
   }
   if (newsLines.length) {
     sections.push(`📰 News\n${newsLines.join("\n")}`);
   }
 
-  // 4. Inbox (optional)
+  // Inbox
   const inboxItems = inboxResult.status === "fulfilled" ? inboxResult.value : null;
   if (inboxItems && inboxItems.length > 0) {
-    sections.push(`📧 Unread (last 24h)\n${inboxItems.join("\n")}`);
+    sections.push(`📧 Inbox (${inboxItems.length} unread)\n${inboxItems.join("\n")}`);
   }
 
   if (!sections.length) return null;
 
-  return `Good morning! Here's your day:\n\n${sections.join("\n\n")}`;
+  // Date header in user's timezone
+  const dateHeader = new Date().toLocaleDateString("en-US", {
+    timeZone: opts.timezone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+
+  return `Good morning! ☀️ ${dateHeader}\n\n${sections.join("\n\n")}`;
 }
 
 /** Used by the cron sweep to know if we should push the briefing now. */
