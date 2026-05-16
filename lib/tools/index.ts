@@ -23,7 +23,8 @@ import { buildDocsTools } from "./docs";
 import { buildMorningBriefingTool } from "./morning-briefing";
 import { buildEveningSummaryTool } from "./evening-summary";
 import { buildReceiptTools } from "./receipts";
-import { hasGoogleOAuth, hasQStash, env } from "@/lib/env";
+import { buildContentLibraryTools } from "./content-library";
+import { hasGoogleOAuth, hasQStash, hasVercelBlob, env } from "@/lib/env";
 
 /**
  * Returns the FULL tool registry bound to a single user. Used on the primary
@@ -55,6 +56,7 @@ export function toolsForUser(userId: string) {
     ...(hasGoogleOAuth() && hasQStash() ? buildScheduledEmailTools(userId) : {}),
     ...buildStagedMediaTools(userId),
     ...buildListTools(userId),
+    ...(hasVercelBlob() ? buildContentLibraryTools(userId) : {}),
     ...(hasGoogleOAuth() ? buildDocsTools(userId) : {}),
   };
 }

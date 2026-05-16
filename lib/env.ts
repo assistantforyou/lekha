@@ -36,6 +36,9 @@ const Env = z.object({
   APP_BASE_URL: z.string().url(),
   ADMIN_LINE_USER_ID: z.string().optional(),
 
+  // Vercel Blob (content library)
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
+
   // Dev/test
   DEV_CHAT_SECRET: z.string().min(16).optional(),
 });
@@ -79,4 +82,8 @@ export function hasGoogleOAuth(): boolean {
 export function hasQStash(): boolean {
   const e = env();
   return Boolean(e.QSTASH_TOKEN && e.QSTASH_CURRENT_SIGNING_KEY);
+}
+
+export function hasVercelBlob(): boolean {
+  return Boolean(env().BLOB_READ_WRITE_TOKEN);
 }

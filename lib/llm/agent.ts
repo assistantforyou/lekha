@@ -5,10 +5,12 @@ import { factsToPromptBlock, type loadFacts } from "@/lib/memory/facts";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { listRecentMedia } from "@/lib/memory/recent-media";
 import { getSettings } from "@/lib/memory/settings";
+import { getContentLibraryCount } from "@/lib/memory/content-library";
 import { toolsForUser } from "@/lib/tools";
 import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
+import { hasVercelBlob } from "@/lib/env";
 
 export class AgentTimeoutError extends Error {
   constructor(public readonly seconds: number) {
@@ -82,10 +84,11 @@ export async function runAgent(
   facts: Awaited<ReturnType<typeof loadFacts>>,
   messages: ModelMessage[],
 ): Promise<string> {
-  const [accounts, staged, settings] = await Promise.all([
+  const [accounts, staged, settings, libCount] = await Promise.all([
     listAccounts(userId),
     listRecentMedia(userId),
     getSettings(userId),
+    hasVercelBlob() ? getContentLibraryCount(userId) : Promise.resolve(0),
   ]);
   const accountsBlock = accounts.accounts.length
     ? `\n\nConnected Google accounts: ${accounts.accounts
@@ -108,10 +111,15 @@ export async function runAgent(
         })
         .join("\n")}\nUse \`attach_recent_media: true\` to attach all of them, or \`attach_recent_media_indexes: [n,…]\` to pick specific ones.`
     : "";
+  const contentLibBlock =
+    libCount > 0
+      ? `\n\nContent library: ${libCount} file${libCount !== 1 ? "s" : ""} stored. Use list_content_library or search_content_library to find relevant files.`
+      : "";
   const system =
     buildSystemPrompt(factsToPromptBlock(facts), profile, settings) +
     accountsBlock +
-    recentBlock;
+    recentBlock +
+    contentLibBlock;
 
   const tStart = Date.now();
   try {
