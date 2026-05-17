@@ -8,7 +8,7 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated), per-u
 |---|---|
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
 | Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
-| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini Flash Lite primary) + `@ai-sdk/groq` (llama-4-scout → gpt-oss-120b fallback cascade) |
+| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.0 Flash primary) + `@ai-sdk/groq` (llama-3.3-70b fallback cascade) |
 | Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
 | Scheduled jobs | Upstash QStash (one-shot reminders, deferred emails, recurring schedules, cron sweep) |
 | Web search | Tavily |
@@ -163,8 +163,8 @@ For Thai/UTF-8 fidelity. `Content-Transfer-Encoding: base64` on the text body pa
 ### 15. Private allowlist — `ADMIN_LINE_USER_ID` + `users:allowed` Redis set
 The bot is private by default. Every event hits the allowlist gate before any other logic. Admin (env var `ADMIN_LINE_USER_ID`) always passes. Others must be in the `users:allowed` Redis set. Admin commands: `/allow <userId>`, `/remove <userId>`, `/users`. Anyone can run `/myid` to get their own LINE userId. Blocked users see their userId in the rejection message so they can send it to the admin.
 
-### 16. LLM cascade — Gemini primary (12s timeout) → Groq fallback
-`runWithCascade` tries Gemini Flash Lite first. On quota/overload/timeout it falls to Groq (llama-4-scout-17b → gpt-oss-120b). Gemini is marked down for 60s after any failure so subsequent requests skip it. **Critical**: if Gemini executes tool calls before timing out, the cascade is skipped — cascading would re-run tools (e.g. schedule the same reminder twice). Groq uses a slim system prompt + core tool subset (~18 tools) to stay under tight TPM limits.
+### 16. LLM cascade — Gemini primary (20s timeout) → Groq fallback
+`runAgent` tries Gemini 2.0 Flash first. On quota/overload/timeout it falls to Groq llama-3.3-70b. Gemini is marked down for 60s after any failure so subsequent requests skip it. **Critical**: if Gemini executes tool calls before timing out, the cascade is skipped — cascading would re-run tools (e.g. schedule the same reminder twice). Groq uses a slim system prompt + core tool subset (~18 tools) to stay under tight TPM limits.
 
 ### 17. Orchestrator-level error relay enforcement
 After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.

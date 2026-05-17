@@ -16,12 +16,13 @@ import { appendTurn, loadHistory, turnCounter } from "@/lib/memory/history";
 import { loadFacts, factsToPromptBlock } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
 import { isAllowed, addToAllowlist, removeFromAllowlist, listAllowed } from "@/lib/memory/allowlist";
-import { chatModel } from "@/lib/llm/provider";
+import { chatModel, groqChatModel } from "@/lib/llm/provider";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
 import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
-import { toolsForUser } from "@/lib/tools";
+import { toolsForUser, coreToolsForUser } from "@/lib/tools";
+import { isGeminiDown, markGeminiDown } from "@/lib/llm/health";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { checkRateLimit } from "@/lib/ratelimit";
@@ -570,154 +571,201 @@ async function runAgent(
     recentBlock;
 
   const tStart = Date.now();
+  const allCalls: { toolName: string; input: unknown }[] = [];
+
+  const geminiSkipped = await isGeminiDown();
+  let geminiRanTools = false;
+
+  if (!geminiSkipped) {
+    try {
+      const result = await withTimeout(
+        generateText({
+          model: chatModel(),
+          system,
+          messages,
+          tools: toolsForUser(userId),
+          temperature: 0.4,
+          stopWhen: stepCountIs(8),
+          maxRetries: 0,
+          onStepFinish: (step) => {
+            if (step.toolCalls.length > 0) geminiRanTools = true;
+            console.log("[agent] step", {
+              ms: Date.now() - tStart,
+              toolCalls: step.toolCalls.map((c) => c?.toolName),
+              toolResults: step.toolResults.map((r) => ({
+                tool: (r as { toolName?: string }).toolName,
+                result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
+              })),
+              text: step.text?.slice(0, 200) || undefined,
+              finish: step.finishReason,
+            });
+          },
+          providerOptions: {
+            google: {
+              safetySettings: [
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+              ],
+            },
+          },
+        }),
+        20_000,
+      );
+      console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length, provider: "gemini" });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return processAndFormat(result as any, accounts.activeEmail, allCalls, userId);
+    } catch (geminiErr) {
+      const quota = parseQuotaError(geminiErr);
+      if (!quota || geminiRanTools) {
+        return await handleAgentError(geminiErr, userId);
+      }
+      console.warn("[agent] gemini overloaded — falling back to groq", { ms: Date.now() - tStart });
+      await markGeminiDown(60);
+    }
+  } else {
+    console.log("[agent] gemini marked down — using groq directly");
+  }
+
+  // Groq fallback — reached only when Gemini failed without running tools, or is in cooldown.
   try {
     const result = await withTimeout(
       generateText({
-        model: chatModel(),
+        model: groqChatModel(),
         system,
         messages,
-        tools: toolsForUser(userId),
+        tools: coreToolsForUser(userId),
         temperature: 0.4,
         stopWhen: stepCountIs(8),
         maxRetries: 0,
         onStepFinish: (step) => {
-          console.log("[agent] step", {
+          console.log("[agent:groq] step", {
             ms: Date.now() - tStart,
             toolCalls: step.toolCalls.map((c) => c?.toolName),
-            toolResults: step.toolResults.map((r) => ({
-              tool: (r as { toolName?: string }).toolName,
-              result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
-            })),
             text: step.text?.slice(0, 200) || undefined,
             finish: step.finishReason,
           });
         },
-        providerOptions: {
-          google: {
-            safetySettings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-            ],
-          },
-        },
       }),
-      45_000,
+      30_000,
     );
-    console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
-
-    // Collect tool calls + outputs across steps.
-    const allCalls: { toolName: string; input: unknown }[] = [];
-    let authNeeded: { connectUrl: string; reason: string } | null = null;
-    let apiDisabled: { api: string; enableUrl: string | null; message: string } | null = null;
-    let googleErr: { status: number | null; message: string } | null = null;
-    for (const step of result.steps) {
-      for (const c of step.toolCalls) {
-        if (!c) continue;
-        allCalls.push({ toolName: c.toolName, input: c.input });
-      }
-      for (const tr of step.toolResults) {
-        if (!tr) continue;
-        const value = extractToolValue((tr as { output?: unknown }).output);
-        if (!value || typeof value !== "object") continue;
-        const v = value as Record<string, unknown>;
-        if (v.need_google_auth && typeof v.connect_url === "string") {
-          authNeeded = { connectUrl: v.connect_url, reason: typeof v.reason === "string" ? v.reason : "" };
-        } else if (v.google_api_disabled) {
-          apiDisabled = {
-            api: typeof v.api === "string" ? v.api : "Google API",
-            enableUrl: typeof v.enable_url === "string" ? v.enable_url : null,
-            message: typeof v.message === "string" ? v.message : "",
-          };
-        } else if (v.google_error) {
-          googleErr = {
-            status: typeof v.status === "number" ? v.status : null,
-            message: typeof v.message === "string" ? v.message : "",
-          };
-        }
-      }
-    }
-
-    // Override priority: auth → API disabled → other Google error.
-    if (authNeeded) {
-      const isReauth = authNeeded.reason.includes("scopes");
-      const intro = isReauth
-        ? "Your Google account needs a quick permission update to access calendar and Gmail features."
-        : "I need access to your Google account to do that.";
-      return `${intro}\n\nType "connect google" to reconnect — it only takes a few seconds and you'll only need to do this once.\n\n${authNeeded.connectUrl}`;
-    }
-    if (apiDisabled) {
-      const enableHint = apiDisabled.enableUrl
-        ? `\n\nEnable it here:\n${apiDisabled.enableUrl}`
-        : `\n\nEnable it in Google Cloud Console → APIs & Services → Library.`;
-      return `Google says the ${apiDisabled.api} isn't enabled in your Cloud project.${enableHint}\n\nGive it ~1 min to propagate after enabling, then try again.`;
-    }
-    if (googleErr) {
-      const status = googleErr.status ? ` (HTTP ${googleErr.status})` : "";
-      return `Google API error${status}: ${googleErr.message}`;
-    }
-
-    // Collect tool errors. If the model soft-apologized instead of relaying the
-    // actual error, override with the real message so the user knows what broke.
-    const toolErrors: string[] = [];
-    for (const step of result.steps) {
-      for (const tr of step.toolResults) {
-        const value = extractToolValue((tr as { output?: unknown }).output);
-        if (value && typeof value === "object") {
-          const v = value as Record<string, unknown>;
-          if (v.ok === false && typeof v.error === "string") {
-            const toolName = (tr as { toolName?: string }).toolName ?? "tool";
-            toolErrors.push(`${toolName}: ${v.error}`);
-          }
-        }
-      }
-    }
-
-    const draftBlock = renderDraftsBlock(allCalls, accounts.activeEmail);
-    const modelText = result.text?.trim() ?? "";
-
-    // If there were tool errors and the model's response doesn't mention the actual
-    // error text (i.e. it soft-apologized), surface the real errors instead.
-    if (toolErrors.length > 0 && !draftBlock) {
-      const allErrorsPresent = toolErrors.every((e) => modelText.includes(e.split(": ").slice(1).join(": ")));
-      if (!allErrorsPresent) {
-        console.warn("[agent] model soft-apologized — overriding with real tool errors", toolErrors);
-        return toolErrors.join("\n");
-      }
-    }
-
-    if (draftBlock) {
-      const intro = modelText.length > 0 && modelText.length < 240 ? `${modelText}\n\n` : "";
-      return `${intro}${draftBlock}`;
-    }
-    return modelText.length > 0 ? modelText : "(…)";
+    console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length, provider: "groq" });
+    return processAndFormat(result, accounts.activeEmail, allCalls, userId);
   } catch (err) {
-    // Tools throw typed errors when they need user input. Translate them to chat.
-    const inner = unwrap(err);
-    if (inner instanceof GoogleAuthRequired) {
-      const url = await buildConnectUrl(userId);
-      return `To do that I need access to your Google account. Connect here (link expires in 10 min):\n${url}`;
-    }
-    if (inner instanceof NeedsConfirmation) {
-      return inner.message;
-    }
-    if (inner instanceof RateLimited) {
-      return `I'm being rate-limited. Try again in ~${inner.retryAfterSec}s.`;
-    }
-    if (err instanceof AgentTimeoutError) {
-      console.warn("[agent] timeout", { seconds: err.seconds });
-      return `Timed out after ${err.seconds}s — that was a heavy request. Try again in a sec.`;
-    }
-    const quota = parseQuotaError(err);
-    if (quota) {
-      console.warn("[agent] quota/overload", { retryAfter: quota.retryAfterSec });
-      return `I'm overloaded right now. Try again in ~${quota.retryAfterSec}s.`;
-    }
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[agent] unhandled", err);
-    return `Error: ${msg.slice(0, 300)}`;
+    return await handleAgentError(err, userId);
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function processAndFormat(
+  result: any,
+  activeEmail: string | null,
+  allCalls: { toolName: string; input: unknown }[],
+  userId: string,
+): string {
+  let authNeeded: { connectUrl: string; reason: string } | null = null;
+  let apiDisabled: { api: string; enableUrl: string | null; message: string } | null = null;
+  let googleErr: { status: number | null; message: string } | null = null;
+
+  for (const step of result.steps) {
+    for (const c of step.toolCalls) {
+      if (!c) continue;
+      allCalls.push({ toolName: c.toolName, input: c.input });
+    }
+    for (const tr of step.toolResults) {
+      if (!tr) continue;
+      const value = extractToolValue((tr as { output?: unknown }).output);
+      if (!value || typeof value !== "object") continue;
+      const v = value as Record<string, unknown>;
+      if (v.need_google_auth && typeof v.connect_url === "string") {
+        authNeeded = { connectUrl: v.connect_url, reason: typeof v.reason === "string" ? v.reason : "" };
+      } else if (v.google_api_disabled) {
+        apiDisabled = {
+          api: typeof v.api === "string" ? v.api : "Google API",
+          enableUrl: typeof v.enable_url === "string" ? v.enable_url : null,
+          message: typeof v.message === "string" ? v.message : "",
+        };
+      } else if (v.google_error) {
+        googleErr = {
+          status: typeof v.status === "number" ? v.status : null,
+          message: typeof v.message === "string" ? v.message : "",
+        };
+      }
+    }
+  }
+
+  if (authNeeded) {
+    const isReauth = authNeeded.reason.includes("scopes");
+    const intro = isReauth
+      ? "Your Google account needs a quick permission update to access calendar and Gmail features."
+      : "I need access to your Google account to do that.";
+    return `${intro}\n\nType "connect google" to reconnect — it only takes a few seconds and you'll only need to do this once.\n\n${authNeeded.connectUrl}`;
+  }
+  if (apiDisabled) {
+    const enableHint = apiDisabled.enableUrl
+      ? `\n\nEnable it here:\n${apiDisabled.enableUrl}`
+      : `\n\nEnable it in Google Cloud Console → APIs & Services → Library.`;
+    return `Google says the ${apiDisabled.api} isn't enabled in your Cloud project.${enableHint}\n\nGive it ~1 min to propagate after enabling, then try again.`;
+  }
+  if (googleErr) {
+    const status = googleErr.status ? ` (HTTP ${googleErr.status})` : "";
+    return `Google API error${status}: ${googleErr.message}`;
+  }
+
+  const toolErrors: string[] = [];
+  for (const step of result.steps) {
+    for (const tr of step.toolResults) {
+      const value = extractToolValue((tr as { output?: unknown }).output);
+      if (value && typeof value === "object") {
+        const v = value as Record<string, unknown>;
+        if (v.ok === false && typeof v.error === "string") {
+          const toolName = (tr as { toolName?: string }).toolName ?? "tool";
+          toolErrors.push(`${toolName}: ${v.error}`);
+        }
+      }
+    }
+  }
+
+  const draftBlock = renderDraftsBlock(allCalls, activeEmail);
+  const modelText = result.text?.trim() ?? "";
+
+  if (toolErrors.length > 0 && !draftBlock) {
+    const allErrorsPresent = toolErrors.every((e) => modelText.includes(e.split(": ").slice(1).join(": ")));
+    if (!allErrorsPresent) {
+      console.warn("[agent] model soft-apologized — overriding with real tool errors", toolErrors);
+      return toolErrors.join("\n");
+    }
+  }
+
+  if (draftBlock) {
+    const intro = modelText.length > 0 && modelText.length < 240 ? `${modelText}\n\n` : "";
+    return `${intro}${draftBlock}`;
+  }
+  if (modelText.length > 0) return modelText;
+  if (allCalls.length > 0) return "Done!";
+  return "…";
+}
+
+async function handleAgentError(err: unknown, userId: string): Promise<string> {
+  const inner = unwrap(err);
+  if (inner instanceof GoogleAuthRequired) {
+    const url = await buildConnectUrl(userId);
+    return `To do that I need access to your Google account. Connect here (link expires in 10 min):\n${url}`;
+  }
+  if (inner instanceof NeedsConfirmation) {
+    return inner.message;
+  }
+  if (inner instanceof RateLimited) {
+    return `I'm being rate-limited. Try again in ~${inner.retryAfterSec}s.`;
+  }
+  if (err instanceof AgentTimeoutError) {
+    console.warn("[agent] timeout", { seconds: err.seconds });
+    return `Timed out after ${err.seconds}s — that was a heavy request. Try again in a sec.`;
+  }
+  const msg = err instanceof Error ? err.message : String(err);
+  console.error("[agent] unhandled", err);
+  return `Error: ${msg.slice(0, 300)}`;
 }
 
 /** Extract the actual value from an AI SDK tool result output, which can be
@@ -747,7 +795,7 @@ function parseQuotaError(err: unknown): { retryAfterSec: number } | null {
   // Only match genuinely transient/quota errors — not bad requests or model errors.
   // Excluding 400/404 so invalid model names or malformed requests surface as real errors.
   if (
-    !/quota|rate.?limit|RESOURCE_EXHAUSTED|429|UNAVAILABLE|overloaded|503|502|504|INTERNAL|temporarily|AI_RetryError|fetch failed|ECONN|ENOTFOUND/i.test(
+    !/quota|rate.?limit|RESOURCE_EXHAUSTED|429|UNAVAILABLE|overloaded|high.?demand|503|502|504|INTERNAL|temporarily|temporary|AI_RetryError|fetch failed|ECONN|ENOTFOUND/i.test(
       text,
     )
   ) {
