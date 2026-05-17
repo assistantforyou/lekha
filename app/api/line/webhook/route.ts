@@ -575,6 +575,8 @@ async function runAgent(
 
   const geminiSkipped = await isGeminiDown();
   let geminiRanTools = false;
+  // Accumulate tool execution history so Groq can write the reply without re-running tools.
+  const geminiStepMessages: ModelMessage[] = [];
 
   if (!geminiSkipped) {
     try {
@@ -588,7 +590,10 @@ async function runAgent(
           stopWhen: stepCountIs(8),
           maxRetries: 0,
           onStepFinish: (step) => {
-            if (step.toolCalls.length > 0) geminiRanTools = true;
+            if (step.toolCalls.length > 0) {
+              geminiRanTools = true;
+              geminiStepMessages.push(...step.response.messages);
+            }
             console.log("[agent] step", {
               ms: Date.now() - tStart,
               toolCalls: step.toolCalls.map((c) => c?.toolName),
@@ -618,8 +623,31 @@ async function runAgent(
       return processAndFormat(result as any, accounts.activeEmail, allCalls, userId);
     } catch (geminiErr) {
       const quota = parseQuotaError(geminiErr);
-      if (!quota || geminiRanTools) {
+      if (!quota) {
+        // Non-retriable error — surface it regardless of whether tools ran.
         return await handleAgentError(geminiErr, userId);
+      }
+      if (geminiRanTools) {
+        // Gemini ran tools then failed on the reply step. Pass the completed tool results
+        // to Groq so it writes the response text — no tools re-run, no double side-effects.
+        console.warn("[agent] gemini failed after tool calls — handing off to groq for reply", { ms: Date.now() - tStart });
+        const recoveryMessages: ModelMessage[] = [...messages, ...geminiStepMessages];
+        try {
+          const result = await withTimeout(
+            generateText({
+              model: groqChatModel(),
+              system,
+              messages: recoveryMessages,
+              temperature: 0.4,
+              maxRetries: 0,
+            }),
+            30_000,
+          );
+          console.log("[agent] done", { ms: Date.now() - tStart, provider: "groq-recovery" });
+          return processAndFormat(result, accounts.activeEmail, allCalls, userId);
+        } catch (recoveryErr) {
+          return await handleAgentError(recoveryErr, userId);
+        }
       }
       console.warn("[agent] gemini overloaded — falling back to groq", { ms: Date.now() - tStart });
       await markGeminiDown(60);
