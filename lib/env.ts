@@ -8,6 +8,7 @@ const Env = z.object({
   // LLM
   GEMINI_API_KEY: z.string().optional(),
   AI_GATEWAY_API_KEY: z.string().optional(), // legacy fallback
+  GROQ_API_KEY: z.string().optional(),
 
   // Google OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
