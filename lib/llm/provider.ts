@@ -17,14 +17,14 @@ function groqClient() {
   return createGroq({ apiKey: key });
 }
 
-/** Main chat model — Gemini 2.0 Flash. */
+/** Main chat model — Gemini 2.5 Flash Lite. */
 export function chatModel() {
-  return googleClient()("gemini-2.0-flash");
+  return googleClient()("gemini-2.5-flash-lite");
 }
 
 /** Background extraction model — same, handles PDFs + images natively. */
 export function extractorModel() {
-  return googleClient()("gemini-2.0-flash");
+  return googleClient()("gemini-2.5-flash-lite");
 }
 
 /** Groq fallback model — used when Gemini is down or overloaded. */
