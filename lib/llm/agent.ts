@@ -229,7 +229,9 @@ export async function runAgent(
       const intro = modelText.length > 0 && modelText.length < 240 ? `${modelText}\n\n` : "";
       return `${intro}${draftBlock}`;
     }
-    return modelText.length > 0 ? modelText : "(…)";
+    if (modelText.length > 0) return modelText;
+    if (allCalls.length > 0) return "Done!";
+    return "…";
   } catch (err) {
     const inner = unwrap(err);
     if (inner instanceof GoogleAuthRequired) {
