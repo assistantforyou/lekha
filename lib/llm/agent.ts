@@ -1,6 +1,6 @@
 import { generateText, stepCountIs, type ModelMessage } from "ai";
 import { chatModel, groqChatModel } from "@/lib/llm/provider";
-import { buildSystemPrompt } from "@/lib/llm/prompts";
+import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
 import { factsToPromptBlock, type loadFacts } from "@/lib/memory/facts";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { listRecentMedia } from "@/lib/memory/recent-media";
@@ -181,6 +181,32 @@ function formatProcessed(processed: ProcessedResult): string {
   return processed.reply;
 }
 
+/** Prepends the current timestamp into the last user message so the system
+ * prompt stays static — identical system + tools = Gemini implicit cache hits. */
+function withTimeContext(messages: ModelMessage[], tz: string): ModelMessage[] {
+  const ctx = buildTimeContext(tz);
+  let lastUserIdx = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role === "user") { lastUserIdx = i; break; }
+  }
+  if (lastUserIdx === -1) return messages;
+  return messages.map((msg, i) => {
+    if (i !== lastUserIdx) return msg;
+    if (typeof msg.content === "string") {
+      return { ...msg, content: `[${ctx}]\n\n${msg.content}` };
+    }
+    if (Array.isArray(msg.content)) {
+      let injected = false;
+      const parts = (msg.content as Array<{ type: string; text?: string } & Record<string, unknown>>).map((p) => {
+        if (!injected && p.type === "text") { injected = true; return { ...p, text: `[${ctx}]\n\n${p.text ?? ""}` }; }
+        return p;
+      });
+      return { ...msg, content: parts };
+    }
+    return msg;
+  }) as ModelMessage[];
+}
+
 export async function runAgent(
   userId: string,
   profile: { displayName: string },
@@ -218,6 +244,9 @@ export async function runAgent(
     accountsBlock +
     recentBlock;
 
+  const tz = settings?.timezone ?? "Asia/Bangkok";
+  const messagesWithTime = withTimeContext(messages, tz);
+
   const tStart = Date.now();
   const allCalls: { toolName: string; input: unknown }[] = [];
 
@@ -230,7 +259,7 @@ export async function runAgent(
         generateText({
           model: chatModel(),
           system,
-          messages,
+          messages: messagesWithTime,
           tools: toolsForUser(userId),
           temperature: 0.4,
           stopWhen: stepCountIs(8),
@@ -283,10 +312,10 @@ export async function runAgent(
       generateText({
         model: groqChatModel(),
         system,
-        messages,
+        messages: messagesWithTime,
         tools: coreToolsForUser(userId),
         temperature: 0.4,
-        stopWhen: stepCountIs(8),
+        stopWhen: stepCountIs(3),
         maxRetries: 0,
         onStepFinish: (step) => {
           console.log("[agent:groq] step", {

@@ -60,25 +60,20 @@ export function toolsForUser(userId: string) {
 }
 
 /**
- * Slim registry for fallback path (Groq). Cuts the tool list from ~50 to ~12
- * to stay under tight TPM limits and to be more legible to weaker models.
- * Picks the tools that handle 90% of real requests; specialty tools are dropped.
+ * Slim registry for fallback path (Groq). 14 tools covering 90% of fallback
+ * requests. Kept small to stay under Groq's free-tier daily token limit
+ * (~131K/day) and to reduce per-request cost on paid tier.
+ * Specialty tools (finance, media AI, lists, docs, receipts, settings) are
+ * dropped — they're rarely the reason Gemini fails.
  */
 export function coreToolsForUser(userId: string) {
   const all = toolsForUser(userId);
   const keep = [
-    "show_help",
-    "get_morning_briefing",
-    "get_evening_summary",
     "remember", "list_memories",
-    "stock_price", "stock_history", "crypto_price", "fx_rate", "weather", "web_search", "news_search",
-    "set_reminder", "list_reminders",
+    "weather", "web_search", "news_search",
+    "set_reminder", "list_reminders", "cancel_reminder",
     "add_task", "list_tasks", "complete_task",
-    "contacts_search",
-    "draft_email", "draft_calendar_event", "calendar_today", "calendar_week",
-    "ocr_image", "transcribe_audio",
-    "add_to_list", "list_items", "show_all_lists", "remove_from_list",
-    "create_google_doc",
+    "draft_email", "draft_calendar_event", "calendar_today",
   ] as const;
   const out: Record<string, unknown> = {};
   for (const name of keep) {

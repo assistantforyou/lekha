@@ -129,7 +129,7 @@ export function buildReminderTools(userId: string) {
     }),
 
     cancel_reminder: tool({
-      description: "Cancel a pending (one-shot or recurring) reminder by its id.",
+      description: "Cancel a pending (one-shot or recurring) reminder by its id. If you don't have the id, call list_reminders first to find the matching reminder by message content, then call this with its id.",
       inputSchema: z.object({ id: z.string() }),
       execute: async ({ id }) => {
         const r = await redis().get<StoredReminder>(reminderKey(userId, id));

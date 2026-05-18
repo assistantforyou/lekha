@@ -9,7 +9,7 @@ Capabilities (use the tools — don't just say you will, ACTUALLY call them):
 - get_my_settings / set_timezone / set_location / set_language / enable_morning_briefing / disable_morning_briefing / enable_evening_summary / disable_evening_summary / enable_pre_meeting_alerts — user preferences. enable_evening_summary turns on a 9 PM daily push: leftover tasks, tomorrow's next 5 calendar events, and today's geopolitics + economics news.
 - remember / list_memories / update_memory / forget_memory / clear_all_memories / search_archived_memory / list_archived_memory — short-term facts and long-term conversation archive.
 - add_task / list_tasks / complete_task / reopen_task / update_task / delete_task — persistent open work items distinct from reminders.
-- set_reminder / set_recurring_reminder / list_reminders / cancel_reminder — one-shot or repeating LINE pushes. "เตือน" / "remind me" always means set_reminder — NOT draft_calendar_event. If the user lists N things to be reminded about, call set_reminder N times (one per item), each with the user's exact words as the message. Never merge multiple reminders into one or rephrase them.
+- set_reminder / set_recurring_reminder / list_reminders / cancel_reminder — one-shot or repeating LINE pushes. "เตือน" / "remind me" always means set_reminder — NOT draft_calendar_event. If the user lists N things to be reminded about, call set_reminder N times (one per item), each with the user's exact words as the message. Never merge multiple reminders into one or rephrase them. To cancel a reminder when the user hasn't given an ID, call list_reminders first, find the match by message content, then call cancel_reminder with its ID — never ask the user for the ID.
 - web_search — general web search. DO NOT use for stock / crypto / FX / weather / news — those have dedicated FAST tools.
 - stock_price — current price of any ticker.
 - stock_history — 1mo/3mo/6mo/1y/2y/5y/ytd/max movement (first/last/high/low/change%). Use for "1 year of X" type questions.
@@ -80,14 +80,20 @@ export function buildSystemPrompt(
   settings?: { timezone?: string; location?: string | null; language?: string | null },
 ): string {
   const tz = settings?.timezone ?? "Asia/Bangkok";
-  const now = new Date();
-  const nowISO = now.toISOString();
-  const nowLocal = now.toLocaleString("en-US", { timeZone: tz, timeZoneName: "short" });
   const intro = profile.displayName
     ? `\n\nThe user's LINE display name is "${profile.displayName}".`
     : "";
   const loc = settings?.location ? `\nLocation (user-stated): ${settings.location}.` : "";
   const lang = settings?.language ? `\nReply in: ${settings.language} (override the auto-match rule).` : "";
-  const time = `\n\nCurrent time: ${nowISO} (UTC). User's local time (${tz}): ${nowLocal}. When the user gives a relative time like "in 5 minutes" or "tomorrow at 3pm", convert to an absolute ISO 8601 timestamp anchored to ${tz}.`;
-  return `${BASE_PERSONALITY}${intro}${loc}${lang}${time}${facts}`;
+  return `${BASE_PERSONALITY}${intro}${loc}${lang}${facts}`;
+}
+
+/** Returns a time-context string to prepend to the current user message.
+ * Kept out of the system prompt so BASE_PERSONALITY + tool schemas stay
+ * identical across requests and hit Gemini's implicit cache. */
+export function buildTimeContext(tz: string): string {
+  const now = new Date();
+  const nowISO = now.toISOString();
+  const nowLocal = now.toLocaleString("en-US", { timeZone: tz, timeZoneName: "short" });
+  return `Current time: ${nowISO} (UTC). Local (${tz}): ${nowLocal}. Convert relative times ("in 5 min", "tomorrow at 3pm") to ISO 8601 with ${tz} offset.`;
 }
