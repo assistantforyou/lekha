@@ -42,7 +42,7 @@ export function buildDocsTools(userId: string) {
 
     edit_google_doc: tool({
       description:
-        "Replace the entire body of an existing Google Doc with new content. IMPORTANT: First call drive_read_text(fileId) to get the current text, then decide what the new full text should be, then call edit_google_doc with the complete replacement. Do not call this blindly — always read first.",
+        "Replace the entire body of a Google Doc. Always call drive_read_text first to get current content, then pass the complete new text.",
       inputSchema: z.object({
         fileId: z.string().min(1).describe("Google Doc file ID (from drive_search or a previous create_google_doc)"),
         newContent: z.string().max(50_000).describe("The complete new text for the document body (replaces existing content)"),
