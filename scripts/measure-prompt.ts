@@ -92,16 +92,28 @@ type GTool = { functionDeclarations: GFunctionDecl[] };
 type GSysInstruction = { parts: GPart[] };
 
 // ── countTokens REST call ─────────────────────────────────────────────────
+// systemInstruction and tools must live inside generateContentRequest —
+// the top-level countTokens body only accepts contents or generateContentRequest.
 
 async function countTokens(opts: {
   system?: GSysInstruction;
   tools?: GTool[];
   contents?: GContent[];
 }): Promise<number> {
-  const body: Record<string, unknown> = {};
-  if (opts.system) body.systemInstruction = opts.system;
-  if (opts.tools?.length) body.tools = opts.tools;
-  body.contents = opts.contents ?? [{ role: "user", parts: [{ text: " " }] }];
+  const contents = opts.contents ?? [{ role: "user" as const, parts: [{ text: " " }] }];
+
+  // If we have system or tools we must use the generateContentRequest wrapper.
+  const body: Record<string, unknown> =
+    opts.system || opts.tools?.length
+      ? {
+          generateContentRequest: {
+            model: `models/${MODEL}`,
+            ...(opts.system ? { systemInstruction: opts.system } : {}),
+            ...(opts.tools?.length ? { tools: opts.tools } : {}),
+            contents,
+          },
+        }
+      : { contents };
 
   const res = await fetch(COUNT_URL, {
     method: "POST",
@@ -118,6 +130,88 @@ async function countTokens(opts: {
   return data.totalTokens ?? 0;
 }
 
+// ── JSON Schema → Gemini OpenAPI schema ──────────────────────────────────
+// Gemini function declarations accept a limited OpenAPI subset — not raw JSON Schema 7.
+// This mirrors the conversion logic in @ai-sdk/google (not exported from that package).
+
+type GSchema = Record<string, unknown>;
+
+function toGeminiSchema(s: GSchema, isRoot = true): GSchema | undefined {
+  if (s == null) return undefined;
+  if (typeof s === "boolean") return { type: "boolean", properties: {} };
+
+  // Empty object at root = no parameters (Gemini wants undefined, not {})
+  if (isRoot && Object.keys(s).length === 0) return undefined;
+
+  const {
+    type,
+    description,
+    required,
+    properties,
+    items,
+    anyOf,
+    format,
+    const: constValue,
+    minLength,
+    enum: enumValues,
+  } = s as {
+    type?: string | string[];
+    description?: string;
+    required?: string[];
+    properties?: Record<string, GSchema>;
+    items?: GSchema;
+    anyOf?: GSchema[];
+    format?: string;
+    const?: unknown;
+    minLength?: number;
+    enum?: unknown[];
+  };
+
+  const out: GSchema = {};
+  if (description) out.description = description;
+  if (required) out.required = required;
+  if (format) out.format = format;
+  if (constValue !== undefined) out.enum = [constValue];
+  if (enumValues !== undefined) out.enum = enumValues;
+  if (minLength !== undefined) out.minLength = minLength;
+
+  if (type !== undefined) {
+    if (Array.isArray(type)) {
+      const hasNull = type.includes("null");
+      const nonNull = type.filter((t) => t !== "null");
+      if (nonNull.length === 0) {
+        out.type = "null";
+      } else if (nonNull.length === 1) {
+        out.type = nonNull[0];
+        if (hasNull) out.nullable = true;
+      } else {
+        out.anyOf = nonNull.map((t) => ({ type: t }));
+        if (hasNull) out.nullable = true;
+      }
+    } else {
+      out.type = type;
+    }
+  }
+
+  if (properties) {
+    out.properties = Object.fromEntries(
+      Object.entries(properties).map(([k, v]) => [k, toGeminiSchema(v, false)]),
+    );
+  }
+  if (items) out.items = toGeminiSchema(items, false);
+
+  if (anyOf) {
+    const hasNull = anyOf.some((a) => (a as GSchema).type === "null");
+    const nonNull = anyOf.filter((a) => (a as GSchema).type !== "null");
+    if (hasNull && nonNull.length === 1 && nonNull[0]) {
+      return { ...toGeminiSchema(nonNull[0], false), nullable: true };
+    }
+    out.anyOf = anyOf.map((a) => toGeminiSchema(a, false));
+  }
+
+  return out;
+}
+
 // ── Tool → Gemini function declaration ───────────────────────────────────
 
 function toFuncDecl(
@@ -125,19 +219,12 @@ function toFuncDecl(
   tool: { description?: string; inputSchema: unknown },
 ): GFunctionDecl {
   const schema = asSchema(tool.inputSchema as Parameters<typeof asSchema>[0]);
-  // .jsonSchema is a lazy getter — access it synchronously
-  const raw = schema.jsonSchema as Record<string, unknown>;
-  // Strip JSON Schema meta-fields Gemini doesn't accept
-  const { $schema, definitions, additionalProperties, ...parameters } = raw as {
-    $schema?: unknown;
-    definitions?: unknown;
-    additionalProperties?: unknown;
-    [k: string]: unknown;
-  };
+  const raw = schema.jsonSchema as GSchema;
+  const parameters = toGeminiSchema(raw, true);
   return {
     name,
     description: tool.description ?? "",
-    ...(Object.keys(parameters).length > 0 ? { parameters } : {}),
+    ...(parameters ? { parameters } : {}),
   };
 }
 
