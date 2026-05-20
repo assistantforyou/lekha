@@ -1,15 +1,14 @@
 import { generateText, stepCountIs, type ModelMessage } from "ai";
-import { chatModel, groqChatModel } from "@/lib/llm/provider";
+import { chatModel } from "@/lib/llm/provider";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { factsToPromptBlock, type loadFacts } from "@/lib/memory/facts";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { listRecentMedia } from "@/lib/memory/recent-media";
 import { getSettings } from "@/lib/memory/settings";
-import { toolsForUser, coreToolsForUser } from "@/lib/tools";
+import { toolsForUser } from "@/lib/tools";
 import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
-import { isGeminiDown, markGeminiDown } from "@/lib/llm/health";
 
 export class AgentTimeoutError extends Error {
   constructor(public readonly seconds: number) {
@@ -41,31 +40,6 @@ export function unwrap(err: unknown): unknown {
     cur = next;
   }
   return err;
-}
-
-export function parseQuotaError(err: unknown): { retryAfterSec: number } | null {
-  const text = (() => {
-    if (err instanceof Error) {
-      const cause = (err as { cause?: unknown }).cause;
-      const causeMsg = cause instanceof Error ? cause.message : "";
-      return `${err.name} ${err.message} ${causeMsg}`;
-    }
-    try {
-      return JSON.stringify(err);
-    } catch {
-      return String(err);
-    }
-  })();
-  if (
-    !/quota|rate.?limit|RESOURCE_EXHAUSTED|429|UNAVAILABLE|overloaded|high.?demand|503|502|504|INTERNAL|temporarily|temporary|AI_RetryError|fetch failed|ECONN|ENOTFOUND/i.test(
-      text,
-    )
-  ) {
-    return null;
-  }
-  const m = text.match(/retry in (\d+(?:\.\d+)?)s/i);
-  const retryAfterSec = m ? Math.ceil(parseFloat(m[1]!)) : 30;
-  return { retryAfterSec };
 }
 
 export function extractToolValue(output: unknown): unknown {
@@ -221,86 +195,44 @@ export async function runAgent(
   const tStart = Date.now();
   const allCalls: { toolName: string; input: unknown }[] = [];
 
-  const geminiSkipped = await isGeminiDown();
-  let geminiRanTools = false;
-
-  if (!geminiSkipped) {
-    try {
-      const result = await withTimeout(
-        generateText({
-          model: chatModel(),
-          system,
-          messages,
-          tools: toolsForUser(userId),
-          temperature: 0.4,
-          stopWhen: stepCountIs(8),
-          maxRetries: 0,
-          onStepFinish: (step) => {
-            if (step.toolCalls.length > 0) geminiRanTools = true;
-            console.log("[agent] step", {
-              ms: Date.now() - tStart,
-              toolCalls: step.toolCalls.map((c) => c?.toolName),
-              toolResults: step.toolResults.map((r) => ({
-                tool: (r as { toolName?: string }).toolName,
-                result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
-              })),
-              text: step.text?.slice(0, 200) || undefined,
-              finish: step.finishReason,
-            });
-          },
-          providerOptions: {
-            google: {
-              safetySettings: [
-                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-              ],
-            },
-          },
-        }),
-        20_000,
-      );
-      console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length, provider: "gemini" });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return formatProcessed(processResult(result as any, accounts.activeEmail, allCalls));
-    } catch (geminiErr) {
-      const quota = parseQuotaError(geminiErr);
-      if (!quota || geminiRanTools) {
-        // Non-retriable error or tools already ran — don't cascade.
-        return handleError(geminiErr, userId);
-      }
-      console.warn("[agent] gemini overloaded — falling back to groq", { ms: Date.now() - tStart });
-      await markGeminiDown(60);
-    }
-  } else {
-    console.log("[agent] gemini marked down — using groq directly");
-  }
-
-  // Groq fallback — reached only when Gemini failed without running tools, or is in cooldown.
   try {
     const result = await withTimeout(
       generateText({
-        model: groqChatModel(),
+        model: chatModel(),
         system,
         messages,
-        tools: coreToolsForUser(userId),
+        tools: toolsForUser(userId),
         temperature: 0.4,
         stopWhen: stepCountIs(8),
         maxRetries: 0,
         onStepFinish: (step) => {
-          console.log("[agent:groq] step", {
+          console.log("[agent] step", {
             ms: Date.now() - tStart,
             toolCalls: step.toolCalls.map((c) => c?.toolName),
+            toolResults: step.toolResults.map((r) => ({
+              tool: (r as { toolName?: string }).toolName,
+              result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
+            })),
             text: step.text?.slice(0, 200) || undefined,
             finish: step.finishReason,
           });
         },
+        providerOptions: {
+          google: {
+            safetySettings: [
+              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+            ],
+          },
+        },
       }),
-      30_000,
+      20_000,
     );
-    console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length, provider: "groq" });
-    return formatProcessed(processResult(result, accounts.activeEmail, allCalls));
+    console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return formatProcessed(processResult(result as any, accounts.activeEmail, allCalls));
   } catch (err) {
     return handleError(err, userId);
   }
