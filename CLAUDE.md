@@ -58,7 +58,6 @@ lib/
 │   ├── provider.ts                    # chatModel + extractorModel — swap here for new LLMs
 │   ├── prompts.ts                     # base personality + system prompt builder
 │   ├── agent.ts                       # runAgent + helpers (shared by webhook + dev endpoint)
-│   ├── health.ts                      # Gemini down-detection (redis key llm:gemini:down_until)
 │   ├── extract-facts.ts               # background fact extraction + archive summarization
 │   ├── render-drafts.ts               # canonical verbatim draft block
 │   ├── briefing.ts                    # builds morning briefing: weather/tasks/reminders/calendar/news/inbox
