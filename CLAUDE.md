@@ -8,7 +8,7 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated), per-u
 |---|---|
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
 | Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
-| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.0 Flash primary) + `@ai-sdk/groq` (llama-3.3-70b fallback cascade) |
+| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash Lite, paid tier — no fallback) |
 | Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
 | Scheduled jobs | Upstash QStash (one-shot reminders, deferred emails, recurring schedules, cron sweep) |
 | Web search | Tavily |
@@ -163,8 +163,8 @@ For Thai/UTF-8 fidelity. `Content-Transfer-Encoding: base64` on the text body pa
 ### 15. Private allowlist — `ADMIN_LINE_USER_ID` + `users:allowed` Redis set
 The bot is private by default. Every event hits the allowlist gate before any other logic. Admin (env var `ADMIN_LINE_USER_ID`) always passes. Others must be in the `users:allowed` Redis set. Admin commands: `/allow <userId>`, `/remove <userId>`, `/users`. Anyone can run `/myid` to get their own LINE userId. Blocked users see their userId in the rejection message so they can send it to the admin.
 
-### 16. LLM cascade — Gemini primary (20s timeout) → Groq fallback
-`runAgent` tries Gemini 2.0 Flash first. On quota/overload/timeout it falls to Groq llama-3.3-70b. Gemini is marked down for 60s after any failure so subsequent requests skip it. **Critical**: if Gemini executes tool calls before timing out, the cascade is skipped — cascading would re-run tools (e.g. schedule the same reminder twice). Groq uses a slim system prompt + core tool subset (~18 tools) to stay under tight TPM limits.
+### 16. Single LLM provider — Gemini 2.5 Flash Lite (paid), 20s timeout
+`runAgent` calls Gemini directly with the full tool registry. No cascade, no fallback. Paid tier RPM (1,000+) absorbs the agentic turn burst that the free tier couldn't, and Flash Lite paid pricing ($0.10/M in, $0.40/M out) is materially cheaper per token than any third-party fallback we evaluated. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. If quota/availability ever becomes a real problem, add a fallback back here, not at the call sites.
 
 ### 17. Orchestrator-level error relay enforcement
 After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
@@ -197,7 +197,7 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 
 - **AI SDK v6 swallows tool exceptions** — must use structured returns for control flow.
 - **Parallel tool calls in one step race** — atomic Redis ops mandatory.
-- **Gemini free tier 10–30 RPM** — agentic turns burn 2–4 calls; quota error is parsed and surfaced cleanly.
+- **Gemini paid tier** — billing must be enabled on the Google Cloud project tied to `GEMINI_API_KEY`. Free tier RPM (10–30) is too low for agentic turns; paid tier (1,000+ RPM) absorbs the burst.
 - **`HARM_CATEGORY_*` thresholds**: use `BLOCK_NONE` not `OFF`. Skip `CIVIC_INTEGRITY` (rejected on some variants).
 - **Vercel Marketplace's Upstash Redis injects `KV_*`** not `UPSTASH_REDIS_REST_*`.
 - **OAuth refresh tokens are tied to client_id** — swap projects → `invalid_grant`. Detected and translated to need-reauth.
@@ -209,9 +209,7 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 - **LINE doesn't bundle a caption with media.** Recent-media staging spans messages within 30-min TTL.
 - **`Content-Transfer-Encoding: 7bit` is invalid for UTF-8 bodies** (Thai, emoji). Use base64.
 - **OAuth state nonce + connect-link token must be atomically consumed** (GETDEL) — non-atomic GET+DEL has a replay window.
-- **Gemini timeout at 12s** — Gemini occasionally hangs for 45+ seconds on overloaded requests. 12s is enough for a healthy response; anything longer means Gemini is too slow and Groq is faster.
-- **qwen3-32b unusable on free Groq tier** — its TPM limit is 6000/min, our slim prompt alone is ~6500 tokens. Every request fails. Removed from cascade.
-- **Cascade dedup for side-effectful tools** — `geminiRanToolCalls` flag in `runWithCascade`. Set in `onStepFinish` when Gemini calls any tool. If Gemini times out after setting this flag, cascade is skipped. Without this, reminders / emails get executed twice.
+- **Gemini timeout at 20s** — Gemini occasionally hangs for 45+ seconds on overloaded requests. 20s is enough for a healthy agentic turn; anything longer surfaces as a timeout error to the user.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
 

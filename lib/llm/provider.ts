@@ -1,5 +1,4 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createGroq } from "@ai-sdk/groq";
 import { env } from "@/lib/env";
 
 function googleClient() {
@@ -11,12 +10,6 @@ function googleClient() {
   return createGoogleGenerativeAI({ apiKey });
 }
 
-function groqClient() {
-  const key = env().GROQ_API_KEY;
-  if (!key) throw new Error("Missing GROQ_API_KEY for Groq fallback");
-  return createGroq({ apiKey: key });
-}
-
 /** Main chat model — Gemini 2.5 Flash Lite. */
 export function chatModel() {
   return googleClient()("gemini-2.5-flash-lite");
@@ -25,9 +18,4 @@ export function chatModel() {
 /** Background extraction model — same, handles PDFs + images natively. */
 export function extractorModel() {
   return googleClient()("gemini-2.5-flash-lite");
-}
-
-/** Groq fallback model — used when Gemini is down or overloaded. */
-export function groqChatModel() {
-  return groqClient()("llama-3.3-70b-versatile");
 }
