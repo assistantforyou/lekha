@@ -1,11 +1,19 @@
 /**
  * Token cost audit for the Lekha production prompt.
  *
+ * Minimum env vars required (set in environment or .env.local):
+ *   GEMINI_API_KEY          — Gemini API key (countTokens is free, no billing)
+ *   UPSTASH_REDIS_REST_URL  — Upstash Redis REST URL
+ *   UPSTASH_REDIS_REST_TOKEN — Upstash Redis REST token
+ *   USER_ID                 — LINE userId to load real data for
+ *
  * Usage:
  *   USER_ID=Uxxxxx npx tsx scripts/measure-prompt.ts
  *   npx tsx scripts/measure-prompt.ts <userId>
  *
- * Reads .env.local automatically. Does NOT bill tokens — countTokens is free.
+ * Reads .env.local if present, then falls back to process.env.
+ * lib/env.ts requires several fields the script doesn't use — safe dummy
+ * values are set for those so the Zod validation passes.
  */
 
 import { existsSync, readFileSync } from "fs";
@@ -26,6 +34,15 @@ if (existsSync(envFile)) {
     }
   }
 }
+
+// lib/env.ts validates several fields this script doesn't actually use.
+// Set safe dummy values so Zod passes without requiring the caller to supply them.
+const DUMMY_HEX64 = "0".repeat(64);
+process.env.LINE_CHANNEL_SECRET ??= "dummy-secret";
+process.env.LINE_CHANNEL_ACCESS_TOKEN ??= "dummy-token";
+process.env.TOKEN_ENCRYPTION_KEY ??= DUMMY_HEX64;
+process.env.OAUTH_STATE_SECRET ??= "dummy-oauth-state-secret-at-least-32-chars";
+process.env.APP_BASE_URL ??= "https://dummy.example.com";
 
 // Production imports — these only define functions, nothing executes yet.
 import { buildSystemPrompt, BASE_PERSONALITY } from "@/lib/llm/prompts";
