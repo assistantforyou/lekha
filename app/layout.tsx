@@ -1,28 +1,13 @@
 import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Geist } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
-const bodyFont = Geist({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const displayFont = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-display",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  title: "Lekha — A secretary who lives in your LINE",
+  title: "LEKHA · เลขา — Your AI Executive Assistant",
   description:
-    "She drafts your email, sends it, watches your calendar, and remembers what matters.",
+    "LEKHA briefs you twice a day, runs your to-do list, watches your calendar, drafts replies, analyses markets, and more — all in one LINE chat.",
   icons: {
     icon: "/icon.svg",
   },
@@ -35,12 +20,12 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#FAF7F2",
+  themeColor: "#050d22",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${bodyFont.variable} ${displayFont.variable}`}>
+    <html lang="en">
       <body>
         {children}
         <Analytics />
