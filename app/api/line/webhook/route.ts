@@ -7,9 +7,12 @@ import {
   reply,
   showLoading,
   text as textMsg,
+  withQuickReplies,
   getMessageContent,
   getProfile,
+  type LineMessage,
 } from "@/lib/line/client";
+import { stripMarkdown, ACTION_LABELS } from "@/lib/llm/agent";
 import { env } from "@/lib/env";
 import { redis } from "@/lib/memory/redis";
 import { appendTurn, loadHistory, turnCounter } from "@/lib/memory/history";
@@ -36,6 +39,31 @@ import { logSent } from "@/lib/memory/sent-log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * Enrich a plain reply string with LINE Quick Reply buttons when the context warrants it:
+ * - Draft confirmations → YES / No tap-buttons
+ * - Multi-account selection prompts → one button per connected account (max 4)
+ */
+function enrichReply(replyText: string, activeEmail: string | null, allEmails: string[]): LineMessage {
+  if (replyText.includes("Reply YES to")) {
+    return withQuickReplies(replyText, [
+      { label: "✅ YES", text: "YES" },
+      { label: "✗ No", text: "No" },
+    ]);
+  }
+  if (/which google account/i.test(replyText) && allEmails.length > 1) {
+    return withQuickReplies(
+      replyText,
+      allEmails.slice(0, 4).map((e) => ({ label: e.split("@")[0]!, text: e })),
+    );
+  }
+  // Connect-google prompt
+  if (/connect google/i.test(replyText) && !activeEmail) {
+    return withQuickReplies(replyText, [{ label: "Connect Google", text: "connect google" }]);
+  }
+  return textMsg(replyText);
+}
 
 export async function POST(req: NextRequest) {
   const raw = await req.text();
@@ -303,10 +331,11 @@ async function respondToText(
 ): Promise<void> {
   const t0 = Date.now();
   showLoading(userId, 60).catch(() => {});  // fire-and-forget; LLM doesn't wait for LINE ack
-  const [history, facts, staged] = await Promise.all([
+  const [history, facts, staged, accounts] = await Promise.all([
     loadHistory(userId),
     loadFacts(userId),
     listRecentMedia(userId),
+    listAccounts(userId),
   ]);
   console.log("[webhook] preload done", { ms: Date.now() - t0 });
 
@@ -337,7 +366,7 @@ async function respondToText(
   ];
 
   const replyText = await runAgent(userId, profile, facts, messages);
-  await reply(replyToken, [textMsg(replyText)]);
+  await reply(replyToken, [enrichReply(replyText, accounts.activeEmail, accounts.accounts.map((a) => a.email))]);
 
   await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
@@ -408,7 +437,7 @@ async function respondToImage(
         model: chatModel(),
         system: buildSystemPrompt(factsToPromptBlock(facts), profile, settings),
         messages,
-        maxRetries: 0,
+        maxRetries: 3,
         providerOptions: {
           google: {
             safetySettings: [
@@ -420,9 +449,9 @@ async function respondToImage(
           },
         },
       }),
-      30_000,
+      45_000,
     );
-    replyText = result.text?.trim() || "Hmm, I couldn't read that image. Can you try sending it again?";
+    replyText = stripMarkdown(result.text?.trim() || "Hmm, I couldn't read that image. Can you try sending it again?");
   } catch (err) {
     console.warn("[webhook] image generateText failed", err);
     replyText = "Couldn't analyze that image. Try resending it?";
@@ -581,7 +610,7 @@ async function runAgent(
         tools: toolsForUser(userId),
         temperature: 0.4,
         stopWhen: stepCountIs(8),
-        maxRetries: 0,
+        maxRetries: 3,
         onStepFinish: (step) => {
           console.log("[agent] step", {
             ms: Date.now() - tStart,
@@ -605,7 +634,7 @@ async function runAgent(
           },
         },
       }),
-      20_000,
+      45_000,
     );
     console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -698,10 +727,14 @@ function processAndFormat(
 
   if (draftBlock) {
     const intro = modelText.length > 0 && modelText.length < 240 ? `${modelText}\n\n` : "";
-    return `${intro}${draftBlock}`;
+    return stripMarkdown(`${intro}${draftBlock}`);
   }
-  if (modelText.length > 0) return modelText;
-  if (allCalls.length > 0) return "Done!";
+  if (modelText.length > 0) return stripMarkdown(modelText);
+  if (allCalls.length > 0) {
+    const labels = allCalls.map((c) => ACTION_LABELS[c.toolName] ?? c.toolName).filter(Boolean);
+    const unique = [...new Set(labels)];
+    return unique.length ? unique.join(" • ") + " ✓" : "Done.";
+  }
   return "…";
 }
 

@@ -10,12 +10,12 @@ function googleClient() {
   return createGoogleGenerativeAI({ apiKey });
 }
 
-/** Main chat model — Gemini 2.5 Flash Lite. */
+/** Main chat model — Gemini 2.5 Flash. */
 export function chatModel() {
-  return googleClient()("gemini-2.5-flash-lite");
+  return googleClient()("gemini-2.5-flash");
 }
 
 /** Background extraction model — same, handles PDFs + images natively. */
 export function extractorModel() {
-  return googleClient()("gemini-2.5-flash-lite");
+  return googleClient()("gemini-2.5-flash");
 }

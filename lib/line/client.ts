@@ -4,7 +4,35 @@ const API = "https://api.line.me/v2/bot";
 const DATA_API = "https://api-data.line.me/v2/bot";
 
 type TextMessage = { type: "text"; text: string };
-export type LineMessage = TextMessage;
+
+type QuickReplyItem = {
+  type: "action";
+  action: { type: "message"; label: string; text: string };
+};
+
+type QuickReplyMessage = {
+  type: "text";
+  text: string;
+  quickReply: { items: QuickReplyItem[] };
+};
+
+export type LineMessage = TextMessage | QuickReplyMessage;
+
+/** Attach tap-buttons above the LINE keyboard. Up to 13 buttons, disappear after tapping. */
+export function withQuickReplies(
+  replyText: string,
+  buttons: { label: string; text: string }[],
+): QuickReplyMessage {
+  return {
+    type: "text",
+    text: replyText.slice(0, 5000),
+    quickReply: {
+      items: buttons
+        .slice(0, 13)
+        .map((b) => ({ type: "action" as const, action: { type: "message" as const, ...b } })),
+    },
+  };
+}
 
 function authHeaders() {
   return {

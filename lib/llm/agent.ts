@@ -10,6 +10,41 @@ import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
 
+/** Strip markdown syntax that LINE renders as raw punctuation. Model-independent guarantee. */
+export function stripMarkdown(s: string): string {
+  return s
+    .replace(/\*\*(.+?)\*\*/gs, "$1")   // **bold** → bold
+    .replace(/\*(.+?)\*/gs, "$1")        // *italic* → italic
+    .replace(/^#{1,6} /gm, "")           // ## headers → plain
+    .replace(/^[ \t]*\* /gm, "• ")       // * bullets → •
+    .replace(/^[ \t]*- /gm, "• ")        // - bullets → •
+    .replace(/`([^`\n]+)`/g, "$1")       // `code` → plain
+    .trim();
+}
+
+/** Human-readable labels for common tool names (used in Done! fallback and timeout recovery). */
+export const ACTION_LABELS: Record<string, string> = {
+  set_reminder: "Reminder set",
+  set_recurring_reminder: "Recurring reminder set",
+  cancel_reminder: "Reminder cancelled",
+  schedule_email: "Email scheduled",
+  cancel_scheduled_email: "Scheduled email cancelled",
+  add_task: "Task added",
+  complete_task: "Task done",
+  delete_task: "Task deleted",
+  remember: "Saved to memory",
+  forget_memory: "Memory removed",
+  clear_all_memories: "Memories cleared",
+  draft_calendar_event: "Calendar event drafted",
+  set_timezone: "Timezone updated",
+  set_location: "Location updated",
+  set_language: "Language updated",
+  enable_morning_briefing: "Morning briefing enabled",
+  disable_morning_briefing: "Morning briefing disabled",
+  enable_evening_summary: "Evening summary enabled",
+  disable_evening_summary: "Evening summary disabled",
+};
+
 export class AgentTimeoutError extends Error {
   constructor(public readonly seconds: number) {
     super(`Agent call exceeded ${seconds}s`);
@@ -127,7 +162,11 @@ function processResult(
   }
 
   if (modelText.length > 0) return { reply: modelText, authNeeded: null, apiDisabled: null, googleErr: null };
-  if (allCalls.length > 0) return { reply: "Done!", authNeeded: null, apiDisabled: null, googleErr: null };
+  if (allCalls.length > 0) {
+    const labels = allCalls.map((c) => ACTION_LABELS[c.toolName] ?? c.toolName).filter(Boolean);
+    const unique = [...new Set(labels)];
+    return { reply: unique.length ? unique.join(" • ") + " ✓" : "Done.", authNeeded: null, apiDisabled: null, googleErr: null };
+  }
   return { reply: "…", authNeeded: null, apiDisabled: null, googleErr: null };
 }
 
@@ -149,7 +188,7 @@ function formatProcessed(processed: ProcessedResult): string {
     const status = processed.googleErr.status ? ` (HTTP ${processed.googleErr.status})` : "";
     return `Google API error${status}: ${processed.googleErr.message}`;
   }
-  return processed.reply;
+  return stripMarkdown(processed.reply);
 }
 
 export async function runAgent(
@@ -199,29 +238,6 @@ export async function runAgent(
   const allCalls: { toolName: string; input: unknown }[] = [];
   const succeededTools: string[] = [];
 
-  // Friendly labels for timeout-recovery messages (Bug 3)
-  const ACTION_LABELS: Record<string, string> = {
-    set_reminder: "Reminder set",
-    set_recurring_reminder: "Recurring reminder set",
-    cancel_reminder: "Reminder cancelled",
-    schedule_email: "Email scheduled",
-    cancel_scheduled_email: "Scheduled email cancelled",
-    add_task: "Task added",
-    complete_task: "Task done",
-    delete_task: "Task deleted",
-    remember: "Saved to memory",
-    forget_memory: "Memory removed",
-    clear_all_memories: "Memories cleared",
-    draft_calendar_event: "Calendar event drafted",
-    set_timezone: "Timezone updated",
-    set_location: "Location updated",
-    set_language: "Language updated",
-    enable_morning_briefing: "Morning briefing enabled",
-    disable_morning_briefing: "Morning briefing disabled",
-    enable_evening_summary: "Evening summary enabled",
-    disable_evening_summary: "Evening summary disabled",
-  };
-
   try {
     const result = await withTimeout(
       generateText({
@@ -231,7 +247,7 @@ export async function runAgent(
         tools: toolsForUser(userId),
         temperature: 0.4,
         stopWhen: stepCountIs(8),
-        maxRetries: 0,
+        maxRetries: 3,
         onStepFinish: (step) => {
           // Populate allCalls here so they're available on timeout (Bug 3)
           for (const c of step.toolCalls) {
@@ -269,7 +285,7 @@ export async function runAgent(
           },
         },
       }),
-      30_000,
+      45_000,
     );
     console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -278,12 +294,12 @@ export async function runAgent(
     // Bug 3: timeout after tools already completed — synthesize from what finished
     if (err instanceof AgentTimeoutError && succeededTools.length > 0) {
       const draftBlock = renderDraftsBlock(allCalls, accounts.activeEmail);
-      if (draftBlock) return draftBlock;
+      if (draftBlock) return stripMarkdown(draftBlock);
       const summary = [...new Set(succeededTools.filter(Boolean))]
         .map((t) => ACTION_LABELS[t] ?? t)
         .join(" • ");
       console.warn("[agent] timeout with completed tools — returning summary", { succeededTools });
-      return summary;
+      return stripMarkdown(summary);
     }
     return handleError(err, userId);
   }
