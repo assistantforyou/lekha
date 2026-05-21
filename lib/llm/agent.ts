@@ -9,7 +9,7 @@ import { toolsForUser, coreToolsForUser } from "@/lib/tools";
 import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
-import { isGeminiDown, markGeminiDown } from "@/lib/llm/health";
+import { isGeminiDown, markGeminiDown, isGroqDown, markGroqDown } from "@/lib/llm/health";
 
 export class AgentTimeoutError extends Error {
   constructor(public readonly seconds: number) {
@@ -221,7 +221,7 @@ export async function runAgent(
   const tStart = Date.now();
   const allCalls: { toolName: string; input: unknown }[] = [];
 
-  const geminiSkipped = await isGeminiDown();
+  const [geminiSkipped, groqSkipped] = await Promise.all([isGeminiDown(), isGroqDown()]);
   let geminiRanTools = false;
   // Accumulate tool execution history so Groq can write the reply without re-running tools.
   const geminiStepMessages: ModelMessage[] = [];
@@ -305,6 +305,11 @@ export async function runAgent(
   }
 
   // Groq fallback — reached only when Gemini failed without running tools, or is in cooldown.
+  if (groqSkipped) {
+    console.warn("[agent] both providers in cooldown — returning friendly retry message");
+    return "I'm a bit overloaded right now — try again in a minute.";
+  }
+
   try {
     const result = await withTimeout(
       generateText({
@@ -329,11 +334,21 @@ export async function runAgent(
     console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length, provider: "groq" });
     return formatProcessed(processResult(result, accounts.activeEmail, allCalls));
   } catch (err) {
+    const quota = parseQuotaError(err);
+    if (quota) {
+      console.warn("[agent] groq overloaded — marking down", { retryAfterSec: quota.retryAfterSec });
+      void markGroqDown(Math.max(quota.retryAfterSec, 60));
+    }
     return handleError(err, userId);
   }
 }
 
 async function handleError(err: unknown, userId: string): Promise<string> {
+  const quota = parseQuotaError(err);
+  if (quota) {
+    console.warn("[agent] all providers overloaded — returning friendly retry message");
+    return `I'm a bit overloaded right now — try again in about ${quota.retryAfterSec} seconds.`;
+  }
   const inner = unwrap(err);
   if (inner instanceof GoogleAuthRequired) {
     const url = await buildConnectUrl(userId);
