@@ -55,7 +55,7 @@ export function buildMediaAiTools(userId: string) {
 
     read_document: tool({
       description:
-        "Extract the full text of a PDF or document the user sent in LINE so you can answer specific questions about it. Use this instead of summarize_document when the user wants to discuss contents in detail, ask about specific clauses, or reference exact wording.",
+        "Extract full text from a PDF or document sent in LINE. Use for detail questions, specific clauses, or exact wording; use summarize_document for quick overviews.",
       inputSchema: z.object({ index: z.number().int().min(1).optional() }),
       execute: async ({ index }) =>
         runMediaPrompt(

@@ -177,7 +177,7 @@ export function buildGmailInboxTools(userId: string) {
 
     draft_gmail_reply: tool({
       description:
-        "Draft a reply to a specific Gmail thread. Does NOT send — appends to the pending confirm queue exactly like draft_email. Pass the messageId of the email being replied to (from gmail_search/gmail_read).",
+        "Draft a reply to a Gmail thread. Does not send — appends to confirm queue. Pass the messageId from gmail_search/gmail_read.",
       inputSchema: z.object({
         in_reply_to_message_id: z.string().min(1),
         body: z.string().min(1).max(20_000),

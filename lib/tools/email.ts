@@ -14,7 +14,7 @@ export function buildEmailTools(userId: string) {
   return {
     draft_email: tool({
       description:
-        "Draft an email from one of the user's connected Gmail accounts. Does NOT send — appends to the pending confirm queue. Pass arrays for to/cc/bcc. Attach Drive files via `attachments`. Attach files the user just sent in LINE (image/video/audio/document) via `attach_recent_media: true` (attaches ALL staged) or `attach_recent_media_indexes: [1,3]` (1-indexed cherry-pick from oldest).",
+        "Draft an email from the user's Gmail. Does not send — appends to confirm queue. to/cc/bcc are arrays. LINE-staged files: use attach_recent_media (all) or attach_recent_media_indexes (pick). Drive files: use attachments:[{fileId}].",
       inputSchema: z
         .object({
           to: z.array(z.string().email()).min(1).max(50),

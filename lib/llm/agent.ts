@@ -1,6 +1,6 @@
 import { generateText, stepCountIs, type ModelMessage } from "ai";
 import { chatModel } from "@/lib/llm/provider";
-import { buildSystemPrompt } from "@/lib/llm/prompts";
+import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
 import { factsToPromptBlock, type loadFacts } from "@/lib/memory/facts";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { listRecentMedia } from "@/lib/memory/recent-media";
@@ -192,6 +192,12 @@ export async function runAgent(
     accountsBlock +
     recentBlock;
 
+  const tz = settings.timezone ?? "Asia/Bangkok";
+  const timePrefix: ModelMessage[] = [
+    { role: "user" as const, content: buildTimeContext(tz) },
+    { role: "assistant" as const, content: "Noted." },
+  ];
+
   const tStart = Date.now();
   const allCalls: { toolName: string; input: unknown }[] = [];
 
@@ -200,7 +206,7 @@ export async function runAgent(
       generateText({
         model: chatModel(),
         system,
-        messages,
+        messages: [...timePrefix, ...messages],
         tools: toolsForUser(userId),
         temperature: 0.4,
         stopWhen: stepCountIs(8),

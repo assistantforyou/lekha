@@ -8,7 +8,6 @@ import { buildGoogleAccountTools } from "./google-accounts";
 import { buildStagedMediaTools } from "./staged-media";
 import { buildSettingsTools } from "./settings";
 import { buildTaskTools } from "./tasks";
-import { buildContactTools } from "./contacts";
 import { buildHelpTools } from "./help";
 import { buildExportTools } from "./export";
 import { buildGmailInboxTools } from "./gmail-inbox";
@@ -50,7 +49,6 @@ export function toolsForUser(userId: string) {
     ...(hasGoogleOAuth() ? buildCalendarTools(userId) : {}),
     ...(hasGoogleOAuth() ? buildDriveTools(userId) : {}),
     ...(hasGoogleOAuth() ? buildGmailInboxTools(userId) : {}),
-    ...(hasGoogleOAuth() ? buildContactTools(userId) : {}),
     ...(hasGoogleOAuth() ? buildGoogleAccountTools(userId) : {}),
     ...(hasGoogleOAuth() && hasQStash() ? buildScheduledEmailTools(userId) : {}),
     ...buildStagedMediaTools(userId),
