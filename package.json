@@ -13,7 +13,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@ai-sdk/google": "^2.0.0",
+    "@ai-sdk/google": "^3.0.78",
     "@tailwindcss/postcss": "^4.3.0",
     "@upstash/qstash": "^2.7.0",
     "@upstash/ratelimit": "^2.0.0",
