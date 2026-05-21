@@ -13,12 +13,12 @@ import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors
 /** Strip markdown syntax that LINE renders as raw punctuation. Model-independent guarantee. */
 export function stripMarkdown(s: string): string {
   return s
-    .replace(/\*\*(.+?)\*\*/gs, "$1")   // **bold** → bold
-    .replace(/\*(.+?)\*/gs, "$1")        // *italic* → italic
-    .replace(/^#{1,6} /gm, "")           // ## headers → plain
-    .replace(/^[ \t]*\* /gm, "• ")       // * bullets → •
-    .replace(/^[ \t]*- /gm, "• ")        // - bullets → •
-    .replace(/`([^`\n]+)`/g, "$1")       // `code` → plain
+    .replace(/\*\*([^*\n]+)\*\*/g, "$1")  // **bold** → bold (no cross-line)
+    .replace(/\*([^*\n]+)\*/g, "$1")       // *italic* → italic (no cross-line)
+    .replace(/^#{1,6} /gm, "")             // ## headers → plain
+    .replace(/^[ \t]*\*[ \t]+/gm, "• ")   // * bullets → • (handles "* " or "*   ")
+    .replace(/^[ \t]*-[ \t]+/gm, "• ")    // - bullets → •
+    .replace(/`([^`\n]+)`/g, "$1")         // `code` → plain
     .trim();
 }
 
