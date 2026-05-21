@@ -68,11 +68,8 @@ function processResult(
   let apiDisabled: { api: string; enableUrl: string | null; message: string } | null = null;
   let googleErr: { status: number | null; message: string } | null = null;
 
+  // allCalls already populated by onStepFinish; scan steps only for auth/error signals
   for (const step of result.steps) {
-    for (const c of step.toolCalls) {
-      if (!c) continue;
-      allCalls.push({ toolName: c.toolName, input: c.input });
-    }
     for (const tr of step.toolResults) {
       if (!tr) continue;
       const value = extractToolValue((tr as { output?: unknown }).output);
@@ -200,6 +197,30 @@ export async function runAgent(
 
   const tStart = Date.now();
   const allCalls: { toolName: string; input: unknown }[] = [];
+  const succeededTools: string[] = [];
+
+  // Friendly labels for timeout-recovery messages (Bug 3)
+  const ACTION_LABELS: Record<string, string> = {
+    set_reminder: "Reminder set",
+    set_recurring_reminder: "Recurring reminder set",
+    cancel_reminder: "Reminder cancelled",
+    schedule_email: "Email scheduled",
+    cancel_scheduled_email: "Scheduled email cancelled",
+    add_task: "Task added",
+    complete_task: "Task done",
+    delete_task: "Task deleted",
+    remember: "Saved to memory",
+    forget_memory: "Memory removed",
+    clear_all_memories: "Memories cleared",
+    draft_calendar_event: "Calendar event drafted",
+    set_timezone: "Timezone updated",
+    set_location: "Location updated",
+    set_language: "Language updated",
+    enable_morning_briefing: "Morning briefing enabled",
+    disable_morning_briefing: "Morning briefing disabled",
+    enable_evening_summary: "Evening summary enabled",
+    disable_evening_summary: "Evening summary disabled",
+  };
 
   try {
     const result = await withTimeout(
@@ -212,6 +233,20 @@ export async function runAgent(
         stopWhen: stepCountIs(8),
         maxRetries: 0,
         onStepFinish: (step) => {
+          // Populate allCalls here so they're available on timeout (Bug 3)
+          for (const c of step.toolCalls) {
+            if (c) allCalls.push({ toolName: c.toolName, input: c.input });
+          }
+          // Track tools that returned ok (not auth/api-disabled/error) for timeout recovery
+          for (const tr of step.toolResults) {
+            const val = extractToolValue((tr as { output?: unknown }).output);
+            if (val && typeof val === "object") {
+              const v = val as Record<string, unknown>;
+              if (v.ok !== false && !v.need_google_auth && !v.google_api_disabled && !v.google_error) {
+                succeededTools.push((tr as { toolName?: string }).toolName ?? "");
+              }
+            }
+          }
           console.log("[agent] step", {
             ms: Date.now() - tStart,
             toolCalls: step.toolCalls.map((c) => c?.toolName),
@@ -234,12 +269,22 @@ export async function runAgent(
           },
         },
       }),
-      20_000,
+      30_000,
     );
     console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return formatProcessed(processResult(result as any, accounts.activeEmail, allCalls));
   } catch (err) {
+    // Bug 3: timeout after tools already completed — synthesize from what finished
+    if (err instanceof AgentTimeoutError && succeededTools.length > 0) {
+      const draftBlock = renderDraftsBlock(allCalls, accounts.activeEmail);
+      if (draftBlock) return draftBlock;
+      const summary = [...new Set(succeededTools.filter(Boolean))]
+        .map((t) => ACTION_LABELS[t] ?? t)
+        .join(" • ");
+      console.warn("[agent] timeout with completed tools — returning summary", { succeededTools });
+      return summary;
+    }
     return handleError(err, userId);
   }
 }
@@ -261,6 +306,11 @@ async function handleError(err: unknown, userId: string): Promise<string> {
     return `Timed out after ${err.seconds}s — that was a heavy request. Try again in a sec.`;
   }
   const msg = err instanceof Error ? err.message : String(err);
+  // Bug 4 & 5: Gemini 503 / cold-start Bad Gateway — return friendly message, not raw error
+  if (/UNAVAILABLE|Bad.?Gateway|service.?unavailable/i.test(msg) || /\b50[23]\b/.test(msg)) {
+    console.warn("[agent] service unavailable", { msg: msg.slice(0, 200) });
+    return "Temporarily unavailable — please try again in a moment.";
+  }
   console.error("[agent] unhandled", err);
   return `Error: ${msg.slice(0, 300)}`;
 }
