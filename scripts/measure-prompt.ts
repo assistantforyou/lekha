@@ -391,7 +391,7 @@ async function main() {
   console.log(`Baseline (empty content):          ${baseline} tokens`);
   console.log(`System prompt chars:               ${systemPrompt.length.toLocaleString()}`);
   console.log(`BASE_PERSONALITY chars:            ${BASE_PERSONALITY.length.toLocaleString()}`);
-  console.log(`Facts bullets:                     ${facts.bullets.length}`);
+  console.log(`Facts count:                       ${facts.facts.length}`);
   console.log(`History turns in Redis:            ${history.length}`);
   console.log(`Tools registered:                  ${funcDecls.length}`);
   console.log(hr);

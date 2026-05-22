@@ -19,3 +19,8 @@ export function chatModel() {
 export function extractorModel() {
   return googleClient()("gemini-2.5-flash");
 }
+
+/** Embedding model — text-embedding-004, 768 dims. */
+export function embeddingModel() {
+  return googleClient().textEmbeddingModel("text-embedding-004");
+}

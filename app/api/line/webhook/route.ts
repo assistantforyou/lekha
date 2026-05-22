@@ -15,10 +15,24 @@ import {
 import { stripMarkdown, ACTION_LABELS } from "@/lib/llm/agent";
 import { env } from "@/lib/env";
 import { redis } from "@/lib/memory/redis";
-import { appendTurn, loadHistory, turnCounter } from "@/lib/memory/history";
+import { appendTurn, loadHistory, turnCounter, historyForPrompt } from "@/lib/memory/history";
 import { loadFacts, factsToPromptBlock } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
-import { isAllowed, addToAllowlist, removeFromAllowlist, listAllowed } from "@/lib/memory/allowlist";
+import {
+  isAllowed,
+  addToAllowlist,
+  removeFromAllowlist,
+  listAllowed,
+  isPending,
+  addToPending,
+  listPending,
+  getPendingInfo,
+  approvePending,
+  denyPending,
+  shouldNotifyAdminOfPending,
+} from "@/lib/memory/allowlist";
+import { push as linePush } from "@/lib/line/client";
+import { confirmCancelFlex } from "@/lib/line/flex";
 import { chatModel } from "@/lib/llm/provider";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
@@ -46,11 +60,10 @@ export const dynamic = "force-dynamic";
  * - Multi-account selection prompts → one button per connected account (max 4)
  */
 function enrichReply(replyText: string, activeEmail: string | null, allEmails: string[]): LineMessage {
+  // Draft confirmation: prefer Flex bubble (tap-to-confirm via postback).
+  // The text path remains the altText fallback for old LINE clients.
   if (replyText.includes("Reply YES to")) {
-    return withQuickReplies(replyText, [
-      { label: "✅ YES", text: "YES" },
-      { label: "✗ No", text: "No" },
-    ]);
+    return confirmCancelFlex(replyText);
   }
   if (/which google account/i.test(replyText) && allEmails.length > 1) {
     return withQuickReplies(
@@ -127,10 +140,42 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
   if (eventUserId && adminIds.size > 0 && !isAdmin(eventUserId)) {
     const allowed = await isAllowed(eventUserId);
     if (!allowed) {
+      // Self-serve queue: add to pending and tell the user.
+      const already = await isPending(eventUserId);
+      const requestText =
+        event.type === "message" && "message" in event && event.message.type === "text" && "text" in event.message
+          ? String(event.message.text).slice(0, 240)
+          : "";
+      let displayName = "";
+      try {
+        const p = await getProfile(eventUserId);
+        displayName = p?.displayName ?? "";
+      } catch {
+        // best-effort; if LINE profile API is unavailable we still queue them
+      }
+      if (!already) {
+        await addToPending(eventUserId, {
+          displayName,
+          requestedAt: Date.now(),
+          message: requestText || undefined,
+        });
+      }
+      const replyMsg = already
+        ? "⏳ Your access request is still pending review. The admin will get back to you soon."
+        : `👋 You've been added to the approval queue. The admin will review your request shortly — you'll get a message when you're approved.\n\nYour LINE ID:\n${eventUserId}`;
       if ("replyToken" in event && event.replyToken) {
-        await reply(event.replyToken, [
-          textMsg(`This is a private assistant.\n\nYour LINE ID:\n${eventUserId}\n\nSend this to the admin to request access.`),
-        ]);
+        await reply(event.replyToken, [textMsg(replyMsg)]);
+      }
+      // Notify admins (rate-limited per requesting user to avoid spam).
+      if (adminIds.size > 0 && (await shouldNotifyAdminOfPending(eventUserId))) {
+        const adminNote =
+          `🔔 New access request${displayName ? ` from ${displayName}` : ""}` +
+          `\nLINE ID: ${eventUserId}` +
+          (requestText ? `\nFirst message: ${requestText}` : "") +
+          `\n\nReply with: /approve ${eventUserId}  or  /deny ${eventUserId}`;
+        for (const adminId of adminIds) {
+          linePush(adminId, [textMsg(adminNote)]).catch(() => {});
+        }
       }
       return;
     }
@@ -147,6 +192,62 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
         `Hi${name}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
       ),
     ]);
+    return;
+  }
+
+  // Postback (Flex Message button taps). Route by verb prefix. Idempotent
+  // per webhook event via the seen:{eventId} dedup already done above.
+  if (event.type === "postback" && "postback" in event) {
+    const pbUserId = event.source?.userId;
+    if (!pbUserId || !("replyToken" in event) || !event.replyToken) return;
+    const { parsePostbackData } = await import("@/lib/line/flex");
+    const { verb, args } = parsePostbackData(event.postback.data);
+
+    if (verb === "confirm") {
+      const decision = args[0];
+      const pending = await getPending(pbUserId);
+      if (decision === "yes") {
+        if (pending.length === 0) {
+          await reply(event.replyToken, [textMsg("Nothing pending — that confirm was stale.")]);
+          return;
+        }
+        await showLoading(pbUserId, 25);
+        const result = await executePendingAll(pbUserId, pending);
+        await clearPending(pbUserId);
+        await reply(event.replyToken, [textMsg(result)]);
+        await appendTurn(pbUserId, { role: "user", content: "[confirm:yes]", ts: Date.now() });
+        await appendTurn(pbUserId, { role: "assistant", content: result, ts: Date.now() });
+        return;
+      }
+      if (decision === "no") {
+        await clearPending(pbUserId);
+        await reply(event.replyToken, [
+          textMsg(`Cancelled ${pending.length === 1 ? "that" : `all ${pending.length}`}.`),
+        ]);
+        return;
+      }
+    }
+
+    if (verb === "task") {
+      const [op, taskId] = args;
+      if (!taskId || (op !== "done" && op !== "reopen")) {
+        await reply(event.replyToken, [textMsg("Couldn't parse that task action.")]);
+        return;
+      }
+      const { completeTask, reopenTask } = await import("@/lib/memory/tasks");
+      const updated = op === "done" ? await completeTask(pbUserId, taskId) : await reopenTask(pbUserId, taskId);
+      if (!updated) {
+        await reply(event.replyToken, [textMsg("That task doesn't exist anymore.")]);
+        return;
+      }
+      const verbWord = op === "done" ? "completed" : "reopened";
+      await reply(event.replyToken, [textMsg(`✓ ${verbWord}: ${updated.title}`)]);
+      return;
+    }
+
+    // Unknown postback verbs fall through silently — future templates
+    // (reminder:cancel, draft:edit) wire in here.
+    console.warn("[webhook] unhandled postback", { verb, args });
     return;
   }
 
@@ -209,6 +310,8 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
     if (isAdmin(userId)) {
       const addMatch = userText.match(/^\/allow\s+(U\w+)$/i);
       const remMatch = userText.match(/^\/remove\s+(U\w+)$/i);
+      const approveMatch = userText.match(/^\/approve\s+(U\w+)$/i);
+      const denyMatch = userText.match(/^\/deny\s+(U\w+)$/i);
       if (addMatch) {
         await addToAllowlist(addMatch[1]!);
         await reply(event.replyToken, [textMsg(`✅ Added ${addMatch[1]} to the allowlist.`)]);
@@ -217,6 +320,51 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
       if (remMatch) {
         await removeFromAllowlist(remMatch[1]!);
         await reply(event.replyToken, [textMsg(`🗑 Removed ${remMatch[1]} from the allowlist.`)]);
+        return;
+      }
+      if (approveMatch) {
+        const target = approveMatch[1]!;
+        const wasPending = await approvePending(target);
+        // Welcome the newly approved user.
+        linePush(target, [
+          textMsg(
+            `🎉 You're in! I'm Lekha, your personal assistant. Type "help" to see what I can do.`,
+          ),
+        ]).catch(() => {});
+        await reply(event.replyToken, [
+          textMsg(wasPending ? `✅ Approved ${target}.` : `✅ Added ${target} to the allowlist (was not pending).`),
+        ]);
+        return;
+      }
+      if (denyMatch) {
+        const target = denyMatch[1]!;
+        const wasPending = await denyPending(target);
+        await reply(event.replyToken, [
+          textMsg(wasPending ? `🚫 Denied ${target}.` : `${target} was not in pending.`),
+        ]);
+        return;
+      }
+      if (/^\/pending$/i.test(userText)) {
+        const list = await listPending();
+        if (!list.length) {
+          await reply(event.replyToken, [textMsg("Pending requests (0):\n\n(nobody pending)")]);
+          return;
+        }
+        const entries = await Promise.all(
+          list.map(async (id) => {
+            const info = await getPendingInfo(id);
+            if (!info) return id;
+            const ago = Math.round((Date.now() - info.requestedAt) / 60_000);
+            const name = info.displayName ? `${info.displayName} ` : "";
+            const msg = info.message ? `\n  ↳ "${info.message.slice(0, 100)}"` : "";
+            return `${name}(${id}) — ${ago}m ago${msg}`;
+          }),
+        );
+        await reply(event.replyToken, [
+          textMsg(
+            `Pending requests (${list.length}):\n\n${entries.join("\n")}\n\nReply: /approve <id> or /deny <id>`,
+          ),
+        ]);
         return;
       }
       if (/^\/users$/i.test(userText)) {
@@ -331,8 +479,8 @@ async function respondToText(
 ): Promise<void> {
   const t0 = Date.now();
   showLoading(userId, 60).catch(() => {});  // fire-and-forget; LLM doesn't wait for LINE ack
-  const [history, facts, staged, accounts] = await Promise.all([
-    loadHistory(userId),
+  const [historyMsgs, facts, staged, accounts] = await Promise.all([
+    historyForPrompt(userId),
     loadFacts(userId),
     listRecentMedia(userId),
     listAccounts(userId),
@@ -361,7 +509,7 @@ async function respondToText(
   }
 
   const messages: ModelMessage[] = [
-    ...history.map<ModelMessage>((t) => ({ role: t.role, content: t.content })),
+    ...historyMsgs,
     { role: "user", content: userContent },
   ];
 
@@ -449,7 +597,7 @@ async function respondToImage(
           },
         },
       }),
-      45_000,
+      60_000,
     );
     replyText = stripMarkdown(result.text?.trim() || "Hmm, I couldn't read that image. Can you try sending it again?");
   } catch (err) {
@@ -607,7 +755,7 @@ async function runAgent(
         model: chatModel(),
         system,
         messages,
-        tools: toolsForUser(userId),
+        tools: await toolsForUser(userId),
         temperature: 0.4,
         stopWhen: stepCountIs(8),
         maxRetries: 3,
@@ -634,7 +782,7 @@ async function runAgent(
           },
         },
       }),
-      45_000,
+      60_000,
     );
     console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

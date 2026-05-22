@@ -1,19 +1,47 @@
 import { generateObject, generateText } from "ai";
 import { z } from "zod";
 import { extractorModel } from "./provider";
-import { FACT_EXTRACTION_PROMPT } from "./prompts";
-import { loadFacts, saveFacts, type UserFacts } from "@/lib/memory/facts";
+import {
+  loadFacts,
+  saveFacts,
+  type UserFacts,
+  type Fact,
+  type FactCategory,
+  FACT_CATEGORIES,
+  _internalNewFact,
+} from "@/lib/memory/facts";
 import type { StoredTurn } from "@/lib/memory/history";
 import { appendArchive } from "@/lib/memory/archive";
 
+const ExtractedFact = z.object({
+  content: z.string().min(5).max(240),
+  category: z.enum(FACT_CATEGORIES as [FactCategory, ...FactCategory[]]),
+  confidence: z.enum(["high", "medium", "low"]).optional(),
+});
 const Schema = z.object({
-  facts: z.array(z.string()).max(15),
+  facts: z.array(ExtractedFact).max(15),
 });
 
-/**
- * Look at recent conversation, extract durable facts about the user, and merge
- * into the persisted facts blob (dedupe on lowercase exact match).
- */
+const FACT_EXTRACTION_PROMPT = `You extract durable facts about a user from their recent chat with their assistant. Output structured JSON.
+
+Categories:
+- preferences: stable taste ("prefers espresso over filter", "vegetarian")
+- people: contacts and relationships ("mom's email is mom@gmail.com", "brother is named Bob")
+- habits: recurring routines ("goes to gym Mondays")
+- deadlines: known upcoming dates ("conference talk on 2026-06-12")
+- context: location/profession/language ("based in Bangkok", "software engineer")
+- health: medical/dietary/wellbeing facts
+- work: job-related facts ("works at Acme", "ships releases on Fridays")
+- other: anything durable that doesn't fit above
+
+Rules:
+- 0 to 10 facts. Each <= 200 chars.
+- Only durable facts (no one-off questions, transient moods, "asked you to forget").
+- Phrase in third person ("User prefers X").
+- If nothing durable, return { "facts": [] }.
+
+Output JSON only.`;
+
 export async function extractAndMergeFacts(userId: string, recent: StoredTurn[]): Promise<void> {
   if (recent.length < 4) return;
 
@@ -22,8 +50,8 @@ export async function extractAndMergeFacts(userId: string, recent: StoredTurn[])
     .join("\n");
 
   const existing = await loadFacts(userId);
-  const existingBlock = existing.bullets.length
-    ? `\n\nFacts already known (do NOT repeat):\n${existing.bullets.map((b) => `- ${b}`).join("\n")}`
+  const existingBlock = existing.facts.length
+    ? `\n\nFacts already known (do NOT repeat):\n${existing.facts.map((f) => `- [${f.category}] ${f.content}`).join("\n")}`
     : "";
 
   let result;
@@ -39,27 +67,28 @@ export async function extractAndMergeFacts(userId: string, recent: StoredTurn[])
     return;
   }
 
-  const newFacts = result.object.facts
-    .map((f) => f.trim())
-    .filter((f) => f.length >= 5 && f.length <= 200);
-
-  if (newFacts.length) {
-    const lower = new Set(existing.bullets.map((b) => b.toLowerCase()));
+  const incoming = result.object.facts;
+  if (incoming.length) {
+    const seen = new Set(
+      existing.facts.map((f) => `${f.category}:${f.content.toLowerCase()}`),
+    );
     const merged: UserFacts = {
-      bullets: [...existing.bullets],
+      facts: [...existing.facts],
       updatedAt: Date.now(),
     };
-    for (const f of newFacts) {
-      if (!lower.has(f.toLowerCase())) {
-        merged.bullets.push(f);
-        lower.add(f.toLowerCase());
-      }
+    for (const f of incoming) {
+      const k = `${f.category}:${f.content.toLowerCase()}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      const fact: Fact = _internalNewFact(f.content, f.category, {
+        confidence: f.confidence,
+      });
+      merged.facts.push(fact);
     }
     await saveFacts(userId, merged);
   }
 
-  // Also distill the chunk into a 2-3 sentence summary and append to long-term archive.
-  // The rolling history is only 20 turns; archive lets the user retrieve old context months later.
+  // Long-term archive: 2-4 sentence summary distilled from the chunk.
   try {
     const r = await generateText({
       model: extractorModel(),
