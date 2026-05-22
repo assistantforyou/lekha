@@ -32,6 +32,7 @@ import {
   shouldNotifyAdminOfPending,
 } from "@/lib/memory/allowlist";
 import { push as linePush } from "@/lib/line/client";
+import { confirmCancelFlex } from "@/lib/line/flex";
 import { chatModel } from "@/lib/llm/provider";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
@@ -59,11 +60,10 @@ export const dynamic = "force-dynamic";
  * - Multi-account selection prompts → one button per connected account (max 4)
  */
 function enrichReply(replyText: string, activeEmail: string | null, allEmails: string[]): LineMessage {
+  // Draft confirmation: prefer Flex bubble (tap-to-confirm via postback).
+  // The text path remains the altText fallback for old LINE clients.
   if (replyText.includes("Reply YES to")) {
-    return withQuickReplies(replyText, [
-      { label: "✅ YES", text: "YES" },
-      { label: "✗ No", text: "No" },
-    ]);
+    return confirmCancelFlex(replyText);
   }
   if (/which google account/i.test(replyText) && allEmails.length > 1) {
     return withQuickReplies(
@@ -192,6 +192,45 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
         `Hi${name}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
       ),
     ]);
+    return;
+  }
+
+  // Postback (Flex Message button taps). Route by verb prefix. Idempotent
+  // per webhook event via the seen:{eventId} dedup already done above.
+  if (event.type === "postback" && "postback" in event) {
+    const pbUserId = event.source?.userId;
+    if (!pbUserId || !("replyToken" in event) || !event.replyToken) return;
+    const { parsePostbackData } = await import("@/lib/line/flex");
+    const { verb, args } = parsePostbackData(event.postback.data);
+
+    if (verb === "confirm") {
+      const decision = args[0];
+      const pending = await getPending(pbUserId);
+      if (decision === "yes") {
+        if (pending.length === 0) {
+          await reply(event.replyToken, [textMsg("Nothing pending — that confirm was stale.")]);
+          return;
+        }
+        await showLoading(pbUserId, 25);
+        const result = await executePendingAll(pbUserId, pending);
+        await clearPending(pbUserId);
+        await reply(event.replyToken, [textMsg(result)]);
+        await appendTurn(pbUserId, { role: "user", content: "[confirm:yes]", ts: Date.now() });
+        await appendTurn(pbUserId, { role: "assistant", content: result, ts: Date.now() });
+        return;
+      }
+      if (decision === "no") {
+        await clearPending(pbUserId);
+        await reply(event.replyToken, [
+          textMsg(`Cancelled ${pending.length === 1 ? "that" : `all ${pending.length}`}.`),
+        ]);
+        return;
+      }
+    }
+
+    // Unknown postback verbs fall through silently — future templates
+    // (task:done, reminder:cancel, draft:edit) wire in here.
+    console.warn("[webhook] unhandled postback", { verb, args });
     return;
   }
 

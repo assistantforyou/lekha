@@ -16,7 +16,16 @@ type QuickReplyMessage = {
   quickReply: { items: QuickReplyItem[] };
 };
 
-export type LineMessage = TextMessage | QuickReplyMessage;
+// Flex Message envelope. `contents` is the bubble/carousel JSON tree —
+// kept as `unknown` here because the LINE Flex schema is enormous and
+// each template module owns its own typed builder.
+export type FlexMessage = {
+  type: "flex";
+  altText: string;
+  contents: unknown;
+};
+
+export type LineMessage = TextMessage | QuickReplyMessage | FlexMessage;
 
 /** Attach tap-buttons above the LINE keyboard. Up to 13 buttons, disappear after tapping. */
 export function withQuickReplies(

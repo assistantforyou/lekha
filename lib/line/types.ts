@@ -87,6 +87,18 @@ export const UnfollowEvent = z.object({
   source: Source,
 });
 
+export const PostbackEvent = z.object({
+  type: z.literal("postback"),
+  webhookEventId: z.string(),
+  timestamp: z.number(),
+  source: Source,
+  replyToken: z.string(),
+  postback: z.object({
+    data: z.string(),
+    params: z.record(z.string(), z.string()).optional(),
+  }),
+});
+
 export const OtherEvent = z.object({
   type: z.string(),
   webhookEventId: z.string().optional(),
@@ -94,7 +106,7 @@ export const OtherEvent = z.object({
   source: Source.optional(),
 });
 
-export const LineEvent = z.union([MessageEvent, FollowEvent, UnfollowEvent, OtherEvent]);
+export const LineEvent = z.union([MessageEvent, FollowEvent, UnfollowEvent, PostbackEvent, OtherEvent]);
 export type LineEvent = z.infer<typeof LineEvent>;
 
 export const Webhook = z.object({
