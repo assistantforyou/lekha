@@ -18,7 +18,20 @@ import { redis } from "@/lib/memory/redis";
 import { appendTurn, loadHistory, turnCounter } from "@/lib/memory/history";
 import { loadFacts, factsToPromptBlock } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
-import { isAllowed, addToAllowlist, removeFromAllowlist, listAllowed } from "@/lib/memory/allowlist";
+import {
+  isAllowed,
+  addToAllowlist,
+  removeFromAllowlist,
+  listAllowed,
+  isPending,
+  addToPending,
+  listPending,
+  getPendingInfo,
+  approvePending,
+  denyPending,
+  shouldNotifyAdminOfPending,
+} from "@/lib/memory/allowlist";
+import { push as linePush } from "@/lib/line/client";
 import { chatModel } from "@/lib/llm/provider";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
@@ -127,10 +140,42 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
   if (eventUserId && adminIds.size > 0 && !isAdmin(eventUserId)) {
     const allowed = await isAllowed(eventUserId);
     if (!allowed) {
+      // Self-serve queue: add to pending and tell the user.
+      const already = await isPending(eventUserId);
+      const requestText =
+        event.type === "message" && "message" in event && event.message.type === "text" && "text" in event.message
+          ? String(event.message.text).slice(0, 240)
+          : "";
+      let displayName = "";
+      try {
+        const p = await getProfile(eventUserId);
+        displayName = p?.displayName ?? "";
+      } catch {
+        // best-effort; if LINE profile API is unavailable we still queue them
+      }
+      if (!already) {
+        await addToPending(eventUserId, {
+          displayName,
+          requestedAt: Date.now(),
+          message: requestText || undefined,
+        });
+      }
+      const replyMsg = already
+        ? "⏳ Your access request is still pending review. The admin will get back to you soon."
+        : `👋 You've been added to the approval queue. The admin will review your request shortly — you'll get a message when you're approved.\n\nYour LINE ID:\n${eventUserId}`;
       if ("replyToken" in event && event.replyToken) {
-        await reply(event.replyToken, [
-          textMsg(`This is a private assistant.\n\nYour LINE ID:\n${eventUserId}\n\nSend this to the admin to request access.`),
-        ]);
+        await reply(event.replyToken, [textMsg(replyMsg)]);
+      }
+      // Notify admins (rate-limited per requesting user to avoid spam).
+      if (adminIds.size > 0 && (await shouldNotifyAdminOfPending(eventUserId))) {
+        const adminNote =
+          `🔔 New access request${displayName ? ` from ${displayName}` : ""}` +
+          `\nLINE ID: ${eventUserId}` +
+          (requestText ? `\nFirst message: ${requestText}` : "") +
+          `\n\nReply with: /approve ${eventUserId}  or  /deny ${eventUserId}`;
+        for (const adminId of adminIds) {
+          linePush(adminId, [textMsg(adminNote)]).catch(() => {});
+        }
       }
       return;
     }
@@ -209,6 +254,8 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
     if (isAdmin(userId)) {
       const addMatch = userText.match(/^\/allow\s+(U\w+)$/i);
       const remMatch = userText.match(/^\/remove\s+(U\w+)$/i);
+      const approveMatch = userText.match(/^\/approve\s+(U\w+)$/i);
+      const denyMatch = userText.match(/^\/deny\s+(U\w+)$/i);
       if (addMatch) {
         await addToAllowlist(addMatch[1]!);
         await reply(event.replyToken, [textMsg(`✅ Added ${addMatch[1]} to the allowlist.`)]);
@@ -217,6 +264,51 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
       if (remMatch) {
         await removeFromAllowlist(remMatch[1]!);
         await reply(event.replyToken, [textMsg(`🗑 Removed ${remMatch[1]} from the allowlist.`)]);
+        return;
+      }
+      if (approveMatch) {
+        const target = approveMatch[1]!;
+        const wasPending = await approvePending(target);
+        // Welcome the newly approved user.
+        linePush(target, [
+          textMsg(
+            `🎉 You're in! I'm Lekha, your personal assistant. Type "help" to see what I can do.`,
+          ),
+        ]).catch(() => {});
+        await reply(event.replyToken, [
+          textMsg(wasPending ? `✅ Approved ${target}.` : `✅ Added ${target} to the allowlist (was not pending).`),
+        ]);
+        return;
+      }
+      if (denyMatch) {
+        const target = denyMatch[1]!;
+        const wasPending = await denyPending(target);
+        await reply(event.replyToken, [
+          textMsg(wasPending ? `🚫 Denied ${target}.` : `${target} was not in pending.`),
+        ]);
+        return;
+      }
+      if (/^\/pending$/i.test(userText)) {
+        const list = await listPending();
+        if (!list.length) {
+          await reply(event.replyToken, [textMsg("Pending requests (0):\n\n(nobody pending)")]);
+          return;
+        }
+        const entries = await Promise.all(
+          list.map(async (id) => {
+            const info = await getPendingInfo(id);
+            if (!info) return id;
+            const ago = Math.round((Date.now() - info.requestedAt) / 60_000);
+            const name = info.displayName ? `${info.displayName} ` : "";
+            const msg = info.message ? `\n  ↳ "${info.message.slice(0, 100)}"` : "";
+            return `${name}(${id}) — ${ago}m ago${msg}`;
+          }),
+        );
+        await reply(event.replyToken, [
+          textMsg(
+            `Pending requests (${list.length}):\n\n${entries.join("\n")}\n\nReply: /approve <id> or /deny <id>`,
+          ),
+        ]);
         return;
       }
       if (/^\/users$/i.test(userText)) {

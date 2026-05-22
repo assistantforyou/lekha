@@ -2,11 +2,11 @@
 
 **Branch**: feat/operation-tune-up
 **Owners**: James (primary), [friend] (handoff if James runs out of tokens)
-**Last updated**: 2026-05-22T09:30Z
-**Current focus**: Task D (signup + approval queue)
+**Last updated**: 2026-05-22T09:33Z
+**Current focus**: Task E (Flex messages)
 
 ## In progress
-- [ ] Task D: self-serve signup + approval queue + admin commands + tests
+- [ ] Task E: LINE Flex Messages (start with confirm/cancel; postback routing; contacts_remember)
 
 ## Up next (in order)
 - [ ] Task E: LINE Flex Messages (start with confirm/cancel; then drafts; then everything) + postback handler + contacts_remember tool
@@ -23,6 +23,7 @@
 - [x] Task A: rate limit 30 → 500 (`lib/ratelimit.ts`)
 - [x] Task C: tool timeouts — finance 3s→12s, weather default 4s→12s, Gemini 45s→60s in agent.ts and webhook (2 sites)
 - [x] Task B: conditional tool registry — `toolsForUser` now async, Google tools gated on per-user `listAccounts` rather than just env presence. Connect-account tool still exposed so model can offer setup.
+- [x] Task D: self-serve signup + approval queue. Webhook gate now adds non-allowed users to `users:pending` with profile/message metadata; admin commands `/pending`, `/approve <id>`, `/deny <id>` added. Admin notification rate-limited 1/min/user. 8 new vitest tests cover all paths.
 
 ## Blocked / questions for James
 - None yet. F2 will block on Upstash Vector index creation (manual, James).
