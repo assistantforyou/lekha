@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { push, text as textMsg } from "@/lib/line/client";
 import { env } from "@/lib/env";
-import { appendTurn, loadHistory, turnCounter } from "@/lib/memory/history";
+import { appendTurn, loadHistory, turnCounter, historyForPrompt } from "@/lib/memory/history";
 import { loadFacts } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
 import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
@@ -36,14 +36,14 @@ export async function POST(req: NextRequest) {
 
   const { userId, text } = parsed.data;
 
-  const [history, facts, profile] = await Promise.all([
-    loadHistory(userId),
+  const [historyMsgs, facts, profile] = await Promise.all([
+    historyForPrompt(userId),
     loadFacts(userId),
     getOrCreateProfile(userId),
   ]);
 
   const messages: ModelMessage[] = [
-    ...history.map<ModelMessage>((t) => ({ role: t.role, content: t.content })),
+    ...historyMsgs,
     { role: "user", content: text },
   ];
 

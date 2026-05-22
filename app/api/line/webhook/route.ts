@@ -15,7 +15,7 @@ import {
 import { stripMarkdown, ACTION_LABELS } from "@/lib/llm/agent";
 import { env } from "@/lib/env";
 import { redis } from "@/lib/memory/redis";
-import { appendTurn, loadHistory, turnCounter } from "@/lib/memory/history";
+import { appendTurn, loadHistory, turnCounter, historyForPrompt } from "@/lib/memory/history";
 import { loadFacts, factsToPromptBlock } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
 import {
@@ -462,8 +462,8 @@ async function respondToText(
 ): Promise<void> {
   const t0 = Date.now();
   showLoading(userId, 60).catch(() => {});  // fire-and-forget; LLM doesn't wait for LINE ack
-  const [history, facts, staged, accounts] = await Promise.all([
-    loadHistory(userId),
+  const [historyMsgs, facts, staged, accounts] = await Promise.all([
+    historyForPrompt(userId),
     loadFacts(userId),
     listRecentMedia(userId),
     listAccounts(userId),
@@ -492,7 +492,7 @@ async function respondToText(
   }
 
   const messages: ModelMessage[] = [
-    ...history.map<ModelMessage>((t) => ({ role: t.role, content: t.content })),
+    ...historyMsgs,
     { role: "user", content: userContent },
   ];
 

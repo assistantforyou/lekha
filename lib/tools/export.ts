@@ -26,7 +26,7 @@ export function buildExportTools(userId: string) {
         return {
           generatedAt: new Date().toISOString(),
           settings,
-          memory: { facts: facts.bullets, archive },
+          memory: { facts: facts.facts, archive },
           conversation: { recent: history },
           tasks: { open: openTasks, all: allTasks },
           sent,
