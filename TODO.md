@@ -2,16 +2,13 @@
 
 **Branch**: feat/operation-tune-up
 **Owners**: James (primary), [friend] (handoff if James runs out of tokens)
-**Last updated**: 2026-05-22T00:00:00Z (session start)
-**Current focus**: Setup + Task A (rate limit)
+**Last updated**: 2026-05-22T09:30Z
+**Current focus**: Task D (signup + approval queue)
 
 ## In progress
-- [ ] Task A: rate limit 30 → 500
+- [ ] Task D: self-serve signup + approval queue + admin commands + tests
 
 ## Up next (in order)
-- [ ] Task C: tool timeouts (finance/weather 12s, Gemini 30s)
-- [ ] Task B: conditional tool registry (Google tools gated on OAuth connection)
-- [ ] Task D: self-serve signup + approval queue + admin commands + tests
 - [ ] Task E: LINE Flex Messages (start with confirm/cancel; then drafts; then everything) + postback handler + contacts_remember tool
 - [ ] Task F1: structured facts schema
 - [ ] Task F3: history summarization by token count
@@ -23,6 +20,9 @@
 ## Done
 - [x] Branch + baseline typecheck clean
 - [x] PLAN.md + TODO.md skeleton
+- [x] Task A: rate limit 30 → 500 (`lib/ratelimit.ts`)
+- [x] Task C: tool timeouts — finance 3s→12s, weather default 4s→12s, Gemini 45s→60s in agent.ts and webhook (2 sites)
+- [x] Task B: conditional tool registry — `toolsForUser` now async, Google tools gated on per-user `listAccounts` rather than just env presence. Connect-account tool still exposed so model can offer setup.
 
 ## Blocked / questions for James
 - None yet. F2 will block on Upstash Vector index creation (manual, James).
@@ -30,11 +30,19 @@
 ## Files touched
 - `PLAN.md` — architecture record (new)
 - `TODO.md` — this file (new)
+- `lib/ratelimit.ts` — 30 → 500 sliding window
+- `lib/tools/finance.ts` — TIMEOUT_MS 3000 → 12000
+- `lib/tools/weather.ts` — fetchJSON default 4000 → 12000
+- `lib/llm/agent.ts` — withTimeout 45000 → 60000; `toolsForUser` awaited
+- `app/api/line/webhook/route.ts` — withTimeout 45000 → 60000 (x2); `toolsForUser` awaited
+- `lib/tools/index.ts` — `toolsForUser` now async; per-user Google gating via `listAccounts`
 
 ## Handoff notes
-Branch `feat/operation-tune-up` created from `main` (commit 080b961). Baseline typecheck clean.
-PRs #14, #13, #10 are in flight and touch overlapping files (`lib/tools/index.ts`, `lib/llm/agent.ts`, `lib/llm/prompts.ts`). Be prepared to rebase if any of those merge first.
-Next concrete step: edit `lib/ratelimit.ts:11` — change `30` to `500` and update the comment.
+Tasks A, B, C done in commit-batch 1. All 81 vitest tests pass; typecheck clean.
+Note on Task C: CLAUDE.md decision #16 said 20s Gemini timeout but actual code was 45s. Bumped to 60s to match spirit of "more headroom".
+Note on Task B: kept system prompt static (preserves Gemini implicit caching per PR #14). All Google tool gating is in the tool registry only.
+PRs #14, #13, #10 in flight will conflict; James decides priority on rebase.
+Next concrete step: design pending-allowlist gate in `app/api/line/webhook/route.ts` (find existing allowlist check) + add `users:pending` Redis set to `lib/memory/allowlist.ts`.
 
 ## CLAUDE.md updates pending
 - [ ] Decision #10 (rate limit) — revise to 500/hr/user with new justification

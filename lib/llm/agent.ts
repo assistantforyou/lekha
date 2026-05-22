@@ -244,7 +244,7 @@ export async function runAgent(
         model: chatModel(),
         system,
         messages: [...timePrefix, ...messages],
-        tools: toolsForUser(userId),
+        tools: await toolsForUser(userId),
         temperature: 0.4,
         stopWhen: stepCountIs(8),
         maxRetries: 3,
@@ -285,7 +285,7 @@ export async function runAgent(
           },
         },
       }),
-      45_000,
+      60_000,
     );
     console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

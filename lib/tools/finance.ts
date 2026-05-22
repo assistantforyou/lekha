@@ -7,7 +7,9 @@ import { tool } from "ai";
  * round-trips vs Tavily's 5-8s for the same answer.
  */
 
-const TIMEOUT_MS = 3000;
+// Bumped from 3s to 12s — Fluid Compute affords this and slow finance
+// upstreams (CoinGecko, Yahoo) were causing spurious failures.
+const TIMEOUT_MS = 12000;
 
 async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
   const ctrl = new AbortController();

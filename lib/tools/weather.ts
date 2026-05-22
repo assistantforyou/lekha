@@ -22,7 +22,7 @@ export function buildWeatherTools() {
   };
 }
 
-async function fetchJSON<T>(url: string, timeoutMs = 4000): Promise<T> {
+async function fetchJSON<T>(url: string, timeoutMs = 12000): Promise<T> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
