@@ -9,7 +9,9 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated), per-u
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
 | Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
 | LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash Lite, paid tier — no fallback) |
+| Embeddings | Gemini `text-embedding-004` (768 dims) |
 | Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
+| Vector search | Upstash Vector — archive semantic search (substring fallback when unset) |
 | Scheduled jobs | Upstash QStash (one-shot reminders, deferred emails, recurring schedules, cron sweep) |
 | Web search | Tavily |
 | Google APIs | `googleapis` SDK — Gmail send/read/modify, Calendar events/readonly, Drive, People (contacts) |
@@ -143,15 +145,15 @@ Handler uses `after(async () => …)` so LINE doesn't time out / retry. Real wor
 OAuth tokens AES-256-GCM with `TOKEN_ENCRYPTION_KEY` (32-byte hex). `OAUTH_STATE_SECRET` HMACs connect-link tokens. State nonces and connect-link tokens are now atomically consumed via `GETDEL` (single-use).
 
 ### 10. Rate limit per user
-Upstash sliding window, 30/hr/user. Protects free Gemini quota and LINE push quota.
+Upstash sliding window, **500/hr/user**. Paid Gemini RPM absorbs the burst at this rate; the cap exists to bound LINE push quota cost and provide an abuse circuit-breaker at 100+ user scale. Raised from 30/hr after the paid-tier migration made the original (free-quota) justification obsolete.
 
 ### 11. Settings injected into every system prompt
 Timezone, location, language, connected Google accounts, staged media — all live in the system prompt so the model behaves correctly without needing to call lookup tools. Settings default to: 7 AM morning briefing, 1d/1h/15m pre-meeting reminders, 9 PM evening summary, inbox briefing enabled.
 
 Settings use versioning + migration: `CURRENT_VERSION` in `lib/memory/settings.ts` defines the schema. When a new schema is deployed, `applyMigrations()` runs on read and writes back once, never overriding explicit user choices tracked in `userConfigured` array.
 
-### 12. Long-term memory via summarization, not vectors
-Every fact-extraction cycle (every 10 turns) ALSO writes a 2-4 sentence chunk summary to `archive`. `search_archived_memory` does substring match. Cheap, no vector store needed for personal-bot scale.
+### 12. Long-term memory via Upstash Vector (with substring fallback)
+Every fact-extraction cycle (every 10 turns) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `text-embedding-004` (768 dims) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries. At 100+ users with growing archives, semantic search materially beats substring on questions like "what did we discuss about that bird-themed project". Reversal of an earlier decision — see PLAN.md.
 
 ### 13. Proactive layer via QStash schedule
 `/api/cron/sweep` is hit every 15 min via live QStash schedule (ID `scd_7n4QEk86a7ENn6fghPQagcw2TRNS`). Iterates `users:active` set, decides per-user whether to push (morning briefing window check, pre-meeting lead-time check, evening summary window check). Idempotent per event via `premeet:{userId}:{eventId}` and `evening_summary:{userId}` keys.
@@ -159,11 +161,32 @@ Every fact-extraction cycle (every 10 turns) ALSO writes a 2-4 sentence chunk su
 ### 14. Email body is base64-encoded
 For Thai/UTF-8 fidelity. `Content-Transfer-Encoding: base64` on the text body part. Some MTAs corrupt non-ASCII under `7bit`.
 
-### 15. Private allowlist — `ADMIN_LINE_USER_ID` + `users:allowed` Redis set
-The bot is private by default. Every event hits the allowlist gate before any other logic. Admin (env var `ADMIN_LINE_USER_ID`) always passes. Others must be in the `users:allowed` Redis set. Admin commands: `/allow <userId>`, `/remove <userId>`, `/users`. Anyone can run `/myid` to get their own LINE userId. Blocked users see their userId in the rejection message so they can send it to the admin.
+### 15. Private allowlist + self-serve pending queue
+The bot is private by default. Every event hits the gate before any other logic. Admin (env var `ADMIN_LINE_USER_ID`, comma-separated for multiple) always passes. Others must be in the `users:allowed` Redis set.
 
-### 16. Single LLM provider — Gemini 2.5 Flash Lite (paid), 20s timeout
-`runAgent` calls Gemini directly with the full tool registry. No cascade, no fallback. Paid tier RPM (1,000+) absorbs the agentic turn burst that the free tier couldn't, and Flash Lite paid pricing ($0.10/M in, $0.40/M out) is materially cheaper per token than any third-party fallback we evaluated. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. If quota/availability ever becomes a real problem, add a fallback back here, not at the call sites.
+**Self-serve signup:** non-allowed, non-admin users are silently added to `users:pending` (set) with profile metadata at `pending:{userId}` hash (`displayName`, `requestedAt`, optional first message). They receive a friendly "you're in the queue" reply instead of a wall. The admin is push-notified about new requests, rate-limited 1/min/user via `pending_notif:{userId}` NX+TTL key to avoid notification spam.
+
+**Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome message), `/deny <id>` (remove from pending). Anyone can `/myid` to get their own LINE userId.
+
+### 16. Single LLM provider — Gemini 2.5 Flash Lite (paid), 60s timeout
+`runAgent` calls Gemini directly with the full tool registry. No cascade, no fallback. Paid tier RPM (1,000+) absorbs the agentic turn burst that the free tier couldn't, and Flash Lite paid pricing ($0.10/M in, $0.40/M out) is materially cheaper per token than any third-party fallback we evaluated. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. The 60s call timeout gives healthy agentic turns room to breathe under occasional Gemini latency spikes while still surfacing real hangs to the user. Vercel Fluid Compute affords the budget. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
+
+### 18. Conditional tool registry (per-user OAuth gating)
+`toolsForUser(userId)` is async and gates Google-dependent tools (email, calendar, drive, gmail-inbox, docs, scheduled-email, contacts) on whether THIS user has actually connected a Google account (`listAccounts(userId).accounts.length > 0`). Saves ~2K tokens per request for users without OAuth. The connect-account tools remain registered even without a connection so the model can guide the user through linking. The system prompt stays static (preserves Gemini implicit caching).
+
+### 19. Structured facts (categorized, LRU-capped) + token-bounded history
+Facts are stored at `user:{userId}:facts:v2` as a JSON value with shape `{ facts: Fact[], updatedAt }`. Each `Fact` has `id`, `category` (preferences|people|habits|deadlines|context|health|work|other), `content`, `createdAt`, `updatedAt`, optional `confidence`. Cap at 200 facts/user with LRU eviction by `updatedAt`. `factsToPromptBlock` groups by category for prompt scanability. Extractor (`lib/llm/extract-facts.ts`) emits structured output via `generateObject` with category + confidence per fact.
+
+History uses a rolling 20 turns in Redis but `historyForPrompt` is the call site: if the rolling history exceeds ~3000 tokens (chars/4 heuristic), it summarizes the oldest 10 turns into a ~200-token block via the extractor model and prepends it. Summary is cached by content hash for 7 days.
+
+### 20. LINE Flex Messages + postback routing
+Draft confirmations, task lists, and other high-signal interactions render as Flex bubbles with tap-to-act postback buttons. Module: `lib/line/flex/` (one file per template + `index.ts` + `parsePostbackData` helper). Templates always include a meaningful `altText` so old LINE clients still see something useful.
+
+Postback `data` is parsed by verb prefix (`verb:arg:arg…`, capped at 300 chars by LINE). Current routes (`app/api/line/webhook/route.ts` postback branch):
+- `confirm:yes` / `confirm:no` → `executePendingAll` / `clearPending`
+- `task:done:<id>` / `task:reopen:<id>` → `completeTask` / `reopenTask`
+
+Future verbs (`draft:send:<idx>`, `reminder:cancel:<id>`) wire into the same branch. Idempotency relies on the existing `seen:{webhookEventId}` dedup. Per-template snapshot tests in `tests/flex.test.ts`.
 
 ### 17. Orchestrator-level error relay enforcement
 After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
@@ -211,6 +234,9 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 - **Gemini timeout at 20s** — Gemini occasionally hangs for 45+ seconds on overloaded requests. 20s is enough for a healthy agentic turn; anything longer surfaces as a timeout error to the user.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
+- **Upstash Vector index must be dim 768, cosine** to match Gemini `text-embedding-004`. Mismatch surfaces as silent upsert failures.
+- **LINE postback `data` capped at 300 chars** — pass IDs, never full content.
+- **LINE Flex Messages require `altText`** — without it the API call fails.
 
 ## Claude bot access (testing without LINE)
 
