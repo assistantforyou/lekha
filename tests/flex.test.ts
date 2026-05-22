@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { confirmCancelFlex, parsePostbackData } from "@/lib/line/flex";
+import { confirmCancelFlex, parsePostbackData, taskListFlex } from "@/lib/line/flex";
 
 describe("confirmCancelFlex", () => {
   it("emits a flex message with altText derived from summary", () => {
@@ -29,6 +29,33 @@ describe("confirmCancelFlex", () => {
     const json = JSON.stringify(msg.contents);
     expect(json).toContain('"label":"Ship it"');
     expect(json).toContain('"label":"Nah"');
+  });
+});
+
+describe("taskListFlex", () => {
+  it("renders empty state with a meaningful altText", () => {
+    const msg = taskListFlex([]);
+    expect(msg.type).toBe("flex");
+    expect(msg.altText).toMatch(/none/i);
+  });
+
+  it("emits done postback for open tasks and reopen for done", () => {
+    const msg = taskListFlex([
+      { id: "t1", title: "Buy milk", done: false },
+      { id: "t2", title: "Write report", done: true },
+    ]);
+    const json = JSON.stringify(msg.contents);
+    expect(json).toContain('"data":"task:done:t1"');
+    expect(json).toContain('"data":"task:reopen:t2"');
+  });
+
+  it("caps display rows to 10", () => {
+    const many = Array.from({ length: 25 }, (_, i) => ({ id: `t${i}`, title: `Task ${i}`, done: false }));
+    const msg = taskListFlex(many);
+    const json = JSON.stringify(msg.contents);
+    // count "task:done:" occurrences
+    const matches = json.match(/task:done:t\d+/g) ?? [];
+    expect(matches.length).toBeLessThanOrEqual(10);
   });
 });
 

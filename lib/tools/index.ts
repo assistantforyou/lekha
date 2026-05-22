@@ -24,6 +24,7 @@ import { buildEveningSummaryTool } from "./evening-summary";
 import { buildReceiptTools } from "./receipts";
 import { hasGoogleOAuth, hasQStash, env } from "@/lib/env";
 import { listAccounts } from "./google-auth";
+import { buildContactsTools } from "./contacts";
 
 /**
  * Returns the full tool registry bound to a single user. Tools that depend on
@@ -62,5 +63,6 @@ export async function toolsForUser(userId: string) {
     ...buildStagedMediaTools(userId),
     ...buildListTools(userId),
     ...(userHasGoogle ? buildDocsTools(userId) : {}),
+    ...(userHasGoogle ? buildContactsTools(userId) : {}),
   };
 }

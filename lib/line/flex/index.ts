@@ -1,4 +1,5 @@
 export { confirmCancelFlex } from "./confirm-cancel";
+export { taskListFlex, type TaskRow } from "./task-list";
 
 /**
  * Parse a LINE postback `data` payload. Convention:

@@ -228,8 +228,25 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
       }
     }
 
+    if (verb === "task") {
+      const [op, taskId] = args;
+      if (!taskId || (op !== "done" && op !== "reopen")) {
+        await reply(event.replyToken, [textMsg("Couldn't parse that task action.")]);
+        return;
+      }
+      const { completeTask, reopenTask } = await import("@/lib/memory/tasks");
+      const updated = op === "done" ? await completeTask(pbUserId, taskId) : await reopenTask(pbUserId, taskId);
+      if (!updated) {
+        await reply(event.replyToken, [textMsg("That task doesn't exist anymore.")]);
+        return;
+      }
+      const verbWord = op === "done" ? "completed" : "reopened";
+      await reply(event.replyToken, [textMsg(`✓ ${verbWord}: ${updated.title}`)]);
+      return;
+    }
+
     // Unknown postback verbs fall through silently — future templates
-    // (task:done, reminder:cancel, draft:edit) wire in here.
+    // (reminder:cancel, draft:edit) wire in here.
     console.warn("[webhook] unhandled postback", { verb, args });
     return;
   }

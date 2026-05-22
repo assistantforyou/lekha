@@ -28,6 +28,11 @@ const Env = z.object({
   // Tavily
   TAVILY_API_KEY: z.string().optional(),
 
+  // Upstash Vector (semantic archive search). Index must be dim 768 to match
+  // Gemini text-embedding-004, with cosine similarity.
+  UPSTASH_VECTOR_REST_URL: z.string().url().optional(),
+  UPSTASH_VECTOR_REST_TOKEN: z.string().min(1).optional(),
+
   // Crypto
   TOKEN_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/, "must be 64 hex chars"),
   OAUTH_STATE_SECRET: z.string().min(32),
@@ -79,4 +84,9 @@ export function hasGoogleOAuth(): boolean {
 export function hasQStash(): boolean {
   const e = env();
   return Boolean(e.QSTASH_TOKEN && e.QSTASH_CURRENT_SIGNING_KEY);
+}
+
+export function hasUpstashVector(): boolean {
+  const e = env();
+  return Boolean(e.UPSTASH_VECTOR_REST_URL && e.UPSTASH_VECTOR_REST_TOKEN);
 }
