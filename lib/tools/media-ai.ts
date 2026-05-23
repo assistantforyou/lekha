@@ -117,6 +117,10 @@ async function runMediaPrompt(
     };
   }
 
+  // Normalize mediaType — LINE often returns application/octet-stream for files,
+  // which Gemini rejects. Detect by magic bytes / filename so Gemini accepts the file.
+  mediaType = normalizeMediaType(bytes, mediaType, item.fileName, item.kind);
+
   try {
     const r = await generateText({
       model: extractorModel(),
@@ -134,9 +138,40 @@ async function runMediaPrompt(
     const output = maxChars && text.length > maxChars ? text.slice(0, maxChars) + "\n--- truncated ---" : text;
     return { ok: true as const, kind: item.kind, mediaType, output };
   } catch (err) {
-    return {
-      ok: false as const,
-      error: `Gemini call failed: ${err instanceof Error ? err.message : String(err)}`,
-    };
+    const raw = err instanceof Error ? err.message : String(err);
+    if (/too large|payload|413/i.test(raw)) {
+      return { ok: false as const, error: "That file is too large for me to process in one go. Try splitting it or sending key pages as images." };
+    }
+    if (/unsupported|invalid.*mime|invalid.*media/i.test(raw)) {
+      return { ok: false as const, error: `Gemini doesn't accept this file type (${mediaType}). Try exporting it as PDF and resending.` };
+    }
+    return { ok: false as const, error: `Couldn't read that file: ${raw.slice(0, 200)}` };
   }
+}
+
+/** Detect mediaType from magic bytes + filename when the upstream content-type is missing or wrong. */
+function normalizeMediaType(
+  bytes: Uint8Array,
+  upstream: string,
+  fileName: string | undefined,
+  kind: "audio" | "image" | "video" | "file",
+): string {
+  // PDF magic: %PDF-
+  if (bytes.length >= 5 && bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46 && bytes[4] === 0x2d) {
+    return "application/pdf";
+  }
+  if (upstream && !/^application\/octet-stream$/i.test(upstream)) return upstream;
+  const lower = (fileName ?? "").toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".txt")) return "text/plain";
+  if (lower.endsWith(".md")) return "text/markdown";
+  if (lower.endsWith(".csv")) return "text/csv";
+  if (lower.endsWith(".html") || lower.endsWith(".htm")) return "text/html";
+  if (lower.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  if (lower.endsWith(".xlsx")) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  if (lower.endsWith(".pptx")) return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  if (kind === "audio") return "audio/m4a";
+  if (kind === "image") return "image/jpeg";
+  if (kind === "video") return "video/mp4";
+  return upstream || "application/octet-stream";
 }
