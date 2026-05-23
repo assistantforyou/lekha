@@ -55,8 +55,11 @@ export function estimateTokens(turns: StoredTurn[]): number {
  * so we don't regenerate it every turn.
  */
 export async function historyForPrompt(userId: string): Promise<ModelMessage[]> {
+  const t0 = Date.now();
   const history = await loadHistory(userId);
-  if (estimateTokens(history) <= TOKEN_CAP || history.length <= OLDEST_CHUNK) {
+  const est = estimateTokens(history);
+  if (est <= TOKEN_CAP || history.length <= OLDEST_CHUNK) {
+    console.log("[timing/history] no-summary", { ms: Date.now() - t0, turns: history.length, estTokens: est });
     return history.map(toModelMessage);
   }
   const oldest = history.slice(0, history.length - OLDEST_CHUNK);
@@ -65,7 +68,9 @@ export async function historyForPrompt(userId: string): Promise<ModelMessage[]> 
   const cached = await redis().get<string>(summaryKey(userId, hash));
   let summary = cached ?? null;
   if (!summary) {
+    const tSum = Date.now();
     summary = await summarizeOldest(oldest);
+    console.log("[timing/history] summarize-fresh", { summarizeMs: Date.now() - tSum, totalMs: Date.now() - t0, est });
     if (summary) {
       // Cache for 7 days — older history will get re-summarized after that
       // window (cheap; only fires when the cap is exceeded).
@@ -73,6 +78,8 @@ export async function historyForPrompt(userId: string): Promise<ModelMessage[]> 
         .set(summaryKey(userId, hash), summary, { ex: 60 * 60 * 24 * 7 })
         .catch(() => {});
     }
+  } else {
+    console.log("[timing/history] summary-cached", { ms: Date.now() - t0, turns: history.length, est });
   }
   const summaryTurn: ModelMessage = {
     role: "user",

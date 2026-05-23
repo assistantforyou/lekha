@@ -210,12 +210,17 @@ export async function runAgent(
   facts: Awaited<ReturnType<typeof loadFacts>>,
   messages: ModelMessage[],
 ): Promise<string> {
+  const agentT0 = Date.now();
+  const aTick = (label: string, extra?: Record<string, unknown>) =>
+    console.log(`[timing/agent] ${label}`, { ms: Date.now() - agentT0, ...(extra ?? {}) });
+  aTick("runAgent:start");
   const [accounts, staged, settings] = await Promise.all([
     listAccounts(userId),
     listRecentMedia(userId),
     getSettings(userId),
   ]);
   const userHasGoogle = accounts.accounts.length > 0;
+  aTick("runAgent:preload-done", { accounts: accounts.accounts.length, staged: staged.length });
   const accountsBlock = accounts.accounts.length
     ? `\n\nConnected Google accounts: ${accounts.accounts
         .map((a) => `${a.email}${a.email === accounts.activeEmail ? " (active)" : ""}`)
@@ -253,12 +258,16 @@ export async function runAgent(
   const succeededTools: string[] = [];
 
   try {
+    aTick("runAgent:tools-loading");
+    const tools = await toolsForUser(userId, { userHasGoogle });
+    aTick("runAgent:tools-loaded", { toolCount: Object.keys(tools).length });
+    aTick("runAgent:gemini-start");
     const result = await withTimeout(
       generateText({
         model: chatModel(),
         system,
         messages: [...timePrefix, ...messages],
-        tools: await toolsForUser(userId, { userHasGoogle }),
+        tools,
         temperature: 0.4,
         stopWhen: stepCountIs(8),
         maxRetries: 3,
@@ -302,6 +311,7 @@ export async function runAgent(
       60_000,
     );
     console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
+    aTick("runAgent:gemini-done", { steps: result.steps.length, toolCalls: allCalls.length });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return formatProcessed(processResult(result as any, accounts.activeEmail, allCalls));
   } catch (err) {

@@ -480,6 +480,9 @@ async function respondToText(
   userText: string,
 ): Promise<void> {
   const t0 = Date.now();
+  const tick = (label: string, extra?: Record<string, unknown>) =>
+    console.log(`[timing] ${label}`, { ms: Date.now() - t0, ...(extra ?? {}) });
+  tick("respondToText:start", { textLen: userText.length });
   showLoading(userId, 60).catch(() => {});  // fire-and-forget; LLM doesn't wait for LINE ack
   const [historyMsgs, facts, staged, accounts] = await Promise.all([
     historyForPrompt(userId),
@@ -487,7 +490,12 @@ async function respondToText(
     listRecentMedia(userId),
     listAccounts(userId),
   ]);
-  console.log("[webhook] preload done", { ms: Date.now() - t0 });
+  tick("preload:done", {
+    historyTurns: historyMsgs.length,
+    factsCount: facts.facts.length,
+    stagedCount: staged.length,
+    googleAccounts: accounts.accounts.length,
+  });
 
   // If a fresh image was just staged (< 30s ago, e.g. sent in same batch),
   // bundle its bytes directly into the message so the model sees both at once.
@@ -502,6 +510,7 @@ async function respondToText(
         { type: "image", image: bytes, mediaType: contentType },
         { type: "text", text: userText },
       ];
+      tick("image:fetched", { bytes: bytes.byteLength });
     } catch {
       // Couldn't fetch the image — fall back to text-only
       userContent = userText;
@@ -515,13 +524,18 @@ async function respondToText(
     { role: "user", content: userContent },
   ];
 
+  tick("agent:start");
   const replyText = await runAgent(userId, profile, facts, messages);
+  tick("agent:done", { replyLen: replyText.length });
   await reply(replyToken, [enrichReply(replyText, accounts.activeEmail, accounts.accounts.map((a) => a.email))]);
+  tick("reply:sent");
 
   await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
+  tick("history:appended");
 
   await maybeExtractFacts(userId);
+  tick("facts:maybeExtracted");
 }
 
 async function respondToImage(
