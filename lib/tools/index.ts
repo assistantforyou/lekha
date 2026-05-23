@@ -32,10 +32,12 @@ import { buildContactsTools } from "./contacts";
  * whether THIS user has actually connected a Google account — saves ~2K tokens
  * per request for users without OAuth.
  */
-export async function toolsForUser(userId: string) {
-  const userHasGoogle = hasGoogleOAuth()
-    ? (await listAccounts(userId)).accounts.length > 0
-    : false;
+export async function toolsForUser(userId: string, opts?: { userHasGoogle?: boolean }) {
+  const userHasGoogle = opts?.userHasGoogle !== undefined
+    ? opts.userHasGoogle
+    : hasGoogleOAuth()
+      ? (await listAccounts(userId)).accounts.length > 0
+      : false;
   // Even without a connected account, expose the "connect" tool so the model
   // can offer to wire it up. Suppress the rest of the Google surface area.
   return {
