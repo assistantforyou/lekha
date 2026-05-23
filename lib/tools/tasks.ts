@@ -4,6 +4,7 @@ import {
   addTask,
   listTasks,
   completeTask,
+  completeAllOpenTasks,
   reopenTask,
   updateTask,
   deleteTask,
@@ -70,6 +71,16 @@ export function buildTaskTools(userId: string) {
         if (dueAt !== undefined) patch.dueAt = new Date(dueAt).getTime();
         const t = await updateTask(userId, id, patch);
         return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
+      },
+    }),
+
+    complete_all_open_tasks: tool({
+      description:
+        "Mark EVERY currently-open task as done in one atomic call. Use when the user says 'clear all my tasks', 'mark them all done', 'all tasks done', 'wipe my open tasks', etc. Returns the list of tasks that were completed. Do NOT call list_tasks + complete_task individually for bulk clears — use this instead.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const completed = await completeAllOpenTasks(userId);
+        return { ok: true, completedCount: completed.length, completed };
       },
     }),
 
