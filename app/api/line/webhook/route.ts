@@ -403,8 +403,10 @@ async function handleEvent(event: LineEvent, mode: "normal" | "stage_only" = "no
     }
 
     // Shortcut: morning briefing — bypass LLM entirely, call builder directly.
+    // Loose pattern catches typos ("brifing", "breifing") and short forms ("my briefing").
     if (/\b(morning briefing|daily briefing|daily summary)\b/i.test(userText) ||
-        /^(give me|show me|what'?s|send me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary)[\s?!.]*$/i.test(userText)) {
+        /^(give me|show me|what'?s|send me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary)[\s?!.]*$/i.test(userText) ||
+        /^(give me|show me|send me|what'?s)?\s*my\s*br[a-z]{0,6}(?:ing)?[\s?!.]*$/i.test(userText)) {
       showLoading(userId, 25).catch(() => {});
       const settings = await getSettings(userId);
       const briefing = await buildMorningBriefing(userId, {

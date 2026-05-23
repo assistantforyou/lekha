@@ -163,6 +163,19 @@ function processResult(
 
   if (modelText.length > 0) return { reply: modelText, authNeeded: null, apiDisabled: null, googleErr: null };
   if (allCalls.length > 0) {
+    // Verbatim-content tools: if model returns empty text but one of these ran,
+    // pull the string result from the tool output rather than showing a "✓" label.
+    const verbatimTools = new Set(["get_morning_briefing", "get_evening_summary"]);
+    for (const step of result.steps) {
+      for (const tr of step.toolResults) {
+        const toolName = (tr as { toolName?: string }).toolName ?? "";
+        if (!verbatimTools.has(toolName)) continue;
+        const value = extractToolValue((tr as { output?: unknown }).output);
+        if (typeof value === "string" && value.length > 10) {
+          return { reply: value, authNeeded: null, apiDisabled: null, googleErr: null };
+        }
+      }
+    }
     const labels = allCalls.map((c) => ACTION_LABELS[c.toolName] ?? c.toolName).filter(Boolean);
     const unique = [...new Set(labels)];
     return { reply: unique.length ? unique.join(" • ") + " ✓" : "Done.", authNeeded: null, apiDisabled: null, googleErr: null };
@@ -202,6 +215,7 @@ export async function runAgent(
     listRecentMedia(userId),
     getSettings(userId),
   ]);
+  const userHasGoogle = accounts.accounts.length > 0;
   const accountsBlock = accounts.accounts.length
     ? `\n\nConnected Google accounts: ${accounts.accounts
         .map((a) => `${a.email}${a.email === accounts.activeEmail ? " (active)" : ""}`)
@@ -244,7 +258,7 @@ export async function runAgent(
         model: chatModel(),
         system,
         messages: [...timePrefix, ...messages],
-        tools: await toolsForUser(userId),
+        tools: await toolsForUser(userId, { userHasGoogle }),
         temperature: 0.4,
         stopWhen: stepCountIs(8),
         maxRetries: 3,
