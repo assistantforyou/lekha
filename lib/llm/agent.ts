@@ -212,7 +212,7 @@ export async function runAgent(
 ): Promise<string> {
   const agentT0 = Date.now();
   const aTick = (label: string, extra?: Record<string, unknown>) =>
-    console.log(`[timing/agent] ${label}`, { ms: Date.now() - agentT0, ...(extra ?? {}) });
+    console.warn(`[timing/agent] ${label}`, { ms: Date.now() - agentT0, ...(extra ?? {}) });
   aTick("runAgent:start");
   const [accounts, staged, settings] = await Promise.all([
     listAccounts(userId),

@@ -481,7 +481,7 @@ async function respondToText(
 ): Promise<void> {
   const t0 = Date.now();
   const tick = (label: string, extra?: Record<string, unknown>) =>
-    console.log(`[timing] ${label}`, { ms: Date.now() - t0, ...(extra ?? {}) });
+    console.warn(`[timing] ${label}`, { ms: Date.now() - t0, ...(extra ?? {}) });
   tick("respondToText:start", { textLen: userText.length });
   showLoading(userId, 60).catch(() => {});  // fire-and-forget; LLM doesn't wait for LINE ack
   const [historyMsgs, facts, staged, accounts] = await Promise.all([
