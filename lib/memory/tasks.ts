@@ -44,6 +44,25 @@ export async function updateTask(
   return await mutateTask(userId, id, (t) => ({ ...t, ...patch }));
 }
 
+export async function completeAllOpenTasks(userId: string): Promise<Task[]> {
+  const all = await listTasks(userId, "all");
+  const now = Date.now();
+  const completed: Task[] = [];
+  const next = all.map((t) => {
+    if (t.doneAt) return t;
+    const done = { ...t, doneAt: now };
+    completed.push(done);
+    return done;
+  });
+  if (completed.length === 0) return [];
+  const k = listKey(userId);
+  const tx = redis().multi();
+  tx.del(k);
+  tx.rpush(k, ...next.map((t) => JSON.stringify(t)));
+  await tx.exec();
+  return completed;
+}
+
 export async function deleteTask(userId: string, id: string): Promise<boolean> {
   const all = await listTasks(userId, "all");
   const next = all.filter((t) => t.id !== id);
