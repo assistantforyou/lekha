@@ -22,49 +22,94 @@ import { buildDocsTools } from "./docs";
 import { buildMorningBriefingTool } from "./morning-briefing";
 import { buildEveningSummaryTool } from "./evening-summary";
 import { buildReceiptTools } from "./receipts";
-import { hasGoogleOAuth, hasQStash, env } from "@/lib/env";
-import { listAccounts } from "./google-auth";
 import { buildContactsTools } from "./contacts";
+import { listAccounts } from "./google-auth";
+import { hasGoogleOAuth, hasQStash, env } from "@/lib/env";
+import type { ToolSet } from "ai";
+
+type Need = "google_oauth_env" | "google_user_connected" | "qstash" | "tavily";
+
+// Each builder returns a partial ToolSet keyed by tool name. We accept loose
+// typing here because individual builders use the `tool()` helper which infers
+// its own input/output types — combining them at the registry level would
+// over-narrow. `toolsForUser` casts the merged result back to ToolSet.
+type Builder = (userId: string) => Record<string, unknown>;
+
+type Entry = {
+  build: Builder;
+  needs?: Need[];
+};
+
+/**
+ * Declarative tool registry. Add or remove a tool by editing one row.
+ * Each entry lists the env/user prerequisites; the dispatcher omits any tool
+ * whose prerequisites aren't satisfied.
+ */
+const REGISTRY: Entry[] = [
+  { build: () => buildHelpTools() },
+  { build: (u) => buildMorningBriefingTool(u) },
+  { build: (u) => buildEveningSummaryTool(u) },
+  { build: () => buildFinanceTools() },
+  { build: () => buildWeatherTools() },
+  { build: () => buildNewsTools(), needs: ["tavily"] },
+  { build: (u) => buildSettingsTools(u) },
+  { build: (u) => buildMemoryTools(u) },
+  { build: (u) => buildTaskTools(u) },
+  { build: (u) => buildExportTools(u) },
+  { build: (u) => buildSentHistoryTools(u) },
+  { build: (u) => buildMediaAiTools(u) },
+  { build: (u) => buildReceiptTools(u) },
+  { build: (u) => buildReminderTools(u), needs: ["qstash"] },
+  { build: () => buildWebSearchTool(), needs: ["tavily"] },
+  // Connect/list/switch — registered as soon as Google OAuth env is configured,
+  // even before this user has linked an account, so the model can offer to link.
+  { build: (u) => buildGoogleAccountTools(u), needs: ["google_oauth_env"] },
+  // Per-user Google surface — gated on whether THIS user has linked an account.
+  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"] },
+  { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"] },
+  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"] },
+  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"] },
+  { build: (u) => buildDocsTools(u), needs: ["google_user_connected"] },
+  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"] },
+  { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"] },
+  { build: (u) => buildStagedMediaTools(u) },
+  { build: (u) => buildListTools(u) },
+];
+
+function envHas(need: Need, userHasGoogle: boolean): boolean {
+  switch (need) {
+    case "google_oauth_env":
+      return hasGoogleOAuth();
+    case "google_user_connected":
+      return userHasGoogle;
+    case "qstash":
+      return hasQStash();
+    case "tavily":
+      return Boolean(env().TAVILY_API_KEY);
+  }
+}
 
 /**
  * Returns the full tool registry bound to a single user. Tools that depend on
- * unconfigured services are omitted. Google-dependent tools are also gated on
- * whether THIS user has actually connected a Google account — saves ~2K tokens
- * per request for users without OAuth.
+ * unconfigured services or on an unconnected Google account are omitted
+ * (CLAUDE.md decision #18). Saves ~2K tokens per request for users without OAuth.
  */
-export async function toolsForUser(userId: string, opts?: { userHasGoogle?: boolean }) {
-  const userHasGoogle = opts?.userHasGoogle !== undefined
-    ? opts.userHasGoogle
-    : hasGoogleOAuth()
-      ? (await listAccounts(userId)).accounts.length > 0
-      : false;
-  // Even without a connected account, expose the "connect" tool so the model
-  // can offer to wire it up. Suppress the rest of the Google surface area.
-  return {
-    ...buildHelpTools(),
-    ...buildMorningBriefingTool(userId),
-    ...buildEveningSummaryTool(userId),
-    ...buildFinanceTools(),
-    ...buildWeatherTools(),
-    ...(env().TAVILY_API_KEY ? buildNewsTools() : {}),
-    ...buildSettingsTools(userId),
-    ...buildMemoryTools(userId),
-    ...buildTaskTools(userId),
-    ...buildExportTools(userId),
-    ...buildSentHistoryTools(userId),
-    ...buildMediaAiTools(userId),
-    ...buildReceiptTools(userId),
-    ...(hasQStash() ? buildReminderTools(userId) : {}),
-    ...(env().TAVILY_API_KEY ? buildWebSearchTool() : {}),
-    ...(hasGoogleOAuth() ? buildGoogleAccountTools(userId) : {}),
-    ...(userHasGoogle ? buildEmailTools(userId) : {}),
-    ...(userHasGoogle ? buildCalendarTools(userId) : {}),
-    ...(userHasGoogle ? buildDriveTools(userId) : {}),
-    ...(userHasGoogle ? buildGmailInboxTools(userId) : {}),
-    ...(userHasGoogle && hasQStash() ? buildScheduledEmailTools(userId) : {}),
-    ...buildStagedMediaTools(userId),
-    ...buildListTools(userId),
-    ...(userHasGoogle ? buildDocsTools(userId) : {}),
-    ...(userHasGoogle ? buildContactsTools(userId) : {}),
-  };
+export async function toolsForUser(
+  userId: string,
+  opts?: { userHasGoogle?: boolean },
+): Promise<ToolSet> {
+  const userHasGoogle =
+    opts?.userHasGoogle !== undefined
+      ? opts.userHasGoogle
+      : hasGoogleOAuth()
+        ? (await listAccounts(userId)).accounts.length > 0
+        : false;
+
+  const out: Record<string, unknown> = {};
+  for (const entry of REGISTRY) {
+    const ok = (entry.needs ?? []).every((n) => envHas(n, userHasGoogle));
+    if (!ok) continue;
+    Object.assign(out, entry.build(userId));
+  }
+  return out as ToolSet;
 }

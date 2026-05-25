@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     { role: "user", content: text },
   ];
 
-  const replyText = await runAgent(userId, profile, facts, messages);
+  const { text: replyText } = await runAgent(userId, profile, facts, messages);
 
   await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });

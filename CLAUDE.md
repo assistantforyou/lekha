@@ -33,7 +33,7 @@ npx vercel logs --no-follow --since 1h --no-branch --expand   # recent prod logs
 ```
 app/
 ├── api/
-│   ├── line/webhook/route.ts          # main orchestrator
+│   ├── line/webhook/route.ts          # thin entrypoint: verify → parse → dispatch (logic in lib/webhook/)
 │   ├── dev/chat/route.ts              # Claude testing endpoint — bypass LINE, POST {userId,text}
 │   ├── oauth/google/callback/route.ts # OAuth code exchange + auto-resume pending
 │   ├── reminders/fire/route.ts        # QStash callback for one-shot/recurring reminders
@@ -55,7 +55,14 @@ lib/
 ├── pending-runner.ts                  # executePendingAll — runs queue on YES, logs sends
 ├── cron.ts                            # QStash schedule helpers + local→UTC cron conversion
 ├── utils.ts                           # shared utilities (cn, etc.)
-├── line/{verify,client,types}.ts      # HMAC, REST client, zod schemas (text/image/video/audio/file/sticker)
+├── line/{verify,client,types,mime}.ts # HMAC, REST client, zod schemas, file-mime helpers
+├── webhook/                           # webhook orchestration split from app/api/line/webhook/route.ts
+│   ├── gate.ts                        # allowlist + admin parsing (decision #15)
+│   ├── admin-commands.ts              # /allow /remove /users /myid
+│   ├── shortcuts.ts                   # declarative LLM-bypass table (help/connect google/briefings)
+│   ├── enrich-reply.ts                # text + AgentHints → LineMessage (replaces regex-on-model-text)
+│   ├── maybe-extract.ts               # every-10-turn fact extraction trigger
+│   └── handlers/{text,image,other-media}.ts
 ├── llm/
 │   ├── provider.ts                    # chatModel + extractorModel — swap here for new LLMs
 │   ├── prompts.ts                     # base personality + system prompt builder
@@ -79,7 +86,7 @@ lib/
 │   ├── user-registry.ts               # set of all known userIds for cron sweep
 │   └── allowlist.ts                   # private access control — Redis set `users:allowed`
 └── tools/
-    ├── index.ts                       # toolsForUser(userId) — registry, env-gated
+    ├── index.ts                       # toolsForUser(userId) — async, declarative registry, env + per-user OAuth gated
     ├── help.ts                        # show_help text dump
     ├── settings.ts                    # set_timezone/location/language/morning_briefing/pre_meeting + enable/disable_evening_summary
     ├── morning-briefing.ts            # get_morning_briefing tool (calls lib/llm/briefing.ts)
@@ -231,7 +238,7 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 - **LINE doesn't bundle a caption with media.** Recent-media staging spans messages within 30-min TTL.
 - **`Content-Transfer-Encoding: 7bit` is invalid for UTF-8 bodies** (Thai, emoji). Use base64.
 - **OAuth state nonce + connect-link token must be atomically consumed** (GETDEL) — non-atomic GET+DEL has a replay window.
-- **Gemini timeout at 20s** — Gemini occasionally hangs for 45+ seconds on overloaded requests. 20s is enough for a healthy agentic turn; anything longer surfaces as a timeout error to the user.
+- **Gemini timeout at 60s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`) — Gemini occasionally hangs on overloaded requests. 60s leaves room for healthy multi-step agentic turns under latency spikes while still surfacing real hangs to the user. Image-only `generateText` calls use the same constant.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
 - **Upstash Vector index must be dim 768, cosine** to match Gemini `text-embedding-004`. Mismatch surfaces as silent upsert failures.

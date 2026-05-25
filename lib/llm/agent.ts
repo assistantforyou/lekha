@@ -1,5 +1,5 @@
 import { generateText, stepCountIs, type ModelMessage } from "ai";
-import { chatModel } from "@/lib/llm/provider";
+import { chatModel, AGENT_TIMEOUT_MS, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
 import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
 import { factsToPromptBlock, type loadFacts } from "@/lib/memory/facts";
 import { listAccounts } from "@/lib/tools/google-auth";
@@ -204,12 +204,31 @@ function formatProcessed(processed: ProcessedResult): string {
   return stripMarkdown(processed.reply);
 }
 
+/**
+ * Structured UI hints surfaced by runAgent. Replaces fragile model-text regex
+ * in the webhook's enrichReply. Hints are derived from tool calls / structured
+ * tool returns — they survive model rewording.
+ */
+export type AgentHints = {
+  /** A draft was rendered — show YES/No quick replies. */
+  confirmDraft: boolean;
+  /** Multi-account ambiguity — show account picker. */
+  pickAccount: boolean;
+  /** No Google account connected and the user asked for something that needs one. */
+  needsGoogleConnect: boolean;
+};
+
+export type AgentResult = {
+  text: string;
+  hints: AgentHints;
+};
+
 export async function runAgent(
   userId: string,
   profile: { displayName: string },
   facts: Awaited<ReturnType<typeof loadFacts>>,
   messages: ModelMessage[],
-): Promise<string> {
+): Promise<AgentResult> {
   const agentT0 = Date.now();
   const aTick = (label: string, extra?: Record<string, unknown>) =>
     console.warn(`[timing/agent] ${label}`, { ms: Date.now() - agentT0, ...(extra ?? {}) });
@@ -297,35 +316,54 @@ export async function runAgent(
             finish: step.finishReason,
           });
         },
-        providerOptions: {
-          google: {
-            safetySettings: [
-              { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-              { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-            ],
-          },
-        },
+        providerOptions: GEMINI_PROVIDER_OPTIONS,
       }),
-      60_000,
+      AGENT_TIMEOUT_MS,
     );
     console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
     aTick("runAgent:gemini-done", { steps: result.steps.length, toolCalls: allCalls.length });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return formatProcessed(processResult(result as any, accounts.activeEmail, allCalls));
+    const processed = processResult(result as any, accounts.activeEmail, allCalls);
+    const text = formatProcessed(processed);
+    const hints: AgentHints = {
+      confirmDraft: allCalls.some(
+        (c) => c.toolName === "draft_email" || c.toolName === "draft_calendar_event",
+      ),
+      pickAccount: accounts.accounts.length > 1 && /which google account/i.test(text),
+      needsGoogleConnect:
+        processed.authNeeded !== null || (accounts.accounts.length === 0 && /connect google/i.test(text)),
+    };
+    return { text, hints };
   } catch (err) {
     // Bug 3: timeout after tools already completed — synthesize from what finished
     if (err instanceof AgentTimeoutError && succeededTools.length > 0) {
       const draftBlock = renderDraftsBlock(allCalls, accounts.activeEmail);
-      if (draftBlock) return stripMarkdown(draftBlock);
-      const summary = [...new Set(succeededTools.filter(Boolean))]
-        .map((t) => ACTION_LABELS[t] ?? t)
-        .join(" • ");
+      const text = draftBlock
+        ? stripMarkdown(draftBlock)
+        : stripMarkdown(
+            [...new Set(succeededTools.filter(Boolean))]
+              .map((t) => ACTION_LABELS[t] ?? t)
+              .join(" • "),
+          );
       console.warn("[agent] timeout with completed tools — returning summary", { succeededTools });
-      return stripMarkdown(summary);
+      return {
+        text,
+        hints: {
+          confirmDraft: Boolean(draftBlock),
+          pickAccount: false,
+          needsGoogleConnect: false,
+        },
+      };
     }
-    return handleError(err, userId);
+    const errText = await handleError(err, userId);
+    return {
+      text: errText,
+      hints: {
+        confirmDraft: false,
+        pickAccount: false,
+        needsGoogleConnect: unwrap(err) instanceof GoogleAuthRequired,
+      },
+    };
   }
 }
 
