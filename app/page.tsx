@@ -48,8 +48,8 @@ const Nav = () =>
         <li><a href="#faq">FAQ</a></li>
       </ul>
       <div className="nav-cta">
-        <a className="btn btn-ghost hide-sm" href="#login">Sign in</a>
-        <a className="btn btn-primary" href="#start">Start free <Ico.send /></a>
+        <a className="btn btn-ghost hide-sm" href="#pricing">Sign in</a>
+        <a className="btn btn-primary" href="#pricing">Start free <Ico.send /></a>
       </div>
     </div>
   </nav>;
@@ -737,7 +737,7 @@ export default function Page() {
                     </li>
                   )}
                 </ul>
-                <a href="#start" className={`btn ${p.primary ? 'btn-gold' : 'btn-ghost'}`}>{p.cta}</a>
+                <a href={`/signup?plan=${p.name.toLowerCase()}`} className={`btn ${p.primary ? 'btn-gold' : 'btn-ghost'}`}>{p.cta}</a>
               </div>
             )}
           </div>
@@ -763,7 +763,7 @@ export default function Page() {
             <h2 style={{ marginTop: 18 }}>Hand off your day to <span className="gold-text">LEKHA</span>.</h2>
             <p>Free for 7 days. Cancel anytime — she won't take it personally.</p>
             <div className="cta-actions">
-              <a className="btn btn-gold" href="#start">Start free trial <Ico.bolt /></a>
+              <a className="btn btn-gold" href="#pricing">Start free trial <Ico.bolt /></a>
               <a className="btn btn-ghost" href="#demo"><Ico.chat /> Book a 15-min demo</a>
             </div>
           </div>

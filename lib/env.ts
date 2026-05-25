@@ -37,6 +37,14 @@ const Env = z.object({
   TOKEN_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/, "must be 64 hex chars"),
   OAUTH_STATE_SECRET: z.string().min(32),
 
+  // LINE Login (web OAuth — separate from Messaging API)
+  LINE_LOGIN_CHANNEL_ID: z.string().optional(),
+  LINE_LOGIN_CHANNEL_SECRET: z.string().optional(),
+
+  // Stripe
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+
   // App
   APP_BASE_URL: z.string().url(),
   ADMIN_LINE_USER_ID: z.string().optional(),
