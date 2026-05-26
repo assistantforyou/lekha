@@ -1368,7 +1368,7 @@ const App = () => {
             {USES.map((u, i) =>
             <div key={i}
             className={`use-card reveal ${u.img ? 'image' : ''}`}
-            style={{ ...(u.img ? { backgroundImage: `url(/${u.img})`, gridRow: i === 0 ? 'span 1' : 'auto' } : {}), opacity: "1", backgroundPosition: "center top" }}>
+            style={{ ...(u.img ? { backgroundImage: `url(${u.img})`, gridRow: i === 0 ? 'span 1' : 'auto' } : {}), opacity: "1", backgroundPosition: "center top" }}>
               
                 <div className="uc-content">
                   <div className="uc-tag">{u.tag}</div>
