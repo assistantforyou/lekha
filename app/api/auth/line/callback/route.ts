@@ -5,10 +5,6 @@ import { redis } from "@/lib/memory/redis";
 
 export const runtime = "nodejs";
 
-const PRICE_IDS: Record<string, string> = {
-  monthly: "price_1TZSisQ0yLOm6KwF6k9yvRhA",
-  yearly: "price_1TZSkoQ0yLOm6KwFCxN3VQKX",
-};
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -69,15 +65,22 @@ export async function GET(req: NextRequest) {
     displayName: string;
   };
 
-  if (!e.STRIPE_SECRET_KEY) {
+  const testMode = e.STRIPE_TEST_MODE === "true";
+  const stripeKey = testMode ? e.STRIPE_TEST_SECRET_KEY : e.STRIPE_SECRET_KEY;
+  const monthlyPriceId = testMode ? e.STRIPE_TEST_MONTHLY_PRICE_ID : e.STRIPE_MONTHLY_PRICE_ID;
+  const yearlyPriceId = testMode ? e.STRIPE_TEST_YEARLY_PRICE_ID : e.STRIPE_YEARLY_PRICE_ID;
+
+  if (!stripeKey || !monthlyPriceId || !yearlyPriceId) {
     return NextResponse.redirect(`${base}/signup?error=stripe_not_configured`);
   }
 
+  const priceId = plan === "yearly" ? yearlyPriceId : monthlyPriceId;
+
   // Create Stripe Checkout Session with 7-day trial
-  const stripe = new Stripe(e.STRIPE_SECRET_KEY);
+  const stripe = new Stripe(stripeKey);
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
-    line_items: [{ price: PRICE_IDS[plan], quantity: 1 }],
+    line_items: [{ price: priceId, quantity: 1 }],
     subscription_data: {
       trial_period_days: 7,
       metadata: { line_user_id: userId, line_display_name: displayName },

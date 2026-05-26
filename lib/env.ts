@@ -41,9 +41,16 @@ const Env = z.object({
   LINE_LOGIN_CHANNEL_ID: z.string().optional(),
   LINE_LOGIN_CHANNEL_SECRET: z.string().optional(),
 
-  // Stripe
+  // Stripe (live)
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_YEARLY_PRICE_ID: z.string().optional(),
+  // Stripe test mode — set STRIPE_TEST_MODE=true + the three vars below to use test keys without touching live ones
+  STRIPE_TEST_MODE: z.string().optional(),
+  STRIPE_TEST_SECRET_KEY: z.string().optional(),
+  STRIPE_TEST_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_TEST_YEARLY_PRICE_ID: z.string().optional(),
 
   // App
   APP_BASE_URL: z.string().url(),
