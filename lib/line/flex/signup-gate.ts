@@ -1,10 +1,10 @@
 import type { FlexMessage } from "@/lib/line/client";
 
 /** Sent to non-allowlisted users who message the bot. */
-export function signupGateFlex(signupUrl: string): FlexMessage {
+export function signupGateFlex(baseUrl: string): FlexMessage {
   return {
     type: "flex",
-    altText: "Lekha is subscription-based. Tap to sign up.",
+    altText: "Lekha is subscription-based. Choose a plan to sign up.",
     contents: {
       type: "bubble",
       size: "mega",
@@ -23,7 +23,7 @@ export function signupGateFlex(signupUrl: string): FlexMessage {
           },
           {
             type: "text",
-            text: "Lekha is a subscription-based personal assistant. Sign up to get started with a 7-day free trial.",
+            text: "Lekha is a subscription-based personal assistant. Start with a 7-day free trial.",
             wrap: true,
             size: "sm",
             color: "#AABBDD",
@@ -35,7 +35,7 @@ export function signupGateFlex(signupUrl: string): FlexMessage {
       footer: {
         type: "box",
         layout: "vertical",
-        spacing: "none",
+        spacing: "sm",
         paddingAll: "16px",
         contents: [
           {
@@ -45,8 +45,18 @@ export function signupGateFlex(signupUrl: string): FlexMessage {
             height: "sm",
             action: {
               type: "uri",
-              label: "Sign up — 7 days free",
-              uri: signupUrl,
+              label: "Monthly — ฿599/mo",
+              uri: `${baseUrl}/signup?plan=monthly`,
+            },
+          },
+          {
+            type: "button",
+            style: "secondary",
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "Yearly — ฿5,990/yr (save 17%)",
+              uri: `${baseUrl}/signup?plan=yearly`,
             },
           },
         ],

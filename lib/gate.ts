@@ -44,8 +44,7 @@ export async function passesAllowlist(event: LineEvent, gate: Gate): Promise<boo
   if (await isAllowed(userId)) return true;
 
   if ("replyToken" in event && event.replyToken) {
-    const signupUrl = `${env().APP_BASE_URL}/signup`;
-    await reply(event.replyToken, [signupGateFlex(signupUrl)]);
+    await reply(event.replyToken, [signupGateFlex(env().APP_BASE_URL)]);
   }
   return false;
 }
