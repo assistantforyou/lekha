@@ -1406,7 +1406,7 @@ const App = () => {
                     </li>
                 )}
                 </ul>
-                <a href="#start" className={`btn ${p.primary ? 'btn-gold' : 'btn-ghost'}`}>{p.cta}</a>
+                <a href={`/signup?plan=${p.name.toLowerCase()}`} className={`btn ${p.primary ? 'btn-gold' : 'btn-ghost'}`}>{p.cta}</a>
               </div>
             )}
           </div>
