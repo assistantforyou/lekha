@@ -51,7 +51,7 @@ const Nav = () =>
       </ul>
       <div className="nav-cta">
         <a className="btn btn-ghost hide-sm" href="#login">Sign in</a>
-        <a className="btn btn-primary" href="#start">Book a 1-on-1 session with us <Ico.cal /></a>
+        <a className="btn btn-primary" href="https://forms.gle/6qu52TxR4sYHWymX7" target="_blank" rel="noopener">Book a 1-on-1 session with us <Ico.cal /></a>
       </div>
     </div>
   </nav>;
