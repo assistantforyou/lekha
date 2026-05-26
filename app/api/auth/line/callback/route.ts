@@ -24,11 +24,11 @@ export async function GET(req: NextRequest) {
   }
 
   // Atomically consume state nonce (prevents replay)
-  const stored = await redis().getdel(`signup:state:${state}`);
+  const stored = await redis().getdel<{ plan: "monthly" | "yearly" }>(`signup:state:${state}`);
   if (!stored) {
     return NextResponse.redirect(`${base}/signup?error=invalid_state`);
   }
-  const { plan } = JSON.parse(stored as string) as { plan: "monthly" | "yearly" };
+  const { plan } = stored;
 
   if (!e.LINE_LOGIN_CHANNEL_ID || !e.LINE_LOGIN_CHANNEL_SECRET) {
     return NextResponse.redirect(`${base}/signup?error=not_configured`);
