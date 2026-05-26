@@ -7,17 +7,21 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const e = env();
-  if (!e.STRIPE_SECRET_KEY || !e.STRIPE_WEBHOOK_SECRET) {
+  const testMode = e.STRIPE_TEST_MODE === "true";
+  const stripeKey = testMode ? e.STRIPE_TEST_SECRET_KEY : e.STRIPE_SECRET_KEY;
+  const webhookSecret = testMode ? e.STRIPE_TEST_WEBHOOK_SECRET : e.STRIPE_WEBHOOK_SECRET;
+
+  if (!stripeKey || !webhookSecret) {
     return new NextResponse("not configured", { status: 503 });
   }
 
-  const stripe = new Stripe(e.STRIPE_SECRET_KEY);
+  const stripe = new Stripe(stripeKey);
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig!, e.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(body, sig!, webhookSecret);
   } catch (err) {
     console.error("[stripe-webhook] signature verification failed", err);
     return new NextResponse("invalid signature", { status: 400 });
