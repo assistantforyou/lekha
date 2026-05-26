@@ -44,6 +44,8 @@ const Env = z.object({
   // Stripe
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_YEARLY_PRICE_ID: z.string().optional(),
 
   // App
   APP_BASE_URL: z.string().url(),
