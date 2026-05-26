@@ -1,6 +1,7 @@
 import { env } from "@/lib/env";
 import { isAllowed } from "@/lib/memory/allowlist";
 import { reply, text as textMsg } from "@/lib/line/client";
+import { signupGateFlex } from "@/lib/line/flex";
 import type { LineEvent } from "@/lib/line/types";
 
 export type Gate = {
@@ -43,11 +44,8 @@ export async function passesAllowlist(event: LineEvent, gate: Gate): Promise<boo
   if (await isAllowed(userId)) return true;
 
   if ("replyToken" in event && event.replyToken) {
-    await reply(event.replyToken, [
-      textMsg(
-        `This is a private assistant.\n\nYour LINE ID:\n${userId}\n\nSend this to the admin to request access.`,
-      ),
-    ]);
+    const signupUrl = `${env().APP_BASE_URL}/signup`;
+    await reply(event.replyToken, [signupGateFlex(signupUrl)]);
   }
   return false;
 }
