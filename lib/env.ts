@@ -49,6 +49,7 @@ const Env = z.object({
   // Stripe test mode — set STRIPE_TEST_MODE=true + the three vars below to use test keys without touching live ones
   STRIPE_TEST_MODE: z.string().optional(),
   STRIPE_TEST_SECRET_KEY: z.string().optional(),
+  STRIPE_TEST_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_TEST_MONTHLY_PRICE_ID: z.string().optional(),
   STRIPE_TEST_YEARLY_PRICE_ID: z.string().optional(),
 
