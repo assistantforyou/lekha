@@ -40,14 +40,14 @@ const Nav = () =>
       </div>
       <ul className="nav-links">
         <li><a href="#features">Features</a></li>
-        <li><a href="#how">How it works</a></li>
-        <li><a href="#use">Use cases</a></li>
+        <li><a href="#operations">Operations Layer</a></li>
+        <li><a href="#builtfor">Use Cases</a></li>
         <li><a href="#pricing">Pricing</a></li>
         <li><a href="#faq">FAQ</a></li>
       </ul>
       <div className="nav-cta">
         <a className="btn btn-ghost hide-sm" href="#login">Sign in</a>
-        <a className="btn btn-primary" href="#start">Start free <Ico.send /></a>
+        <a className="btn btn-primary" href="#start">Book a 1-on-1 session with us <Ico.cal /></a>
       </div>
     </div>
   </nav>;
@@ -169,7 +169,7 @@ const Hero = () => {
             <span className="row gold-text thai">เลขา</span>
             <span className="row" style={{ color: "rgb(240, 246, 255)" }}>your AI Chief of Operations (COO).</span>
           </h1>
-          <p className="hero-sub">LEKHA briefs you twice a day, runs your to-do list, watches your calendar, drafts replies, analyses stock markets, daily news brief, and a personal secretary that you can talk to - all in one chat. Built for executives and high performance workers who want their day on autopilot.
+          <p className="hero-sub">LEKHA, a LLM trained by GOOGLE, briefs you twice a day, runs your to-do list, watches your calendar, drafts replies, analyses stock markets, daily news brief, and a personal secretary that you can talk to - all in one chat. Built for executives and high performance workers who want their day on autopilot.
 
           </p>
           <div className="hero-cta">
@@ -183,9 +183,9 @@ const Hero = () => {
             </button>
           </div>
           <div className="hero-meta">
-            <div className="stat"><div className="num"><span className="gold-text">24/7</span></div><div className="lbl">Always on</div></div>
-            <div className="stat"><div className="num">12+ tools</div><div className="lbl">Connected out of the box</div></div>
-            <div className="stat"><div className="num">2 languages</div><div className="lbl">English · ภาษาไทย</div></div>
+            <div className="stat"><div className="num"><span className="gold-text"></span></div><div className="lbl"></div></div>
+            <div className="stat"><div className="num"></div><div className="lbl"></div></div>
+            <div className="stat"><div className="num"></div><div className="lbl"></div></div>
           </div>
         </div>
 
@@ -193,7 +193,7 @@ const Hero = () => {
           <div className="avatar-stage">
             <img src="assets/lekha-hero.png" alt="LEKHA avatar" />
             <div className="chat-float">
-              <span className="dot"></span>{" Online \xB7 responds in < 5s\n            "}
+              <span className="dot"></span>{" Online\n            "}
             </div>
             <div className="floater-stack">
               <div className="floater fx">
@@ -222,6 +222,8 @@ const Hero = () => {
           </div>
         </div>
       </div>
+
+      <MetricsStrip />
 
       <div className="container">
         <div className="trusted" style={{ height: "1px", padding: "24px" }}>
@@ -515,6 +517,199 @@ const ChatBody = ({ id }) => {
   return null;
 };
 
+/* ---------- Streaming chat animation ---------- */
+const CHAT_SCRIPTS = {
+  briefing: [
+  { r: 'u', t: 'Brief me on today.' },
+  { r: 'b', t: 'Tuesday · May 20 · Your categories', rich: 'briefing' },
+  { r: 'u', t: 'Swap "Markets" for "Design" tomorrow.' },
+  { r: 'b', t: "Done. Tomorrow's 7 AM brief: Innovation · Technology · Wellness · Self-care · Design · World." }],
+
+  tasks: [
+  { r: 'u', t: 'Remind me to review the Q3 deck before tomorrow\'s board.' },
+  { r: 'b', t: 'Today · 4 tasks', rich: 'tasks' },
+  { r: 'b', t: "I'll nudge you at 2:30pm — that gives 30 min before board prep." }],
+
+  stocks: [
+  { r: 'u', t: 'How is NVDA doing? Should I be worried about the pullback?' },
+  { r: 'b', t: 'NVDA · $1,184.20 · +2.14% ▲ 24.80', rich: 'stocks' },
+  { r: 'b', t: "Short answer: no. The pullback was profit-taking, not thesis-breaking. Computex keynote tonight is the next catalyst — I'll ping you if guidance shifts." }],
+
+  inbox: [
+  { r: 'u', t: 'Summarise my inbox.' },
+  { r: 'b', t: '23 new · 3 need you', rich: 'inbox' },
+  { r: 'u', t: 'Draft a reply to David — push to next Tuesday.' },
+  { r: 'b', t: 'Drafted. Tone matches your last three emails to him. Want to review or send as-is?' }],
+
+  research: [
+  { r: 'u', t: 'Quick brief on the EU AI Act and how it affects Thai SaaS exporters.' },
+  { r: 'b', t: 'EU AI Act · Briefing', rich: 'research' },
+  { r: 'b', t: 'Pulled from 14 sources · all cited. Want me to expand on the technical documentation requirements?' }],
+
+  cal: [
+  { r: 'u', t: 'Find 45 min with Sarah next week — afternoons Bangkok time.' },
+  { r: 'b', t: '3 slots that work for both', rich: 'cal' },
+  { r: 'u', t: 'Book Thursday and send a pre-read.' },
+  { r: 'b', t: "Booked. I'll generate a one-pager from your last call notes and share 24h prior." }],
+
+  media: [
+  { r: 'u', t: '📷  receipt_lunch.jpg' },
+  { r: 'b', t: 'Receipt extracted', rich: 'media' },
+  { r: 'u', t: 'File it under May client expenses and attach to Finance.' },
+  { r: 'b', t: 'Done. Saved to Drive › Expenses/May, and attached to your draft email to Finance.' }]
+
+};
+
+const InlineRich = ({ type }) => {
+  const card = (items) =>
+  <div className="brief-card" style={{ marginTop: 8 }}>
+      {items.map(([tag, text], i) =>
+    <div key={i} className="brief-item">
+          <span className="bi-tag">{tag}</span>
+          <span className="bi-text">{text}</span>
+        </div>
+    )}
+    </div>;
+
+  if (type === 'briefing') return card([
+  ['Innovation', 'First commercial solid-state battery ships in Japan.'],
+  ['Wellness', '7-min morning light beats caffeine for afternoon focus.'],
+  ['Markets', 'SET opens +0.6%. NVDA up 2.1% pre-market.']]
+  );
+  if (type === 'tasks') return (
+    <div className="task-list" style={{ marginTop: 8 }}>
+      <div className="task-row done"><div className="check"><Ico.check /></div><div className="task-text">Meeting follow-up — Helix Labs</div><div className="task-time">9:15</div></div>
+      <div className="task-row done"><div className="check"><Ico.check /></div><div className="task-text">Send commercial to legal</div><div className="task-time">11:00</div></div>
+      <div className="task-row"><div className="check"></div><div className="task-text">Review Q3 deck</div><div className="task-time">3:00 pm</div></div>
+    </div>);
+
+  if (type === 'stocks') return (
+    <div className="stock-card" style={{ marginTop: 8 }}>
+      <div className="stock-sym">NVDA</div>
+      <div className="stock-price">$1,184.20</div>
+      <div className="stock-chg up">+2.14%  ▲ 24.80</div>
+    </div>);
+
+  if (type === 'inbox') return card([
+  ['Urgent', 'David @ Atlas — wants term sheet signed by Friday.'],
+  ['Meeting', 'Pim suggesting Thu 2pm or Fri 10am.'],
+  ['FYI', 'Legal cleared the MSA. No action needed.']]
+  );
+  if (type === 'research') return card([
+  ['Scope', 'Thai vendors must comply if "placing on market" in EU.'],
+  ['Timing', 'High-risk obligations active Aug 2026.'],
+  ['Action', '3 immediate steps for your stack — see attached PDF.']]
+  );
+  if (type === 'cal') return card([
+  ['Wed', '22 May · 2:00 – 2:45 PM ICT'],
+  ['Thu', '23 May · 4:00 – 4:45 PM ICT — Sarah\'s preferred'],
+  ['Fri', '24 May · 3:30 – 4:15 PM ICT']]
+  );
+  if (type === 'media') return card([
+  ['Vendor', 'Issaya Siamese Club · Sathorn'],
+  ['Total', '฿ 3,840 incl. 7% VAT · AmEx'],
+  ['Date', '19 May 2026 · 13:42']]
+  );
+  return null;
+};
+
+const StreamingChat = ({ id }) => {
+  const [display, setDisplay] = useState([]);
+  const bodyRef = useRef(null);
+
+  useEffect(() => {
+    if (!bodyRef.current) return;
+    bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  });
+
+  useEffect(() => {
+    const script = CHAT_SCRIPTS[id] || [];
+    let cancelled = false;
+
+    const after = (ms, fn) => setTimeout(() => {if (!cancelled) fn();}, ms);
+
+    const updateLast = (updater) =>
+    setDisplay((prev) => {
+      if (!prev.length) return prev;
+      const copy = [...prev];
+      copy[copy.length - 1] = updater(copy[copy.length - 1]);
+      return copy;
+    });
+
+    const restart = () => {
+      after(3800, () => {
+        setDisplay([]);
+        after(500, () => run(0));
+      });
+    };
+
+    const streamMsg = (msgIdx, charIdx) => {
+      const msg = script[msgIdx];
+      const full = msg.t;
+      const next = full.slice(0, charIdx + 1);
+      updateLast((m) => ({ ...m, text: next, typing: false }));
+
+      if (charIdx + 1 < full.length) {
+        const spd = charIdx % 4 === 0 ? 32 : 20;
+        after(spd, () => streamMsg(msgIdx, charIdx + 1));
+      } else {
+        updateLast((m) => ({ ...m, done: true, rich: msg.rich || null }));
+        const nextIdx = msgIdx + 1;
+        if (nextIdx < script.length) {
+          const gap = script[nextIdx].r === 'u' ? 1000 : 650;
+          after(gap, () => run(nextIdx));
+        } else {
+          restart();
+        }
+      }
+    };
+
+    const run = (msgIdx) => {
+      if (msgIdx >= script.length) {restart();return;}
+      const msg = script[msgIdx];
+      if (msg.r === 'u') {
+        setDisplay((prev) => [...prev, { r: 'u', text: msg.t, done: true }]);
+        const nextIdx = msgIdx + 1;
+        if (nextIdx < script.length && script[nextIdx].r === 'b') {
+          after(480, () => {
+            setDisplay((prev) => [...prev, { r: 'b', text: '', typing: true, done: false, rich: null }]);
+            after(860, () => streamMsg(nextIdx, 0));
+          });
+        } else {
+          after(600, () => run(nextIdx));
+        }
+      } else {
+        setDisplay((prev) => [...prev, { r: 'b', text: '', typing: true, done: false, rich: null }]);
+        after(750, () => streamMsg(msgIdx, 0));
+      }
+    };
+
+    setDisplay([]);
+    after(350, () => run(0));
+    return () => {cancelled = true;};
+  }, [id]);
+
+  return (
+    <div ref={bodyRef} style={{ display: 'contents' }}>
+      {display.map((msg, i) =>
+      <div key={i} className={`bubble ${msg.r === 'u' ? 'user' : 'bot' + (msg.rich && msg.done ? ' rich' : '')}`}>
+          {msg.typing ?
+        <span className="typing-dots"><span></span><span></span><span></span></span> :
+
+        <React.Fragment>
+              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12.5, letterSpacing: '-0.01em' }}>
+                {msg.text}
+                {!msg.done && <span className="tw-cursor">▍</span>}
+              </span>
+              {msg.done && msg.rich && <InlineRich type={msg.rich} />}
+            </React.Fragment>
+        }
+        </div>
+      )}
+    </div>);
+
+};
+
 /* ---------- Feature explorer component ---------- */
 const FeatureExplorer = () => {
   const [active, setActive] = useState(FEATURES[0].id);
@@ -561,7 +756,7 @@ const FeatureExplorer = () => {
             </div>
           </div>
           <div className="chat-body">
-            <ChatBody id={active} />
+            <StreamingChat id={active} key={active} />
           </div>
           <div className="chat-input">
             <Ico.spark style={{ color: 'var(--blue-bright)' }} />
@@ -666,6 +861,277 @@ const FAQ = () => {
         </div>
       )}
     </div>);
+
+};
+
+/* ---------- Metrics strip ---------- */
+const METRICS = [
+{ suffix: 's', end: 5, prefix: '<', label: 'Response\nTime' },
+{ suffix: '×', end: 2, label: 'Daily\nBriefings' },
+{ suffix: '/7', end: 24, label: 'Task\nMonitoring' },
+{ suffix: '+', end: 12, label: 'Tools\nConnected' },
+{ suffix: ' langs', end: 2, label: 'EN / ไทย\nBilingual' }];
+
+
+const MetricsStrip = () => {
+  const refs = useRef([]);
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        const idx = parseInt(el.dataset.idx, 10);
+        const m = METRICS[idx];
+        if (window.countUp) {
+          const cu = new window.countUp.CountUp(el, m.end, {
+            duration: 2.2,
+            prefix: m.prefix || '',
+            suffix: m.suffix || '',
+            useEasing: true
+          });
+          if (!cu.error) cu.start();
+        } else {
+          el.textContent = (m.prefix || '') + m.end + (m.suffix || '');
+        }
+        observer.unobserve(el);
+      });
+    }, { threshold: 0.5 });
+    refs.current.forEach((el) => {if (el) observer.observe(el);});
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div className="metrics-strip">
+      <div className="container">
+        <div className="metrics-grid">
+          {METRICS.map((m, i) =>
+          <div key={i} className="metric-item reveal">
+              <div className="metric-value" ref={(el) => refs.current[i] = el} data-idx={i}>
+                {(m.prefix || '') + m.end + (m.suffix || '')}
+              </div>
+              <div className="metric-label" style={{ whiteSpace: 'pre-line' }}>{m.label}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>);
+
+};
+
+/* ---------- Built-for section ---------- */
+const BUILTFOR = [
+{ tag: 'C-Suite Executives', wide: true, h: 'Run the day before it runs you.', p: 'Morning intelligence briefings, calendar protection, email triage, and task follow-through — all before 8 AM. LEKHA is the first member of your operations team.' },
+{ tag: 'Doctors & Clinicians', h: 'Clinical focus. Zero admin drift.', p: 'Reminders, research summaries, and scheduling — so your attention stays on patients, not paperwork.' },
+{ tag: 'Founders & CEOs', h: 'Move at founder speed.', p: 'Draft investor updates, monitor markets, triage inboxes, and brief yourself on competitors — all in one chat.' },
+{ tag: 'Finance Professionals', h: 'Markets never sleep. Neither does LEKHA.', p: 'Live stock data, news sentiment, watchlist alerts, and research synthesis on demand.' },
+{ tag: 'Investors', h: 'Intelligence before every call.', p: 'Company backgrounds, market context, and portfolio news — synthesised in 60 seconds.' }];
+
+
+const BuiltForSection = () =>
+<section className="section" id="builtfor" style={{ paddingTop: 0 }}>
+    <div className="container">
+      <div className="section-head reveal">
+        <span className="mono-eyebrow">Built for</span>
+        <h2 className="serif-h2">High-performance people<br /><em className="serif-italic" style={{ color: 'var(--ink-dim)' }}>who can't afford to miss a beat.</em></h2>
+      </div>
+      <div className="builtfor-grid">
+        {BUILTFOR.map((b, i) =>
+      <div key={i} className={`builtfor-card reveal ${b.wide ? 'builtfor-card-wide' : ''}`}>
+            <div className="builtfor-tag">{b.tag}</div>
+            <h3>{b.h}</h3>
+            <p>{b.p}</p>
+            <div className="builtfor-accent"></div>
+          </div>
+      )}
+      </div>
+    </div>
+  </section>;
+
+
+/* ---------- Live Operations Layer — Command Center ---------- */
+const TICKERS = [
+{ sym: 'NVDA', price: '1,184.20', chg: '+2.14%', up: true },
+{ sym: 'AAPL', price: '189.45', chg: '-0.32%', up: false },
+{ sym: 'TSLA', price: '178.20', chg: '+1.85%', up: true },
+{ sym: 'MSFT', price: '422.80', chg: '+0.55%', up: true },
+{ sym: 'GOOG', price: '174.30', chg: '-0.18%', up: false },
+{ sym: 'META', price: '510.60', chg: '+0.92%', up: true },
+{ sym: 'AMZN', price: '190.15', chg: '+1.23%', up: true },
+{ sym: 'SET', price: '1,342', chg: '+0.62%', up: true },
+{ sym: 'BTC', price: '68,420', chg: '+3.45%', up: true },
+{ sym: 'ETH', price: '3,820', chg: '+2.10%', up: true },
+{ sym: 'JPY', price: '157.32', chg: '-0.14%', up: false },
+{ sym: 'GOLD', price: '2,341', chg: '+0.28%', up: true }];
+
+
+const CMD_EVENTS = [
+{ time: '09:00', title: 'Board Prep', tag: 'Internal', past: true },
+{ time: '10:00', title: 'Helix Labs Call', tag: 'External', now: true },
+{ time: '13:00', title: 'Lunch — David', tag: 'Client' },
+{ time: '14:30', title: 'Q3 Review', tag: 'Internal' },
+{ time: '16:00', title: 'Deep Work Block', tag: 'Protected' }];
+
+
+const CMD_TASKS = [
+{ done: true, text: 'Send term sheet to David' },
+{ done: true, text: 'Review legal MSA' },
+{ done: false, text: 'Q3 board deck review' },
+{ done: false, text: 'Call Khun Anan · before 5pm' },
+{ done: false, text: 'Market brief — SET opening' }];
+
+
+const CMD_OPS = ['Email · 23 unread', 'Docs · Q3 deck updated', 'Reminders · 5 pending'];
+
+const GlobeSection = () => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!window.THREE || !canvasRef.current) return;
+    const THREE = window.THREE;
+    const canvas = canvasRef.current;
+    const W = canvas.clientWidth || 300;
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(W, W);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+    camera.position.set(0, 0, 2.8);
+    // Sphere body
+    scene.add(new THREE.Mesh(
+      new THREE.SphereGeometry(1, 48, 48),
+      new THREE.MeshPhongMaterial({ color: 0x0a1a3e, transparent: true, opacity: 0.9, emissive: 0x0d2d6b, emissiveIntensity: 0.4 })
+    ));
+    // Wireframe
+    scene.add(new THREE.Mesh(
+      new THREE.SphereGeometry(1.002, 24, 24),
+      new THREE.MeshBasicMaterial({ color: 0x1e3a6e, wireframe: true, transparent: true, opacity: 0.22 })
+    ));
+    // Blue equator ring
+    scene.add(new THREE.Mesh(
+      new THREE.TorusGeometry(1.18, 0.004, 2, 120),
+      new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.5 })
+    ));
+    // Gold tilted ring
+    const ring2 = new THREE.Mesh(
+      new THREE.TorusGeometry(1.22, 0.002, 2, 120),
+      new THREE.MeshBasicMaterial({ color: 0xf5b942, transparent: true, opacity: 0.25 })
+    );
+    ring2.rotation.x = Math.PI / 3;
+    scene.add(ring2);
+    // Orbit dots
+    const dotGeo = new THREE.SphereGeometry(0.022, 8, 8);
+    const dots = [];
+    for (let i = 0; i < 24; i++) {
+      const d = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({
+        color: i % 4 === 0 ? 0xf5b942 : 0x60a5fa
+      }));
+      const tilt = i % 2 === 0 ? 0 : Math.PI / 3;
+      d.userData = { angle: i / 24 * Math.PI * 2, speed: 0.004 + Math.random() * 0.004, tilt };
+      scene.add(d);
+      dots.push(d);
+    }
+    scene.add(new THREE.AmbientLight(0x1e3a6e, 1.4));
+    const pt = new THREE.PointLight(0x3b82f6, 2.5, 10);pt.position.set(3, 2, 3);scene.add(pt);
+    const pt2 = new THREE.PointLight(0xf5b942, 0.6, 10);pt2.position.set(-3, -1, -2);scene.add(pt2);
+    let frame;
+    const animate = () => {
+      frame = requestAnimationFrame(animate);
+      scene.rotation.y += 0.003;
+      dots.forEach((d) => {
+        d.userData.angle += d.userData.speed;
+        const r = d.userData.tilt === 0 ? 1.18 : 1.22;
+        d.position.x = Math.cos(d.userData.angle) * r;
+        d.position.y = Math.sin(d.userData.tilt) * Math.sin(d.userData.angle) * 0.35;
+        d.position.z = Math.sin(d.userData.angle) * r;
+      });
+      renderer.render(scene, camera);
+    };
+    animate();
+    return () => {cancelAnimationFrame(frame);renderer.dispose();};
+  }, []);
+
+  return (
+    <section className="ops-layer" id="operations">
+      <div className="container">
+        <div className="section-head reveal" style={{ marginBottom: 32 }}>
+          <span className="mono-eyebrow">Live Operations Layer</span>
+          <h2 className="serif-h2">Always on. <em className="serif-italic" style={{ color: 'var(--gold)' }}>Always watching.</em></h2>
+          <p className="section-sub">A continuous intelligence loop across every stream that matters.</p>
+        </div>
+
+        <div className="cmd-panel reveal">
+          {/* Ticker tape */}
+          <div className="cmd-ticker-row">
+            <span className="cmd-ticker-label">MARKETS</span>
+            <div className="cmd-ticker-wrap">
+              <div className="cmd-ticker-track">
+                {[...TICKERS, ...TICKERS].map((t, i) =>
+                <span key={i} className="cmd-tick">
+                    <span className="cmd-tick-sym">{t.sym}</span>
+                    <span className="cmd-tick-price">{t.price}</span>
+                    <span className={`cmd-tick-chg ${t.up ? 'cup' : 'cdn'}`}>{t.chg}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Main 3-column grid */}
+          <div className="cmd-main">
+            {/* Calendar */}
+            <div className="cmd-widget">
+              <div className="cmd-widget-header">
+                <Ico.cal /><span>Calendar</span>
+                <span className="cmd-widget-meta">Mon 26 May</span>
+              </div>
+              <div className="cmd-events">
+                {CMD_EVENTS.map((ev, i) =>
+                <div key={i} className={`cmd-event${ev.past ? ' cpast' : ''}${ev.now ? ' cnow' : ''}`}>
+                    <span className="cmd-event-time">{ev.time}</span>
+                    <span className="cmd-event-bar"></span>
+                    <div className="cmd-event-body">
+                      <div className="cmd-event-title">{ev.title}</div>
+                      <div className="cmd-event-tag">{ev.tag}</div>
+                    </div>
+                    {ev.now && <span className="cmd-now-pill">NOW</span>}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Globe center */}
+            <div className="cmd-globe-col">
+              <canvas ref={canvasRef} className="cmd-globe-canvas"></canvas>
+              <div className="cmd-globe-label">LEKHA Intelligence Network</div>
+            </div>
+
+            {/* Tasks */}
+            <div className="cmd-widget cmd-widget-right">
+              <div className="cmd-widget-header">
+                <Ico.check /><span>Tasks</span>
+                <span className="cmd-widget-meta">3 pending</span>
+              </div>
+              <div className="cmd-tasks-list">
+                {CMD_TASKS.map((tk, i) =>
+                <div key={i} className={`cmd-task${tk.done ? ' cdone' : ''}`}>
+                    <span className="cmd-task-box">{tk.done && <Ico.check />}</span>
+                    <span>{tk.text}</span>
+                  </div>
+                )}
+              </div>
+              <div className="cmd-ops-mini">
+                {CMD_OPS.map((s, i) =>
+                <div key={i} className="cmd-ops-row">
+                    <span className="cmd-ops-dot"></span>
+                    <span>{s}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>);
 
 };
 
@@ -837,6 +1303,8 @@ const App = () => {
       <Nav />
       <Hero />
 
+      <GlobeSection />
+
       <section className="section" id="features">
         <div className="container">
           <div className="section-head reveal">
@@ -960,8 +1428,8 @@ const App = () => {
             <h2 style={{ marginTop: 18 }}>Hand off your day to <span className="gold-text">LEKHA</span>.</h2>
             <p>Free for 7 days. Cancel anytime — she won’t take it personally.</p>
             <div className="cta-actions">
-              <a className="btn btn-gold" href="#start">Start free trial <Ico.bolt /></a>
-              <a className="btn btn-ghost" href="#demo"><Ico.chat /> Book a 15-min demo</a>
+              <a className="btn btn-gold" href="#start">Start now <Ico.bolt /></a>
+              <a className="btn btn-ghost" href="#demo"><Ico.chat /> Book a 1-on-1 session with the team</a>
             </div>
           </div>
           <div className="cta-side">
