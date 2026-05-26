@@ -47,13 +47,14 @@ export async function respondToText(
   ];
 
   const { text: replyText, hints } = await runAgent(userId, profile, facts, messages);
-  await reply(replyToken, [
+  await reply(
+    replyToken,
     enrichReply(
       replyText,
       hints,
       accounts.accounts.map((a) => a.email),
-    ),
-  ]);
+    ).slice(0, 5), // LINE caps replies at 5 messages
+  );
 
   await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });

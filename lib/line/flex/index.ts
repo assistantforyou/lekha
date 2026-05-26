@@ -1,6 +1,11 @@
 export { confirmCancelFlex } from "./confirm-cancel";
 export { taskListFlex, type TaskRow } from "./task-list";
 export { signupGateFlex } from "./signup-gate";
+export { listItemsFlex } from "./list-items";
+export { gmailResultsFlex, type GmailRow } from "./gmail-results";
+export { calendarEventsFlex, type CalendarEventRow } from "./calendar-events";
+export { briefingFlex } from "./briefing";
+export { newsFlex, type NewsRow } from "./news";
 
 /**
  * Parse a LINE postback `data` payload. Convention:

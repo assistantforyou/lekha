@@ -5,6 +5,7 @@ import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
 import { getSettings } from "@/lib/memory/settings";
 import { appendTurn } from "@/lib/memory/history";
+import { briefingFlex } from "@/lib/line/flex";
 
 type Ctx = {
   userId: string;
@@ -55,7 +56,7 @@ const SHORTCUTS: Shortcut[] = [
         includeInbox: settings.inboxBriefingEnabled,
       });
       const out = briefing ?? "Nothing to show in your briefing right now.";
-      await reply(replyToken, [textMsg(out)]);
+      await reply(replyToken, [briefingFlex("morning", out)]);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
     },
@@ -68,7 +69,7 @@ const SHORTCUTS: Shortcut[] = [
       const settings = await getSettings(userId);
       const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
       const out = summary ?? "Nothing to show in your evening summary right now.";
-      await reply(replyToken, [textMsg(out)]);
+      await reply(replyToken, [briefingFlex("evening", out)]);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
     },

@@ -89,10 +89,12 @@ export function buildCalendarTools(userId: string) {
             ok: true as const,
             events:
               r.data.items?.map((e) => ({
+                id: e.id ?? "",
                 summary: e.summary ?? "(no title)",
                 start: e.start?.dateTime ?? e.start?.date ?? "",
                 end: e.end?.dateTime ?? e.end?.date ?? "",
                 location: e.location ?? null,
+                htmlLink: e.htmlLink ?? null,
               })) ?? [],
           };
         });

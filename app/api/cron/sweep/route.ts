@@ -10,6 +10,7 @@ import { push, text as textMsg } from "@/lib/line/client";
 import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
 import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
 import { listTasks } from "@/lib/memory/tasks";
+import { briefingFlex } from "@/lib/line/flex";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
             includeInbox: settings.inboxBriefingEnabled,
           });
           if (briefing) {
-            await push(userId, [textMsg(briefing)]);
+            await push(userId, [briefingFlex("morning", briefing)]);
             await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
             stats.briefings++;
           }
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
         ) {
           const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
           if (summary) {
-            await push(userId, [textMsg(summary)]);
+            await push(userId, [briefingFlex("evening", summary)]);
             await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
             stats.eveningSummaries++;
           }

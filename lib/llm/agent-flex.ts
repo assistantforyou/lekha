@@ -1,0 +1,178 @@
+import type { LineMessage } from "@/lib/line/client";
+import {
+  taskListFlex,
+  type TaskRow,
+  listItemsFlex,
+  gmailResultsFlex,
+  calendarEventsFlex,
+  newsFlex,
+} from "@/lib/line/flex";
+import { extractToolValue } from "@/lib/llm/agent";
+
+type StepLike = {
+  toolResults?: { toolName?: string; output?: unknown }[];
+};
+
+/**
+ * Walk every tool result emitted by the agent and convert list-style outputs
+ * into Flex bubbles/carousels. Kept separate from runAgent so the mapping
+ * table doesn't bloat the main orchestrator.
+ */
+export function buildFlexFromToolResults(result: { steps?: StepLike[] }): LineMessage[] {
+  const out: LineMessage[] = [];
+  const seen = new Set<string>();
+  for (const step of result.steps ?? []) {
+    for (const tr of step.toolResults ?? []) {
+      if (!tr) continue;
+      const toolName = tr.toolName ?? "";
+      if (seen.has(toolName)) continue; // one Flex per tool per turn — avoid duplicates
+      const v = extractToolValue(tr.output);
+      if (!v || typeof v !== "object") continue;
+      const value = v as Record<string, unknown>;
+      if (value.ok === false) continue;
+
+      if (toolName === "list_tasks" && Array.isArray(value.tasks)) {
+        const tasks = (value.tasks as Array<Record<string, unknown>>).map<TaskRow>((t) => ({
+          id: String(t.id ?? ""),
+          title: String(t.title ?? ""),
+          done: Boolean(t.doneAt),
+        }));
+        if (tasks.length > 0) {
+          out.push(taskListFlex(tasks));
+          seen.add(toolName);
+        }
+        continue;
+      }
+
+      if (toolName === "list_items" && Array.isArray(value.items)) {
+        const items = (value.items as unknown[]).map((s) => String(s));
+        const listName = String(value.list ?? "list");
+        if (items.length > 0) {
+          out.push(listItemsFlex(listName, items));
+          seen.add(toolName);
+        }
+        continue;
+      }
+
+      if (toolName === "gmail_search" && Array.isArray(value.messages)) {
+        const msgs = (value.messages as Array<Record<string, unknown>>).map((m) => ({
+          id: String(m.id ?? ""),
+          from: String(m.from ?? ""),
+          subject: String(m.subject ?? "(no subject)"),
+          snippet: String(m.snippet ?? ""),
+          unread: Boolean(m.unread),
+          date: String(m.date ?? ""),
+        }));
+        if (msgs.length > 0) {
+          out.push(gmailResultsFlex(msgs));
+          seen.add(toolName);
+        }
+        continue;
+      }
+
+      if (toolName === "list_upcoming_events" && Array.isArray(value.events)) {
+        const events = (value.events as Array<Record<string, unknown>>).map((e) => ({
+          id: String(e.id ?? ""),
+          summary: String(e.summary ?? "(no title)"),
+          start: String(e.start ?? ""),
+          end: String(e.end ?? ""),
+          location: (e.location as string | null) ?? null,
+          htmlLink: (e.htmlLink as string | null) ?? null,
+        }));
+        if (events.length > 0) {
+          out.push(calendarEventsFlex(events));
+          seen.add(toolName);
+        }
+        continue;
+      }
+
+      if (
+        (toolName === "news_search" || toolName === "search_news") &&
+        Array.isArray(value.stories ?? value.results)
+      ) {
+        // Tavily-shaped news results: { title, url, snippet, source }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const raw = ((value.stories ?? value.results) as any[]) ?? [];
+        const stories = raw
+          .map((s) => ({
+            title: String(s.title ?? ""),
+            url: String(s.url ?? ""),
+            snippet: String(s.snippet ?? s.content ?? ""),
+            source: s.source ? String(s.source) : undefined,
+          }))
+          .filter((s) => s.url && s.title);
+        if (stories.length > 0) {
+          out.push(newsFlex(stories));
+          seen.add(toolName);
+        }
+        continue;
+      }
+    }
+  }
+  // LINE allows max 5 messages per reply — cap to be safe (text + up to 4 Flex).
+  return out.slice(0, 4);
+}
+
+const ACTION_TOOLS = new Set([
+  "add_task",
+  "complete_task",
+  "reopen_task",
+  "delete_task",
+  "complete_all_open_tasks",
+  "remember",
+  "forget_memory",
+  "set_reminder",
+  "cancel_reminder",
+  "set_recurring_reminder",
+  "schedule_email",
+]);
+
+/**
+ * Build a short "what next?" quick-reply rail based on what tools just ran.
+ * Returns at most 4 suggestions — LINE allows up to 13 but more than 4 looks
+ * like a wall.
+ */
+export function buildFollowUps(
+  toolNames: string[],
+  ctx: { confirmDraft: boolean },
+): { label: string; text: string }[] {
+  if (ctx.confirmDraft) return []; // confirm Flex already drives the next step
+  const names = new Set(toolNames);
+  const out: { label: string; text: string }[] = [];
+  const push = (label: string, text: string) => {
+    if (out.find((b) => b.label === label)) return;
+    if (out.length < 4) out.push({ label, text });
+  };
+
+  if (names.has("list_tasks")) {
+    push("Add task", "add a task");
+    push("Clear done", "delete all completed tasks");
+  }
+  if (names.has("gmail_search")) {
+    push("Reply to first", "reply to the first email");
+    push("Show unread", "show me my unread emails");
+  }
+  if (names.has("list_upcoming_events") || names.has("calendar_today")) {
+    push("Tomorrow?", "what's on my calendar tomorrow");
+    push("Add event", "add a calendar event");
+  }
+  if (names.has("list_items")) {
+    push("Add item", "add to this list");
+    push("Clear list", "clear this list");
+  }
+  if (names.has("weather") || names.has("get_weather")) {
+    push("Tomorrow?", "weather tomorrow");
+    push("This week?", "weather this week");
+  }
+  if (names.has("news_search") || names.has("search_news")) {
+    push("More like this", "show me more news on this");
+  }
+  if (names.has("get_morning_briefing")) {
+    push("Skip tomorrow", "skip tomorrow's briefing");
+  }
+  // After any state-changing action, offer a generic "what's next" prompt.
+  if (out.length === 0 && toolNames.some((t) => ACTION_TOOLS.has(t))) {
+    push("What's next?", "what should I do next");
+  }
+  return out;
+}

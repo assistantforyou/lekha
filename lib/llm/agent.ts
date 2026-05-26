@@ -9,6 +9,8 @@ import { toolsForUser } from "@/lib/tools";
 import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
+import type { LineMessage } from "@/lib/line/client";
+import { buildFlexFromToolResults, buildFollowUps } from "@/lib/llm/agent-flex";
 
 /** Strip markdown syntax that LINE renders as raw punctuation. Model-independent guarantee. */
 export function stripMarkdown(s: string): string {
@@ -216,6 +218,10 @@ export type AgentHints = {
   pickAccount: boolean;
   /** No Google account connected and the user asked for something that needs one. */
   needsGoogleConnect: boolean;
+  /** Extra Flex bubbles/carousels to send alongside the text reply. */
+  flexMessages?: LineMessage[];
+  /** Quick-reply suggestions to attach to the text reply. */
+  followUps?: { label: string; text: string }[];
 };
 
 export type AgentResult = {
@@ -325,13 +331,19 @@ export async function runAgent(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const processed = processResult(result as any, accounts.activeEmail, allCalls);
     const text = formatProcessed(processed);
+    const confirmDraft = allCalls.some(
+      (c) => c.toolName === "draft_email" || c.toolName === "draft_calendar_event",
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const flexMessages = buildFlexFromToolResults(result as any);
+    const followUps = buildFollowUps(allCalls.map((c) => c.toolName), { confirmDraft });
     const hints: AgentHints = {
-      confirmDraft: allCalls.some(
-        (c) => c.toolName === "draft_email" || c.toolName === "draft_calendar_event",
-      ),
+      confirmDraft,
       pickAccount: accounts.accounts.length > 1 && /which google account/i.test(text),
       needsGoogleConnect:
         processed.authNeeded !== null || (accounts.accounts.length === 0 && /connect google/i.test(text)),
+      flexMessages,
+      followUps,
     };
     return { text, hints };
   } catch (err) {

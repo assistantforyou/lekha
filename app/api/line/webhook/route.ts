@@ -18,6 +18,7 @@ import { respondToText } from "@/lib/handlers/text";
 import { respondToImage } from "@/lib/handlers/image";
 import { respondToOtherMedia } from "@/lib/handlers/other-media";
 import { maybeExtractFacts } from "@/lib/maybe-extract";
+import { handlePostback } from "@/lib/webhook-postback";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -90,6 +91,11 @@ async function handleEvent(
         `Hi${name}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
       ),
     ]);
+    return;
+  }
+
+  if (event.type === "postback") {
+    await handlePostback(event);
     return;
   }
 
