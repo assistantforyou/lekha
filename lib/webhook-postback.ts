@@ -2,7 +2,7 @@ import { reply, text as textMsg } from "@/lib/line/client";
 import { parsePostbackData } from "@/lib/line/flex";
 import { clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
-import { completeTask, reopenTask, completeAllOpenTasks } from "@/lib/memory/tasks";
+import { completeTask, reopenTask, completeAllOpenTasks, listTasks } from "@/lib/memory/tasks";
 import { appendTurn } from "@/lib/memory/history";
 import type { LineEvent } from "@/lib/line/types";
 
@@ -77,6 +77,39 @@ export async function handlePostback(event: LineEvent): Promise<void> {
       const t = await reopenTask(userId, id);
       await reply(event.replyToken, [
         textMsg(t ? `Reopened: ${t.title}` : "Couldn't find that task — it may have been deleted."),
+      ]);
+      return;
+    }
+  }
+
+  // checkin:done:<id> / checkin:skip:<id> / checkin:done:all
+  if (verb === "checkin") {
+    const action = args[0];
+    const id = args[1];
+    if (action === "done" && id === "all") {
+      const completed = await completeAllOpenTasks(userId);
+      await reply(event.replyToken, [
+        textMsg(
+          completed.length === 0
+            ? "All clear — no open tasks! 🎉"
+            : `✓ Marked ${completed.length} task${completed.length === 1 ? "" : "s"} done. Nice work!`,
+        ),
+      ]);
+      return;
+    }
+    if (action === "done" && id) {
+      const t = await completeTask(userId, id);
+      await reply(event.replyToken, [
+        textMsg(t ? `✓ Done: ${t.title}` : "Couldn't find that task — may have already been removed."),
+      ]);
+      return;
+    }
+    if (action === "skip" && id) {
+      // "Not yet" — keep the task open. Nothing to do except acknowledge.
+      const tasks = await listTasks(userId, "all");
+      const t = tasks.find((task) => task.id === id);
+      await reply(event.replyToken, [
+        textMsg(t ? `Got it — "${t.title}" stays on your list.` : "Noted."),
       ]);
       return;
     }

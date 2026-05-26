@@ -21,6 +21,16 @@ export type UserSettings = {
   eveningSummaryEnabled: boolean;
   /** Last time we ran the evening summary for this user (ms). */
   lastEveningSummaryTs: number | null;
+  // ── Dashboard-surfaced feature controls ─────────────────────────────────
+  // These fields are the canonical toggles for the future web dashboard.
+  // Each feature: enabled flag + optional config (time, categories, etc.).
+  /** Daily end-of-day task check-in: ask "Did you finish X?" for all open tasks. */
+  taskCheckInEnabled: boolean;
+  /** Time to fire the check-in (HH:mm 24h, user's timezone). */
+  taskCheckInTime: string;
+  /** Last time the task check-in was sent (ms). Internal — not surfaced in dashboard. */
+  lastTaskCheckInTs: number | null;
+  // ────────────────────────────────────────────────────────────────────────
   /**
    * Keys the user has explicitly configured via a settings tool. Migrations skip
    * these so we never silently override a deliberate user choice.
@@ -33,7 +43,7 @@ export type UserSettings = {
 };
 
 // Bump this and add a migration entry below every time you change a default value.
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 const DEFAULTS: UserSettings = {
   timezone: "Asia/Bangkok",
@@ -46,6 +56,9 @@ const DEFAULTS: UserSettings = {
   disabledCategories: [],
   eveningSummaryEnabled: true,
   lastEveningSummaryTs: null,
+  taskCheckInEnabled: true,
+  taskCheckInTime: "21:30",
+  lastTaskCheckInTs: null,
   userConfigured: [],
   settingsVersion: CURRENT_VERSION,
   updatedAt: 0,
@@ -75,6 +88,14 @@ const MIGRATIONS: Array<(s: StoredSettings, configured: Set<string>) => Partial<
       patch.inboxBriefingEnabled = true;
     if (!configured.has("eveningSummaryEnabled") && !s.eveningSummaryEnabled)
       patch.eveningSummaryEnabled = true;
+    return patch;
+  },
+
+  // v2 → v3: enable daily task check-in at 21:30 for all existing users
+  (_s, configured) => {
+    const patch: Partial<UserSettings> = {};
+    if (!configured.has("taskCheckInEnabled")) patch.taskCheckInEnabled = true;
+    if (!configured.has("taskCheckInTime")) patch.taskCheckInTime = "21:30";
     return patch;
   },
 ];
@@ -115,7 +136,7 @@ export async function updateSettings(
 ): Promise<UserSettings> {
   const cur = await getSettings(userId);
   // Track which keys this user has deliberately configured.
-  const internal = new Set(["lastMorningBriefingTs", "lastEveningSummaryTs", "userConfigured", "settingsVersion", "updatedAt", "disabledCategories"]);
+  const internal = new Set(["lastMorningBriefingTs", "lastEveningSummaryTs", "lastTaskCheckInTs", "userConfigured", "settingsVersion", "updatedAt", "disabledCategories"]);
   const newConfigured = Array.from(
     new Set([
       ...(cur.userConfigured ?? []),

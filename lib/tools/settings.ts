@@ -101,6 +101,44 @@ export function buildSettingsTools(userId: string) {
       },
     }),
 
+    enable_task_check_in: tool({
+      description:
+        "Turn on the daily end-of-day task check-in. At the configured time (default 21:30) the bot will push a bubble asking which open tasks you finished, with ✓/✗ tap buttons.",
+      inputSchema: z.object({
+        time: z
+          .string()
+          .regex(/^\d{1,2}:\d{2}$/)
+          .optional()
+          .describe("HH:mm 24h in user's timezone. Defaults to 21:30 if omitted."),
+      }),
+      execute: async ({ time }) => {
+        const patch: Parameters<typeof updateSettings>[1] = { taskCheckInEnabled: true };
+        if (time) patch.taskCheckInTime = time;
+        const next = await updateSettings(userId, patch);
+        return { ok: true, taskCheckInEnabled: true, taskCheckInTime: next.taskCheckInTime };
+      },
+    }),
+
+    disable_task_check_in: tool({
+      description: "Turn off the daily task check-in push.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        await updateSettings(userId, { taskCheckInEnabled: false });
+        return { ok: true };
+      },
+    }),
+
+    set_task_check_in_time: tool({
+      description: "Change the time of day the task check-in fires (HH:mm 24h, user's timezone).",
+      inputSchema: z.object({
+        time: z.string().regex(/^\d{1,2}:\d{2}$/, "must be HH:mm format e.g. '21:30'"),
+      }),
+      execute: async ({ time }) => {
+        await updateSettings(userId, { taskCheckInTime: time });
+        return { ok: true, taskCheckInTime: time };
+      },
+    }),
+
     enable_pre_meeting_alerts: tool({
       description:
         "Push the user a heads-up at multiple intervals before each upcoming calendar event. Pass an array of minutes-before. Common picks: [1440, 60, 30] = 1 day, 1 hour, 30 min before. Pass [] to disable.",

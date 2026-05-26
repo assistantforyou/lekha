@@ -8,6 +8,7 @@ import {
   calendarEventsFlex,
   briefingFlex,
   newsFlex,
+  taskCheckinFlex,
 } from "@/lib/line/flex";
 
 describe("confirmCancelFlex", () => {
@@ -142,6 +143,33 @@ describe("newsFlex", () => {
     const json = JSON.stringify(msg.contents);
     expect(json).toContain("https://news.example/1");
     expect(json).toContain('"label":"Read"');
+  });
+});
+
+describe("taskCheckinFlex", () => {
+  it("emits done + skip postbacks per row", () => {
+    const msg = taskCheckinFlex([
+      { id: "t1", title: "Buy milk" },
+      { id: "t2", title: "Write report" },
+    ]);
+    const json = JSON.stringify(msg.contents);
+    expect(json).toContain('"data":"checkin:done:t1"');
+    expect(json).toContain('"data":"checkin:skip:t1"');
+    expect(json).toContain('"data":"checkin:done:t2"');
+  });
+
+  it("emits done:all footer button", () => {
+    const msg = taskCheckinFlex([{ id: "t1", title: "Task A" }]);
+    const json = JSON.stringify(msg.contents);
+    expect(json).toContain('"data":"checkin:done:all"');
+  });
+
+  it("caps rows at 10", () => {
+    const tasks = Array.from({ length: 20 }, (_, i) => ({ id: `t${i}`, title: `Task ${i}` }));
+    const msg = taskCheckinFlex(tasks);
+    const json = JSON.stringify(msg.contents);
+    const matches = json.match(/checkin:done:t\d+/g) ?? [];
+    expect(matches.length).toBeLessThanOrEqual(10);
   });
 });
 

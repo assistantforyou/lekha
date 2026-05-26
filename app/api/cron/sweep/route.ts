@@ -10,7 +10,7 @@ import { push, text as textMsg } from "@/lib/line/client";
 import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
 import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
 import { listTasks } from "@/lib/memory/tasks";
-import { briefingFlex } from "@/lib/line/flex";
+import { briefingFlex, taskCheckinFlex } from "@/lib/line/flex";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
   }
 
   const users = await listAllUsers();
-  const stats = { briefings: 0, eveningSummaries: 0, preMeetingPushes: 0, taskWarnings: 0, errors: 0, users: users.length };
+  const stats = { briefings: 0, eveningSummaries: 0, taskCheckIns: 0, preMeetingPushes: 0, taskWarnings: 0, errors: 0, users: users.length };
 
   await Promise.all(
     users.map(async (userId) => {
@@ -99,6 +99,15 @@ export async function POST(req: NextRequest) {
 
         // Task deadline warnings — push once when a task is due within 24h.
         await sweepTaskDeadlines(userId, settings.timezone, stats);
+
+        // Daily task check-in — ask "did you finish these?" at configured time.
+        if (
+          settings.taskCheckInEnabled &&
+          shouldFireBriefingNow(settings.taskCheckInTime, settings.lastTaskCheckInTs, settings.timezone)
+        ) {
+          await sweepTaskCheckIn(userId, settings.timezone, stats);
+          await updateSettings(userId, { lastTaskCheckInTs: Date.now() });
+        }
       } catch (err) {
         stats.errors++;
         console.error("[sweep] user failed", userId, err);
@@ -136,6 +145,22 @@ async function sweepTaskDeadlines(
     }
   } catch (err) {
     console.warn("[sweep] task deadline check failed", userId, err);
+  }
+}
+
+async function sweepTaskCheckIn(
+  userId: string,
+  _timezone: string,
+  stats: { taskCheckIns: number },
+): Promise<void> {
+  try {
+    const open = await listTasks(userId, "open");
+    if (open.length === 0) return;
+    const rows = open.slice(0, 10).map((t) => ({ id: t.id, title: t.title }));
+    await push(userId, [taskCheckinFlex(rows)]);
+    stats.taskCheckIns++;
+  } catch (err) {
+    console.warn("[sweep] task check-in failed", userId, err);
   }
 }
 
