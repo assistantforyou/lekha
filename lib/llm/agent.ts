@@ -339,7 +339,16 @@ export async function runAgent(
     const followUps = buildFollowUps(allCalls.map((c) => c.toolName), { confirmDraft });
     const hints: AgentHints = {
       confirmDraft,
-      pickAccount: accounts.accounts.length > 1 && /which google account/i.test(text),
+      // Only show account picker for explicit write-action ambiguity
+      // (sending email, creating events). Read actions use active account silently.
+      pickAccount:
+        accounts.accounts.length > 1 &&
+        /which (google )?account/i.test(text) &&
+        allCalls.some((c) =>
+          c.toolName === "draft_email" ||
+          c.toolName === "draft_calendar_event" ||
+          c.toolName === "upload_to_drive",
+        ),
       needsGoogleConnect:
         processed.authNeeded !== null || (accounts.accounts.length === 0 && /connect google/i.test(text)),
       flexMessages,

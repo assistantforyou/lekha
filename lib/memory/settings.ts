@@ -57,7 +57,7 @@ const DEFAULTS: UserSettings = {
   eveningSummaryEnabled: true,
   lastEveningSummaryTs: null,
   taskCheckInEnabled: true,
-  taskCheckInTime: "21:30",
+  taskCheckInTime: "20:30",
   lastTaskCheckInTs: null,
   userConfigured: [],
   settingsVersion: CURRENT_VERSION,
@@ -95,7 +95,7 @@ const MIGRATIONS: Array<(s: StoredSettings, configured: Set<string>) => Partial<
   (_s, configured) => {
     const patch: Partial<UserSettings> = {};
     if (!configured.has("taskCheckInEnabled")) patch.taskCheckInEnabled = true;
-    if (!configured.has("taskCheckInTime")) patch.taskCheckInTime = "21:30";
+    if (!configured.has("taskCheckInTime")) patch.taskCheckInTime = "20:30";
     return patch;
   },
 ];

@@ -4,6 +4,7 @@ import { clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
 import { completeTask, reopenTask, completeAllOpenTasks, listTasks } from "@/lib/memory/tasks";
 import { appendTurn } from "@/lib/memory/history";
+import { appendArchive } from "@/lib/memory/archive";
 import type { LineEvent } from "@/lib/line/types";
 
 /**
@@ -99,15 +100,32 @@ export async function handlePostback(event: LineEvent): Promise<void> {
     }
     if (action === "done" && id) {
       const t = await completeTask(userId, id);
+      if (t) {
+        // Log completion to archive so it surfaces in memory/pattern queries.
+        const dateStr = new Date().toISOString().slice(0, 10);
+        appendArchive(userId, {
+          fromTs: Date.now(),
+          toTs: Date.now(),
+          summary: `Task completed via check-in: "${t.title}" (${dateStr})`,
+        }).catch(() => {});
+      }
       await reply(event.replyToken, [
         textMsg(t ? `✓ Done: ${t.title}` : "Couldn't find that task — may have already been removed."),
       ]);
       return;
     }
     if (action === "skip" && id) {
-      // "Not yet" — keep the task open. Nothing to do except acknowledge.
+      // "Not yet" — keep the task open and log the skip to cold memory.
       const tasks = await listTasks(userId, "all");
       const t = tasks.find((task) => task.id === id);
+      if (t) {
+        const dateStr = new Date().toISOString().slice(0, 10);
+        appendArchive(userId, {
+          fromTs: Date.now(),
+          toTs: Date.now(),
+          summary: `Task not completed at check-in: "${t.title}" (${dateStr}) — still open`,
+        }).catch(() => {});
+      }
       await reply(event.replyToken, [
         textMsg(t ? `Got it — "${t.title}" stays on your list.` : "Noted."),
       ]);
