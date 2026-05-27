@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
   const raw = await req.text();
   const sig = req.headers.get("upstash-signature") ?? req.headers.get("Upstash-Signature");
   const auth = req.headers.get("authorization");
-  const allowManual = auth === `Bearer ${env().CRON_MANUAL_SECRET}`;
+  const manualSecret = env().CRON_MANUAL_SECRET;
+  const allowManual = !!manualSecret && auth === `Bearer ${manualSecret}`;
 
   if (!allowManual) {
     if (!sig) return new NextResponse("missing signature", { status: 401 });

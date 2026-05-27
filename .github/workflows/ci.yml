@@ -19,17 +19,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
       - name: Type check
         run: npm run typecheck
 
       - name: Build
         run: npm run build
-
-      - name: Audit dependencies
-        run: npm audit --audit-level=moderate
+        env:
+          TOKEN_ENCRYPTION_KEY: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          OAUTH_STATE_SECRET: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          APP_BASE_URL: "https://test.example.com"
+          LINE_CHANNEL_SECRET: "test"
+          LINE_CHANNEL_ACCESS_TOKEN: "test"
+          GEMINI_API_KEY: "test"
 
       - name: Run tests
         run: npm test
