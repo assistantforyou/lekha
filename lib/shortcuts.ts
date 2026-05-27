@@ -1,11 +1,11 @@
-import { reply, text as textMsg, showLoading } from "@/lib/line/client";
+import { reply, text as textMsg, showLoading, type LineMessage } from "@/lib/line/client";
 import { HELP_TEXT } from "@/lib/tools/help";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
 import { getSettings } from "@/lib/memory/settings";
 import { appendTurn } from "@/lib/memory/history";
-import { briefingFlex } from "@/lib/line/flex";
+import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
 
 type Ctx = {
   userId: string;
@@ -55,10 +55,18 @@ const SHORTCUTS: Shortcut[] = [
         location: settings.location,
         includeInbox: settings.inboxBriefingEnabled,
       });
-      const out = briefing ?? "Nothing to show in your briefing right now.";
-      await reply(replyToken, [briefingFlex("morning", out)]);
+      if (!briefing) {
+        await reply(replyToken, [textMsg("Nothing to show in your briefing right now.")]);
+        return;
+      }
+      const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
+      if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
+      if (briefing.inbox && briefing.inbox.length > 0) {
+        msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
+      }
+      await reply(replyToken, msgs);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
-      await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
+      await appendTurn(userId, { role: "assistant", content: briefing.text, ts: Date.now() });
     },
   },
   {
