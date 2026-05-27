@@ -8,7 +8,7 @@ export type NewsRow = {
 };
 
 /** Render news search hits as a Flex carousel — each bubble has a "Read" URI button. */
-export function newsFlex(stories: NewsRow[]): FlexMessage {
+export function newsFlex(stories: NewsRow[], headerLabel?: string): FlexMessage {
   const rows = stories.slice(0, 10);
   if (rows.length === 0) {
     return {
@@ -24,64 +24,78 @@ export function newsFlex(stories: NewsRow[]): FlexMessage {
       },
     };
   }
+
+  const label = headerLabel ?? "📰 News";
+
   return {
     type: "flex",
-    altText: `News: ${rows.map((s) => s.title).join(" • ").slice(0, 380)}`,
+    altText: `${label}: ${rows.map((s) => s.title).join(" • ").slice(0, 360)}`,
     contents: {
       type: "carousel",
-      contents: rows.map((s) => ({
-        type: "bubble" as const,
-        size: "kilo" as const,
-        body: {
-          type: "box" as const,
-          layout: "vertical" as const,
-          spacing: "sm" as const,
-          contents: [
-            {
-              type: "text" as const,
-              text: s.title.slice(0, 100),
-              weight: "bold" as const,
-              size: "sm" as const,
-              wrap: true,
-            },
-            ...(s.source
-              ? [
+      contents: rows.map((s) => {
+        const sourceColor = s.source === "Markets" ? "#1a7f5a" : "#1a5f9a";
+        return {
+          type: "bubble" as const,
+          size: "kilo" as const,
+          header: s.source
+            ? {
+                type: "box" as const,
+                layout: "vertical" as const,
+                paddingAll: "8px",
+                backgroundColor: sourceColor,
+                contents: [
                   {
                     type: "text" as const,
-                    text: s.source.slice(0, 50),
+                    text: s.source,
                     size: "xxs" as const,
-                    color: "#999999",
-                    margin: "sm" as const,
+                    color: "#FFFFFF",
+                    weight: "bold" as const,
                   },
-                ]
-              : []),
-            ...(s.snippet
-              ? [
-                  {
-                    type: "text" as const,
-                    text: s.snippet.slice(0, 140),
-                    size: "xs" as const,
-                    color: "#555555",
-                    wrap: true,
-                    margin: "sm" as const,
-                  },
-                ]
-              : []),
-          ],
-        },
-        footer: {
-          type: "box" as const,
-          layout: "vertical" as const,
-          contents: [
-            {
-              type: "button" as const,
-              style: "primary" as const,
-              height: "sm" as const,
-              action: { type: "uri" as const, label: "Read", uri: s.url },
-            },
-          ],
-        },
-      })),
+                ],
+              }
+            : undefined,
+          body: {
+            type: "box" as const,
+            layout: "vertical" as const,
+            spacing: "sm" as const,
+            contents: [
+              {
+                type: "text" as const,
+                text: s.title.slice(0, 120),
+                weight: "bold" as const,
+                size: "sm" as const,
+                wrap: true,
+                color: "#222222",
+              },
+              ...(s.snippet
+                ? [
+                    {
+                      type: "text" as const,
+                      text: s.snippet.slice(0, 140),
+                      size: "xs" as const,
+                      color: "#666666",
+                      wrap: true,
+                      margin: "sm" as const,
+                    },
+                  ]
+                : []),
+            ],
+          },
+          footer: {
+            type: "box" as const,
+            layout: "vertical" as const,
+            contents: [
+              {
+                type: "button" as const,
+                style: "primary" as const,
+                height: "sm" as const,
+                color: sourceColor,
+                action: { type: "uri" as const, label: "Read", uri: s.url },
+              },
+            ],
+          },
+        };
+      }),
     },
   };
 }

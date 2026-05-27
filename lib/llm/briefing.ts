@@ -74,15 +74,35 @@ async function fetchWeather(location: string): Promise<WeatherResult | null> {
   }
 }
 
+export type BriefingNewsItem = {
+  title: string;
+  url: string;
+  source: string;
+};
+
+export type BriefingInboxItem = {
+  id: string;
+  from: string;
+  subject: string;
+  snippet: string;
+};
+
+export type BriefingResult = {
+  text: string;
+  news: BriefingNewsItem[];
+  inbox: BriefingInboxItem[] | null;
+};
+
 /**
  * Build a daily morning briefing for a single user. Pulls weather, open tasks,
  * the next 5 upcoming calendar events, optional unread Gmail, and today's news.
- * Returns a single push-ready plain-text string.
+ * Returns structured data: main text (for the Flex bubble) + news + inbox
+ * so each section can be rendered as its own rich Flex message.
  */
 export async function buildMorningBriefing(
   userId: string,
   opts: { timezone: string; location: string | null; includeInbox: boolean },
-): Promise<string | null> {
+): Promise<BriefingResult | null> {
   const sections: string[] = [];
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
@@ -147,12 +167,19 @@ export async function buildMorningBriefing(
                 }),
               ),
             );
-            return fetched.map((r) => {
-              const headers = r.data.payload?.headers ?? [];
-              const from = headers.find((h) => h.name?.toLowerCase() === "from")?.value ?? "";
-              const subject = headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
-              return `• ${subject} — ${from.split("<")[0]?.trim() || from}`;
-            });
+            return fetched
+              .map((r) => {
+                const headers = r.data.payload?.headers ?? [];
+                const from = headers.find((h) => h.name?.toLowerCase() === "from")?.value ?? "";
+                const subject = headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
+                return {
+                  id: r.data.id ?? "",
+                  from: from.split("<")[0]?.trim() || from,
+                  subject,
+                  snippet: r.data.snippet ?? "",
+                };
+              })
+              .filter((m) => m.id);
           })
         : Promise.resolve(null),
     ]);
@@ -272,30 +299,19 @@ export async function buildMorningBriefing(
     sections.push(`📅 Schedule\n${lines.join("\n")}`);
   }
 
-  // News
+  // Build structured news items (rendered as a separate Flex carousel)
   const geo = geoResult.status === "fulfilled" ? geoResult.value : [];
   const econ = econResult.status === "fulfilled" ? econResult.value : [];
-  const newsLines: string[] = [];
-  if (geo.length) {
-    newsLines.push("🌍 World");
-    geo.slice(0, 3).forEach((s) => newsLines.push(`• ${s.title}\n  ${s.url}`));
-  }
-  if (econ.length) {
-    if (newsLines.length) newsLines.push("");
-    newsLines.push("📈 Markets");
-    econ.slice(0, 2).forEach((s) => newsLines.push(`• ${s.title}\n  ${s.url}`));
-  }
-  if (newsLines.length) {
-    sections.push(`📰 News\n${newsLines.join("\n")}`);
-  }
+  const news: BriefingNewsItem[] = [
+    ...geo.slice(0, 3).map((s) => ({ title: s.title, url: s.url, source: "World" })),
+    ...econ.slice(0, 2).map((s) => ({ title: s.title, url: s.url, source: "Markets" })),
+  ];
 
-  // Inbox
-  const inboxItems = inboxResult.status === "fulfilled" ? inboxResult.value : null;
-  if (inboxItems && inboxItems.length > 0) {
-    sections.push(`📧 Inbox (${inboxItems.length} unread)\n${inboxItems.join("\n")}`);
-  }
+  // Build structured inbox items (rendered as a separate Flex carousel)
+  const inboxRaw = inboxResult.status === "fulfilled" ? inboxResult.value : null;
+  const inbox = inboxRaw && inboxRaw.length > 0 ? (inboxRaw as BriefingInboxItem[]) : null;
 
-  if (!sections.length) return null;
+  if (!sections.length && !news.length && !inbox) return null;
 
   // Date header in user's timezone
   const dateHeader = new Date().toLocaleDateString("en-US", {
@@ -305,7 +321,9 @@ export async function buildMorningBriefing(
     day: "numeric",
   });
 
-  return `Good morning! ☀️ ${dateHeader}\n\n${sections.join("\n\n")}`;
+  const text = `Good morning! ☀️ ${dateHeader}\n\n${sections.join("\n\n")}`;
+
+  return { text, news, inbox };
 }
 
 /** Used by the cron sweep to know if we should push the briefing now. */
