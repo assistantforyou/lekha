@@ -5,17 +5,21 @@ import { executePendingAll } from "@/lib/pending-runner";
 import { completeTask, reopenTask, completeAllOpenTasks, listTasks } from "@/lib/memory/tasks";
 import { appendTurn } from "@/lib/memory/history";
 import { appendArchive } from "@/lib/memory/archive";
+import { redis } from "@/lib/memory/redis";
+import { withGoogleClient } from "@/lib/tools/with-google";
+import { google } from "googleapis";
 import type { LineEvent } from "@/lib/line/types";
+
+const GMAIL_MODIFY = "https://www.googleapis.com/auth/gmail.modify";
+
+function archiveNote(userId: string, summary: string) {
+  const now = Date.now();
+  appendArchive(userId, { fromTs: now, toTs: now, summary }).catch(() => {});
+}
 
 /**
  * Handle a LINE postback (Flex/QR button tap). Routes by verb prefix.
  * Convention: `<verb>[:<arg>[:<arg>...]]` — see lib/line/flex/index.ts.
- *
- * Many verbs (gmail:*, list:rm, event:remind, drive:*, contact:*) are
- * recognized but currently route to a "type to confirm" prompt so the agent
- * can pick up the intent — implementing each as a direct postback handler
- * would duplicate tool logic. The two foundational verbs (confirm:*, task:*)
- * act directly.
  */
 export async function handlePostback(event: LineEvent): Promise<void> {
   if (event.type !== "postback") return;
@@ -26,7 +30,7 @@ export async function handlePostback(event: LineEvent): Promise<void> {
   const data = event.postback.data ?? "";
   const { verb, args } = parsePostbackData(data);
 
-  // confirm:yes / confirm:no — drain or clear the pending action queue.
+  // ── confirm:yes / confirm:no ──────────────────────────────────────────
   if (verb === "confirm") {
     const action = args[0];
     if (action === "yes") {
@@ -52,7 +56,7 @@ export async function handlePostback(event: LineEvent): Promise<void> {
     }
   }
 
-  // task:done:<id> / task:reopen:<id> / task:done:all
+  // ── task:done:<id> / task:reopen:<id> / task:done:all ─────────────────
   if (verb === "task") {
     const action = args[0];
     const id = args[1];
@@ -83,12 +87,19 @@ export async function handlePostback(event: LineEvent): Promise<void> {
     }
   }
 
-  // checkin:done:<id> / checkin:skip:<id> / checkin:done:all
+  // ── checkin:done:<id> / checkin:skip:<id> / checkin:done:all ──────────
   if (verb === "checkin") {
     const action = args[0];
     const id = args[1];
+    const dateStr = new Date().toISOString().slice(0, 10);
     if (action === "done" && id === "all") {
       const completed = await completeAllOpenTasks(userId);
+      if (completed.length > 0) {
+        archiveNote(
+          userId,
+          `Bulk check-in completed ${completed.length} task(s) on ${dateStr}: ${completed.map((t) => `"${t.title}"`).join(", ")}`,
+        );
+      }
       await reply(event.replyToken, [
         textMsg(
           completed.length === 0
@@ -100,32 +111,16 @@ export async function handlePostback(event: LineEvent): Promise<void> {
     }
     if (action === "done" && id) {
       const t = await completeTask(userId, id);
-      if (t) {
-        // Log completion to archive so it surfaces in memory/pattern queries.
-        const dateStr = new Date().toISOString().slice(0, 10);
-        appendArchive(userId, {
-          fromTs: Date.now(),
-          toTs: Date.now(),
-          summary: `Task completed via check-in: "${t.title}" (${dateStr})`,
-        }).catch(() => {});
-      }
+      if (t) archiveNote(userId, `Task completed via check-in: "${t.title}" (${dateStr})`);
       await reply(event.replyToken, [
         textMsg(t ? `✓ Done: ${t.title}` : "Couldn't find that task — may have already been removed."),
       ]);
       return;
     }
     if (action === "skip" && id) {
-      // "Not yet" — keep the task open and log the skip to cold memory.
       const tasks = await listTasks(userId, "all");
       const t = tasks.find((task) => task.id === id);
-      if (t) {
-        const dateStr = new Date().toISOString().slice(0, 10);
-        appendArchive(userId, {
-          fromTs: Date.now(),
-          toTs: Date.now(),
-          summary: `Task not completed at check-in: "${t.title}" (${dateStr}) — still open`,
-        }).catch(() => {});
-      }
+      if (t) archiveNote(userId, `Task not completed at check-in: "${t.title}" (${dateStr}) — still open`);
       await reply(event.replyToken, [
         textMsg(t ? `Got it — "${t.title}" stays on your list.` : "Noted."),
       ]);
@@ -133,14 +128,88 @@ export async function handlePostback(event: LineEvent): Promise<void> {
     }
   }
 
-  // Verbs whose handlers need agent/tool context — for now acknowledge politely
-  // and tell the user to type the equivalent action. Future work: dispatch
-  // directly to the corresponding tool.
-  if (verb === "gmail" || verb === "drive" || verb === "event" || verb === "list" || verb === "contact" || verb === "sent") {
+  // ── gmail:archive:<msgId> ─────────────────────────────────────────────
+  if (verb === "gmail") {
+    const action = args[0];
+    const msgId = args[1];
+    if (action === "archive" && msgId) {
+      const result = await withGoogleClient(userId, undefined, [GMAIL_MODIFY], async ({ client }) => {
+        const gmail = google.gmail({ version: "v1", auth: client });
+        await gmail.users.messages.modify({
+          userId: "me",
+          id: msgId,
+          requestBody: { removeLabelIds: ["INBOX"] },
+        });
+        return { ok: true as const };
+      });
+      if (result && typeof result === "object" && "ok" in result && result.ok) {
+        await reply(event.replyToken, [textMsg("Archived.")]);
+      } else {
+        await reply(event.replyToken, [textMsg("Couldn't archive — try reconnecting Google.")]);
+      }
+      return;
+    }
+    if (action === "reply" && msgId) {
+      // Seed the conversation so the agent knows which thread to reply to.
+      await appendTurn(userId, {
+        role: "user",
+        content: `I want to reply to email message id ${msgId}. Please draft a reply.`,
+        ts: Date.now(),
+      });
+      await reply(event.replyToken, [
+        textMsg("What would you like to say in the reply? I'll draft it for you."),
+      ]);
+      return;
+    }
+  }
+
+  // ── list:rm:<listName>:<itemIdx> ──────────────────────────────────────
+  if (verb === "list") {
+    const action = args[0];
+    const listName = args[1];
+    const idxStr = args[2];
+    if (action === "rm" && listName && idxStr !== undefined) {
+      const idx = parseInt(idxStr, 10);
+      if (!Number.isFinite(idx)) {
+        await reply(event.replyToken, [textMsg("Couldn't remove that item — bad index.")]);
+        return;
+      }
+      const k = `lists:${userId}:${listName.toLowerCase().trim()}`;
+      const items = await redis().lrange<string>(k, 0, -1);
+      const item = items[idx];
+      if (!item) {
+        await reply(event.replyToken, [textMsg("That item isn't on the list any more.")]);
+        return;
+      }
+      await redis().lrem(k, 1, item);
+      await reply(event.replyToken, [textMsg(`Removed "${item}" from ${listName}.`)]);
+      return;
+    }
+  }
+
+  // ── event:remind:<eventId> ────────────────────────────────────────────
+  // We don't have event details in the postback — surface a prompt so the
+  // agent can pull the event and schedule the reminder with proper context.
+  if (verb === "event") {
+    const action = args[0];
+    const eventId = args[1];
+    if (action === "remind" && eventId) {
+      await appendTurn(userId, {
+        role: "user",
+        content: `Set a reminder for the calendar event with id ${eventId}. Look it up and set a 1-hour reminder before it starts.`,
+        ts: Date.now(),
+      });
+      await reply(event.replyToken, [
+        textMsg("On it — I'll set a 1-hour reminder for that event. One sec…"),
+      ]);
+      return;
+    }
+  }
+
+  // ── drive, contact, sent — not yet directly wired ─────────────────────
+  if (verb === "drive" || verb === "contact" || verb === "sent") {
     await reply(event.replyToken, [
-      textMsg(
-        "Got it — that quick-action isn't wired up yet. Type what you want and I'll do it (e.g. \"archive that email\", \"remind me about that event 1h before\").",
-      ),
+      textMsg("Type what you want and I'll do it (e.g. \"share that file\", \"email that contact\")."),
     ]);
     return;
   }
