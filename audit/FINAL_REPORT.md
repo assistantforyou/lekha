@@ -123,7 +123,7 @@ Of 26 claims in README/CLAUDE.md verified:
 | ❌ false | 7 |
 | 🔍 unverifiable | 2 |
 
-Notable false claims: step count (8 vs 3), Gemini timeout (12s vs 20s), tool count (13 vs 51), Groq cascade (missing llama-4-maverick), public vs allowlist-gated.
+Notable false claims: step count (8 vs 3), Gemini timeout (60s vs 20s), tool count (13 vs 51), public vs allowlist-gated.
 
 ---
 

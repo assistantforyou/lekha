@@ -44,6 +44,11 @@ export async function GET(req: NextRequest) {
     }
   } catch (err) {
     console.warn("[oauth] auto-resume failed", err);
+    try {
+      await clearPending(userId);
+    } catch {
+      // ignore
+    }
   }
 
   // Always nudge them back to LINE. Awaited so the function doesn't return

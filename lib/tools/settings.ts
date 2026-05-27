@@ -62,14 +62,18 @@ export function buildSettingsTools(userId: string) {
         "Turn on a daily push briefing at the given local time (HH:mm 24h). Includes pending reminders (with time remaining), today's calendar, open tasks (overdue flagged), and (if enabled) inbox highlights.",
       inputSchema: z.object({
         time: z.string().regex(/^\d{1,2}:\d{2}$/),
-        include_inbox: z.boolean().default(false),
+        include_inbox: z.boolean().optional(),
       }),
       execute: async ({ time, include_inbox }) => {
-        await updateSettings(userId, {
+        const current = await getSettings(userId);
+        const patch: Parameters<typeof updateSettings>[1] = {
           morningBriefingTime: time,
-          inboxBriefingEnabled: include_inbox,
-        });
-        return { ok: true, morningBriefingTime: time, inboxBriefingEnabled: include_inbox };
+        };
+        if (include_inbox !== undefined) {
+          patch.inboxBriefingEnabled = include_inbox;
+        }
+        const next = await updateSettings(userId, patch);
+        return { ok: true, morningBriefingTime: next.morningBriefingTime, inboxBriefingEnabled: next.inboxBriefingEnabled };
       },
     }),
 

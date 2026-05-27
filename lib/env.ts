@@ -57,6 +57,9 @@ const Env = z.object({
   APP_BASE_URL: z.string().url(),
   ADMIN_LINE_USER_ID: z.string().optional(),
 
+  // Cron manual trigger
+  CRON_MANUAL_SECRET: z.string().min(32).optional(),
+
   // Dev/test
   DEV_CHAT_SECRET: z.string().min(16).optional(),
 });

@@ -1,33 +1,22 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { Receiver } from "@upstash/qstash";
-import { google } from "googleapis";
+import { Receiver, Client } from "@upstash/qstash";
 import { env, hasQStash } from "@/lib/env";
 import { listAllUsers } from "@/lib/memory/user-registry";
-import { getSettings, updateSettings } from "@/lib/memory/settings";
-import { hasGoogleConnection, getGoogleClient } from "@/lib/tools/google-auth";
-import { redis } from "@/lib/memory/redis";
-import { push, text as textMsg } from "@/lib/line/client";
-import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
-import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
-import { listTasks } from "@/lib/memory/tasks";
-import { briefingFlex, taskCheckinFlex } from "@/lib/line/flex";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Proactive cron sweep. QStash hits this on a fixed schedule (every 15 min recommended).
- * For each registered user, decide what to push:
- *  - Daily morning briefing (if their local-time window matches their setting)
- *  - Pre-meeting reminders (any event starting within their lead-time)
+ * Proactive cron sweep scheduler. QStash hits this on a fixed schedule (every 15 min recommended).
+ * Instead of processing all users inline, we publish one QStash job per user to
+ * /api/cron/sweep/fire so each user is handled independently.
  */
 export async function POST(req: NextRequest) {
   if (!hasQStash()) return new NextResponse("not configured", { status: 503 });
   const raw = await req.text();
   const sig = req.headers.get("upstash-signature") ?? req.headers.get("Upstash-Signature");
-  // Allow a manual trigger via Authorization: Bearer <OAUTH_STATE_SECRET> for ops/testing.
   const auth = req.headers.get("authorization");
-  const allowManual = auth === `Bearer ${env().OAUTH_STATE_SECRET}`;
+  const allowManual = auth === `Bearer ${process.env.CRON_MANUAL_SECRET}`;
 
   if (!allowManual) {
     if (!sig) return new NextResponse("missing signature", { status: 401 });
@@ -48,171 +37,28 @@ export async function POST(req: NextRequest) {
   }
 
   const users = await listAllUsers();
-  const stats = { briefings: 0, eveningSummaries: 0, taskCheckIns: 0, preMeetingPushes: 0, taskWarnings: 0, errors: 0, users: users.length };
+  let jobsPublished = 0;
+  let errors = 0;
 
-  await Promise.all(
-    users.map(async (userId) => {
-      try {
-        const settings = await getSettings(userId);
+  const client = new Client({ token: env().QSTASH_TOKEN! });
 
-        // Morning briefing
-        if (
-          settings.morningBriefingTime &&
-          shouldFireBriefingNow(
-            settings.morningBriefingTime,
-            settings.lastMorningBriefingTs,
-            settings.timezone,
-          )
-        ) {
-          const briefing = await buildMorningBriefing(userId, {
-            timezone: settings.timezone,
-            location: settings.location,
-            includeInbox: settings.inboxBriefingEnabled,
-          });
-          if (briefing) {
-            await push(userId, [briefingFlex("morning", briefing)]);
-            await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
-            stats.briefings++;
-          }
-        }
-
-        // Evening summary — 9 PM wrap-up (tasks + calendar + news).
-        if (
-          settings.eveningSummaryEnabled &&
-          shouldFireEveningSummaryNow(settings.lastEveningSummaryTs, settings.timezone)
-        ) {
-          const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
-          if (summary) {
-            await push(userId, [briefingFlex("evening", summary)]);
-            await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
-            stats.eveningSummaries++;
-          }
-        }
-
-        // Pre-meeting reminders — fire at EACH configured lead time.
-        if (
-          settings.preMeetingLeads.length > 0 &&
-          (await hasGoogleConnection(userId))
-        ) {
-          await sweepPreMeetingPushes(userId, settings.preMeetingLeads, settings.timezone, stats);
-        }
-
-        // Task deadline warnings — push once when a task is due within 24h.
-        await sweepTaskDeadlines(userId, settings.timezone, stats);
-
-        // Daily task check-in — ask "did you finish these?" at configured time.
-        if (
-          settings.taskCheckInEnabled &&
-          shouldFireBriefingNow(settings.taskCheckInTime, settings.lastTaskCheckInTs, settings.timezone)
-        ) {
-          await sweepTaskCheckIn(userId, settings.timezone, stats);
-          await updateSettings(userId, { lastTaskCheckInTs: Date.now() });
-        }
-      } catch (err) {
-        stats.errors++;
-        console.error("[sweep] user failed", userId, err);
-      }
-    }),
-  );
-
-  return NextResponse.json({ ok: true, stats });
-}
-
-async function sweepTaskDeadlines(
-  userId: string,
-  timezone: string,
-  stats: { taskWarnings: number },
-): Promise<void> {
-  const now = Date.now();
-  const in24h = now + 24 * 60 * 60 * 1000;
-  try {
-    const open = await listTasks(userId, "open");
-    for (const task of open) {
-      if (!task.dueAt || task.dueAt < now || task.dueAt > in24h) continue;
-      // One warning per task per day.
-      const seenKey = `taskwarn:${userId}:${task.id}`;
-      const set = await redis().set(seenKey, 1, { ex: 60 * 60 * 24, nx: true });
-      if (set === null) continue;
-      const local = new Date(task.dueAt).toLocaleTimeString("en-US", {
-        timeZone: timezone,
-        hour: "numeric",
-        minute: "2-digit",
+  for (let i = 0; i < users.length; i++) {
+    const userId = users[i];
+    if (!userId) continue;
+    try {
+      await client.publishJSON({
+        url: `${env().APP_BASE_URL}/api/cron/sweep/fire`,
+        body: { userId },
       });
-      const isToday = task.dueAt < now + 16 * 60 * 60 * 1000; // rough "today"
-      const when = isToday ? `today at ${local}` : "tomorrow";
-      await push(userId, [textMsg(`⏰ Heads up: "${task.title}" is due ${when}.`)]);
-      stats.taskWarnings++;
+      jobsPublished++;
+    } catch (err) {
+      errors++;
+      console.error("[sweep] failed to publish job for", userId, err);
     }
-  } catch (err) {
-    console.warn("[sweep] task deadline check failed", userId, err);
-  }
-}
-
-async function sweepTaskCheckIn(
-  userId: string,
-  _timezone: string,
-  stats: { taskCheckIns: number },
-): Promise<void> {
-  try {
-    const open = await listTasks(userId, "open");
-    if (open.length === 0) return;
-    const rows = open.slice(0, 10).map((t) => ({ id: t.id, title: t.title }));
-    await push(userId, [taskCheckinFlex(rows)]);
-    stats.taskCheckIns++;
-  } catch (err) {
-    console.warn("[sweep] task check-in failed", userId, err);
-  }
-}
-
-async function sweepPreMeetingPushes(
-  userId: string,
-  leads: number[],
-  timezone: string,
-  stats: { preMeetingPushes: number },
-): Promise<void> {
-  const { client } = await getGoogleClient(userId, undefined, [
-    "https://www.googleapis.com/auth/calendar.readonly",
-  ]);
-  const calendar = google.calendar({ version: "v3", auth: client });
-  const now = Date.now();
-  // Look ahead by the longest lead + sweep slack; we'll bucket each event by lead.
-  const longest = Math.max(...leads);
-  const r = await calendar.events.list({
-    calendarId: "primary",
-    timeMin: new Date(now).toISOString(),
-    timeMax: new Date(now + longest * 60_000 + 16 * 60_000).toISOString(),
-    singleEvents: true,
-    orderBy: "startTime",
-    maxResults: 25,
-  });
-  for (const e of r.data.items ?? []) {
-    const startISO = e.start?.dateTime ?? e.start?.date;
-    if (!startISO || !e.id) continue;
-    const startTs = new Date(startISO).getTime();
-    const minutesUntil = Math.round((startTs - now) / 60_000);
-    // For each configured lead, check if we're within its 16-min sweep window.
-    for (const lead of leads) {
-      if (minutesUntil > lead || minutesUntil < lead - 16) continue;
-      // Idempotency keyed by (event, lead) — so 1d/1h/30m alerts each fire once.
-      const seenKey = `premeet:${userId}:${e.id}:${lead}`;
-      const set = await redis().set(seenKey, 1, { ex: 60 * 60 * 24 * 2, nx: true });
-      if (set === null) continue;
-      const local = new Date(startTs).toLocaleTimeString("en-US", {
-        timeZone: timezone,
-        hour: "numeric",
-        minute: "2-digit",
-      });
-      const where = e.location ? ` @ ${e.location}` : "";
-      const leadLabel =
-        lead >= 1440 && lead % 1440 === 0
-          ? `${lead / 1440}d`
-          : lead >= 60 && lead % 60 === 0
-          ? `${lead / 60}h`
-          : `${lead}m`;
-      await push(userId, [
-        textMsg(`🔔 In ~${leadLabel}: ${e.summary ?? "(untitled)"} at ${local}${where}.`),
-      ]);
-      stats.preMeetingPushes++;
+    if ((i + 1) % 10 === 0) {
+      await new Promise((r) => setTimeout(r, 100));
     }
   }
+
+  return NextResponse.json({ ok: true, stats: { users: users.length, jobsPublished, errors } });
 }

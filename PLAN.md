@@ -60,8 +60,8 @@ Per James, dev environment: it's OK to wipe `user:*:facts` (old text-blob) and e
 
 ## Open PRs to watch for conflicts
 
-- #14: Gemini caching + Groq slim → touches `lib/tools/index.ts`, `lib/llm/prompts.ts`
-- #13: Gemini→Groq handoff → touches `lib/llm/agent.ts`, `app/api/line/webhook/route.ts`
+- #14: Gemini caching → touches `lib/tools/index.ts`, `lib/llm/prompts.ts`
+- #13: Gemini-only agent → touches `lib/llm/agent.ts`, `app/api/line/webhook/route.ts`
 - #10: Content library → touches `lib/tools/index.ts`, `lib/llm/agent.ts`, `lib/llm/prompts.ts`
 
 Strategy: don't block on these. Land Tune-Up on `main`; if any of these PRs merges first, they'll need a rebase — James decides priority.

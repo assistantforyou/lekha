@@ -99,7 +99,7 @@ Redis set `users:allowed`. `isAllowed`, `addToAllowlist`, `removeFromAllowlist`,
 Redis set `users:active`. `registerUser`, `listAllUsers`, `unregisterUser`.
 
 ## lib/tools/index.ts
-`toolsForUser(userId)` — full registry (~50 tools, env-gated). `coreToolsForUser(userId)` — slim Groq subset (~25 tools).
+`toolsForUser(userId)` — full registry (~50 tools, env-gated).
 
 ## lib/tools/help.ts
 `show_help` tool + `HELP_TEXT` export (also used as shortcut in webhook).
@@ -202,8 +202,7 @@ No `TODO` or `FIXME` comments found in source.
 | `app/api/line/webhook/route.ts:709` | `[agent] skipping gemini` |
 | `app/api/line/webhook/route.ts:740` | `[agent] gemini step` detail log |
 | `app/api/line/webhook/route.ts:764` | `[agent] gemini done` |
-| `app/api/line/webhook/route.ts:823` | `[agent] groq step` |
-| `app/api/line/webhook/route.ts:838` | `[agent] groq done` |
+
 | `lib/tools/reminders.ts:76` | `[reminder] scheduled` |
 | `lib/tools/finance.ts:58,115,176,228` | Per-tool timing logs |
 | `lib/tools/weather.ts:55,104` | Provider timing logs |
@@ -219,7 +218,7 @@ No `TODO` or `FIXME` comments found in source.
 | Package | Version | Used? |
 |---------|---------|-------|
 | `@ai-sdk/google` | ^2.0.0 | Yes — `lib/llm/provider.ts` |
-| `@ai-sdk/groq` | ^3.0.38 | Yes — `lib/llm/provider.ts` |
+
 | `@upstash/qstash` | ^2.7.0 | Yes — reminders, scheduled-email, cron |
 | `@upstash/ratelimit` | ^2.0.0 | Yes — `lib/ratelimit.ts` |
 | `@upstash/redis` | ^1.34.0 | Yes — `lib/memory/redis.ts` |
@@ -233,7 +232,7 @@ No `TODO` or `FIXME` comments found in source.
 **Missing from devDependencies**: No `eslint`, no `eslint-config-next`, no `vitest`, no `@vitest/*`, no test runner of any kind.
 
 **Not in `.env.example` but read by code**:
-- `GROQ_API_KEY` — read by `lib/env.ts:31`, used as fallback LLM
+
 - `ADMIN_LINE_USER_ID` — read by `lib/env.ts:40`, critical for access control
 
 **`npm audit` findings**: Next.js `^16.0.0 < 16.2.5` has multiple CVEs including:

@@ -3,27 +3,29 @@
 
 import "./marketing.css";
 /* LEKHA marketing site — main app */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import type { SVGProps } from "react";
+import Link from "next/link";
 
 /* ---------- Icons (inline SVGs, single-line strokes) ---------- */
 const Ico = {
-  spark: (p) => <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" {...p}><path d="M12 2l2.39 6.61L21 11l-6.61 2.39L12 20l-2.39-6.61L3 11l6.61-2.39L12 2z" /></svg>,
-  chat: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>,
-  bell: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>,
-  news: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zM2 18v2a2 2 0 0 0 2 2" /><path d="M18 14h-8M15 18h-5M10 6h8v4h-8V6z" /></svg>,
-  check: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6L9 17l-5-5" /></svg>,
-  chart: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 3v18h18" /><path d="M7 14l4-4 4 4 5-7" /></svg>,
-  mail: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg>,
-  search: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>,
-  cal: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18" /></svg>,
-  send: (p) => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></svg>,
-  globe: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z" /></svg>,
-  shield: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" /></svg>,
-  bolt: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" /></svg>,
-  doc: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h6" /></svg>,
-  lang: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 8h12M9 4v4c0 5-2 8-5 9M12 16c.5 2 2 4 4 5M15 20l4-9 4 9M16.5 17h5" /></svg>,
-  image: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>,
-  tune: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+  spark: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" {...p}><path d="M12 2l2.39 6.61L21 11l-6.61 2.39L12 20l-2.39-6.61L3 11l6.61-2.39L12 2z" /></svg>,
+  chat: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>,
+  bell: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>,
+  news: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zM2 18v2a2 2 0 0 0 2 2" /><path d="M18 14h-8M15 18h-5M10 6h8v4h-8V6z" /></svg>,
+  check: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6L9 17l-5-5" /></svg>,
+  chart: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 3v18h18" /><path d="M7 14l4-4 4 4 5-7" /></svg>,
+  mail: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg>,
+  search: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>,
+  cal: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18" /></svg>,
+  send: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></svg>,
+  globe: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z" /></svg>,
+  shield: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" /></svg>,
+  bolt: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" /></svg>,
+  doc: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h6" /></svg>,
+  lang: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 8h12M9 4v4c0 5-2 8-5 9M12 16c.5 2 2 4 4 5M15 20l4-9 4 9M16.5 17h5" /></svg>,
+  image: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>,
+  tune: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
 };
 
 /* ---------- Logo mark ---------- */
@@ -43,14 +45,14 @@ const Nav = () =>
         <span>LEKHA</span>
       </div>
       <ul className="nav-links">
-        <li><a href="#features">Features</a></li>
-        <li><a href="#operations">Operations Layer</a></li>
-        <li><a href="#builtfor">Use Cases</a></li>
-        <li><a href="#pricing">Pricing</a></li>
-        <li><a href="#faq">FAQ</a></li>
+        <li><Link href="#features">Features</Link></li>
+        <li><Link href="#operations">Operations Layer</Link></li>
+        <li><Link href="#builtfor">Use Cases</Link></li>
+        <li><Link href="#pricing">Pricing</Link></li>
+        <li><Link href="#faq">FAQ</Link></li>
       </ul>
       <div className="nav-cta">
-        <a className="btn btn-ghost hide-sm" href="#login">Sign in</a>
+        <Link className="btn btn-ghost hide-sm" href="#login">Sign in</Link>
         <a className="btn btn-primary" href="https://forms.gle/6qu52TxR4sYHWymX7" target="_blank" rel="noopener">Book a 1-on-1 session with us <Ico.cal /></a>
       </div>
     </div>
@@ -89,10 +91,10 @@ const QR_CONFIGS = {
   }
 };
 
-const QRModal = ({ open, onClose, config }) => {
+const QRModal = ({ open, onClose, config }: { open: boolean; onClose: () => void; config: (typeof QR_CONFIGS)[keyof typeof QR_CONFIGS] | null }) => {
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => {if (e.key === 'Escape') onClose();};
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -148,19 +150,32 @@ const Hero = () => {
   const phrases = ['Brief me on today.', 'Add a 3pm reminder.', 'Analyze NVDA stock.', 'Draft a reply to David.', 'What\u2019s on my calendar?'];
   const [idx, setIdx] = useState(0);
   const [typed, setTyped] = useState('');
-  const [qrModal, setQrModal] = useState(null); // 'instagram' | 'line' | null
+  const [qrModal, setQrModal] = useState<string | null>(null);
   useEffect(() => {
-    let i = 0;let dir = 1;
+    let i = 0;
+    let dir = 1;
+    const timers: ReturnType<typeof setTimeout>[] = [];
     const tick = () => {
-      const target = phrases[idx];
+      const target = phrases[idx] ?? "";
       i += dir;
-      if (i > target.length) {dir = -1;setTimeout(tick, 1500);return;}
-      if (i < 0) {setIdx((p) => (p + 1) % phrases.length);dir = 1;setTimeout(tick, 200);return;}
+      if (i > target.length) {
+        dir = -1;
+        timers.push(setTimeout(tick, 1500));
+        return;
+      }
+      if (i < 0) {
+        timers.push(setTimeout(() => {
+          setIdx((p) => (p + 1) % phrases.length);
+        }, 0));
+        dir = 1;
+        timers.push(setTimeout(tick, 200));
+        return;
+      }
       setTyped(target.slice(0, i));
-      setTimeout(tick, dir === 1 ? 55 : 28);
+      timers.push(setTimeout(tick, dir === 1 ? 55 : 28));
     };
-    const t = setTimeout(tick, 400);
-    return () => clearTimeout(t);
+    timers.push(setTimeout(tick, 400));
+    return () => timers.forEach(clearTimeout);
   }, [idx]);
 
   return (
@@ -246,7 +261,7 @@ const Hero = () => {
           </div>
         </div>
       </div>
-      <QRModal open={!!qrModal} onClose={() => setQrModal(null)} config={QR_CONFIGS[qrModal]} />
+      <QRModal open={!!qrModal} onClose={() => setQrModal(null)} config={qrModal ? QR_CONFIGS[qrModal as keyof typeof QR_CONFIGS] : null} />
     </section>);};
 /* ---------- Feature explorer data ---------- */
 const FEATURES = [
@@ -323,7 +338,7 @@ const FEATURES = [
 
 
 /* ---------- Chat preview content by feature ---------- */
-const ChatBody = ({ id }) => {
+const ChatBody = ({ id }: { id: string }) => {
   if (id === 'briefing') return (
     <React.Fragment>
       <div className="bubble user">Brief me on today.</div>
@@ -564,8 +579,8 @@ const CHAT_SCRIPTS = {
 
 };
 
-const InlineRich = ({ type }) => {
-  const card = (items) =>
+const InlineRich = ({ type }: { type: string }) => {
+  const card = (items: [string, string][]) =>
   <div className="brief-card" style={{ marginTop: 8 }}>
       {items.map(([tag, text], i) =>
     <div key={i} className="brief-item">
@@ -617,9 +632,17 @@ const InlineRich = ({ type }) => {
   return null;
 };
 
-const StreamingChat = ({ id }) => {
-  const [display, setDisplay] = useState([]);
-  const bodyRef = useRef(null);
+type DisplayMsg = {
+  r: 'u' | 'b';
+  text: string;
+  typing?: boolean;
+  done?: boolean;
+  rich?: string | null;
+};
+
+const StreamingChat = ({ id }: { id: string }) => {
+  const [display, setDisplay] = useState<DisplayMsg[]>([]);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!bodyRef.current) return;
@@ -627,18 +650,18 @@ const StreamingChat = ({ id }) => {
   });
 
   useEffect(() => {
-    const script = CHAT_SCRIPTS[id] || [];
+    const script = CHAT_SCRIPTS[id as keyof typeof CHAT_SCRIPTS] || [];
     let cancelled = false;
 
-    const after = (ms, fn) => setTimeout(() => {if (!cancelled) fn();}, ms);
+    const after = (ms: number, fn: () => void) => setTimeout(() => { if (!cancelled) fn(); }, ms);
 
-    const updateLast = (updater) =>
-    setDisplay((prev) => {
-      if (!prev.length) return prev;
-      const copy = [...prev];
-      copy[copy.length - 1] = updater(copy[copy.length - 1]);
-      return copy;
-    });
+    const updateLast = (updater: (m: DisplayMsg) => DisplayMsg) =>
+      setDisplay((prev) => {
+        if (!prev.length) return prev;
+        const copy = [...prev];
+        copy[copy.length - 1] = updater(copy[copy.length - 1]!);
+        return copy;
+      });
 
     const restart = () => {
       after(3800, () => {
@@ -647,7 +670,7 @@ const StreamingChat = ({ id }) => {
       });
     };
 
-    const streamMsg = (msgIdx, charIdx) => {
+    const streamMsg = (msgIdx: number, charIdx: number) => {
       const msg = script[msgIdx];
       const full = msg.t;
       const next = full.slice(0, charIdx + 1);
@@ -668,8 +691,8 @@ const StreamingChat = ({ id }) => {
       }
     };
 
-    const run = (msgIdx) => {
-      if (msgIdx >= script.length) {restart();return;}
+    const run = (msgIdx: number) => {
+      if (msgIdx >= script.length) { restart(); return; }
       const msg = script[msgIdx];
       if (msg.r === 'u') {
         setDisplay((prev) => [...prev, { r: 'u', text: msg.t, done: true }]);
@@ -688,9 +711,9 @@ const StreamingChat = ({ id }) => {
       }
     };
 
-    setDisplay([]);
+    queueMicrotask(() => setDisplay([]));
     after(350, () => run(0));
-    return () => {cancelled = true;};
+    return () => { cancelled = true; };
   }, [id]);
 
   return (
@@ -718,6 +741,7 @@ const StreamingChat = ({ id }) => {
 const FeatureExplorer = () => {
   const [active, setActive] = useState(FEATURES[0].id);
   const cur = FEATURES.find((f) => f.id === active);
+  if (!cur) return null;
   const placeholders = {
     briefing: 'Brief me on today...',
     memory: 'Remember that I...',
@@ -764,7 +788,7 @@ const FeatureExplorer = () => {
           </div>
           <div className="chat-input">
             <Ico.spark style={{ color: 'var(--blue-bright)' }} />
-            <input readOnly placeholder={placeholders[active]} />
+            <input readOnly placeholder={placeholders[active as keyof typeof placeholders]} />
             <button><Ico.send /></button>
           </div>
           <div className="line-footnote">Chatting via LINE</div>
@@ -884,8 +908,10 @@ const MetricsStrip = () => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
         const el = entry.target;
-        const idx = parseInt(el.dataset.idx, 10);
+        const idx = parseInt((el as HTMLElement).dataset.idx, 10);
         const m = METRICS[idx];
+        // @ts-expect-error window.countUp is injected via external script tag.
+        // @ts-expect-error window.countUp injected via script tag.
         if (window.countUp) {
           const cu = new window.countUp.CountUp(el, m.end, {
             duration: 2.2,
@@ -910,7 +936,7 @@ const MetricsStrip = () => {
         <div className="metrics-grid">
           {METRICS.map((m, i) =>
           <div key={i} className="metric-item reveal">
-              <div className="metric-value" ref={(el) => refs.current[i] = el} data-idx={i}>
+              <div className="metric-value" ref={(el: HTMLDivElement | null) => { refs.current[i] = el; }} data-idx={i}>
                 {(m.prefix || '') + m.end + (m.suffix || '')}
               </div>
               <div className="metric-label" style={{ whiteSpace: 'pre-line' }}>{m.label}</div>
@@ -987,9 +1013,11 @@ const CMD_TASKS = [
 const CMD_OPS = ['Email · 23 unread', 'Docs · Q3 deck updated', 'Reminders · 5 pending'];
 
 const GlobeSection = () => {
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
+    // @ts-expect-error window.THREE is injected via external script tag.
+    // @ts-expect-error window.THREE injected via script tag.
     if (!window.THREE || !canvasRef.current) return;
     const THREE = window.THREE;
     const canvas = canvasRef.current;
@@ -1024,7 +1052,7 @@ const GlobeSection = () => {
     scene.add(ring2);
     // Orbit dots
     const dotGeo = new THREE.SphereGeometry(0.022, 8, 8);
-    const dots = [];
+    const dots: { userData: { angle: number; speed: number; tilt: number }; position: { x: number; y: number; z: number } }[] = [];
     for (let i = 0; i < 24; i++) {
       const d = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({
         color: i % 4 === 0 ? 0xf5b942 : 0x60a5fa
@@ -1037,7 +1065,7 @@ const GlobeSection = () => {
     scene.add(new THREE.AmbientLight(0x1e3a6e, 1.4));
     const pt = new THREE.PointLight(0x3b82f6, 2.5, 10);pt.position.set(3, 2, 3);scene.add(pt);
     const pt2 = new THREE.PointLight(0xf5b942, 0.6, 10);pt2.position.set(-3, -1, -2);scene.add(pt2);
-    let frame;
+    let frame: number;
     const animate = () => {
       frame = requestAnimationFrame(animate);
       scene.rotation.y += 0.003;
@@ -1296,7 +1324,7 @@ const App = () => {
   useReveal();
   const [currency, setCurrency] = useState('THB');
 
-  const pricing = BASE_PRICING.map((p) => ({ ...p, price: PRICE_TABLE[p.name][currency] }));
+  const pricing = BASE_PRICING.map((p) => ({ ...p, price: PRICE_TABLE[p.name as keyof typeof PRICE_TABLE][currency as keyof typeof CURRENCY_LABEL] }));
 
   return (
     <React.Fragment>
@@ -1406,7 +1434,7 @@ const App = () => {
                     </li>
                 )}
                 </ul>
-                <a href={`/signup?plan=${p.name.toLowerCase()}`} className={`btn ${p.primary ? 'btn-gold' : 'btn-ghost'}`}>{p.cta}</a>
+                <Link href={`/signup?plan=${p.name.toLowerCase()}`} className={`btn ${p.primary ? 'btn-gold' : 'btn-ghost'}`}>{p.cta}</Link>
               </div>
             )}
           </div>
@@ -1432,8 +1460,8 @@ const App = () => {
             <h2 style={{ marginTop: 18 }}>Hand off your day to <span className="gold-text">LEKHA</span>.</h2>
             <p>Free for 7 days. Cancel anytime — she won’t take it personally.</p>
             <div className="cta-actions">
-              <a className="btn btn-gold" href="#start">Start now <Ico.bolt /></a>
-              <a className="btn btn-ghost" href="#demo"><Ico.chat /> Book a 1-on-1 session with the team</a>
+              <Link className="btn btn-gold" href="#start">Start now <Ico.bolt /></Link>
+              <Link className="btn btn-ghost" href="#demo"><Ico.chat /> Book a 1-on-1 session with the team</Link>
             </div>
           </div>
           <div className="cta-side">
@@ -1461,28 +1489,28 @@ const App = () => {
             <div>
               <h5>Product</h5>
               <ul style={{ gap: "4px" }}>
-                <li><a href="#features">Features</a></li>
-                <li><a href="#pricing">Pricing</a></li>
-                <li><a href="#caps">Integrations</a></li>
-                <li><a href="#faq">FAQ</a></li>
+                <li><Link href="#features">Features</Link></li>
+                <li><Link href="#pricing">Pricing</Link></li>
+                <li><Link href="#caps">Integrations</Link></li>
+                <li><Link href="#faq">FAQ</Link></li>
               </ul>
             </div>
             <div>
               <h5>Company</h5>
               <ul style={{ gap: "4px" }}>
-                <li><a href="#about">About</a></li>
+                <li><Link href="#about">About</Link></li>
                 <li><a href="https://lin.ee/NuCuel7" target="_blank" rel="noopener">Contact</a></li>
-                <li><a href="#use">Use cases</a></li>
-                <li><a href="#how">How it works</a></li>
+                <li><Link href="#use">Use cases</Link></li>
+                <li><Link href="#how">How it works</Link></li>
               </ul>
             </div>
             <div>
               <h5>Resources</h5>
               <ul style={{ gap: "4px" }}>
-                <li><a href="#terms">Terms</a></li>
-                <li><a href="#terms"></a></li>
+                <li><Link href="#terms">Terms</Link></li>
+                <li><Link href="#terms"></Link></li>
                 <li><a href="https://lin.ee/NuCuel7" target="_blank" rel="noopener">Help center</a></li>
-                <li><a href="#start"></a></li>
+                <li><Link href="#start"></Link></li>
               </ul>
             </div>
           </div>
@@ -1499,7 +1527,7 @@ const App = () => {
 };
 
 /* ---------- Currency toggle (replaces dev-only TweaksPanel) ---------- */
-const CurrencyToggle = ({ currency, setCurrency }) => (
+const CurrencyToggle = ({ currency, setCurrency }: { currency: string; setCurrency: (c: string) => void }) => (
   <div className="currency-toggle" role="group" aria-label="Currency">
     {['THB', 'USD'].map((c) => (
       <button

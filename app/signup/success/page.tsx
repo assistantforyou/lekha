@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function SuccessPage() {
   return (
     <div style={{
@@ -12,7 +14,7 @@ export default function SuccessPage() {
       <div style={{ maxWidth: 440, width: "100%" }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
             <div style={{
               width: 38, height: 38, borderRadius: 10,
               background: "linear-gradient(135deg, #1a7fe0, #0f4fa8)",
@@ -26,7 +28,7 @@ export default function SuccessPage() {
             <span style={{ fontFamily: "Sora, sans-serif", fontWeight: 700, fontSize: 20, color: "white", letterSpacing: "0.06em" }}>
               LEKHA
             </span>
-          </a>
+          </Link>
         </div>
 
         {/* Card */}
@@ -87,7 +89,7 @@ export default function SuccessPage() {
         </div>
 
         <p style={{ textAlign: "center", fontSize: 13, color: "rgba(200,215,240,0.3)", marginTop: 20 }}>
-          <a href="/" style={{ color: "rgba(200,215,240,0.3)", textDecoration: "none" }}>← Back to home</a>
+          <Link href="/" style={{ color: "rgba(200,215,240,0.3)", textDecoration: "none" }}>← Back to home</Link>
         </p>
       </div>
     </div>

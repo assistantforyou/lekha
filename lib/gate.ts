@@ -27,7 +27,7 @@ export function buildGate(): Gate {
  */
 export async function passesAllowlist(event: LineEvent, gate: Gate): Promise<boolean> {
   const userId = event.source?.userId;
-  if (!userId) return true; // no user → let downstream decide
+  if (!userId) return false; // malformed event → deny
 
   if (gate.admins.size === 0) {
     console.error("[webhook] ADMIN_LINE_USER_ID is not configured; denying private bot access");

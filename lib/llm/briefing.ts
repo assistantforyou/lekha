@@ -2,6 +2,7 @@ import { google } from "googleapis";
 import { getGoogleClient, hasGoogleConnection } from "@/lib/tools/google-auth";
 import { listTasks } from "@/lib/memory/tasks";
 import { listReminders } from "@/lib/tools/reminders";
+import { redis } from "@/lib/memory/redis";
 import { env } from "@/lib/env";
 
 type NewsStory = { title: string; url: string };
@@ -83,12 +84,17 @@ export async function buildMorningBriefing(
   userId: string,
   opts: { timezone: string; location: string | null; includeInbox: boolean },
 ): Promise<string | null> {
+  // Atomic dedup lock — prevents concurrent cron sweeps from double-sending.
+  const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone });
+  const lockKey = `briefing:${userId}:${todayDateStr}`;
+  const locked = await redis().set(lockKey, 1, { nx: true, ex: 60 * 60 });
+  if (!locked) return null;
+
   const sections: string[] = [];
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
 
   // "Today's date" string in the user's timezone, used to bucket reminders/events as "today"
-  const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone }); // "2026-05-15"
   const endOfToday = new Date(`${todayDateStr}T23:59:59`).getTime(); // close enough for bucketing
 
   const [weatherResult, tasksResult, remindersResult, calendarResult, geoResult, econResult, inboxResult] =

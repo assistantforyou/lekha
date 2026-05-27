@@ -3,7 +3,8 @@ import { Receiver } from "@upstash/qstash";
 import { z } from "zod";
 import { env, hasQStash } from "@/lib/env";
 import { push, text as textMsg } from "@/lib/line/client";
-import { consumeReminder } from "@/lib/tools/reminders";
+import { redis } from "@/lib/memory/redis";
+import { consumeReminder, reminderKey, type StoredReminder } from "@/lib/tools/reminders";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,13 +57,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // Final fire: consume (idempotency gate) then push.
-  const reminder = await consumeReminder(userId, id);
+  // Final fire: push first, then consume. If push fails, QStash will retry.
+  const reminder = await redis().get<StoredReminder>(reminderKey(userId, id));
   if (!reminder) {
     // Already fired or cancelled — return 200 so QStash doesn't retry.
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  await push(userId, [textMsg(`⏰ Reminder: ${message}`)]);
+  try {
+    await push(userId, [textMsg(`⏰ Reminder: ${message}`)]);
+  } catch (err) {
+    console.error("[reminder] push failed", userId, err);
+    return new NextResponse("push failed", { status: 500 });
+  }
+
+  await consumeReminder(userId, id);
   return NextResponse.json({ ok: true });
 }

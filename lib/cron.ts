@@ -51,22 +51,39 @@ export async function scheduleOneShot(
 
 /**
  * Convert HH:mm in a given IANA timezone to a UTC cron "min hour * * *" expression.
- * Approximation: uses the current UTC offset of that TZ. DST transitions can cause
- * the briefing to land an hour off twice a year — acceptable for v1.
+ * Uses Intl.DateTimeFormat to handle half-hour offsets (e.g. Asia/Kolkata +5:30,
+ * Asia/Tehran +3:30) correctly. DST transitions can still cause the briefing to
+ * land an hour off twice a year — acceptable for v1.
  */
 export function localTimeToUtcCron(hhmm: string, timezone: string): string | null {
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
   if (!m) return null;
-  const h = parseInt(m[1]!, 10);
-  const min = parseInt(m[2]!, 10);
-  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
-  // Compute the TZ offset for "today" at the requested wall-clock time.
-  const now = new Date();
-  const local = new Date(
-    now.toLocaleString("en-US", { timeZone: timezone }),
-  );
-  const offsetMs = local.getTime() - now.getTime();
-  const localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, min);
-  const utc = new Date(localMidnight.getTime() - offsetMs);
-  return `${utc.getUTCMinutes()} ${utc.getUTCHours()} * * *`;
+  const targetH = parseInt(m[1]!, 10);
+  const targetMin = parseInt(m[2]!, 10);
+  if (targetH < 0 || targetH > 23 || targetMin < 0 || targetMin > 59) return null;
+
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false,
+  });
+
+  let candidate = new Date();
+  for (let i = 0; i < 5; i++) {
+    const parts = dtf.formatToParts(candidate);
+    const getPart = (type: string) => {
+      const p = parts.find((x) => x.type === type);
+      return p ? parseInt(p.value, 10) : NaN;
+    };
+    const h = getPart("hour");
+    const min = getPart("minute");
+    const sec = getPart("second");
+    const diffSec = (targetH - h) * 3600 + (targetMin - min) * 60 - sec;
+    if (diffSec === 0) break;
+    candidate = new Date(candidate.getTime() + diffSec * 1000);
+  }
+
+  return `${candidate.getUTCMinutes()} ${candidate.getUTCHours()} * * *`;
 }
