@@ -4,8 +4,6 @@
  * can review. Avoids the model paraphrasing/dropping detail.
  */
 
-const DISPLAY_TZ = "Asia/Bangkok";
-
 type ToolCall = {
   toolName: string;
   input?: unknown;
@@ -14,6 +12,7 @@ type ToolCall = {
 export function renderDraftsBlock(
   toolCalls: ReadonlyArray<ToolCall>,
   fromEmailFallback: string | null,
+  timezone?: string,
 ): string | null {
   const parts: string[] = [];
   for (const call of toolCalls) {
@@ -72,31 +71,52 @@ export function renderDraftsBlock(
         "📅 Draft calendar event",
         `Calendar: ${args.fromEmail ?? fromEmailFallback ?? "(active account)"}`,
         `Title: ${args.summary ?? "(missing)"}`,
-        `When: ${fmtRange(args.startISO, args.endISO)}`,
+        `When: ${fmtRange(args.startISO, args.endISO, timezone)}`,
       ];
       if (args.location) lines.push(`Where: ${args.location}`);
       if (args.attendees?.length) lines.push(`Attendees: ${args.attendees.join(", ")}`);
       if (args.description) lines.push("", args.description.trim());
       parts.push(lines.join("\n"));
+    } else if (call.toolName === "schedule_email") {
+      const args = call.input as {
+        sendAt?: string;
+        to?: string[];
+        cc?: string[];
+        bcc?: string[];
+        subject?: string;
+        body?: string;
+        fromEmail?: string;
+      };
+      const lines = [
+        "📧 Scheduled email",
+        `From: ${args.fromEmail ?? fromEmailFallback ?? "(active account)"}`,
+        `To: ${(args.to ?? []).join(", ") || "(missing)"}`,
+        `Send at: ${args.sendAt ? fmtDate(args.sendAt, timezone) : "(missing)"}`,
+        `Subject: ${args.subject ?? "(missing)"}`,
+      ];
+      if (args.cc?.length) lines.push(`Cc: ${args.cc.join(", ")}`);
+      if (args.bcc?.length) lines.push(`Bcc: ${args.bcc.join(", ")}`);
+      lines.push("", (args.body ?? "(missing)").trim());
+      parts.push(lines.join("\n"));
     }
   }
   if (!parts.length) return null;
-  return `${parts.join("\n\n———\n\n")}\n\nReply YES to send/create all of the above (or describe edits).`;
+  return `${parts.join("\n\n———\n\n")}\n\nReply YES to send/create/schedule all of the above (or describe edits).`;
 }
 
-function fmtRange(start?: string, end?: string): string {
+function fmtRange(start?: string, end?: string, timezone?: string): string {
   try {
-    const s = start ? fmtDate(start) : "?";
-    const e = end ? fmtDate(end) : "?";
-    return `${s} → ${e} (Bangkok)`;
+    const s = start ? fmtDate(start, timezone) : "?";
+    const e = end ? fmtDate(end, timezone) : "?";
+    return `${s} → ${e} (${timezone ?? "UTC"})`;
   } catch {
     return `${start ?? "?"} → ${end ?? "?"}`;
   }
 }
 
-function fmtDate(iso: string): string {
+function fmtDate(iso: string, timezone?: string): string {
   return new Date(iso).toLocaleString("en-US", {
-    timeZone: DISPLAY_TZ,
+    timeZone: timezone ?? "UTC",
     weekday: "short",
     month: "short",
     day: "numeric",

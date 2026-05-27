@@ -2,6 +2,7 @@ import { GoogleAuthRequired } from "@/lib/errors";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { sendEmail } from "@/lib/tools/email";
 import { createCalendarEvent } from "@/lib/tools/calendar";
+import { executeScheduleEmail } from "@/lib/tools/scheduled-email";
 import type { PendingAction } from "@/lib/confirm";
 import { logSent } from "@/lib/memory/sent-log";
 
@@ -78,6 +79,19 @@ async function executeOne(userId: string, action: PendingAction): Promise<string
       }
       console.error("[calendar] failed", err);
       return `I couldn't create the calendar event: ${errMsg(err)}`;
+    }
+  }
+  if (action.kind === "schedule_email") {
+    try {
+      const r = await executeScheduleEmail(userId, action);
+      return `✅ Scheduled email "${action.subject}" for ${r.sendAt}.`;
+    } catch (err) {
+      if (unwrapAuthRequired(err)) {
+        console.warn("[schedule_email] Google auth expired/revoked for user", userId, "—", errMsg(err));
+        return `Your Google account needs to be reconnected (the authorization token has expired or been revoked). Tap the link to reconnect:\n${await buildConnectUrl(userId)}`;
+      }
+      console.error("[schedule_email] failed", err);
+      return `I couldn't schedule the email: ${errMsg(err)}`;
     }
   }
   return "Done.";

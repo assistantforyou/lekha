@@ -43,7 +43,7 @@ const legacyTokensKey = (userId: string) => `google:tokens:${userId}`; // pre-mu
 const stateKey = (nonce: string) => `oauth:state:${nonce}`;
 const connectLinkKey = (sigB64u: string) => `oauth:connect_link:${sigB64u}`;
 
-function oauth2Client() {
+export function oauth2Client() {
   const e = env();
   if (!hasGoogleOAuth()) throw new Error("Google OAuth env vars not set");
   return new google.auth.OAuth2(e.GOOGLE_CLIENT_ID, e.GOOGLE_CLIENT_SECRET, e.GOOGLE_REDIRECT_URI);
@@ -220,6 +220,20 @@ export async function removeAccount(userId: string, email: string): Promise<bool
     blob.activeEmail = blob.accounts[0]?.email ?? null;
   }
   await saveAccounts(userId, blob);
+
+  // Revoke the refresh token at Google before deleting our copy.
+  const stored = await redis().get<string>(tokensKey(userId, email));
+  if (stored) {
+    try {
+      const tokens = JSON.parse(decrypt(stored)) as StoredTokens;
+      if (tokens.refresh_token) {
+        await oauth2Client().revokeToken(tokens.refresh_token);
+      }
+    } catch (err) {
+      console.warn("[google-auth] revokeToken failed (non-fatal)", err);
+    }
+  }
+
   await redis().del(tokensKey(userId, email));
   return blob.accounts.length !== before;
 }

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { google } from "googleapis";
+import crypto from "crypto";
 import { withGoogleClient, guardGoogleApiCall } from "./with-google";
 import { getGoogleClient } from "./google-auth";
 import { appendPending, type SendEmailAction } from "@/lib/confirm";
@@ -287,7 +288,7 @@ function buildRawMime(opts: {
     return Buffer.from(`${headers}\r\n\r\n${bodyB64}`, "utf8").toString("base64url");
   }
 
-  const boundary = `lekha_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+  const boundary = `lekha_${crypto.randomBytes(16).toString("hex")}_${Date.now()}`;
   const parts: string[] = [];
   parts.push(`--${boundary}`);
   parts.push("Content-Type: text/plain; charset=utf-8");

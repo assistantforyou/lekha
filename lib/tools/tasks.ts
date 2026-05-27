@@ -21,11 +21,14 @@ export function buildTaskTools(userId: string) {
         dueAt: z.string().optional().describe("ISO 8601 deadline. Optional."),
       }),
       execute: async ({ title, notes, dueAt }) => {
-        const t = await addTask(userId, {
-          title,
-          notes,
-          dueAt: dueAt ? new Date(dueAt).getTime() : undefined,
-        });
+        let dueAtTs: number | undefined;
+        if (dueAt) {
+          if (!Number.isFinite(new Date(dueAt).getTime())) {
+            return { ok: false, error: "Invalid dueAt date" };
+          }
+          dueAtTs = new Date(dueAt).getTime();
+        }
+        const t = await addTask(userId, { title, notes, dueAt: dueAtTs });
         return { ok: true, task: t };
       },
     }),
@@ -68,7 +71,12 @@ export function buildTaskTools(userId: string) {
         const patch: Parameters<typeof updateTask>[2] = {};
         if (title !== undefined) patch.title = title;
         if (notes !== undefined) patch.notes = notes;
-        if (dueAt !== undefined) patch.dueAt = new Date(dueAt).getTime();
+        if (dueAt !== undefined) {
+          if (!Number.isFinite(new Date(dueAt).getTime())) {
+            return { ok: false, error: "Invalid dueAt date" };
+          }
+          patch.dueAt = new Date(dueAt).getTime();
+        }
         const t = await updateTask(userId, id, patch);
         return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
       },

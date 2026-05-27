@@ -23,6 +23,7 @@ function decodeBody(part: {
   mimeType?: string | null;
 }): string {
   // Walk for text/plain first, then text/html.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stack: any[] = [part];
   let plain = "";
   let html = "";
@@ -138,7 +139,7 @@ export function buildGmailInboxTools(userId: string) {
         return withGoogleClient(userId, fromEmail, [GMAIL_RO], async ({ client }) => {
           const gmail = google.gmail({ version: "v1", auth: client });
           const q = [
-            `newer_than:${Math.ceil(hours / 24) || 1}d`,
+            `newer_than:${hours}h`,
             unread_only ? "is:unread" : "",
             "category:primary",
           ]

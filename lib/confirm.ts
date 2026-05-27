@@ -36,7 +36,18 @@ export type CreateCalendarEventAction = {
   fromEmail?: string;
 };
 
-export type PendingAction = SendEmailAction | CreateCalendarEventAction;
+export type ScheduleEmailAction = {
+  kind: "schedule_email";
+  sendAt: string;
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
+  subject: string;
+  body: string;
+  fromEmail?: string;
+};
+
+export type PendingAction = SendEmailAction | CreateCalendarEventAction | ScheduleEmailAction;
 
 const key = (userId: string) => `pending:${userId}`;
 

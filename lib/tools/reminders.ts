@@ -10,7 +10,7 @@ const qstash = () => {
   return new QStash({ token: env().QSTASH_TOKEN! });
 };
 
-type StoredReminder = {
+export type StoredReminder = {
   id: string;
   message: string;
   fireAt: number;
@@ -20,8 +20,8 @@ type StoredReminder = {
   cron?: string;
 };
 
-const reminderKey = (userId: string, id: string) => `reminder:${userId}:${id}`;
-const reminderListKey = (userId: string) => `reminder:${userId}:_list`;
+export const reminderKey = (userId: string, id: string) => `reminder:${userId}:${id}`;
+export const reminderListKey = (userId: string) => `reminder:${userId}:_list`;
 
 export async function listReminders(userId: string): Promise<StoredReminder[]> {
   const ids = await redis().smembers(reminderListKey(userId));
@@ -123,6 +123,8 @@ export function buildReminderTools(userId: string) {
             id: r.id,
             message: r.message,
             fireAt: new Date(r.fireAt).toISOString(),
+            type: r.cron ? "recurring" : "one-shot" as const,
+            cron: r.cron ?? undefined,
           })),
         };
       },
@@ -191,7 +193,7 @@ export function buildReminderTools(userId: string) {
             qstashId: sched.scheduleId,
             cron: cronUtc,
           };
-          await redis().set(reminderKey(userId, id), stored);
+          await redis().set(reminderKey(userId, id), stored, { ex: 60 * 60 * 24 * 400 });
           await redis().sadd(reminderListKey(userId), id);
           await redis().expire(reminderListKey(userId), 60 * 60 * 24 * 400);
           return { ok: true, id, cron: cronUtc, days };
@@ -208,9 +210,8 @@ export function buildReminderTools(userId: string) {
 }
 
 export async function consumeReminder(userId: string, id: string): Promise<StoredReminder | null> {
-  const r = await redis().get<StoredReminder>(reminderKey(userId, id));
+  const r = await redis().getdel<StoredReminder>(reminderKey(userId, id));
   if (!r) return null;
-  await redis().del(reminderKey(userId, id));
   await redis().srem(reminderListKey(userId), id);
   return r;
 }

@@ -122,13 +122,15 @@ export function buildListTools(userId: string) {
         if (!items.length && !(await redis().sismember(namesKey(userId), oldN))) {
           return { ok: false as const, error: `List "${oldN}" not found.` };
         }
-        // Copy items to new key
+        // Atomic copy + delete
+        const tx = redis().multi();
         if (items.length) {
-          await redis().rpush(listKey(userId, newN), ...items);
+          tx.rpush(listKey(userId, newN), ...items);
         }
-        await redis().del(listKey(userId, oldN));
-        await redis().srem(namesKey(userId), oldN);
-        await redis().sadd(namesKey(userId), newN);
+        tx.del(listKey(userId, oldN));
+        tx.srem(namesKey(userId), oldN);
+        tx.sadd(namesKey(userId), newN);
+        await tx.exec();
         return { ok: true as const, oldName: oldN, newName: newN, itemsMoved: items.length };
       },
     }),

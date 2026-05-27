@@ -95,11 +95,12 @@ type ProcessedResult = {
   googleErr: { status: number | null; message: string } | null;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function processResult(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   result: any,
   activeEmail: string | null,
   allCalls: { toolName: string; input: unknown }[],
+  timezone?: string,
 ): ProcessedResult {
   let authNeeded: { connectUrl: string; reason: string } | null = null;
   let apiDisabled: { api: string; enableUrl: string | null; message: string } | null = null;
@@ -147,7 +148,7 @@ function processResult(
     }
   }
 
-  const draftBlock = renderDraftsBlock(allCalls, activeEmail);
+  const draftBlock = renderDraftsBlock(allCalls, activeEmail, timezone);
   const modelText = result.text?.trim() ?? "";
 
   if (toolErrors.length > 0 && !draftBlock) {
@@ -329,10 +330,10 @@ export async function runAgent(
     console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
     aTick("runAgent:gemini-done", { steps: result.steps.length, toolCalls: allCalls.length });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const processed = processResult(result as any, accounts.activeEmail, allCalls);
+    const processed = processResult(result as any, accounts.activeEmail, allCalls, settings?.timezone);
     const text = formatProcessed(processed);
     const confirmDraft = allCalls.some(
-      (c) => c.toolName === "draft_email" || c.toolName === "draft_calendar_event",
+      (c) => c.toolName === "draft_email" || c.toolName === "draft_calendar_event" || c.toolName === "schedule_email",
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const flexMessages = buildFlexFromToolResults(result as any);
@@ -358,7 +359,7 @@ export async function runAgent(
   } catch (err) {
     // Bug 3: timeout after tools already completed — synthesize from what finished
     if (err instanceof AgentTimeoutError && succeededTools.length > 0) {
-      const draftBlock = renderDraftsBlock(allCalls, accounts.activeEmail);
+      const draftBlock = renderDraftsBlock(allCalls, accounts.activeEmail, settings.timezone);
       const text = draftBlock
         ? stripMarkdown(draftBlock)
         : stripMarkdown(

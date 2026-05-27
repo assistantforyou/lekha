@@ -61,8 +61,8 @@ All bugs found across phases 00–04, de-duplicated and prioritized.
 | 23 | README claims 13 tools; registry has 51 | `lib/tools/index.ts` | Stale diagram. |
 | 24 | CLAUDE.md says `stepCountIs(8)`; code uses `stepCountIs(3)` | `app/api/line/webhook/route.ts:719` | — |
 | 25 | CLAUDE.md says Gemini timeout 12s; code uses 20s | `app/api/line/webhook/route.ts:763` | — |
-| 26 | CLAUDE.md says Groq cascade `llama-4-scout → gpt-oss-120b`; code has `llama-4-maverick → llama-4-scout → gpt-oss-120b` | `lib/llm/provider.ts:43–49` | maverick not documented |
-| 27 | `GROQ_API_KEY` and `ADMIN_LINE_USER_ID` missing from `.env.example` | `lib/env.ts:32,40` | Critical for access control and fallback LLM |
+
+| 27 | `ADMIN_LINE_USER_ID` missing from `.env.example` | `lib/env.ts:40` | Critical for access control |
 | 28 | `lib/llm/health.ts` not mentioned in CLAUDE.md or README | `lib/llm/health.ts` | Used by cascade but undocumented |
 | 29 | Health endpoint implied to check dependencies; it doesn't | `app/api/health/route.ts` | — |
 | 30 | `render-drafts.ts` Bangkok TZ not documented anywhere | `lib/llm/render-drafts.ts:7` | Users in other TZs silently get wrong times in drafts |

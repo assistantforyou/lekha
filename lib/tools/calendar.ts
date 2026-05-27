@@ -6,6 +6,7 @@ import { withGoogleClient, guardGoogleApiCall } from "./with-google";
 import { appendPending, type CreateCalendarEventAction } from "@/lib/confirm";
 
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+const CAL_READ_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 
 function brief(e: {
   summary?: string | null;
@@ -73,7 +74,7 @@ export function buildCalendarTools(userId: string) {
         fromEmail: z.string().email().optional(),
       }),
       execute: async ({ days, fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [CAL_SCOPE], async ({ client }) => {
+        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client }) => {
           const calendar = google.calendar({ version: "v3", auth: client });
           const now = new Date();
           const max = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
@@ -105,7 +106,7 @@ export function buildCalendarTools(userId: string) {
       description: "Quick today-view of the user's calendar — every event today with start/end times.",
       inputSchema: z.object({ fromEmail: z.string().email().optional() }),
       execute: async ({ fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [CAL_SCOPE], async ({ client }) => {
+        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client }) => {
           const calendar = google.calendar({ version: "v3", auth: client });
           const start = new Date(); start.setHours(0, 0, 0, 0);
           const end = new Date();   end.setHours(23, 59, 59, 999);
@@ -129,7 +130,7 @@ export function buildCalendarTools(userId: string) {
       description: "Week-view of upcoming calendar events (next 7 days). Use for 'what's my week look like' / 'organize my calendar' questions.",
       inputSchema: z.object({ fromEmail: z.string().email().optional() }),
       execute: async ({ fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [CAL_SCOPE], async ({ client }) => {
+        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client }) => {
           const calendar = google.calendar({ version: "v3", auth: client });
           const start = new Date();
           const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -160,7 +161,7 @@ export function buildCalendarTools(userId: string) {
         fromEmail: z.string().email().optional(),
       }),
       execute: async ({ startISO, endISO, slotMinutes, workdayStartHour, workdayEndHour, fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [CAL_SCOPE], async ({ client }) => {
+        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client }) => {
           const calendar = google.calendar({ version: "v3", auth: client });
           const r = await calendar.freebusy.query({
             requestBody: {

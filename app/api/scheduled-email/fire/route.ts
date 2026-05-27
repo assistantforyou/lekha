@@ -45,8 +45,9 @@ export async function POST(req: NextRequest) {
   const sched = await consumeScheduledEmail(body.userId, body.id);
   if (!sched) return NextResponse.json({ ok: true, skipped: true });
 
+  let sendResult: { from: string } | null = null;
   try {
-    const r = await sendEmail(body.userId, {
+    sendResult = await sendEmail(body.userId, {
       kind: "send_email",
       to: sched.draft.to,
       cc: sched.draft.cc,
@@ -55,25 +56,33 @@ export async function POST(req: NextRequest) {
       body: sched.draft.body,
       fromEmail: sched.draft.fromEmail,
     });
-    await logSent(body.userId, {
-      kind: "email",
-      summary: `[scheduled] ${sched.draft.subject} → ${sched.draft.to.join(", ")}`,
-      detail: {
-        to: sched.draft.to,
-        cc: sched.draft.cc,
-        subject: sched.draft.subject,
-        from: r.from,
-        scheduledAt: new Date(sched.scheduledForTs).toISOString(),
-      },
-    });
     await push(body.userId, [
-      textMsg(`📤 Scheduled email sent: "${sched.draft.subject}" → ${sched.draft.to.join(", ")} (from ${r.from}).`),
+      textMsg(`📤 Scheduled email sent: "${sched.draft.subject}" → ${sched.draft.to.join(", ")} (from ${sendResult.from}).`),
     ]);
   } catch (err) {
     console.error("[scheduled-email] send failed", err);
     await push(body.userId, [
       textMsg(`⚠️ Scheduled email failed: "${sched.draft.subject}". ${err instanceof Error ? err.message : ""}`),
     ]);
+  }
+
+  // Log independently so a Redis failure doesn't mask a successful send.
+  try {
+    if (sendResult) {
+      await logSent(body.userId, {
+        kind: "email",
+        summary: `[scheduled] ${sched.draft.subject} → ${sched.draft.to.join(", ")}`,
+        detail: {
+          to: sched.draft.to,
+          cc: sched.draft.cc,
+          subject: sched.draft.subject,
+          from: sendResult.from,
+          scheduledAt: new Date(sched.scheduledForTs).toISOString(),
+        },
+      });
+    }
+  } catch (err) {
+    console.error("[scheduled-email] logSent failed", err);
   }
 
   return NextResponse.json({ ok: true });

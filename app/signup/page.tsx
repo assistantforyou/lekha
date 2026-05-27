@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Suspense } from "react";
 
 const PLANS = {
@@ -68,7 +69,7 @@ function SignupInner() {
       <div style={{ maxWidth: 420, width: "100%" }}>
         {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <a href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
             <div style={{
               width: 38, height: 38, borderRadius: 10,
               background: "linear-gradient(135deg, #1a7fe0, #0f4fa8)",
@@ -79,7 +80,7 @@ function SignupInner() {
             <span style={{ fontFamily: "Sora, sans-serif", fontWeight: 700, fontSize: 20, color: "white", letterSpacing: "0.06em" }}>
               LEKHA
             </span>
-          </a>
+          </Link>
         </div>
 
         {/* Card */}
@@ -137,7 +138,7 @@ function SignupInner() {
           </div>
 
           {/* LINE login button */}
-          <a
+          <Link
             href={`/api/auth/line/start?plan=${plan}`}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
@@ -152,7 +153,7 @@ function SignupInner() {
           >
             <LineIcon />
             Continue with LINE
-          </a>
+          </Link>
 
           <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 18 }}>
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="rgba(200,215,240,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -169,20 +170,20 @@ function SignupInner() {
         <p style={{ textAlign: "center", fontSize: 13, color: "rgba(200,215,240,0.4)", marginTop: 16 }}>
           {plan === "monthly" ? (
             <>Want to save 17%?{" "}
-              <a href="/signup?plan=yearly" style={{ color: "rgba(96,165,250,0.75)", textDecoration: "none" }}>
+              <Link href="/signup?plan=yearly" style={{ color: "rgba(96,165,250,0.75)", textDecoration: "none" }}>
                 Switch to yearly
-              </a>
+              </Link>
             </>
           ) : (
             <>Prefer monthly?{" "}
-              <a href="/signup?plan=monthly" style={{ color: "rgba(96,165,250,0.75)", textDecoration: "none" }}>
+              <Link href="/signup?plan=monthly" style={{ color: "rgba(96,165,250,0.75)", textDecoration: "none" }}>
                 Switch to monthly
-              </a>
+              </Link>
             </>
           )}
         </p>
         <p style={{ textAlign: "center", fontSize: 13, color: "rgba(200,215,240,0.3)", marginTop: 8 }}>
-          <a href="/" style={{ color: "rgba(200,215,240,0.3)", textDecoration: "none" }}>← Back to home</a>
+          <Link href="/" style={{ color: "rgba(200,215,240,0.3)", textDecoration: "none" }}>← Back to home</Link>
         </p>
       </div>
     </div>

@@ -52,6 +52,17 @@ export async function guardGoogleApiCall<T>(fn: () => Promise<T>): Promise<T> {
  *  2. "API has not been used / disabled" → user must enable the API in Cloud Console.
  *  3. Other Google API errors → surface message + status code.
  */
+const GOOGLE_API_TIMEOUT_MS = 30000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms),
+    ),
+  ]);
+}
+
 export async function withGoogleClient<T>(
   userId: string,
   fromEmail: string | undefined,
@@ -63,7 +74,7 @@ export async function withGoogleClient<T>(
 ): Promise<T | AuthRequiredResult | ApiDisabledResult | GoogleErrorResult> {
   try {
     const { client, email } = await getGoogleClient(userId, fromEmail, requiredScopes);
-    return await fn({ client, email });
+    return await withTimeout(fn({ client, email }), GOOGLE_API_TIMEOUT_MS, "Google API call");
   } catch (err) {
     if (err instanceof GoogleAuthRequired) {
       return {
