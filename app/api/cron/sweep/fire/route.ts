@@ -4,8 +4,8 @@ import { z } from "zod";
 import { env, hasQStash } from "@/lib/env";
 import { getSettings, updateSettings } from "@/lib/memory/settings";
 import { hasGoogleConnection } from "@/lib/tools/google-auth";
-import { push } from "@/lib/line/client";
-import { briefingFlex } from "@/lib/line/flex";
+import { push, type LineMessage } from "@/lib/line/client";
+import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
 import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
 import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
 import { sweepPreMeetingPushes, sweepTaskDeadlines, sweepTaskCheckIn } from "@/lib/sweep";
@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
   const raw = await req.text();
   const sig = req.headers.get("upstash-signature") ?? req.headers.get("Upstash-Signature");
   const auth = req.headers.get("authorization");
-  const allowManual = auth === `Bearer ${env().CRON_MANUAL_SECRET}`;
+  const manualSecret = env().CRON_MANUAL_SECRET;
+  const allowManual = !!manualSecret && auth === `Bearer ${manualSecret}`;
 
   if (!allowManual) {
     if (!sig) return new NextResponse("missing signature", { status: 401 });
@@ -72,7 +73,12 @@ export async function POST(req: NextRequest) {
         includeInbox: settings.inboxBriefingEnabled,
       });
       if (briefing) {
-        await push(userId, [briefingFlex("morning", briefing)]);
+        const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
+        if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
+        if (briefing.inbox && briefing.inbox.length > 0) {
+          msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
+        }
+        await push(userId, msgs);
         await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
       }
     }

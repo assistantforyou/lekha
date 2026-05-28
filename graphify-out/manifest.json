@@ -1,0 +1,787 @@
+{
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/postcss.config.mjs": {
+    "mtime": 1779893610.0166452,
+    "ast_hash": "239f3ebf717465dc636818a1a619398d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tailwind.config.ts": {
+    "mtime": 1779893610.065018,
+    "ast_hash": "5037763c0d14fb9fc215b9ec91580749",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/package.json": {
+    "mtime": 1779893610.0161026,
+    "ast_hash": "8e714e717354c9449d013b91dff4b073",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tsconfig.json": {
+    "mtime": 1779893610.0687056,
+    "ast_hash": "f92f7860f1c68bb3ac2fe83b2c7c74f0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/vitest.config.ts": {
+    "mtime": 1779893610.0688448,
+    "ast_hash": "b9b32772668f07487d03353e4825cf9d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/next.config.ts": {
+    "mtime": 1779895544.6138384,
+    "ast_hash": "56c0c540171ab7f66d3db8b79ad2c588",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/layout.tsx": {
+    "mtime": 1779893609.872885,
+    "ast_hash": "3f1ba9f89bb43b99b16c23a51ff4f17b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/page.tsx": {
+    "mtime": 1779895544.605455,
+    "ast_hash": "900b21de1b9d0efb948ff97f7d90294a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/signup/page.tsx": {
+    "mtime": 1779895544.60572,
+    "ast_hash": "9319f3b15fb5eb9be6334e1c5193e33a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/signup/success/page.tsx": {
+    "mtime": 1779895544.6059763,
+    "ast_hash": "89af6602a9f1b6d5e3b7e981177e8d46",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/oauth/google/callback/route.ts": {
+    "mtime": 1779895544.6041222,
+    "ast_hash": "6190f534dfa5e98a267c5c67147d22ff",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/auth/line/start/route.ts": {
+    "mtime": 1779893609.8681757,
+    "ast_hash": "d8deea04e87c6f230658757b8d5a96b1",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/auth/line/callback/route.ts": {
+    "mtime": 1779893609.8677812,
+    "ast_hash": "f9b3985b4fb80b9f63f438b7f5d7082b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/health/route.ts": {
+    "mtime": 1779895544.603757,
+    "ast_hash": "f9034fd17f9e48cdab297a53c8f1382b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/subscribe/route.ts": {
+    "mtime": 1779895544.6048567,
+    "ast_hash": "eb00574ba786cfa544a14bbd16f5fed4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/line/webhook/route.ts": {
+    "mtime": 1779893609.8698397,
+    "ast_hash": "bcad8d15f362cd00cd14271c253cf260",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/dev/chat/route.ts": {
+    "mtime": 1779893609.8693058,
+    "ast_hash": "8c2555727e2e2bbad198283a05ea2733",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/scheduled-email/fire/route.ts": {
+    "mtime": 1779895544.6046562,
+    "ast_hash": "e466da99d3780ffebca7c16070a2b124",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/webhooks/stripe/route.ts": {
+    "mtime": 1779893609.8714066,
+    "ast_hash": "485c63b53ce9e08a0aeaf8cd74091a39",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/reminders/fire/route.ts": {
+    "mtime": 1779895544.6044357,
+    "ast_hash": "f4ee3b8308440b104acee4c042bd0e59",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/cron/sweep/route.ts": {
+    "mtime": 1779895544.6034274,
+    "ast_hash": "77f2c3aa36ddaad6452a3e95af4a2ff4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/api/cron/sweep/fire/route.ts": {
+    "mtime": 1779895471.9805667,
+    "ast_hash": "907365cdeeba22bb89df90e616cec4bd",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/connect/[token]/page.tsx": {
+    "mtime": 1779893609.8718657,
+    "ast_hash": "d2fa410b82b147666044e4a356699df2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tests/briefing-gate.test.ts": {
+    "mtime": 1779893610.0664697,
+    "ast_hash": "371184482ef6641f159d8b487c53bf79",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tests/flex.test.ts": {
+    "mtime": 1779893610.0680878,
+    "ast_hash": "51e918a5f0aa7623568fe400ba030f85",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tests/history.test.ts": {
+    "mtime": 1779893610.0683067,
+    "ast_hash": "bc76040cea6aba56241dc5b757c40e0c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tests/cron.test.ts": {
+    "mtime": 1779893610.0675004,
+    "ast_hash": "4b3d6df3a0ae1d8be5192d2c4966546a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tests/confirm.test.ts": {
+    "mtime": 1779893610.067216,
+    "ast_hash": "18db77e3c7f6b5cf0c6501710e1a043d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tests/verify.test.ts": {
+    "mtime": 1779893610.068477,
+    "ast_hash": "efb2b30131815c30e0e5bec10d3f3453",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tests/allowlist.test.ts": {
+    "mtime": 1779893610.0652153,
+    "ast_hash": "68d96486012c668f860d1cd27ad26c2f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tests/facts.test.ts": {
+    "mtime": 1779893610.067945,
+    "ast_hash": "fa28224317f3b7de484a10d3a8598a35",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/tests/crypto.test.ts": {
+    "mtime": 1779893610.0678113,
+    "ast_hash": "ca7fe86c9b7cb09510429a0c466877d7",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/components/ui/button.tsx": {
+    "mtime": 1779893609.8878586,
+    "ast_hash": "4d711c29eb08a0342d9cb1ac4317b59e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/components/marketing/tracked-link.tsx": {
+    "mtime": 1779893609.8872316,
+    "ast_hash": "6fa2ffeeb4e8ac8862f42e4245ef5b15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/components/marketing/reveal.tsx": {
+    "mtime": 1779893609.8866096,
+    "ast_hash": "5887a4b7943192dc3fdf4b5476a650b4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/scripts/measure-prompt.ts": {
+    "mtime": 1779893610.0642974,
+    "ast_hash": "9799c98f50e4b09edd9fd2e060e20b7a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/confirm.ts": {
+    "mtime": 1779895544.6075628,
+    "ast_hash": "fa45cc94d938706262e76fd34e092306",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/errors.ts": {
+    "mtime": 1779893609.891446,
+    "ast_hash": "c8a22c91f57dc411e51aae9563563e3f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/sweep.ts": {
+    "mtime": 1779893609.9025197,
+    "ast_hash": "6d397cbfd1e3adbf9af52636daae86ba",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/gate.ts": {
+    "mtime": 1779895544.6082292,
+    "ast_hash": "065e0648a2a723d66eebc0ec8e5d5c91",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/utils.ts": {
+    "mtime": 1779893609.9126384,
+    "ast_hash": "618d00bf4537ce84f9ba62c5b215fb30",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/pending-runner.ts": {
+    "mtime": 1779895544.6103292,
+    "ast_hash": "bbaec055bb5246eaa7e4baa90a25ad0f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/maybe-extract.ts": {
+    "mtime": 1779893609.8981621,
+    "ast_hash": "07f25f3bb4cc4ae8ea818756fbe0ce4f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/admin-commands.ts": {
+    "mtime": 1779893609.8882618,
+    "ast_hash": "6d0e09116a5e2001edb64204fec78478",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/ratelimit.ts": {
+    "mtime": 1779893609.9020107,
+    "ast_hash": "02e1bbb845d885f9ab13a5789043d0a2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/webhook-postback.ts": {
+    "mtime": 1779895544.5557194,
+    "ast_hash": "ecb06bf90b4b9b0c363832dbca74171a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/enrich-reply.ts": {
+    "mtime": 1779893609.8898287,
+    "ast_hash": "6a3cb96eeeaffc73e277905d2b0b6c0e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/cron.ts": {
+    "mtime": 1779895544.6078014,
+    "ast_hash": "fe41040a10906eda79f5a2810fd6a85d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/shortcuts.ts": {
+    "mtime": 1779895544.5551796,
+    "ast_hash": "f8caab99ae072f6db63c2392ba262e67",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/env.ts": {
+    "mtime": 1779895544.6080136,
+    "ast_hash": "f05df31c25b922aa2d992a7967e54015",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/web-search.ts": {
+    "mtime": 1779893609.912185,
+    "ast_hash": "bde05e6f90fe4f78d914a1f10ebbc848",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/news.ts": {
+    "mtime": 1779893609.9098034,
+    "ast_hash": "d2ff293d183551fa7d6ac886c088a495",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/drive.ts": {
+    "mtime": 1779893609.9043787,
+    "ast_hash": "0902e437223286248100d987b2d3ad33",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/with-google.ts": {
+    "mtime": 1779895544.6136065,
+    "ast_hash": "d59e19620494ea5bb3d278b78b8fe1e9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/help.ts": {
+    "mtime": 1779893609.9084663,
+    "ast_hash": "9bc8304be4247b5f6e3dc20c0a360d3e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/evening-summary.ts": {
+    "mtime": 1779893609.9060931,
+    "ast_hash": "e15d9bd63069f8237eab6b503e4dd8dd",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/staged-media.ts": {
+    "mtime": 1779893609.91155,
+    "ast_hash": "eb7ec94e6f072d6011fac8772cac9a9a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/settings.ts": {
+    "mtime": 1779895544.6129718,
+    "ast_hash": "f2625a0a75f6d08002bb01a9bd8d6b7b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/email.ts": {
+    "mtime": 1779895544.6112955,
+    "ast_hash": "55dcbad33e9f3e0f63733fcefe752f3a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/media-ai.ts": {
+    "mtime": 1779893609.9092338,
+    "ast_hash": "815f4d3e272a3e0e538b8a3c3374076e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/calendar.ts": {
+    "mtime": 1779895544.6109788,
+    "ast_hash": "cbdc39f5e313f1b5c7821cb9e5c568fd",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/reminders.ts": {
+    "mtime": 1779895544.6124642,
+    "ast_hash": "86bc6ec5d2802b06bb47db88577d7a54",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/export.ts": {
+    "mtime": 1779893609.9063094,
+    "ast_hash": "cc6121df5d749601ca47450fa4f55a95",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/google-auth.ts": {
+    "mtime": 1779895544.6119387,
+    "ast_hash": "15ba5991e3fa76da85c9b3cbba9a9d93",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/weather.ts": {
+    "mtime": 1779893609.9118407,
+    "ast_hash": "f1fbbc8e35ac060b5fd115c85624d156",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/gmail-inbox.ts": {
+    "mtime": 1779895544.611671,
+    "ast_hash": "f4a112bcd232231e8ccf45848dc2822c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/docs.ts": {
+    "mtime": 1779893609.9035733,
+    "ast_hash": "b196a33667f928ecbcb7c83dd3a37bab",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/morning-briefing.ts": {
+    "mtime": 1779895544.5554323,
+    "ast_hash": "38a4411d4cab844236f884b4eee45279",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/scheduled-email.ts": {
+    "mtime": 1779895544.6127172,
+    "ast_hash": "6eee090fea02104e8ffbd6d24746c049",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/memory.ts": {
+    "mtime": 1779893609.9093494,
+    "ast_hash": "715b567009820fdcc6e7ab2fc07c2b83",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/index.ts": {
+    "mtime": 1779893609.9088244,
+    "ast_hash": "a556059b75a02632a6a9e3620748de32",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/google-accounts.ts": {
+    "mtime": 1779893609.907774,
+    "ast_hash": "ee88469396ff307fb8cb26e5d1780cb1",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/lists.ts": {
+    "mtime": 1779895544.6121917,
+    "ast_hash": "436ee099e047ee2b2a1ccf57409e62c8",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/receipts.ts": {
+    "mtime": 1779893609.910301,
+    "ast_hash": "0aa2482ac7b5da8972c2f893669c0274",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/finance.ts": {
+    "mtime": 1779893609.9066763,
+    "ast_hash": "3e0012210f242cbaedfe5e1b33eba73b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/contacts.ts": {
+    "mtime": 1779893609.9029925,
+    "ast_hash": "ff93d0ef52fa8469d8acc32062602f39",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/tasks.ts": {
+    "mtime": 1779895544.6132154,
+    "ast_hash": "6ddf3ff879d126db9b0e39cee8d122da",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/tools/sent-history.ts": {
+    "mtime": 1779893609.9110484,
+    "ast_hash": "730a039391cb35a7424c428c247b1ff1",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/llm/evening-summary.ts": {
+    "mtime": 1779895544.6095338,
+    "ast_hash": "70e809715fb4b0f94d19be7b178fff3c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/llm/briefing.ts": {
+    "mtime": 1779895544.6091723,
+    "ast_hash": "908659a66b97f74add91d853e7298080",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/llm/agent.ts": {
+    "mtime": 1779895544.6088634,
+    "ast_hash": "c8322856c4aec5e06646e131aeb3f455",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/llm/render-drafts.ts": {
+    "mtime": 1779895544.6100843,
+    "ast_hash": "e43d6a4ff64c2c931d4a39f040539349",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/llm/prompts.ts": {
+    "mtime": 1779895544.609844,
+    "ast_hash": "c7b8a8346fac6d8ffb9ef5ddc8e99fb7",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/llm/agent-flex.ts": {
+    "mtime": 1779893609.8955767,
+    "ast_hash": "cf5c84291ed691d18b5064ae9b90bda9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/llm/extract-facts.ts": {
+    "mtime": 1779893609.8970244,
+    "ast_hash": "44302cca88ee596ec4331944dbe69306",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/llm/provider.ts": {
+    "mtime": 1779893609.8977034,
+    "ast_hash": "3fb5d15777adb7e8876bb4cf6fff48a6",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/history.ts": {
+    "mtime": 1779893609.8992386,
+    "ast_hash": "832b09f2509514706aa61ca9abf2f4da",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/allowlist.ts": {
+    "mtime": 1779893609.898377,
+    "ast_hash": "2de8d1244f610bce2262514970a71637",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/recent-media.ts": {
+    "mtime": 1779893609.900582,
+    "ast_hash": "17ab68b67d9a4920255d5bc45312a761",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/archive.ts": {
+    "mtime": 1779893609.898472,
+    "ast_hash": "7843d18425cc537c8ede5b924e17b385",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/settings.ts": {
+    "mtime": 1779893609.901252,
+    "ast_hash": "92eee881ce9b2af7eeb91f72d190ef9f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/redis.ts": {
+    "mtime": 1779893609.9008486,
+    "ast_hash": "9d648c20bacac2628c2fac916657fbef",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/crypto.ts": {
+    "mtime": 1779893609.89875,
+    "ast_hash": "aabee03b6b389145a61c71977c02c863",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/sent-log.ts": {
+    "mtime": 1779893609.9011083,
+    "ast_hash": "d8d9a11bce730c16247aae240422c7ed",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/profile.ts": {
+    "mtime": 1779893609.8994796,
+    "ast_hash": "ac94aa4cc1b4f20bc6bc7b0a60a1b762",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/receipts.ts": {
+    "mtime": 1779893609.9002187,
+    "ast_hash": "bf0da3e9d71ba2af934be7f2c69735a2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/tasks.ts": {
+    "mtime": 1779893609.9014447,
+    "ast_hash": "3aa5cd9bb9569e84e32bdc3aba50429e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/user-registry.ts": {
+    "mtime": 1779893609.9016936,
+    "ast_hash": "30403ed2e25bfba323665c308964c7ba",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/memory/facts.ts": {
+    "mtime": 1779893609.8990884,
+    "ast_hash": "b6dc973a446939718042c345d8318e77",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/verify.ts": {
+    "mtime": 1779893609.8953555,
+    "ast_hash": "fb2c80abd49a5d97a203eed182926f17",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/types.ts": {
+    "mtime": 1779893609.89508,
+    "ast_hash": "07279db4be5dc2d0ce37eb754d208bb4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/client.ts": {
+    "mtime": 1779895544.6085205,
+    "ast_hash": "c2705b06babff46167497fb40a575a6f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/mime.ts": {
+    "mtime": 1779893609.8948095,
+    "ast_hash": "c11381fef2a4b38a8bb4d305a8ae08fc",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/news.ts": {
+    "mtime": 1779895544.5545404,
+    "ast_hash": "5c46cac26b79f85325f9123f19c706c9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/briefing.ts": {
+    "mtime": 1779895544.5543017,
+    "ast_hash": "e37627fdcaf55626d2555f66c6b43c80",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/gmail-results.ts": {
+    "mtime": 1779893609.8937376,
+    "ast_hash": "5e55cdab6b134fc3315616334fc79106",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/list-items.ts": {
+    "mtime": 1779893609.8940153,
+    "ast_hash": "c14092099d59acad8b19a75b296ad7cf",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/task-list.ts": {
+    "mtime": 1779893609.8946087,
+    "ast_hash": "0fcca261a089fbcda554db8dce0a462a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/calendar-events.ts": {
+    "mtime": 1779893609.8935595,
+    "ast_hash": "28f91686a56e47b793710b3768da1d58",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/confirm-cancel.ts": {
+    "mtime": 1779893609.893651,
+    "ast_hash": "2a25bb928a5ef05783c5c8ce28e3948d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/task-checkin.ts": {
+    "mtime": 1779893609.894376,
+    "ast_hash": "dd855b3f5c267a0c1e152935fb3d859c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/index.ts": {
+    "mtime": 1779893609.8938682,
+    "ast_hash": "6dbdfd12f3d13c3caa737c2b18152410",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/line/flex/signup-gate.ts": {
+    "mtime": 1779893609.8942559,
+    "ast_hash": "c828d39e37c1a81f16b61c8582919d32",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/handlers/other-media.ts": {
+    "mtime": 1779893609.8923743,
+    "ast_hash": "c0974ad8a897fce078f043216211eec5",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/handlers/image.ts": {
+    "mtime": 1779893609.8920379,
+    "ast_hash": "d12fc9a1edb2cccdbec759db8a9949a9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/lib/handlers/text.ts": {
+    "mtime": 1779893609.8924785,
+    "ast_hash": "a2b155ff84c0d1628dc43c542a5465e8",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/vite.config.js": {
+    "mtime": 1779893610.0137444,
+    "ast_hash": "384f7f80dbf0df98b243997376a86ede",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/package.json": {
+    "mtime": 1779893609.9139187,
+    "ast_hash": "4c9001b59f47ae4a3de459a26c559471",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/src/main.jsx": {
+    "mtime": 1779893610.013496,
+    "ast_hash": "80c5f02e4af0a4367898c1d215658ca0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/src/App.jsx": {
+    "mtime": 1779893610.0131102,
+    "ast_hash": "26ea3e342edab79b6374073f646d888e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/SETUP.md": {
+    "mtime": 1779893609.867032,
+    "ast_hash": "dff46ecae920231d6aceb5cbf1a37724",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/TODO.md": {
+    "mtime": 1779893609.867421,
+    "ast_hash": "71db11178aeb4fb2d72cd890e2dc6999",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/README.md": {
+    "mtime": 1779893609.8665183,
+    "ast_hash": "4ca6b4657f02278e451f09b0bdd6afb0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/PLAN.md": {
+    "mtime": 1779895544.6028764,
+    "ast_hash": "d55a7b2d7e9b54134d859a6be7c3e14c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/AGENTS.md": {
+    "mtime": 1779893609.8659256,
+    "ast_hash": "a2491875d0bf0cf0b8b1221e1094ee83",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/CLAUDE.md": {
+    "mtime": 1779893609.8421056,
+    "ast_hash": "aab84ed0076ab25d7b42aed25fedb482",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/audit/FINAL_REPORT.md": {
+    "mtime": 1779895544.6072643,
+    "ast_hash": "4ba4cd760112dd594733773e8509e030",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/audit/04-security.md": {
+    "mtime": 1779893609.8845894,
+    "ast_hash": "99120022b342055197d43479059edc53",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/audit/00-inventory.md": {
+    "mtime": 1779895544.6062913,
+    "ast_hash": "ac5bf4088ea0723eb37887e33480fe23",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/audit/03-route-handlers.md": {
+    "mtime": 1779893609.8809211,
+    "ast_hash": "e82b0bb7b5b3b771351086315cbe3621",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/audit/05-bugs-and-gaps.md": {
+    "mtime": 1779895544.6069036,
+    "ast_hash": "2c8d718c55efa96257138197d68f7947",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/audit/02-per-tool-verification.md": {
+    "mtime": 1779893609.8800154,
+    "ast_hash": "79236d79c16e40b7c41d90b2b701ab64",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/audit/06-test-plan.md": {
+    "mtime": 1779893609.8856409,
+    "ast_hash": "30ff52434f75cd0441b501133fe24408",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/audit/01-claims-vs-reality.md": {
+    "mtime": 1779895544.606549,
+    "ast_hash": "2fd9ca04eb457fa03534860c690bdf38",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/.github/workflows/ci.yml": {
+    "mtime": 1779895544.6021037,
+    "ast_hash": "71dfcd3bdb18e36649afb60bcfaaf76b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/index.html": {
+    "mtime": 1779893609.9133584,
+    "ast_hash": "b0c17e1f35ce642ef88a564c18918799",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/app/icon.svg": {
+    "mtime": 1779893609.8726346,
+    "ast_hash": "48797bc4e501540eecaf040cf62761ce",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/lekha-briefing.png": {
+    "mtime": 1779893610.030757,
+    "ast_hash": "c71f658d97e5ea2b12480683eb5cfe15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/use-analysts.png": {
+    "mtime": 1779893610.0450091,
+    "ast_hash": "5cc7c8e7ac724c6718fa3caba9692011",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/lekha-instruction.png": {
+    "mtime": 1779893610.034643,
+    "ast_hash": "814441203de7c7f79bd8a4cb7176783f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/use-founders.png": {
+    "mtime": 1779893610.063095,
+    "ast_hash": "249dcb0b90482f620795bd1f5c7e0b28",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/lekha-hero.png": {
+    "mtime": 1779893610.0325823,
+    "ast_hash": "16942ed868e038e80a21cfe25acd8bda",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/lekha-tasks.png": {
+    "mtime": 1779893610.036422,
+    "ast_hash": "7abb07a3079a23ac09fe4fcd84ebfe08",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/instagram-qr.png": {
+    "mtime": 1779893610.0234632,
+    "ast_hash": "b765fa3d51eb9b876444f60b20bf2d55",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/use-executives.png": {
+    "mtime": 1779893610.0551984,
+    "ast_hash": "1931b50648ff5345b2e40af7757d7930",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/use-busy.png": {
+    "mtime": 1779893610.053693,
+    "ast_hash": "d296df9fa42539de0234d3e49aac70eb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/public/assets/line-qr.png": {
+    "mtime": 1779893610.0376978,
+    "ast_hash": "b3b52282dd2994eac860efa02705e594",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/lekha-briefing.png": {
+    "mtime": 1779893609.9330432,
+    "ast_hash": "c71f658d97e5ea2b12480683eb5cfe15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/use-analysts.png": {
+    "mtime": 1779893609.9754236,
+    "ast_hash": "5cc7c8e7ac724c6718fa3caba9692011",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/lekha-instruction.png": {
+    "mtime": 1779893609.950686,
+    "ast_hash": "814441203de7c7f79bd8a4cb7176783f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/use-founders.png": {
+    "mtime": 1779893610.0122757,
+    "ast_hash": "249dcb0b90482f620795bd1f5c7e0b28",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/lekha-hero.png": {
+    "mtime": 1779893609.9431298,
+    "ast_hash": "16942ed868e038e80a21cfe25acd8bda",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/lekha-tasks.png": {
+    "mtime": 1779893609.9602716,
+    "ast_hash": "7abb07a3079a23ac09fe4fcd84ebfe08",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/instagram-qr.png": {
+    "mtime": 1779893609.9252675,
+    "ast_hash": "b765fa3d51eb9b876444f60b20bf2d55",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/use-executives.png": {
+    "mtime": 1779893609.9952157,
+    "ast_hash": "1931b50648ff5345b2e40af7757d7930",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/use-busy.png": {
+    "mtime": 1779893609.9882505,
+    "ast_hash": "d296df9fa42539de0234d3e49aac70eb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/trusting-perlman-d52b73/marketing/public/assets/line-qr.png": {
+    "mtime": 1779893609.9614167,
+    "ast_hash": "b3b52282dd2994eac860efa02705e594",
+    "semantic_hash": ""
+  }
+}

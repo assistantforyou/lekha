@@ -1,25 +1,77 @@
 import type { FlexMessage } from "@/lib/line/client";
 
+type Section = { header: string; items: string[] };
+
+function parseSections(text: string): { greeting: string; sections: Section[] } {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const greeting = lines[0] ?? "";
+  const sections: Section[] = [];
+  let current: Section | null = null;
+  for (const line of lines.slice(1)) {
+    const isBullet = line.startsWith("•") || line.startsWith("-");
+    if (isBullet) {
+      if (current) current.items.push(line);
+    } else {
+      if (current) sections.push(current);
+      current = { header: line, items: [] };
+    }
+  }
+  if (current) sections.push(current);
+  return { greeting, sections };
+}
+
 /**
  * Wrap the morning briefing / evening summary text in a Flex bubble with a
- * footer rail of quick actions. The full briefing text is kept verbatim in
- * the body; the buttons let the user act on the most likely next steps.
+ * footer rail of quick actions. Sections are parsed and rendered with visual
+ * separators and styled headers for readability.
  */
 export function briefingFlex(
   kind: "morning" | "evening",
   bodyText: string,
 ): FlexMessage {
   const title = kind === "morning" ? "☀️  Morning briefing" : "🌙  Evening summary";
-  // LINE Flex text caps each block at ~2000 chars — split on newlines into
-  // a series of text nodes so long briefings render fully.
-  const lines = bodyText.split(/\n+/).filter((l) => l.trim().length > 0);
-  const textBlocks = lines.slice(0, 30).map((l) => ({
-    type: "text" as const,
-    text: l.slice(0, 500),
-    wrap: true,
-    size: "sm" as const,
-    color: "#222222",
-  }));
+  const { greeting, sections } = parseSections(bodyText);
+
+  const bodyContents: unknown[] = [
+    {
+      type: "text",
+      text: greeting.slice(0, 200),
+      weight: "bold",
+      size: "md",
+      color: "#111111",
+      wrap: true,
+    },
+  ];
+
+  for (const s of sections) {
+    bodyContents.push({ type: "separator", margin: "md" });
+    const sectionItems: unknown[] = [
+      {
+        type: "text",
+        text: s.header.slice(0, 200),
+        weight: "bold",
+        size: "sm",
+        color: "#333333",
+        wrap: true,
+      },
+      ...s.items.slice(0, 15).map((item) => ({
+        type: "text",
+        text: item.slice(0, 200),
+        size: "xs",
+        color: "#555555",
+        wrap: true,
+        margin: "xs",
+      })),
+    ];
+    bodyContents.push({
+      type: "box",
+      layout: "vertical",
+      spacing: "xs",
+      margin: "md",
+      contents: sectionItems,
+    });
+  }
+
   return {
     type: "flex",
     altText: `${title}: ${bodyText.slice(0, 380)}`,
@@ -36,8 +88,9 @@ export function briefingFlex(
       body: {
         type: "box",
         layout: "vertical",
-        spacing: "sm",
-        contents: textBlocks,
+        spacing: "none",
+        paddingAll: "16px",
+        contents: bodyContents,
       },
       footer: {
         type: "box",
