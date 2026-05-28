@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     ) {
       const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
       if (summary) {
-        await push(userId, [briefingFlex("evening", summary)]);
+        await push(userId, [briefingFlex("evening", summary.text)]);
         await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
       }
     }

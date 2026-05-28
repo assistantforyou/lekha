@@ -76,7 +76,7 @@ const SHORTCUTS: Shortcut[] = [
       showLoading(userId, 25).catch(() => {});
       const settings = await getSettings(userId);
       const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
-      const out = summary ?? "Nothing to show in your evening summary right now.";
+      const out = summary?.text ?? "Nothing to show in your evening summary right now.";
       await reply(replyToken, [briefingFlex("evening", out)]);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });

@@ -170,19 +170,14 @@ function processResult(
   if (allCalls.length > 0) {
     // Verbatim-content tools: if model returns empty text but one of these ran,
     // pull the string result from the tool output rather than showing a "✓" label.
-    // get_morning_briefing now returns structured data — handled by buildFlexFromToolResults;
-    // return empty string so suppressText kicks in and only the Flex is sent.
-    const verbatimTools = new Set(["get_evening_summary"]);
+    // get_morning_briefing / get_evening_summary return structured data — handled
+    // by buildFlexFromToolResults; return empty string so suppressText kicks in
+    // and only the Flex bubbles are sent.
     for (const step of result.steps) {
       for (const tr of step.toolResults) {
         const toolName = (tr as { toolName?: string }).toolName ?? "";
-        if (toolName === "get_morning_briefing") {
+        if (toolName === "get_morning_briefing" || toolName === "get_evening_summary") {
           return { reply: "", authNeeded: null, apiDisabled: null, googleErr: null };
-        }
-        if (!verbatimTools.has(toolName)) continue;
-        const value = extractToolValue((tr as { output?: unknown }).output);
-        if (typeof value === "string" && value.length > 10) {
-          return { reply: value, authNeeded: null, apiDisabled: null, googleErr: null };
         }
       }
     }

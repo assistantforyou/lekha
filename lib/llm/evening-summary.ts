@@ -38,10 +38,15 @@ async function fetchNews(query: string, apiKey: string): Promise<NewsStory[]> {
  * 5 calendar events (from tomorrow), and today's geopolitics + economics news in
  * parallel. Returns a bullet-point push-ready string.
  */
+export type EveningSummaryResult = {
+  text: string;
+  news: { title: string; url: string; source: string }[];
+};
+
 export async function buildEveningSummary(
   userId: string,
   opts: { timezone: string },
-): Promise<string | null> {
+): Promise<EveningSummaryResult | null> {
   // Atomic dedup lock — prevents concurrent cron sweeps from double-sending.
   const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone });
   const lockKey = `evening:${userId}:${todayDateStr}`;
@@ -181,7 +186,15 @@ export async function buildEveningSummary(
     sections.push(`📰 Today's news\n${newsLines.join("\n")}`);
   }
 
-  return `Good evening. Here's your wrap-up:\n\n${sections.join("\n\n")}`;
+  // Build structured news items for Flex carousel rendering
+  const news: { title: string; url: string; source: string }[] = [
+    ...geo.slice(0, 3).map((s) => ({ title: s.title, url: s.url, source: "World" })),
+    ...econ.slice(0, 2).map((s) => ({ title: s.title, url: s.url, source: "Markets" })),
+    ...poly.slice(0, 2).map((s) => ({ title: s.title, url: s.url, source: "Polymarket" })),
+  ];
+
+  const text = `Good evening. Here's your wrap-up:\n\n${sections.join("\n\n")}`;
+  return { text, news };
 }
 
 /** Returns true if we're inside the 9 PM 15-min window and haven't fired today. */

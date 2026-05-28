@@ -6,7 +6,7 @@ export function buildGoogleAccountTools(userId: string) {
   return {
     list_google_accounts: tool({
       description:
-        "List the Google accounts the user has connected. Shows which one is active (used for email/calendar/drive by default).",
+        "List the Google accounts the user has connected. ONLY call this when the user explicitly asks about their accounts (e.g. 'which account is active?', 'show my accounts', 'switch account'). Do NOT call this proactively — the system prompt already includes account info.",
       inputSchema: z.object({}),
       execute: async () => {
         const blob = await listAccounts(userId);

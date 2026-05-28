@@ -12,7 +12,13 @@ export function buildEveningSummaryTool(userId: string) {
       execute: async () => {
         const s = await getSettings(userId);
         const summary = await buildEveningSummary(userId, { timezone: s.timezone });
-        return summary ?? "Nothing to show in your evening summary right now.";
+        if (!summary) return { ok: true, briefingType: "evening" as const, empty: true };
+        return {
+          ok: true,
+          briefingType: "evening" as const,
+          text: summary.text,
+          news: summary.news,
+        };
       },
     }),
   };

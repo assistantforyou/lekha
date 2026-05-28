@@ -66,6 +66,18 @@ export function buildFlexFromToolResults(result: { steps?: StepLike[] }): {
         continue;
       }
 
+      // ── Evening summary ────────────────────────────────────────────────
+      if (toolName === "get_evening_summary" && value.briefingType === "evening") {
+        if (value.empty) continue; // Nothing to show
+        const text = String(value.text ?? "");
+        const news = Array.isArray(value.news) ? value.news as Array<{ title: string; url: string; source: string }> : [];
+        if (text) out.push(briefingFlex("evening", text));
+        if (news.length > 0) out.push(newsFlex(news, "📰 Today's news"));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
       // ── Task list ──────────────────────────────────────────────────────
       if (toolName === "list_tasks" && Array.isArray(value.tasks)) {
         const tasks = (value.tasks as Array<Record<string, unknown>>).map<TaskRow>((t) => ({
@@ -175,6 +187,7 @@ const DISPLAY_TOOLS = new Set([
   "search_news",
   "list_upcoming_events",
   "get_morning_briefing",
+  "get_evening_summary",
 ]);
 
 /**
