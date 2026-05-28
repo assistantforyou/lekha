@@ -168,10 +168,15 @@ function processResult(
   if (allCalls.length > 0) {
     // Verbatim-content tools: if model returns empty text but one of these ran,
     // pull the string result from the tool output rather than showing a "✓" label.
-    const verbatimTools = new Set(["get_morning_briefing", "get_evening_summary"]);
+    // get_morning_briefing now returns structured data — handled by buildFlexFromToolResults;
+    // return empty string so suppressText kicks in and only the Flex is sent.
+    const verbatimTools = new Set(["get_evening_summary"]);
     for (const step of result.steps) {
       for (const tr of step.toolResults) {
         const toolName = (tr as { toolName?: string }).toolName ?? "";
+        if (toolName === "get_morning_briefing") {
+          return { reply: "", authNeeded: null, apiDisabled: null, googleErr: null };
+        }
         if (!verbatimTools.has(toolName)) continue;
         const value = extractToolValue((tr as { output?: unknown }).output);
         if (typeof value === "string" && value.length > 10) {
@@ -336,8 +341,11 @@ export async function runAgent(
       (c) => c.toolName === "draft_email" || c.toolName === "draft_calendar_event" || c.toolName === "schedule_email",
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const flexMessages = buildFlexFromToolResults(result as any);
-    const followUps = buildFollowUps(allCalls.map((c) => c.toolName), { confirmDraft });
+    const { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any);
+    // Suppress verbose model text when a display-only tool (news, morning briefing)
+    // generated a Flex that IS the reply — avoids double output (text blob + carousel).
+    const finalText = suppressText ? "" : text;
+    const followUps = buildFollowUps(allCalls.map((c) => c.toolName), { confirmDraft, modelText: text });
     const hints: AgentHints = {
       confirmDraft,
       // Only show account picker for explicit write-action ambiguity
@@ -355,7 +363,7 @@ export async function runAgent(
       flexMessages,
       followUps,
     };
-    return { text, hints };
+    return { text: finalText, hints };
   } catch (err) {
     // Bug 3: timeout after tools already completed — synthesize from what finished
     if (err instanceof AgentTimeoutError && succeededTools.length > 0) {

@@ -16,23 +16,16 @@ export function buildMorningBriefingTool(userId: string) {
           location: s.location,
           includeInbox: s.inboxBriefingEnabled,
         });
-        if (!briefing) return "Nothing to show in your briefing right now.";
-        const parts: string[] = [briefing.text];
-        if (briefing.news.length > 0) {
-          parts.push(
-            "News:\n" +
-              briefing.news.map((n) => `[${n.source}] ${n.title} — ${n.url}`).join("\n"),
-          );
-        }
-        if (briefing.inbox && briefing.inbox.length > 0) {
-          parts.push(
-            `Inbox (${briefing.inbox.length} unread):\n` +
-              briefing.inbox
-                .map((m) => `• ${m.subject} — ${m.from}`)
-                .join("\n"),
-          );
-        }
-        return parts.join("\n\n");
+        if (!briefing) return { ok: true, briefingType: "morning" as const, empty: true };
+        // Return structured data so buildFlexFromToolResults can render Flex carousels.
+        // The model receives this as a JSON object — it should just say "here's your briefing".
+        return {
+          ok: true,
+          briefingType: "morning" as const,
+          text: briefing.text,
+          news: briefing.news,
+          inbox: briefing.inbox ?? [],
+        };
       },
     }),
   };
