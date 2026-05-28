@@ -7,6 +7,10 @@ import type { AgentHints } from "@/lib/llm/agent";
  * Returns an array so we can pair the text reply with a Flex card (e.g. a
  * confirm bubble, a task carousel) and still keep quick-reply suggestions on
  * the text part.
+ *
+ * When replyText is empty and flexMessages are present, skip the text message
+ * entirely — this happens when a display-only tool (news, morning briefing)
+ * generates a Flex carousel that IS the reply.
  */
 export function enrichReply(
   replyText: string,
@@ -42,6 +46,11 @@ export function enrichReply(
         ? withQuickReplies(replyText, followUps.slice(0, 13))
         : textMsg(replyText);
     return [textPart, confirmCancelFlex(replyText), ...flex];
+  }
+
+  // When text is empty (suppressed for display tools), just send the Flex messages.
+  if (!replyText && flex.length > 0) {
+    return flex;
   }
 
   const textPart =
