@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     { role: "user", content: text },
   ];
 
-  const { text: replyText } = await runAgent(userId, profile, facts, messages, traceId);
+  const { text: replyText, hints } = await runAgent(userId, profile, facts, messages, traceId);
 
   const endAppend = span("dev:appendTurns", traceId);
   await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
@@ -70,5 +70,5 @@ export async function POST(req: NextRequest) {
   }
 
   endRequest({ replyLength: replyText.length });
-  return NextResponse.json({ reply: replyText });
+  return NextResponse.json({ reply: replyText, hints });
 }
