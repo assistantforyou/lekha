@@ -115,24 +115,18 @@ export async function POST(req: NextRequest) {
       ]);
       endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
 
-      // If user explicitly asks for summary/read, let runAgent handle it via tools.
-      // If not, do a direct document pass with extractorModel.
-      let replyText: string;
-      if (/summarize|summary|what.s in|what does/i.test(text)) {
-        const { text: replyTextFromAgent, hints } = await runAgent(
-          userId, profile, facts,
-          [...historyMsgs, { role: "user", content: text }],
-          traceId,
-        );
-        replyText = replyTextFromAgent;
-        await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
-        await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
-        endFile({ replyLength: replyText.length });
-        endRequest({ replyLength: replyText.length });
-        return NextResponse.json({ reply: replyText, hints });
-      }
+      // Stage in Redis so subsequent text messages in the same dev session can
+      // reference it via summarize_document / read_document tools.
+      await appendRecentMedia(userId, {
+        kind: "file",
+        messageId: `dev_${Date.now()}`,
+        contentType: "application/pdf",
+        fileName: fileName || "document.pdf",
+        sizeBytes: bytes.byteLength,
+        ts: Date.now(),
+      });
 
-      // Direct document read
+      // Direct document read with extractorModel (dev chat bypasses LINE fetch).
       const result = await generateText({
         model: extractorModel(),
         messages: [
@@ -145,7 +139,7 @@ export async function POST(req: NextRequest) {
           },
         ],
       });
-      replyText = result.text?.trim() || "I couldn't read that document.";
+      const replyText = result.text?.trim() || "I couldn't read that document.";
 
       await appendTurn(userId, { role: "user", content: `[sent a file: ${fileName || "document.pdf"}] ${text}`, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
