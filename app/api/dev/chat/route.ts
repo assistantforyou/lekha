@@ -8,6 +8,7 @@ import { getOrCreateProfile } from "@/lib/memory/profile";
 import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
 import { runAgent } from "@/lib/llm/agent";
 import type { ModelMessage } from "ai";
+import { span } from "@/lib/timing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,22 +36,28 @@ export async function POST(req: NextRequest) {
   }
 
   const { userId, text } = parsed.data;
+  const traceId = `dev_${userId}_${Date.now().toString(36)}`;
+  const endRequest = span("dev:chat", traceId);
 
+  const endPreload = span("dev:preload", traceId);
   const [historyMsgs, facts, profile] = await Promise.all([
     historyForPrompt(userId),
     loadFacts(userId),
     getOrCreateProfile(userId),
   ]);
+  endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
 
   const messages: ModelMessage[] = [
     ...historyMsgs,
     { role: "user", content: text },
   ];
 
-  const { text: replyText } = await runAgent(userId, profile, facts, messages);
+  const { text: replyText } = await runAgent(userId, profile, facts, messages, traceId);
 
+  const endAppend = span("dev:appendTurns", traceId);
   await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
+  endAppend();
 
   // Push to LINE so the user sees it too.
   push(userId, [textMsg(replyText)]).catch(() => {});
@@ -62,5 +69,6 @@ export async function POST(req: NextRequest) {
     extractAndMergeFacts(userId, freshHistory).catch(() => {});
   }
 
+  endRequest({ replyLength: replyText.length });
   return NextResponse.json({ reply: replyText });
 }

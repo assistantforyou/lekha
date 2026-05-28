@@ -3,6 +3,7 @@ import { generateText } from "ai";
 import { extractorModel } from "@/lib/llm/provider";
 import type { ModelMessage } from "ai";
 import { createHash } from "crypto";
+import { span } from "@/lib/timing";
 
 const MAX_TURNS = 20;
 const TOKEN_CAP = 3000;
@@ -19,18 +20,22 @@ const key = (userId: string) => `user:${userId}:history`;
 const summaryKey = (userId: string, hash: string) => `history:summary:${userId}:${hash}`;
 
 export async function loadHistory(userId: string): Promise<StoredTurn[]> {
+  const end = span("history:load");
   const raw = await redis().lrange<StoredTurn | string>(key(userId), 0, MAX_TURNS - 1);
   const parsed = raw.map((r) => (typeof r === "string" ? (JSON.parse(r) as StoredTurn) : r));
+  end({ turns: parsed.length });
   return parsed.reverse();
 }
 
 export async function appendTurn(userId: string, turn: StoredTurn): Promise<number> {
+  const end = span("history:append");
   const k = key(userId);
   const tx = redis().multi();
   tx.lpush(k, turn);
   tx.ltrim(k, 0, MAX_TURNS - 1);
   tx.llen(k);
   const res = (await tx.exec()) as [number, string, number];
+  end({ role: turn.role });
   return res[2];
 }
 
@@ -55,11 +60,11 @@ export function estimateTokens(turns: StoredTurn[]): number {
  * so we don't regenerate it every turn.
  */
 export async function historyForPrompt(userId: string): Promise<ModelMessage[]> {
-  const t0 = Date.now();
+  const endOverall = span("history:forPrompt");
   const history = await loadHistory(userId);
   const est = estimateTokens(history);
   if (est <= TOKEN_CAP || history.length <= OLDEST_CHUNK) {
-    console.warn("[timing/history] no-summary", { ms: Date.now() - t0, turns: history.length, estTokens: est });
+    endOverall({ cached: "n/a", turns: history.length, estTokens: est });
     return history.map(toModelMessage);
   }
   const oldest = history.slice(0, history.length - OLDEST_CHUNK);
@@ -68,9 +73,9 @@ export async function historyForPrompt(userId: string): Promise<ModelMessage[]> 
   const cached = await redis().get<string>(summaryKey(userId, hash));
   let summary = cached ?? null;
   if (!summary) {
-    const tSum = Date.now();
+    const endSum = span("history:summarize");
     summary = await summarizeOldest(oldest);
-    console.warn("[timing/history] summarize-fresh", { summarizeMs: Date.now() - tSum, totalMs: Date.now() - t0, est });
+    endSum({ turns: oldest.length, estTokens: est });
     if (summary) {
       // Cache for 7 days — older history will get re-summarized after that
       // window (cheap; only fires when the cap is exceeded).
@@ -78,8 +83,9 @@ export async function historyForPrompt(userId: string): Promise<ModelMessage[]> 
         .set(summaryKey(userId, hash), summary, { ex: 60 * 60 * 24 * 7 })
         .catch(() => {});
     }
+    endOverall({ cached: false, turns: history.length, estTokens: est });
   } else {
-    console.warn("[timing/history] summary-cached", { ms: Date.now() - t0, turns: history.length, est });
+    endOverall({ cached: true, turns: history.length, estTokens: est });
   }
   const summaryTurn: ModelMessage = {
     role: "user",

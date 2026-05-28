@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { span } from "@/lib/timing";
 
 const API = "https://api.line.me/v2/bot";
 const DATA_API = "https://api-data.line.me/v2/bot";
@@ -62,11 +63,13 @@ function authHeaders() {
  * Falls back silently if expired/used; caller should switch to push.
  */
 export async function reply(replyToken: string, messages: LineMessage[]): Promise<boolean> {
+  const end = span("line:reply");
   const r = await fetchWithTimeout(`${API}/message/reply`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ replyToken, messages }),
   });
+  end({ ok: r.ok, status: r.status, messages: messages.length });
   if (!r.ok) {
     console.warn("[line] reply failed", r.status, await safeText(r));
     return false;
@@ -78,11 +81,13 @@ export async function reply(replyToken: string, messages: LineMessage[]): Promis
  * Push a message to a user (counts against monthly quota on free plan).
  */
 export async function push(to: string, messages: LineMessage[]): Promise<boolean> {
+  const end = span("line:push");
   const r = await fetchWithTimeout(`${API}/message/push`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ to, messages }),
   });
+  end({ ok: r.ok, status: r.status, messages: messages.length });
   if (!r.ok) {
     console.warn("[line] push failed", r.status, await safeText(r));
     return false;
@@ -126,16 +131,22 @@ export async function getMessageContent(messageId: string): Promise<{
   bytes: Uint8Array;
   contentType: string;
 }> {
+  const end = span("line:getMessageContent");
   const r = await fetchWithTimeout(`${DATA_API}/message/${messageId}/content`, {
     headers: { Authorization: `Bearer ${env().LINE_CHANNEL_ACCESS_TOKEN}` },
   });
-  if (!r.ok) throw new Error(`getMessageContent ${r.status}`);
+  if (!r.ok) {
+    end({ ok: false, status: r.status });
+    throw new Error(`getMessageContent ${r.status}`);
+  }
   const ct = r.headers.get("content-type") ?? "application/octet-stream";
   const cl = r.headers.get("content-length");
   if (cl && Number(cl) > MAX_MEDIA_BYTES) {
+    end({ ok: false, tooLarge: true, sizeBytes: Number(cl) });
     throw new Error(`File too large (${(Number(cl) / 1024 / 1024).toFixed(1)} MB). Max ${MAX_MEDIA_BYTES / 1024 / 1024} MB.`);
   }
   const buf = new Uint8Array(await r.arrayBuffer());
+  end({ ok: true, sizeBytes: buf.byteLength, contentType: ct });
   return { bytes: buf, contentType: ct };
 }
 

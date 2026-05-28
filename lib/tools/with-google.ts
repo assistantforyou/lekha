@@ -1,5 +1,6 @@
 import { getGoogleClient, buildConnectUrl } from "./google-auth";
 import { GoogleAuthRequired } from "@/lib/errors";
+import { span } from "@/lib/timing";
 
 export type AuthRequiredResult = {
   ok: false;
@@ -72,11 +73,15 @@ export async function withGoogleClient<T>(
     email: string;
   }) => Promise<T>,
 ): Promise<T | AuthRequiredResult | ApiDisabledResult | GoogleErrorResult> {
+  const end = span("google:withGoogleClient");
   try {
     const { client, email } = await getGoogleClient(userId, fromEmail, requiredScopes);
-    return await withTimeout(fn({ client, email }), GOOGLE_API_TIMEOUT_MS, "Google API call");
+    const result = await withTimeout(fn({ client, email }), GOOGLE_API_TIMEOUT_MS, "Google API call");
+    end({ ok: true });
+    return result;
   } catch (err) {
     if (err instanceof GoogleAuthRequired) {
+      end({ ok: false, error: "google_auth_required" });
       return {
         ok: false,
         need_google_auth: true,
@@ -90,6 +95,7 @@ export async function withGoogleClient<T>(
     // or 'invalid_client' — treat the same as needs-reauth.
     const msg = String((err as { message?: unknown })?.message ?? err);
     if (/invalid_grant|invalid_client|Token has been expired or revoked|unauthorized_client/i.test(msg)) {
+      end({ ok: false, error: "invalid_grant" });
       return {
         ok: false,
         need_google_auth: true,
@@ -97,6 +103,7 @@ export async function withGoogleClient<T>(
         reason: "Stored Google token is no longer valid (probably issued by a previous OAuth client) — please reconnect.",
       };
     }
+    end({ ok: false, error: "google_api_error" });
     return classifyGoogleError(err);
   }
 }

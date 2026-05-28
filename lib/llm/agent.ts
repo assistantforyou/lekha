@@ -1,3 +1,4 @@
+import { performance } from "perf_hooks";
 import { generateText, stepCountIs, type ModelMessage } from "ai";
 import { chatModel, AGENT_TIMEOUT_MS, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
 import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
@@ -11,6 +12,7 @@ import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
 import type { LineMessage } from "@/lib/line/client";
 import { buildFlexFromToolResults, buildFollowUps } from "@/lib/llm/agent-flex";
+import { span, tick } from "@/lib/timing";
 
 /** Strip markdown syntax that LINE renders as raw punctuation. Model-independent guarantee. */
 export function stripMarkdown(s: string): string {
@@ -235,18 +237,16 @@ export async function runAgent(
   profile: { displayName: string },
   facts: Awaited<ReturnType<typeof loadFacts>>,
   messages: ModelMessage[],
+  traceId?: string,
 ): Promise<AgentResult> {
-  const agentT0 = Date.now();
-  const aTick = (label: string, extra?: Record<string, unknown>) =>
-    console.warn(`[timing/agent] ${label}`, { ms: Date.now() - agentT0, ...(extra ?? {}) });
-  aTick("runAgent:start");
+  const endAgent = span("agent:runAgent", traceId);
   const [accounts, staged, settings] = await Promise.all([
     listAccounts(userId),
     listRecentMedia(userId),
     getSettings(userId),
   ]);
   const userHasGoogle = accounts.accounts.length > 0;
-  aTick("runAgent:preload-done", { accounts: accounts.accounts.length, staged: staged.length });
+  tick("agent:preload-done", traceId, { accounts: accounts.accounts.length, staged: staged.length });
   const accountsBlock = accounts.accounts.length
     ? `\n\nConnected Google accounts: ${accounts.accounts
         .map((a) => `${a.email}${a.email === accounts.activeEmail ? " (active)" : ""}`)
@@ -279,15 +279,17 @@ export async function runAgent(
     { role: "assistant" as const, content: "Noted." },
   ];
 
-  const tStart = Date.now();
+  const stepTimes: number[] = [];
+  let lastStepTime = performance.now();
   const allCalls: { toolName: string; input: unknown }[] = [];
   const succeededTools: string[] = [];
 
   try {
-    aTick("runAgent:tools-loading");
+    const endTools = span("agent:toolsForUser", traceId);
     const tools = await toolsForUser(userId, { userHasGoogle });
-    aTick("runAgent:tools-loaded", { toolCount: Object.keys(tools).length });
-    aTick("runAgent:gemini-start");
+    endTools({ toolCount: Object.keys(tools).length });
+
+    const endGenerate = span("agent:generateText", traceId);
     const result = await withTimeout(
       generateText({
         model: chatModel(),
@@ -298,6 +300,11 @@ export async function runAgent(
         stopWhen: stepCountIs(8),
         maxRetries: 3,
         onStepFinish: (step) => {
+          const now = performance.now();
+          const stepMs = Math.round(now - lastStepTime);
+          stepTimes.push(stepMs);
+          lastStepTime = now;
+
           // Populate allCalls here so they're available on timeout (Bug 3)
           for (const c of step.toolCalls) {
             if (c) allCalls.push({ toolName: c.toolName, input: c.input });
@@ -312,23 +319,40 @@ export async function runAgent(
               }
             }
           }
-          console.log("[agent] step", {
-            ms: Date.now() - tStart,
-            toolCalls: step.toolCalls.map((c) => c?.toolName),
-            toolResults: step.toolResults.map((r) => ({
-              tool: (r as { toolName?: string }).toolName,
-              result: JSON.stringify((r as { output?: unknown }).output ?? r).slice(0, 300),
-            })),
-            text: step.text?.slice(0, 200) || undefined,
-            finish: step.finishReason,
+
+          const toolNames = step.toolCalls.map((c) => c?.toolName).filter(Boolean);
+          const resultTypes = step.toolResults.map((r) => {
+            const val = extractToolValue((r as { output?: unknown }).output);
+            if (val && typeof val === "object") {
+              const v = val as Record<string, unknown>;
+              if (v.ok === false) return "error";
+              if (v.need_google_auth) return "auth";
+              if (v.google_api_disabled) return "disabled";
+              if (v.google_error) return "api-err";
+            }
+            return "ok";
+          });
+
+          tick("agent:step", traceId, {
+            stepMs,
+            stepIndex: stepTimes.length,
+            toolCalls: toolNames,
+            resultTypes,
+            textLength: step.text?.length ?? 0,
+            finishReason: step.finishReason,
           });
         },
         providerOptions: GEMINI_PROVIDER_OPTIONS,
       }),
       AGENT_TIMEOUT_MS,
     );
-    console.log("[agent] done", { ms: Date.now() - tStart, steps: result.steps.length });
-    aTick("runAgent:gemini-done", { steps: result.steps.length, toolCalls: allCalls.length });
+    endGenerate({
+      steps: result.steps.length,
+      toolCalls: allCalls.length,
+      stepTimes,
+      totalToolMs: stepTimes.reduce((a, b) => a + b, 0),
+    });
+    const endProcess = span("agent:processResult", traceId);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const processed = processResult(result as any, accounts.activeEmail, allCalls, settings?.timezone);
     const text = formatProcessed(processed);
@@ -338,6 +362,8 @@ export async function runAgent(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const flexMessages = buildFlexFromToolResults(result as any);
     const followUps = buildFollowUps(allCalls.map((c) => c.toolName), { confirmDraft });
+    endProcess({ confirmDraft, flexCount: flexMessages?.length ?? 0 });
+
     const hints: AgentHints = {
       confirmDraft,
       // Only show account picker for explicit write-action ambiguity
@@ -355,6 +381,7 @@ export async function runAgent(
       flexMessages,
       followUps,
     };
+    endAgent({ success: true, steps: result.steps.length, toolCalls: allCalls.length, replyLength: text.length });
     return { text, hints };
   } catch (err) {
     // Bug 3: timeout after tools already completed — synthesize from what finished
@@ -368,6 +395,7 @@ export async function runAgent(
               .join(" • "),
           );
       console.warn("[agent] timeout with completed tools — returning summary", { succeededTools });
+      endAgent({ timeout: true, recovered: true, succeededTools: succeededTools.length, stepTimes });
       return {
         text,
         hints: {
@@ -378,6 +406,7 @@ export async function runAgent(
       };
     }
     const errText = await handleError(err, userId);
+    endAgent({ error: err instanceof Error ? err.message : String(err), stepTimes });
     return {
       text: errText,
       hints: {

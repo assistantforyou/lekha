@@ -19,6 +19,7 @@ import { respondToImage } from "@/lib/handlers/image";
 import { respondToOtherMedia } from "@/lib/handlers/other-media";
 import { maybeExtractFacts } from "@/lib/maybe-extract";
 import { handlePostback } from "@/lib/webhook-postback";
+import { span } from "@/lib/timing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -72,52 +73,77 @@ async function handleEvent(
   gate: ReturnType<typeof buildGate>,
   mode: "normal" | "stage_only" = "normal",
 ): Promise<void> {
+  const traceId = `${event.source?.userId ?? "unknown"}_${Date.now().toString(36)}`;
+  const endEvent = span("webhook:handleEvent", traceId);
+
   // Idempotency: drop duplicate webhook deliveries.
   if ("webhookEventId" in event && event.webhookEventId) {
     const seenKey = `seen:${event.webhookEventId}`;
     const set = await redis().set(seenKey, 1, { ex: 60 * 10, nx: true });
-    if (set === null) return;
+    if (set === null) {
+      endEvent({ skipped: "duplicate" });
+      return;
+    }
   }
 
-  if (!(await passesAllowlist(event, gate))) return;
+  if (!(await passesAllowlist(event, gate))) {
+    endEvent({ skipped: "allowlist" });
+    return;
+  }
 
   if (event.type === "follow") {
     const userId = event.source?.userId;
-    if (!userId || !("replyToken" in event)) return;
+    if (!userId || !("replyToken" in event)) {
+      endEvent({ skipped: "no-user" });
+      return;
+    }
+    const endProfile = span("webhook:getOrCreateProfile", traceId);
     const profile = await getOrCreateProfile(userId);
+    endProfile();
     const name = profile.displayName && profile.displayName !== "friend" ? ` ${profile.displayName}` : "";
     await reply(event.replyToken, [
       textMsg(
         `Hi${name}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
       ),
     ]);
+    endEvent({ type: "follow" });
     return;
   }
 
   if (event.type === "postback") {
     await handlePostback(event);
+    endEvent({ type: "postback" });
     return;
   }
 
   if (event.type !== "message") return;
 
   const userId = event.source?.userId;
-  if (!userId) return;
-  if (!("replyToken" in event) || !("message" in event)) return;
+  if (!userId) {
+    endEvent({ skipped: "no-user" });
+    return;
+  }
+  if (!("replyToken" in event) || !("message" in event)) {
+    endEvent({ skipped: "no-reply-token" });
+    return;
+  }
   const message = event.message;
 
   // Pre-flight in parallel. registerUser is fire-and-forget — cron sweep needs it.
   registerUser(userId).catch(() => {});
+  const endPreflight = span("webhook:prelight", traceId);
   const [rl, profile, pending] = await Promise.all([
     checkRateLimit(userId),
     getOrCreateProfile(userId),
     getPending(userId),
   ]);
+  endPreflight({ rateLimited: !rl.ok, pending: pending.length });
 
   if (!rl.ok) {
     await reply(event.replyToken, [
       textMsg(`Easy there — give me a sec. Try again in ~${rl.retryAfterSec}s.`),
     ]);
+    endEvent({ type: "rate-limited" });
     return;
   }
 
@@ -128,12 +154,15 @@ async function handleEvent(
     if (pending.length > 0) {
       const decision = classify(userText);
       if (decision === "yes") {
+        const endPending = span("webhook:executePending", traceId);
         await showLoading(userId, 25);
         const result = await executePendingAll(userId, pending);
         await clearPending(userId);
+        endPending({ actions: pending.length });
         await reply(event.replyToken, [textMsg(result)]);
         await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
         await appendTurn(userId, { role: "assistant", content: result, ts: Date.now() });
+        endEvent({ type: "pending-yes", actions: pending.length });
         return;
       }
       if (decision === "no") {
@@ -141,23 +170,35 @@ async function handleEvent(
         await reply(event.replyToken, [
           textMsg(`Cancelled ${pending.length === 1 ? "that" : `all ${pending.length}`}.`),
         ]);
+        endEvent({ type: "pending-no" });
         return;
       }
       await clearPending(userId);
     }
 
-    if (await handleMyId(userId, userText, event.replyToken)) return;
-    if (await handleAdminCommand(userId, gate.isAdmin(userId), userText, event.replyToken)) return;
-    if (await dispatchShortcut({ userId, replyToken: event.replyToken, userText })) return;
+    if (await handleMyId(userId, userText, event.replyToken)) {
+      endEvent({ type: "myid" });
+      return;
+    }
+    if (await handleAdminCommand(userId, gate.isAdmin(userId), userText, event.replyToken)) {
+      endEvent({ type: "admin" });
+      return;
+    }
+    if (await dispatchShortcut({ userId, replyToken: event.replyToken, userText })) {
+      endEvent({ type: "shortcut" });
+      return;
+    }
 
-    await respondToText(event.replyToken, userId, profile, userText);
-    await maybeExtractFacts(userId);
+    await respondToText(event.replyToken, userId, profile, userText, traceId);
+    maybeExtractFacts(userId).catch(() => {});
+    endEvent({ type: "text" });
     return;
   }
 
   if (message.type === "image" && "id" in message && typeof message.id === "string") {
-    await respondToImage(event.replyToken, userId, profile, message.id, mode);
-    if (mode !== "stage_only") await maybeExtractFacts(userId);
+    await respondToImage(event.replyToken, userId, profile, message.id, mode, traceId);
+    if (mode !== "stage_only") maybeExtractFacts(userId).catch(() => {});
+    endEvent({ type: mode === "stage_only" ? "image-stage" : "image" });
     return;
   }
 
@@ -175,6 +216,7 @@ async function handleEvent(
       "fileSize" in message && typeof message.fileSize === "number" ? message.fileSize : undefined,
       "duration" in message && typeof message.duration === "number" ? message.duration : undefined,
     );
+    endEvent({ type: message.type });
     return;
   }
 
@@ -182,10 +224,12 @@ async function handleEvent(
     await reply(event.replyToken, [
       textMsg("Cute sticker. Send me text, a photo, or a file if you'd like me to do something with it."),
     ]);
+    endEvent({ type: "sticker" });
     return;
   }
 
   await reply(event.replyToken, [
     textMsg("I didn't recognize that message type. Try text, a photo, video, audio, or a file."),
   ]);
+  endEvent({ type: "unknown" });
 }

@@ -7,6 +7,7 @@ import { appendTurn, loadHistory } from "@/lib/memory/history";
 import { loadFacts, factsToPromptBlock } from "@/lib/memory/facts";
 import { getSettings } from "@/lib/memory/settings";
 import { appendRecentMedia } from "@/lib/memory/recent-media";
+import { span, timed } from "@/lib/timing";
 
 export async function respondToImage(
   replyToken: string,
@@ -14,12 +15,17 @@ export async function respondToImage(
   profile: { displayName: string },
   messageId: string,
   mode: "normal" | "stage_only" = "normal",
+  traceId?: string,
 ): Promise<void> {
-  const t0 = Date.now();
+  const endHandler = span("image:respondToImage", traceId);
   let imageBytes: Uint8Array;
   let imageContentType: string;
   try {
-    const { bytes, contentType } = await getMessageContent(messageId);
+    const { bytes, contentType } = await timed(
+      "image:getMessageContent",
+      traceId,
+      () => getMessageContent(messageId),
+    );
     imageBytes = bytes;
     imageContentType = contentType;
     await appendRecentMedia(userId, {
@@ -34,19 +40,24 @@ export async function respondToImage(
     if (mode === "normal") {
       await reply(replyToken, [textMsg("I couldn't load that image — can you resend it?")]);
     }
+    endHandler({ failed: "image-fetch" });
     return;
   }
 
   // stage_only: a text message follows in the same batch, so skip responding here.
-  if (mode === "stage_only") return;
+  if (mode === "stage_only") {
+    endHandler({ mode: "stage_only" });
+    return;
+  }
 
   showLoading(userId, 60).catch(() => {});
+  const endPreload = span("image:preload", traceId);
   const [history, facts, settings] = await Promise.all([
     loadHistory(userId),
     loadFacts(userId),
     getSettings(userId),
   ]);
-  console.log("[webhook] image preload done", { ms: Date.now() - t0 });
+  endPreload({ historyTurns: history.length, facts: facts.facts.length });
 
   // Use generateText directly (no tools) so Gemini just looks at the image bytes
   // and responds in plain text. Passing through runAgent triggers summarize_image /
@@ -68,6 +79,7 @@ export async function respondToImage(
   ];
 
   let replyText: string;
+  const endGenerate = span("image:generateText", traceId);
   try {
     const result = await withTimeout(
       generateText({
@@ -79,15 +91,24 @@ export async function respondToImage(
       }),
       AGENT_TIMEOUT_MS,
     );
+    endGenerate({ success: true });
     replyText = stripMarkdown(
       result.text?.trim() || "Hmm, I couldn't read that image. Can you try sending it again?",
     );
   } catch (err) {
+    endGenerate({ error: err instanceof Error ? err.message : String(err) });
     console.warn("[webhook] image generateText failed", err);
     replyText = "Couldn't analyze that image. Try resending it?";
   }
 
+  const endReply = span("image:reply", traceId);
   await reply(replyToken, [textMsg(replyText)]);
+  endReply();
+
+  const endAppend = span("image:appendTurns", traceId);
   await appendTurn(userId, { role: "user", content: "[sent an image]", ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
+  endAppend();
+
+  endHandler({ replyLength: replyText.length });
 }
