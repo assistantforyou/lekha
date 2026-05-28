@@ -356,9 +356,17 @@ export async function runAgent(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const processed = processResult(result as any, accounts.activeEmail, allCalls, settings?.timezone);
     const text = formatProcessed(processed);
-    const confirmDraft = allCalls.some(
-      (c) => c.toolName === "draft_email" || c.toolName === "draft_calendar_event" || c.toolName === "schedule_email",
-    );
+    const draftToolNames = allCalls
+      .filter((c) =>
+        c.toolName === "draft_email" ||
+        c.toolName === "draft_calendar_event" ||
+        c.toolName === "schedule_email",
+      )
+      .map((c) => c.toolName);
+    const confirmDraft = draftToolNames.length > 0;
+    if (confirmDraft && allCalls.length === 0) {
+      console.error("[agent] BUG: confirmDraft=true but allCalls is empty — this should never happen");
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const flexMessages = buildFlexFromToolResults(result as any);
     const followUps = buildFollowUps(allCalls.map((c) => c.toolName), { confirmDraft });
