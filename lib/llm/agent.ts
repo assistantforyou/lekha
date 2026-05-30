@@ -290,7 +290,7 @@ export async function runAgent(
 
   try {
     const endTools = span("agent:toolsForUser", traceId);
-    const tools = await toolsForUser(userId, { userHasGoogle });
+    const tools = await toolsForUser(userId, { userHasGoogle, disabledCategories: settings.disabledCategories });
     endTools({ toolCount: Object.keys(tools).length });
 
     const endGenerate = span("agent:generateText", traceId);

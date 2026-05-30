@@ -1,31 +1,25 @@
-// @ts-nocheck
-"use client";
-
-import "./marketing.css";
 /* LEKHA marketing site — main app */
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import type { SVGProps } from "react";
-import Link from "next/link";
+const { useState, useEffect, useRef, useMemo } = React;
 
 /* ---------- Icons (inline SVGs, single-line strokes) ---------- */
 const Ico = {
-  spark: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" {...p}><path d="M12 2l2.39 6.61L21 11l-6.61 2.39L12 20l-2.39-6.61L3 11l6.61-2.39L12 2z" /></svg>,
-  chat: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>,
-  bell: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>,
-  news: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zM2 18v2a2 2 0 0 0 2 2" /><path d="M18 14h-8M15 18h-5M10 6h8v4h-8V6z" /></svg>,
-  check: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6L9 17l-5-5" /></svg>,
-  chart: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 3v18h18" /><path d="M7 14l4-4 4 4 5-7" /></svg>,
-  mail: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg>,
-  search: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>,
-  cal: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18" /></svg>,
-  send: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></svg>,
-  globe: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z" /></svg>,
-  shield: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" /></svg>,
-  bolt: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" /></svg>,
-  doc: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h6" /></svg>,
-  lang: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 8h12M9 4v4c0 5-2 8-5 9M12 16c.5 2 2 4 4 5M15 20l4-9 4 9M16.5 17h5" /></svg>,
-  image: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>,
-  tune: (p: SVGProps<SVGSVGElement>) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+  spark: (p) => <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" {...p}><path d="M12 2l2.39 6.61L21 11l-6.61 2.39L12 20l-2.39-6.61L3 11l6.61-2.39L12 2z" /></svg>,
+  chat: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>,
+  bell: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>,
+  news: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zM2 18v2a2 2 0 0 0 2 2" /><path d="M18 14h-8M15 18h-5M10 6h8v4h-8V6z" /></svg>,
+  check: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 6L9 17l-5-5" /></svg>,
+  chart: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 3v18h18" /><path d="M7 14l4-4 4 4 5-7" /></svg>,
+  mail: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg>,
+  search: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>,
+  cal: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 11h18" /></svg>,
+  send: (p) => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></svg>,
+  globe: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z" /></svg>,
+  shield: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" /></svg>,
+  bolt: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" /></svg>,
+  doc: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 13h6M9 17h6" /></svg>,
+  lang: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M5 8h12M9 4v4c0 5-2 8-5 9M12 16c.5 2 2 4 4 5M15 20l4-9 4 9M16.5 17h5" /></svg>,
+  image: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>,
+  tune: (p) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>
 };
 
 /* ---------- Logo mark ---------- */
@@ -45,15 +39,15 @@ const Nav = () =>
         <span>LEKHA</span>
       </div>
       <ul className="nav-links">
-        <li><Link href="#features">Features</Link></li>
-        <li><Link href="#operations">Operations Layer</Link></li>
-        <li><Link href="#builtfor">Use Cases</Link></li>
-        <li><Link href="#pricing">Pricing</Link></li>
-        <li><Link href="#faq">FAQ</Link></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#operations">Operations Layer</a></li>
+        <li><a href="#builtfor">Use Cases</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#faq">FAQ</a></li>
       </ul>
       <div className="nav-cta">
-        <Link className="btn btn-ghost hide-sm" href="/api/auth/line/dashboard-start">Sign in</Link>
-        <a className="btn btn-primary" href="https://forms.gle/6qu52TxR4sYHWymX7" target="_blank" rel="noopener">Book a 1-on-1 session with us <Ico.cal /></a>
+        <a className="btn btn-ghost hide-sm" href="#login">Sign in</a>
+        <a className="btn btn-primary" href="#start">Book a 1-on-1 session with us <Ico.cal /></a>
       </div>
     </div>
   </nav>;
@@ -67,7 +61,7 @@ const QR_CONFIGS = {
     title: 'Scan to follow',
     titleAccent: '@assisstantforyou',
     sub: 'Point your phone camera at the code, or tap below to open Instagram in a new tab.',
-    qrSrc: '/assets/instagram-qr.png',
+    qrSrc: 'assets/instagram-qr.png',
     qrAlt: 'Instagram QR code for @assisstantforyou',
     handle: '@assisstantforyou',
     handleIcon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>,
@@ -81,7 +75,7 @@ const QR_CONFIGS = {
     title: 'Scan to add',
     titleAccent: 'LEKHA on LINE',
     sub: 'Open the LINE app, tap “Add friend → QR code”, and point your camera here. Or tap below to open in a new tab.',
-    qrSrc: '/assets/line-qr.png',
+    qrSrc: 'assets/line-qr.png',
     qrAlt: 'LINE Add friend QR code for LEKHA',
     handle: 'LEKHA Official',
     handleIcon: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>,
@@ -91,10 +85,10 @@ const QR_CONFIGS = {
   }
 };
 
-const QRModal = ({ open, onClose, config }: { open: boolean; onClose: () => void; config: (typeof QR_CONFIGS)[keyof typeof QR_CONFIGS] | null }) => {
+const QRModal = ({ open, onClose, config }) => {
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e) => {if (e.key === 'Escape') onClose();};
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -150,32 +144,19 @@ const Hero = () => {
   const phrases = ['Brief me on today.', 'Add a 3pm reminder.', 'Analyze NVDA stock.', 'Draft a reply to David.', 'What\u2019s on my calendar?'];
   const [idx, setIdx] = useState(0);
   const [typed, setTyped] = useState('');
-  const [qrModal, setQrModal] = useState<string | null>(null);
+  const [qrModal, setQrModal] = useState(null); // 'instagram' | 'line' | null
   useEffect(() => {
-    let i = 0;
-    let dir = 1;
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    let i = 0;let dir = 1;
     const tick = () => {
-      const target = phrases[idx] ?? "";
+      const target = phrases[idx];
       i += dir;
-      if (i > target.length) {
-        dir = -1;
-        timers.push(setTimeout(tick, 1500));
-        return;
-      }
-      if (i < 0) {
-        timers.push(setTimeout(() => {
-          setIdx((p) => (p + 1) % phrases.length);
-        }, 0));
-        dir = 1;
-        timers.push(setTimeout(tick, 200));
-        return;
-      }
+      if (i > target.length) {dir = -1;setTimeout(tick, 1500);return;}
+      if (i < 0) {setIdx((p) => (p + 1) % phrases.length);dir = 1;setTimeout(tick, 200);return;}
       setTyped(target.slice(0, i));
-      timers.push(setTimeout(tick, dir === 1 ? 55 : 28));
+      setTimeout(tick, dir === 1 ? 55 : 28);
     };
-    timers.push(setTimeout(tick, 400));
-    return () => timers.forEach(clearTimeout);
+    const t = setTimeout(tick, 400);
+    return () => clearTimeout(t);
   }, [idx]);
 
   return (
@@ -210,7 +191,7 @@ const Hero = () => {
 
         <div>
           <div className="avatar-stage">
-            <img src="/assets/lekha-hero.png" alt="LEKHA avatar" />
+            <img src="assets/lekha-hero.png" alt="LEKHA avatar" />
             <div className="chat-float">
               <span className="dot"></span>{" Online\n            "}
             </div>
@@ -261,7 +242,7 @@ const Hero = () => {
           </div>
         </div>
       </div>
-      <QRModal open={!!qrModal} onClose={() => setQrModal(null)} config={qrModal ? QR_CONFIGS[qrModal as keyof typeof QR_CONFIGS] : null} />
+      <QRModal open={!!qrModal} onClose={() => setQrModal(null)} config={QR_CONFIGS[qrModal]} />
     </section>);};
 /* ---------- Feature explorer data ---------- */
 const FEATURES = [
@@ -338,7 +319,7 @@ const FEATURES = [
 
 
 /* ---------- Chat preview content by feature ---------- */
-const ChatBody = ({ id }: { id: string }) => {
+const ChatBody = ({ id }) => {
   if (id === 'briefing') return (
     <React.Fragment>
       <div className="bubble user">Brief me on today.</div>
@@ -579,8 +560,8 @@ const CHAT_SCRIPTS = {
 
 };
 
-const InlineRich = ({ type }: { type: string }) => {
-  const card = (items: [string, string][]) =>
+const InlineRich = ({ type }) => {
+  const card = (items) =>
   <div className="brief-card" style={{ marginTop: 8 }}>
       {items.map(([tag, text], i) =>
     <div key={i} className="brief-item">
@@ -632,17 +613,9 @@ const InlineRich = ({ type }: { type: string }) => {
   return null;
 };
 
-type DisplayMsg = {
-  r: 'u' | 'b';
-  text: string;
-  typing?: boolean;
-  done?: boolean;
-  rich?: string | null;
-};
-
-const StreamingChat = ({ id }: { id: string }) => {
-  const [display, setDisplay] = useState<DisplayMsg[]>([]);
-  const bodyRef = useRef<HTMLDivElement | null>(null);
+const StreamingChat = ({ id }) => {
+  const [display, setDisplay] = useState([]);
+  const bodyRef = useRef(null);
 
   useEffect(() => {
     if (!bodyRef.current) return;
@@ -650,18 +623,18 @@ const StreamingChat = ({ id }: { id: string }) => {
   });
 
   useEffect(() => {
-    const script = CHAT_SCRIPTS[id as keyof typeof CHAT_SCRIPTS] || [];
+    const script = CHAT_SCRIPTS[id] || [];
     let cancelled = false;
 
-    const after = (ms: number, fn: () => void) => setTimeout(() => { if (!cancelled) fn(); }, ms);
+    const after = (ms, fn) => setTimeout(() => {if (!cancelled) fn();}, ms);
 
-    const updateLast = (updater: (m: DisplayMsg) => DisplayMsg) =>
-      setDisplay((prev) => {
-        if (!prev.length) return prev;
-        const copy = [...prev];
-        copy[copy.length - 1] = updater(copy[copy.length - 1]!);
-        return copy;
-      });
+    const updateLast = (updater) =>
+    setDisplay((prev) => {
+      if (!prev.length) return prev;
+      const copy = [...prev];
+      copy[copy.length - 1] = updater(copy[copy.length - 1]);
+      return copy;
+    });
 
     const restart = () => {
       after(3800, () => {
@@ -670,7 +643,7 @@ const StreamingChat = ({ id }: { id: string }) => {
       });
     };
 
-    const streamMsg = (msgIdx: number, charIdx: number) => {
+    const streamMsg = (msgIdx, charIdx) => {
       const msg = script[msgIdx];
       const full = msg.t;
       const next = full.slice(0, charIdx + 1);
@@ -691,8 +664,8 @@ const StreamingChat = ({ id }: { id: string }) => {
       }
     };
 
-    const run = (msgIdx: number) => {
-      if (msgIdx >= script.length) { restart(); return; }
+    const run = (msgIdx) => {
+      if (msgIdx >= script.length) {restart();return;}
       const msg = script[msgIdx];
       if (msg.r === 'u') {
         setDisplay((prev) => [...prev, { r: 'u', text: msg.t, done: true }]);
@@ -711,9 +684,9 @@ const StreamingChat = ({ id }: { id: string }) => {
       }
     };
 
-    queueMicrotask(() => setDisplay([]));
+    setDisplay([]);
     after(350, () => run(0));
-    return () => { cancelled = true; };
+    return () => {cancelled = true;};
   }, [id]);
 
   return (
@@ -741,7 +714,6 @@ const StreamingChat = ({ id }: { id: string }) => {
 const FeatureExplorer = () => {
   const [active, setActive] = useState(FEATURES[0].id);
   const cur = FEATURES.find((f) => f.id === active);
-  if (!cur) return null;
   const placeholders = {
     briefing: 'Brief me on today...',
     memory: 'Remember that I...',
@@ -788,7 +760,7 @@ const FeatureExplorer = () => {
           </div>
           <div className="chat-input">
             <Ico.spark style={{ color: 'var(--blue-bright)' }} />
-            <input readOnly placeholder={placeholders[active as keyof typeof placeholders]} />
+            <input readOnly placeholder={placeholders[active]} />
             <button><Ico.send /></button>
           </div>
           <div className="line-footnote">Chatting via LINE</div>
@@ -822,10 +794,10 @@ const STEPS = [
 
 /* ---------- Use cases ---------- */
 const USES = [
-{ tag: 'For founders', h: 'Your one-person chief of staff.', p: 'Brief on competitors before every call. Draft investor updates. Never drop a follow-up again.', img: '/assets/use-founders.png' },
-{ tag: 'For executives', h: 'Reclaim the first hour of every day.', p: 'Wake up to a briefing tuned to your portfolio, your team and your blockers.', img: '/assets/use-executives.png' },
-{ tag: 'For analysts', h: 'Markets, news and research in one chat.', p: 'Live data, sentiment and instant deep-dives — show your working with cited sources.', img: '/assets/use-analysts.png' },
-{ tag: 'For busy people', h: 'A todo list that finally sticks.', p: 'Plain-language input, smart prioritisation, polite but persistent nudges.', img: '/assets/use-busy.png' }];
+{ tag: 'For founders', h: 'Your one-person chief of staff.', p: 'Brief on competitors before every call. Draft investor updates. Never drop a follow-up again.', img: 'assets/use-founders.png' },
+{ tag: 'For executives', h: 'Reclaim the first hour of every day.', p: 'Wake up to a briefing tuned to your portfolio, your team and your blockers.', img: 'assets/use-executives.png' },
+{ tag: 'For analysts', h: 'Markets, news and research in one chat.', p: 'Live data, sentiment and instant deep-dives — show your working with cited sources.', img: 'assets/use-analysts.png' },
+{ tag: 'For busy people', h: 'A todo list that finally sticks.', p: 'Plain-language input, smart prioritisation, polite but persistent nudges.', img: 'assets/use-busy.png' }];
 
 
 /* ---------- Pricing ---------- */
@@ -908,10 +880,8 @@ const MetricsStrip = () => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return;
         const el = entry.target;
-        const idx = parseInt((el as HTMLElement).dataset.idx, 10);
+        const idx = parseInt(el.dataset.idx, 10);
         const m = METRICS[idx];
-        // @ts-expect-error window.countUp is injected via external script tag.
-        // @ts-expect-error window.countUp injected via script tag.
         if (window.countUp) {
           const cu = new window.countUp.CountUp(el, m.end, {
             duration: 2.2,
@@ -936,7 +906,7 @@ const MetricsStrip = () => {
         <div className="metrics-grid">
           {METRICS.map((m, i) =>
           <div key={i} className="metric-item reveal">
-              <div className="metric-value" ref={(el: HTMLDivElement | null) => { refs.current[i] = el; }} data-idx={i}>
+              <div className="metric-value" ref={(el) => refs.current[i] = el} data-idx={i}>
                 {(m.prefix || '') + m.end + (m.suffix || '')}
               </div>
               <div className="metric-label" style={{ whiteSpace: 'pre-line' }}>{m.label}</div>
@@ -1013,11 +983,9 @@ const CMD_TASKS = [
 const CMD_OPS = ['Email · 23 unread', 'Docs · Q3 deck updated', 'Reminders · 5 pending'];
 
 const GlobeSection = () => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    // @ts-expect-error window.THREE is injected via external script tag.
-    // @ts-expect-error window.THREE injected via script tag.
     if (!window.THREE || !canvasRef.current) return;
     const THREE = window.THREE;
     const canvas = canvasRef.current;
@@ -1052,7 +1020,7 @@ const GlobeSection = () => {
     scene.add(ring2);
     // Orbit dots
     const dotGeo = new THREE.SphereGeometry(0.022, 8, 8);
-    const dots: { userData: { angle: number; speed: number; tilt: number }; position: { x: number; y: number; z: number } }[] = [];
+    const dots = [];
     for (let i = 0; i < 24; i++) {
       const d = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({
         color: i % 4 === 0 ? 0xf5b942 : 0x60a5fa
@@ -1065,7 +1033,7 @@ const GlobeSection = () => {
     scene.add(new THREE.AmbientLight(0x1e3a6e, 1.4));
     const pt = new THREE.PointLight(0x3b82f6, 2.5, 10);pt.position.set(3, 2, 3);scene.add(pt);
     const pt2 = new THREE.PointLight(0xf5b942, 0.6, 10);pt2.position.set(-3, -1, -2);scene.add(pt2);
-    let frame: number;
+    let frame;
     const animate = () => {
       frame = requestAnimationFrame(animate);
       scene.rotation.y += 0.003;
@@ -1320,11 +1288,16 @@ const PRICE_TABLE = {
 };
 const CURRENCY_LABEL = { THB: '฿', USD: '$' };
 
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "currency": "THB"
+} /*EDITMODE-END*/;
+
 const App = () => {
   useReveal();
-  const [currency, setCurrency] = useState('THB');
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const currency = t.currency;
 
-  const pricing = BASE_PRICING.map((p) => ({ ...p, price: PRICE_TABLE[p.name as keyof typeof PRICE_TABLE][currency as keyof typeof CURRENCY_LABEL] }));
+  const pricing = BASE_PRICING.map((p) => ({ ...p, price: PRICE_TABLE[p.name][currency] }));
 
   return (
     <React.Fragment>
@@ -1434,7 +1407,7 @@ const App = () => {
                     </li>
                 )}
                 </ul>
-                <Link href={`/signup?plan=${p.name.toLowerCase()}`} className={`btn ${p.primary ? 'btn-gold' : 'btn-ghost'}`}>{p.cta}</Link>
+                <a href="#start" className={`btn ${p.primary ? 'btn-gold' : 'btn-ghost'}`}>{p.cta}</a>
               </div>
             )}
           </div>
@@ -1460,8 +1433,8 @@ const App = () => {
             <h2 style={{ marginTop: 18 }}>Hand off your day to <span className="gold-text">LEKHA</span>.</h2>
             <p>Free for 7 days. Cancel anytime — she won’t take it personally.</p>
             <div className="cta-actions">
-              <Link className="btn btn-gold" href="#start">Start now <Ico.bolt /></Link>
-              <Link className="btn btn-ghost" href="#demo"><Ico.chat /> Book a 1-on-1 session with the team</Link>
+              <a className="btn btn-gold" href="#start">Start now <Ico.bolt /></a>
+              <a className="btn btn-ghost" href="#demo"><Ico.chat /> Book a 1-on-1 session with the team</a>
             </div>
           </div>
           <div className="cta-side">
@@ -1489,28 +1462,28 @@ const App = () => {
             <div>
               <h5>Product</h5>
               <ul style={{ gap: "4px" }}>
-                <li><Link href="#features">Features</Link></li>
-                <li><Link href="#pricing">Pricing</Link></li>
-                <li><Link href="#caps">Integrations</Link></li>
-                <li><Link href="#faq">FAQ</Link></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#caps">Integrations</a></li>
+                <li><a href="#faq">FAQ</a></li>
               </ul>
             </div>
             <div>
               <h5>Company</h5>
               <ul style={{ gap: "4px" }}>
-                <li><Link href="#about">About</Link></li>
+                <li><a href="#about">About</a></li>
                 <li><a href="https://lin.ee/NuCuel7" target="_blank" rel="noopener">Contact</a></li>
-                <li><Link href="#use">Use cases</Link></li>
-                <li><Link href="#how">How it works</Link></li>
+                <li><a href="#use">Use cases</a></li>
+                <li><a href="#how">How it works</a></li>
               </ul>
             </div>
             <div>
               <h5>Resources</h5>
               <ul style={{ gap: "4px" }}>
-                <li><Link href="#terms">Terms</Link></li>
-                <li><Link href="#terms"></Link></li>
+                <li><a href="#terms">Terms</a></li>
+                <li><a href="#terms"></a></li>
                 <li><a href="https://lin.ee/NuCuel7" target="_blank" rel="noopener">Help center</a></li>
-                <li><Link href="#start"></Link></li>
+                <li><a href="#start"></a></li>
               </ul>
             </div>
           </div>
@@ -1521,26 +1494,14 @@ const App = () => {
         </div>
       </footer>
 
-      <CurrencyToggle currency={currency} setCurrency={setCurrency} />
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Pricing" />
+        <TweakRadio label="Currency"
+        value={currency} options={['THB', 'USD']}
+        onChange={(v) => setTweak('currency', v)} />
+      </TweaksPanel>
     </React.Fragment>);
 
 };
 
-/* ---------- Currency toggle (replaces dev-only TweaksPanel) ---------- */
-const CurrencyToggle = ({ currency, setCurrency }: { currency: string; setCurrency: (c: string) => void }) => (
-  <div className="currency-toggle" role="group" aria-label="Currency">
-    {['THB', 'USD'].map((c) => (
-      <button
-        key={c}
-        type="button"
-        className={currency === c ? 'active' : ''}
-        onClick={() => setCurrency(c)}
-        aria-pressed={currency === c}
-      >
-        {c}
-      </button>
-    ))}
-  </div>
-);
-
-export default App;
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);

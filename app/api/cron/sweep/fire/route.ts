@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
         timezone: settings.timezone,
         location: settings.location,
         includeInbox: settings.inboxBriefingEnabled,
+        briefingTopics: settings.briefingTopics,
       });
       const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
       if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
   try {
     if (
       settings.eveningSummaryEnabled &&
-      shouldFireEveningSummaryNow(settings.lastEveningSummaryTs, settings.timezone)
+      shouldFireEveningSummaryNow(settings.lastEveningSummaryTs, settings.timezone, settings.eveningSummaryTime)
     ) {
       const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
       if (summary) {

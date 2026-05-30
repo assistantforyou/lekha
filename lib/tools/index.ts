@@ -30,7 +30,7 @@ import type { ToolSet } from "ai";
 type Need = "google_oauth_env" | "google_user_connected" | "qstash" | "tavily";
 
 // R5: In-memory cache for tool sets (functions can't serialize to Redis).
-// Cache key = userId + google-connected flag. TTL = 5 min.
+// Cache key = userId + google-connected flag + disabled categories hash. TTL = 5 min.
 const toolCache = new Map<string, { tools: ToolSet; ts: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -43,12 +43,16 @@ type Builder = (userId: string) => Record<string, unknown>;
 type Entry = {
   build: Builder;
   needs?: Need[];
+  category?: string;
 };
 
 /**
  * Declarative tool registry. Add or remove a tool by editing one row.
  * Each entry lists the env/user prerequisites; the dispatcher omits any tool
  * whose prerequisites aren't satisfied.
+ *
+ * Categories: tasks, reminders, calendar, email, drive — used by the dashboard
+ * to let users disable whole surfaces.
  */
 const REGISTRY: Entry[] = [
   { build: () => buildHelpTools() },
@@ -59,24 +63,24 @@ const REGISTRY: Entry[] = [
   { build: () => buildNewsTools(), needs: ["tavily"] },
   { build: (u) => buildSettingsTools(u) },
   { build: (u) => buildMemoryTools(u) },
-  { build: (u) => buildTaskTools(u) },
+  { build: (u) => buildTaskTools(u), category: "tasks" },
   { build: (u) => buildExportTools(u) },
   { build: (u) => buildSentHistoryTools(u) },
   { build: (u) => buildMediaAiTools(u) },
   { build: (u) => buildReceiptTools(u) },
-  { build: (u) => buildReminderTools(u), needs: ["qstash"] },
+  { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders" },
   { build: () => buildWebSearchTool(), needs: ["tavily"] },
   // Connect/list/switch — registered as soon as Google OAuth env is configured,
   // even before this user has linked an account, so the model can offer to link.
   { build: (u) => buildGoogleAccountTools(u), needs: ["google_oauth_env"] },
   // Per-user Google surface — gated on whether THIS user has linked an account.
-  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"] },
-  { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"] },
-  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"] },
-  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"] },
-  { build: (u) => buildDocsTools(u), needs: ["google_user_connected"] },
-  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"] },
-  { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"] },
+  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email" },
+  { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar" },
+  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive" },
+  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email" },
+  { build: (u) => buildDocsTools(u), needs: ["google_user_connected"], category: "drive" },
+  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email" },
+  { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email" },
   { build: (u) => buildStagedMediaTools(u) },
   { build: (u) => buildListTools(u) },
 ];
@@ -103,7 +107,7 @@ function envHas(need: Need, userHasGoogle: boolean): boolean {
  */
 export async function toolsForUser(
   userId: string,
-  opts?: { userHasGoogle?: boolean },
+  opts?: { userHasGoogle?: boolean; disabledCategories?: string[] },
 ): Promise<ToolSet> {
   const userHasGoogle =
     opts?.userHasGoogle !== undefined
@@ -112,7 +116,9 @@ export async function toolsForUser(
         ? (await listAccounts(userId)).accounts.length > 0
         : false;
 
-  const cacheKey = `${userId}:${userHasGoogle ? 1 : 0}`;
+  const disabled = opts?.disabledCategories ?? [];
+  const disabledKey = disabled.sort().join(",");
+  const cacheKey = `${userId}:${userHasGoogle ? 1 : 0}:${disabledKey}`;
   const cached = toolCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.tools;
@@ -122,6 +128,7 @@ export async function toolsForUser(
   for (const entry of REGISTRY) {
     const ok = (entry.needs ?? []).every((n) => envHas(n, userHasGoogle));
     if (!ok) continue;
+    if (entry.category && disabled.includes(entry.category)) continue;
     Object.assign(out, entry.build(userId));
   }
   const tools = out as ToolSet;

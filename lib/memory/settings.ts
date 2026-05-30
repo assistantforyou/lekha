@@ -17,19 +17,44 @@ export type UserSettings = {
   lastMorningBriefingTs: number | null;
   /** Set of disabled tool categories — used to gate tools the user opted out of. */
   disabledCategories: string[];
-  /** Whether to push a 9 PM evening summary (tasks leftover, tomorrow's events, top news). */
+  /** Whether to push an evening summary (tasks leftover, tomorrow's events, top news). */
   eveningSummaryEnabled: boolean;
+  /** Evening summary time in HH:mm 24h, in user's timezone. */
+  eveningSummaryTime: string;
   /** Last time we ran the evening summary for this user (ms). */
   lastEveningSummaryTs: number | null;
   // ── Dashboard-surfaced feature controls ─────────────────────────────────
-  // These fields are the canonical toggles for the future web dashboard.
-  // Each feature: enabled flag + optional config (time, categories, etc.).
   /** Daily end-of-day task check-in: ask "Did you finish X?" for all open tasks. */
   taskCheckInEnabled: boolean;
   /** Time to fire the check-in (HH:mm 24h, user's timezone). */
   taskCheckInTime: string;
   /** Last time the task check-in was sent (ms). Internal — not surfaced in dashboard. */
   lastTaskCheckInTs: number | null;
+  // ── Dashboard state (v4) ───────────────────────────────────────────────
+  /** Which briefing topic verticals are enabled. */
+  briefingTopics: Record<string, boolean>;
+  /** Briefing output length. */
+  briefingLength: "Headlines" | "Bullets" | "Full";
+  /** Briefing language preference. */
+  briefingLanguage: "English" | "ไทย" | "EN + ไทย";
+  /** Briefing delivery channels. */
+  briefingChannels: { line: boolean; email: boolean; push: boolean };
+  /** Per-tool enabled flags (todo, reminders, calendar, email, drive). */
+  tools: Record<string, boolean>;
+  /** Per-tool configuration objects. */
+  toolSettings: Record<string, Record<string, unknown>>;
+  /** Auto-compact conversation history every N messages. */
+  memoryCompactAt: number;
+  /** Whether long-term memory / fact extraction is enabled. */
+  memoryEnabled: boolean;
+  /** Persona controls how Lekha sounds. */
+  personaTone: "Warm" | "Professional" | "Playful";
+  /** How Lekha addresses the user. */
+  personaAddressing: "First name" | "Khun" | "Sir / Madam" | "No address";
+  /** Primary language the user wants Lekha to use. */
+  personaPrimaryLang: "English" | "Thai";
+  /** Whether to match the user's writing voice. */
+  personaVoiceMatch: boolean;
   // ────────────────────────────────────────────────────────────────────────
   /**
    * Keys the user has explicitly configured via a settings tool. Migrations skip
@@ -43,7 +68,7 @@ export type UserSettings = {
 };
 
 // Bump this and add a migration entry below every time you change a default value.
-const CURRENT_VERSION = 3;
+const CURRENT_VERSION = 4;
 
 const DEFAULTS: UserSettings = {
   timezone: "Asia/Bangkok",
@@ -55,10 +80,44 @@ const DEFAULTS: UserSettings = {
   lastMorningBriefingTs: null,
   disabledCategories: [],
   eveningSummaryEnabled: true,
+  eveningSummaryTime: "21:00",
   lastEveningSummaryTs: null,
   taskCheckInEnabled: true,
   taskCheckInTime: "20:30",
   lastTaskCheckInTs: null,
+  // dashboard defaults
+  briefingTopics: {
+    stocks: true,
+    wellness: true,
+    politics: false,
+    crime: false,
+    sports: false,
+    business: true,
+    entertain: false,
+  },
+  briefingLength: "Headlines",
+  briefingLanguage: "EN + ไทย",
+  briefingChannels: { line: true, email: false, push: true },
+  tools: {
+    todo: true,
+    reminders: true,
+    calendar: true,
+    email: true,
+    drive: true,
+  },
+  toolSettings: {
+    todo: { prio: "Deadline", nudge: 2, followup: true },
+    reminders: { quietStart: "22:00", quietEnd: "06:30", preempt: 15, skipHolidays: true },
+    calendar: { tz: "Asia/Bangkok", deepStart: "09:00", deepEnd: "11:00", noMeet: ["Wed", "Fri"], prebrief: true },
+    email: { tone: "Warm", signoff: "Best,", autosend: "Always confirm" },
+    drive: { scope: "My Drive", fmt: "Bullets", autosort: true },
+  },
+  memoryCompactAt: 10,
+  memoryEnabled: true,
+  personaTone: "Warm",
+  personaAddressing: "First name",
+  personaPrimaryLang: "English",
+  personaVoiceMatch: true,
   userConfigured: [],
   settingsVersion: CURRENT_VERSION,
   updatedAt: 0,
@@ -96,6 +155,25 @@ const MIGRATIONS: Array<(s: StoredSettings, configured: Set<string>) => Partial<
     const patch: Partial<UserSettings> = {};
     if (!configured.has("taskCheckInEnabled")) patch.taskCheckInEnabled = true;
     if (!configured.has("taskCheckInTime")) patch.taskCheckInTime = "20:30";
+    return patch;
+  },
+
+  // v3 → v4: add dashboard fields with sensible defaults
+  (_s, configured) => {
+    const patch: Partial<UserSettings> = {};
+    if (!configured.has("briefingTopics")) patch.briefingTopics = DEFAULTS.briefingTopics;
+    if (!configured.has("briefingLength")) patch.briefingLength = DEFAULTS.briefingLength;
+    if (!configured.has("briefingLanguage")) patch.briefingLanguage = DEFAULTS.briefingLanguage;
+    if (!configured.has("briefingChannels")) patch.briefingChannels = DEFAULTS.briefingChannels;
+    if (!configured.has("tools")) patch.tools = DEFAULTS.tools;
+    if (!configured.has("toolSettings")) patch.toolSettings = DEFAULTS.toolSettings;
+    if (!configured.has("memoryCompactAt")) patch.memoryCompactAt = DEFAULTS.memoryCompactAt;
+    if (!configured.has("memoryEnabled")) patch.memoryEnabled = DEFAULTS.memoryEnabled;
+    if (!configured.has("personaTone")) patch.personaTone = DEFAULTS.personaTone;
+    if (!configured.has("personaAddressing")) patch.personaAddressing = DEFAULTS.personaAddressing;
+    if (!configured.has("personaPrimaryLang")) patch.personaPrimaryLang = DEFAULTS.personaPrimaryLang;
+    if (!configured.has("personaVoiceMatch")) patch.personaVoiceMatch = DEFAULTS.personaVoiceMatch;
+    if (!configured.has("eveningSummaryTime")) patch.eveningSummaryTime = DEFAULTS.eveningSummaryTime;
     return patch;
   },
 ];
@@ -136,7 +214,15 @@ export async function updateSettings(
 ): Promise<UserSettings> {
   const cur = await getSettings(userId);
   // Track which keys this user has deliberately configured.
-  const internal = new Set(["lastMorningBriefingTs", "lastEveningSummaryTs", "lastTaskCheckInTs", "userConfigured", "settingsVersion", "updatedAt", "disabledCategories"]);
+  const internal = new Set([
+    "lastMorningBriefingTs",
+    "lastEveningSummaryTs",
+    "lastTaskCheckInTs",
+    "userConfigured",
+    "settingsVersion",
+    "updatedAt",
+    "disabledCategories",
+  ]);
   const newConfigured = Array.from(
     new Set([
       ...(cur.userConfigured ?? []),

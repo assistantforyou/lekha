@@ -69,12 +69,40 @@ function sanitizePromptValue(s: string): string {
 export function buildSystemPrompt(
   facts: string,
   profile: { displayName: string },
-  settings?: { timezone?: string; location?: string | null; language?: string | null },
+  settings?: {
+    timezone?: string;
+    location?: string | null;
+    language?: string | null;
+    personaTone?: string;
+    personaAddressing?: string;
+    personaPrimaryLang?: string;
+    personaVoiceMatch?: boolean;
+  },
 ): string {
   const intro = profile.displayName
     ? `\n\nThe user's LINE display name is "${sanitizePromptValue(profile.displayName)}".`
     : "";
   const loc = settings?.location ? `\nLocation (user-stated): ${sanitizePromptValue(settings.location)}.` : "";
   const lang = settings?.language ? `\nReply in: ${settings.language} (override the auto-match rule).` : "";
-  return `${BASE_PERSONALITY}${intro}${loc}${lang}${facts}`;
+
+  const tone = settings?.personaTone;
+  const addressing = settings?.personaAddressing;
+  const primaryLang = settings?.personaPrimaryLang;
+  const voiceMatch = settings?.personaVoiceMatch;
+
+  let personaInstructions = "";
+  if (tone) {
+    personaInstructions += `\nTone: ${tone}. `;
+  }
+  if (addressing) {
+    personaInstructions += `Address the user as: ${addressing}. `;
+  }
+  if (primaryLang) {
+    personaInstructions += `Primary language: ${primaryLang}. `;
+  }
+  if (voiceMatch) {
+    personaInstructions += `Match the user's writing style and voice in your replies. `;
+  }
+
+  return `${BASE_PERSONALITY}${intro}${loc}${lang}${personaInstructions ? "\n\nPersona settings:" + personaInstructions : ""}${facts}`;
 }

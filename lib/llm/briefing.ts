@@ -215,9 +215,19 @@ function buildRecommendations(
  * Returns structured data: main text (for the Flex bubble) + news + inbox
  * so each section can be rendered as its own rich Flex message.
  */
+const TOPIC_QUERIES: Record<string, string> = {
+  stocks: "stock market finance investing earnings today",
+  wellness: "health wellness nutrition sleep fitness today",
+  politics: "politics policy government legislation today",
+  crime: "breaking news crime safety alerts today",
+  sports: "sports news scores highlights today",
+  business: "business economy M&A corporate news today",
+  entertain: "entertainment celebrity film music releases today",
+};
+
 export async function buildMorningBriefing(
   userId: string,
-  opts: { timezone: string; location: string | null; includeInbox: boolean },
+  opts: { timezone: string; location: string | null; includeInbox: boolean; briefingTopics?: Record<string, boolean> },
 ): Promise<BriefingResult> {
   const sections: string[] = [];
   const now = Date.now();
@@ -226,78 +236,86 @@ export async function buildMorningBriefing(
   const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone });
   const endOfToday = new Date(`${todayDateStr}T23:59:59`).getTime();
 
-  const [weatherResult, tasksResult, remindersResult, calendarResult, geoResult, econResult, inboxResult] =
-    await Promise.allSettled([
-      opts.location ? fetchWeather(opts.location) : Promise.resolve(null),
+  // Build dynamic news fetches based on user's briefing topic preferences
+  const enabledTopics = opts.briefingTopics
+    ? Object.entries(opts.briefingTopics).filter(([, on]) => on).map(([id]) => id)
+    : ["business", "politics"];
+  const topicQueries = enabledTopics
+    .map(id => TOPIC_QUERIES[id])
+    .filter((q): q is string => !!q)
+    .slice(0, 3);
+  const newsFetches = apiKey
+    ? topicQueries.map(q => fetchCachedNews(q, apiKey))
+    : [];
+  // Always include a general world news fallback if no topics are enabled
+  if (apiKey && topicQueries.length === 0) {
+    newsFetches.push(fetchCachedNews("world news today major outlets", apiKey));
+  }
 
-      listTasks(userId, "open"),
+  const baseResults = await Promise.allSettled([
+    opts.location ? fetchWeather(opts.location) : Promise.resolve(null),
+    listTasks(userId, "open"),
+    listReminders(userId),
+    hasGoogleConnection(userId).then(async (has) => {
+      if (!has) return null;
+      const { client } = await getGoogleClient(userId, undefined, [
+        "https://www.googleapis.com/auth/calendar.readonly",
+      ]);
+      const calendar = google.calendar({ version: "v3", auth: client });
+      const r = await calendar.events.list({
+        calendarId: "primary",
+        timeMin: new Date(now).toISOString(),
+        maxResults: 20,
+        singleEvents: true,
+        orderBy: "startTime",
+      });
+      return r.data.items ?? [];
+    }),
+    opts.includeInbox
+      ? hasGoogleConnection(userId).then(async (has) => {
+          if (!has) return null;
+          const { client } = await getGoogleClient(userId, undefined, [
+            "https://www.googleapis.com/auth/gmail.readonly",
+          ]);
+          const gmail = google.gmail({ version: "v1", auth: client });
+          const list = await gmail.users.messages.list({
+            userId: "me",
+            q: "newer_than:1d is:unread -category:promotions -category:social",
+            maxResults: 50,
+          });
+          const ids = (list.data.messages ?? []).map((m) => m.id ?? "").filter(Boolean);
+          if (!ids.length) return [];
+          const fetched = await Promise.all(
+            ids.map((id) =>
+              gmail.users.messages.get({
+                userId: "me",
+                id,
+                format: "metadata",
+                metadataHeaders: ["From", "Subject"],
+              }),
+            ),
+          );
+          return fetched
+            .map((r) => {
+              const headers = r.data.payload?.headers ?? [];
+              const from = headers.find((h) => h.name?.toLowerCase() === "from")?.value ?? "";
+              const subject = headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
+              return {
+                id: r.data.id ?? "",
+                from: from.split("<")[0]?.trim() || from,
+                subject,
+                snippet: r.data.snippet ?? "",
+              };
+            })
+            .filter((m) => m.id);
+        })
+      : Promise.resolve(null),
+  ]);
 
-      listReminders(userId),
+  const newsResults = await Promise.allSettled(newsFetches);
 
-      hasGoogleConnection(userId).then(async (has) => {
-        if (!has) return null;
-        const { client } = await getGoogleClient(userId, undefined, [
-          "https://www.googleapis.com/auth/calendar.readonly",
-        ]);
-        const calendar = google.calendar({ version: "v3", auth: client });
-        const r = await calendar.events.list({
-          calendarId: "primary",
-          timeMin: new Date(now).toISOString(),
-          maxResults: 20,
-          singleEvents: true,
-          orderBy: "startTime",
-        });
-        return r.data.items ?? [];
-      }),
-
-      apiKey
-        ? fetchCachedNews("geopolitics world news today major outlets", apiKey)
-        : Promise.resolve([] as NewsStory[]),
-
-      apiKey
-        ? fetchCachedNews("global economics finance markets today", apiKey)
-        : Promise.resolve([] as NewsStory[]),
-
-      opts.includeInbox
-        ? hasGoogleConnection(userId).then(async (has) => {
-            if (!has) return null;
-            const { client } = await getGoogleClient(userId, undefined, [
-              "https://www.googleapis.com/auth/gmail.readonly",
-            ]);
-            const gmail = google.gmail({ version: "v1", auth: client });
-            const list = await gmail.users.messages.list({
-              userId: "me",
-              q: "newer_than:1d is:unread -category:promotions -category:social",
-              maxResults: 50,
-            });
-            const ids = (list.data.messages ?? []).map((m) => m.id ?? "").filter(Boolean);
-            if (!ids.length) return [];
-            const fetched = await Promise.all(
-              ids.map((id) =>
-                gmail.users.messages.get({
-                  userId: "me",
-                  id,
-                  format: "metadata",
-                  metadataHeaders: ["From", "Subject"],
-                }),
-              ),
-            );
-            return fetched
-              .map((r) => {
-                const headers = r.data.payload?.headers ?? [];
-                const from = headers.find((h) => h.name?.toLowerCase() === "from")?.value ?? "";
-                const subject = headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
-                return {
-                  id: r.data.id ?? "",
-                  from: from.split("<")[0]?.trim() || from,
-                  subject,
-                  snippet: r.data.snippet ?? "",
-                };
-              })
-              .filter((m) => m.id);
-          })
-        : Promise.resolve(null),
-    ]);
+  // Unpack base results
+  const [weatherResult, tasksResult, remindersResult, calendarResult, inboxResult] = baseResults;
 
   // Weather
   const wx = weatherResult.status === "fulfilled" ? weatherResult.value : null;
@@ -359,12 +377,13 @@ export async function buildMorningBriefing(
   }
 
   // Build structured news items (rendered as a separate Flex carousel)
-  const geo = geoResult.status === "fulfilled" ? geoResult.value : [];
-  const econ = econResult.status === "fulfilled" ? econResult.value : [];
-  const news: BriefingNewsItem[] = [
-    ...geo.slice(0, 3).map((s) => ({ title: s.title, url: s.url, source: "World" })),
-    ...econ.slice(0, 2).map((s) => ({ title: s.title, url: s.url, source: "Markets" })),
-  ];
+  const allNewsStories: NewsStory[] = [];
+  for (const r of newsResults) {
+    if (r.status === "fulfilled") allNewsStories.push(...(r.value as NewsStory[]));
+  }
+  const news: BriefingNewsItem[] = allNewsStories
+    .slice(0, 5)
+    .map((s) => ({ title: s.title, url: s.url, source: "News" }));
 
   // Build structured inbox items (rendered as a separate Flex carousel)
   const inboxRaw = inboxResult.status === "fulfilled" ? inboxResult.value : null;

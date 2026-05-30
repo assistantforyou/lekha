@@ -309,12 +309,17 @@ export async function buildEveningSummary(
   return { text, news };
 }
 
-/** Returns true if we're inside the 9 PM 15-min window and haven't fired today. */
+/** Returns true if we're inside the configured evening time 15-min window and haven't fired today. */
 export function shouldFireEveningSummaryNow(
   lastFiredTs: number | null,
   timezone: string,
+  eveningTime?: string | null,
   windowMinutes = 15,
 ): boolean {
+  const timeStr = eveningTime ?? "21:00";
+  const m = /^(\d{1,2}):(\d{2})$/.exec(timeStr);
+  const targetHour = m ? parseInt(m[1]!, 10) : 21;
+  const targetMinute = m ? parseInt(m[2]!, 10) : 0;
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     hour: "numeric",
@@ -324,7 +329,7 @@ export function shouldFireEveningSummaryNow(
   const localHour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10);
   const localMin = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10);
   const nowMin = localHour * 60 + localMin;
-  const targetMin = 21 * 60; // 9 PM
+  const targetMin = targetHour * 60 + targetMinute;
   if (nowMin < targetMin || nowMin - targetMin >= windowMinutes) return false;
   if (lastFiredTs && Date.now() - lastFiredTs < 12 * 60 * 60 * 1000) return false;
   return true;
