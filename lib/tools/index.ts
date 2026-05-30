@@ -29,6 +29,11 @@ import type { ToolSet } from "ai";
 
 type Need = "google_oauth_env" | "google_user_connected" | "qstash" | "tavily";
 
+// R5: In-memory cache for tool sets (functions can't serialize to Redis).
+// Cache key = userId + google-connected flag. TTL = 5 min.
+const toolCache = new Map<string, { tools: ToolSet; ts: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
 // Each builder returns a partial ToolSet keyed by tool name. We accept loose
 // typing here because individual builders use the `tool()` helper which infers
 // its own input/output types — combining them at the registry level would
@@ -93,6 +98,8 @@ function envHas(need: Need, userHasGoogle: boolean): boolean {
  * Returns the full tool registry bound to a single user. Tools that depend on
  * unconfigured services or on an unconnected Google account are omitted
  * (CLAUDE.md decision #18). Saves ~2K tokens per request for users without OAuth.
+ *
+ * R5: Cached per-user for 5 minutes to avoid rebuilding the registry on every request.
  */
 export async function toolsForUser(
   userId: string,
@@ -105,11 +112,19 @@ export async function toolsForUser(
         ? (await listAccounts(userId)).accounts.length > 0
         : false;
 
+  const cacheKey = `${userId}:${userHasGoogle ? 1 : 0}`;
+  const cached = toolCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+    return cached.tools;
+  }
+
   const out: Record<string, unknown> = {};
   for (const entry of REGISTRY) {
     const ok = (entry.needs ?? []).every((n) => envHas(n, userHasGoogle));
     if (!ok) continue;
     Object.assign(out, entry.build(userId));
   }
-  return out as ToolSet;
+  const tools = out as ToolSet;
+  toolCache.set(cacheKey, { tools, ts: Date.now() });
+  return tools;
 }

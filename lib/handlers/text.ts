@@ -1,5 +1,5 @@
 import { type ModelMessage } from "ai";
-import { reply, showLoading, getMessageContent } from "@/lib/line/client";
+import { replyOrPush, showLoading, getMessageContent } from "@/lib/line/client";
 import { runAgent } from "@/lib/llm/agent";
 import { appendTurn, loadHistory } from "@/lib/memory/history";
 import { loadFacts } from "@/lib/memory/facts";
@@ -18,34 +18,40 @@ export async function respondToText(
   const endHandler = span("text:respondToText", traceId);
   showLoading(userId, 60).catch(() => {}); // fire-and-forget
 
-  const endPreload = span("text:preload", traceId);
-  const [history, facts, staged, accounts] = await Promise.all([
-    loadHistory(userId),
-    loadFacts(userId),
-    listRecentMedia(userId),
-    listAccounts(userId),
-  ]);
-  endPreload({ historyTurns: history.length, facts: facts.facts.length, staged: staged.length, accounts: accounts.accounts.length });
-
-  // If a fresh image was just staged (< 30s ago), bundle it into the message
-  // so the model sees text + image in one turn.
+  // R7: Load staged first so we can kick off image download in parallel with other preloads
+  const staged = await listRecentMedia(userId);
   const freshImage = staged.find((m) => m.kind === "image" && Date.now() - m.ts < 30_000);
-  let userContent: ModelMessage["content"];
-  if (freshImage) {
-    try {
-      const { bytes, contentType } = await timed(
+
+  const imagePromise = freshImage
+    ? timed(
         "text:getMessageContent",
         traceId,
         () => getMessageContent(freshImage.messageId),
         { sizeBytes: freshImage.sizeBytes },
-      );
-      userContent = [
-        { type: "image", image: bytes, mediaType: contentType },
-        { type: "text", text: userText },
-      ];
-    } catch {
-      userContent = userText;
-    }
+      ).catch(() => null)
+    : Promise.resolve(null);
+
+  const endPreload = span("text:preload", traceId);
+  const [history, facts, accounts, imageData] = await Promise.all([
+    loadHistory(userId),
+    loadFacts(userId),
+    listAccounts(userId),
+    imagePromise,
+  ]);
+  endPreload({
+    historyTurns: history.length,
+    facts: facts.facts.length,
+    staged: staged.length,
+    accounts: accounts.accounts.length,
+    bundledImage: imageData ? freshImage?.messageId : null,
+  });
+
+  let userContent: ModelMessage["content"];
+  if (imageData) {
+    userContent = [
+      { type: "image", image: imageData.bytes, mediaType: imageData.contentType },
+      { type: "text", text: userText },
+    ];
   } else {
     userContent = userText;
   }
@@ -55,10 +61,16 @@ export async function respondToText(
     { role: "user", content: userContent },
   ];
 
-  const { text: replyText, hints } = await runAgent(userId, profile, facts, messages, traceId);
+  // R1: Pass pre-loaded accounts and staged to avoid double-fetch in runAgent
+  const { text: replyText, hints } = await runAgent(userId, profile, facts, messages, traceId, {
+    accounts,
+    staged,
+  });
 
   const endReply = span("text:reply", traceId);
-  await reply(
+  // R2: Fallback to push if replyToken expired (slow requests)
+  await replyOrPush(
+    userId,
     replyToken,
     enrichReply(
       replyText,

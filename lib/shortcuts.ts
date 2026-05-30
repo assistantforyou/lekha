@@ -1,4 +1,4 @@
-import { reply, text as textMsg, showLoading, type LineMessage } from "@/lib/line/client";
+import { replyOrPush, text as textMsg, showLoading, type LineMessage } from "@/lib/line/client";
 import { HELP_TEXT } from "@/lib/tools/help";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
@@ -29,8 +29,8 @@ const SHORTCUTS: Shortcut[] = [
   {
     name: "help",
     match: (t) => helpTrigger.test(t),
-    async run({ replyToken }) {
-      await reply(replyToken, [textMsg(HELP_TEXT)]);
+    async run({ userId, replyToken }) {
+      await replyOrPush(userId, replyToken, [textMsg(HELP_TEXT)]);
     },
   },
   {
@@ -41,7 +41,7 @@ const SHORTCUTS: Shortcut[] = [
       const msg = url
         ? `Connect your Google account here (link expires in 10 min):\n${url}`
         : "Couldn't generate a connect link — make sure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.";
-      await reply(replyToken, [textMsg(msg)]);
+      await replyOrPush(userId, replyToken, [textMsg(msg)]);
     },
   },
   {
@@ -56,7 +56,7 @@ const SHORTCUTS: Shortcut[] = [
         includeInbox: settings.inboxBriefingEnabled,
       });
       if (!briefing) {
-        await reply(replyToken, [textMsg("Nothing to show in your briefing right now.")]);
+        await replyOrPush(userId, replyToken, [textMsg("Nothing to show in your briefing right now.")]);
         return;
       }
       const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
@@ -64,7 +64,7 @@ const SHORTCUTS: Shortcut[] = [
       if (briefing.inbox && briefing.inbox.length > 0) {
         msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
       }
-      await reply(replyToken, msgs);
+      await replyOrPush(userId, replyToken, msgs);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: briefing.text, ts: Date.now() });
     },
@@ -77,7 +77,7 @@ const SHORTCUTS: Shortcut[] = [
       const settings = await getSettings(userId);
       const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
       const out = summary?.text ?? "Nothing to show in your evening summary right now.";
-      await reply(replyToken, [briefingFlex("evening", out)]);
+      await replyOrPush(userId, replyToken, [briefingFlex("evening", out)]);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
     },

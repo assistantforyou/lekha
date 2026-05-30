@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { tool } from "ai";
 
+// R12: Cache weather results per location for 10 minutes.
+const weatherCache = new Map<string, { result: unknown; ts: number }>();
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+
 export function buildWeatherTools() {
   return {
     weather: tool({
@@ -14,8 +18,14 @@ export function buildWeatherTools() {
           .describe("City, address, or coords. e.g. 'Bangkok', 'Tokyo', 'San Francisco', '13.7563,100.5018'"),
       }),
       execute: async ({ location }) => {
+        const cacheKey = location.toLowerCase().trim();
+        const cached = weatherCache.get(cacheKey);
+        if (cached && Date.now() - cached.ts < WEATHER_CACHE_TTL_MS) {
+          return cached.result;
+        }
         const result = await tryWttr(location) ?? await tryOpenMeteo(location);
         if (!result) return { ok: false, error: "Both weather providers failed. Try again in a moment." };
+        weatherCache.set(cacheKey, { result, ts: Date.now() });
         return result;
       },
     }),

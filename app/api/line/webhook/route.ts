@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { after } from "next/server";
 import { verifyLineSignature } from "@/lib/line/verify";
 import { Webhook, type LineEvent } from "@/lib/line/types";
-import { reply, text as textMsg, showLoading } from "@/lib/line/client";
+import { replyOrPush, text as textMsg, showLoading } from "@/lib/line/client";
 import { env } from "@/lib/env";
 import { redis } from "@/lib/memory/redis";
 import { appendTurn } from "@/lib/memory/history";
@@ -101,7 +101,7 @@ async function handleEvent(
     const profile = await getOrCreateProfile(userId);
     endProfile();
     const name = profile.displayName && profile.displayName !== "friend" ? ` ${profile.displayName}` : "";
-    await reply(event.replyToken, [
+    await replyOrPush(userId, event.replyToken, [
       textMsg(
         `Hi${name}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
       ),
@@ -140,7 +140,7 @@ async function handleEvent(
   endPreflight({ rateLimited: !rl.ok, pending: pending.length });
 
   if (!rl.ok) {
-    await reply(event.replyToken, [
+    await replyOrPush(userId, event.replyToken, [
       textMsg(`Easy there — give me a sec. Try again in ~${rl.retryAfterSec}s.`),
     ]);
     endEvent({ type: "rate-limited" });
@@ -159,7 +159,7 @@ async function handleEvent(
         const result = await executePendingAll(userId, pending);
         await clearPending(userId);
         endPending({ actions: pending.length });
-        await reply(event.replyToken, [textMsg(result)]);
+        await replyOrPush(userId, event.replyToken, [textMsg(result)]);
         await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
         await appendTurn(userId, { role: "assistant", content: result, ts: Date.now() });
         endEvent({ type: "pending-yes", actions: pending.length });
@@ -167,7 +167,7 @@ async function handleEvent(
       }
       if (decision === "no") {
         await clearPending(userId);
-        await reply(event.replyToken, [
+        await replyOrPush(userId, event.replyToken, [
           textMsg(`Cancelled ${pending.length === 1 ? "that" : `all ${pending.length}`}.`),
         ]);
         endEvent({ type: "pending-no" });
@@ -221,14 +221,14 @@ async function handleEvent(
   }
 
   if (message.type === "sticker") {
-    await reply(event.replyToken, [
+    await replyOrPush(userId, event.replyToken, [
       textMsg("Cute sticker. Send me text, a photo, or a file if you'd like me to do something with it."),
     ]);
     endEvent({ type: "sticker" });
     return;
   }
 
-  await reply(event.replyToken, [
+  await replyOrPush(userId, event.replyToken, [
     textMsg("I didn't recognize that message type. Try text, a photo, video, audio, or a file."),
   ]);
   endEvent({ type: "unknown" });

@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { getGoogleClient, hasGoogleConnection } from "@/lib/tools/google-auth";
-import { listTasks } from "@/lib/memory/tasks";
+import { listTasks, type Task } from "@/lib/memory/tasks";
+import { listReminders, type StoredReminder } from "@/lib/tools/reminders";
 import { redis } from "@/lib/memory/redis";
 import { env } from "@/lib/env";
 
@@ -33,16 +34,147 @@ async function fetchNews(query: string, apiKey: string): Promise<NewsStory[]> {
   }
 }
 
-/**
- * Build a 9 PM evening summary for a single user. Pulls leftover tasks, the next
- * 5 calendar events (from tomorrow), and today's geopolitics + economics news in
- * parallel. Returns a bullet-point push-ready string.
- */
 export type EveningSummaryResult = {
   text: string;
   news: { title: string; url: string; source: string }[];
 };
 
+// ─── Agenda helpers ───
+
+type AgendaItem = {
+  ts: number;
+  type: "calendar" | "reminder" | "task";
+  text: string;
+  isAllDay: boolean;
+};
+
+function toDayKey(ts: number, tz: string): string {
+  return new Date(ts).toLocaleDateString("en-CA", { timeZone: tz });
+}
+
+function formatAgendaItem(item: AgendaItem, tz: string): string {
+  const icon = item.type === "calendar" ? "📅" : item.type === "reminder" ? "⏰" : "📋";
+  if (item.isAllDay) {
+    return `• ${icon} ${item.text}`;
+  }
+  const timeStr = new Date(item.ts).toLocaleTimeString("en-US", {
+    timeZone: tz,
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `• ${icon} ${timeStr} — ${item.text}`;
+}
+
+function buildAgenda(
+  tasks: Task[],
+  reminders: StoredReminder[],
+  calendarEvents: unknown[] | null,
+  tz: string,
+  now: number,
+): Map<string, AgendaItem[]> {
+  const map = new Map<string, AgendaItem[]>();
+
+  if (calendarEvents) {
+    for (const e of calendarEvents as Array<{
+      start?: { dateTime?: string; date?: string } | null;
+      summary?: string | null;
+    }>) {
+      const startRaw = e.start?.dateTime ?? e.start?.date ?? "";
+      if (!startRaw) continue;
+      const ts = new Date(startRaw).getTime();
+      const isAllDay = !e.start?.dateTime;
+      const day = toDayKey(ts, tz);
+      const items = map.get(day) ?? [];
+      items.push({ ts, type: "calendar", text: e.summary ?? "(untitled)", isAllDay });
+      map.set(day, items);
+    }
+  }
+
+  for (const r of reminders) {
+    if (r.cron) continue;
+    const day = toDayKey(r.fireAt, tz);
+    const items = map.get(day) ?? [];
+    items.push({ ts: r.fireAt, type: "reminder", text: r.message, isAllDay: false });
+    map.set(day, items);
+  }
+
+  for (const t of tasks) {
+    if (!t.dueAt) continue;
+    const day = toDayKey(t.dueAt, tz);
+    const items = map.get(day) ?? [];
+    const overdue = t.dueAt < now;
+    items.push({ ts: t.dueAt, type: "task", text: overdue ? `⚠️ ${t.title}` : t.title, isAllDay: false });
+    map.set(day, items);
+  }
+
+  for (const [, items] of map) {
+    items.sort((a, b) => {
+      if (a.isAllDay && !b.isAllDay) return -1;
+      if (!a.isAllDay && b.isAllDay) return 1;
+      return a.ts - b.ts;
+    });
+  }
+
+  return map;
+}
+
+function dayLabel(dayKey: string, tz: string, todayDateStr: string): string {
+  if (dayKey === todayDateStr) return "Today";
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowKey = tomorrow.toLocaleDateString("en-CA", { timeZone: tz });
+  if (dayKey === tomorrowKey) return "Tomorrow";
+  const d = new Date(dayKey + "T12:00:00");
+  const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+  const monthDay = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${weekday}, ${monthDay}`;
+}
+
+function buildEveningRecommendations(
+  agenda: Map<string, AgendaItem[]>,
+  openTasks: Task[],
+  tz: string,
+  doneTodayCount: number,
+): string[] {
+  const recs: string[] = [];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowKey = tomorrow.toLocaleDateString("en-CA", { timeZone: tz });
+  const tomorrowItems = agenda.get(tomorrowKey) ?? [];
+  const overdue = openTasks.filter((t) => t.dueAt && t.dueAt < Date.now());
+
+  if (doneTodayCount === 0 && openTasks.length > 0) {
+    recs.push("No tasks completed today. Start tomorrow with your highest-priority item.");
+  }
+
+  if (overdue.length > 0) {
+    recs.push(`You still have ${overdue.length} overdue task${overdue.length > 1 ? "s" : ""}. Address them first thing tomorrow.`);
+  }
+
+  if (tomorrowItems.length > 5) {
+    recs.push("Tomorrow looks busy. Prep tonight so you start ahead.");
+  } else if (tomorrowItems.length === 0 && openTasks.length > 0) {
+    recs.push("Tomorrow looks light. Use the morning to clear your open tasks.");
+  }
+
+  if (openTasks.length > 5) {
+    recs.push(`${openTasks.length} tasks still open. Review which ones actually matter this week.`);
+  }
+
+  if (tomorrowItems.filter((i) => i.type === "calendar").length > 3 && openTasks.filter((t) => t.dueAt && toDayKey(t.dueAt, tz) === tomorrowKey).length === 0) {
+    recs.push("Lots of meetings tomorrow but no tasks due. Add any prep or follow-ups.");
+  }
+
+  return recs;
+}
+
+// ─── Main builder ───
+
+/**
+ * Build a 9 PM evening summary for a single user. Pulls leftover tasks, the next
+ * calendar events (from tomorrow), reminders, and today's geopolitics + economics news.
+ * Returns a bullet-point push-ready string.
+ */
 export async function buildEveningSummary(
   userId: string,
   opts: { timezone: string },
@@ -56,12 +188,11 @@ export async function buildEveningSummary(
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
 
-  // Pre-fetch everything in parallel — news fires alongside tasks + calendar.
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
 
-  const [tasksResult, doneResult, calendarResult, geoResult, econResult, polyResult] =
+  const [tasksResult, doneResult, calendarResult, remindersResult, geoResult, econResult, polyResult] =
     await Promise.allSettled([
       listTasks(userId, "open"),
       listTasks(userId, "done"),
@@ -75,12 +206,14 @@ export async function buildEveningSummary(
         const r = await cal.events.list({
           calendarId: "primary",
           timeMin: tomorrow.toISOString(),
-          maxResults: 5,
+          maxResults: 20,
           singleEvents: true,
           orderBy: "startTime",
         });
         return r.data.items ?? [];
       }),
+
+      listReminders(userId),
 
       apiKey
         ? fetchNews("geopolitics world news today major outlets", apiKey)
@@ -136,33 +269,40 @@ export async function buildEveningSummary(
       : "📋 Still open\n• All clear — nothing left.",
   );
 
-  // 3. Upcoming schedule (next 5 events from now)
-  const calEvents =
-    calendarResult.status === "fulfilled" ? calendarResult.value : null;
-  if (calEvents && calEvents.length > 0) {
-    const lines = calEvents.map((e) => {
-      const startRaw = e.start?.dateTime ?? e.start?.date ?? "";
-      const dateStr = startRaw
-        ? new Date(startRaw).toLocaleDateString("en-US", {
-            timeZone: opts.timezone,
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          })
-        : "?";
-      const timeStr = e.start?.dateTime
-        ? new Date(startRaw).toLocaleTimeString("en-US", {
-            timeZone: opts.timezone,
-            hour: "numeric",
-            minute: "2-digit",
-          })
-        : "all day";
-      return `• ${dateStr}, ${timeStr} — ${e.summary ?? "(untitled)"}`;
-    });
-    sections.push(`📅 Coming up\n${lines.join("\n")}`);
+  // 3. Tomorrow & ahead — unified agenda
+  const allReminders = remindersResult.status === "fulfilled" ? remindersResult.value : [];
+  const upcomingReminders = allReminders.filter((r) => !r.cron && r.fireAt > now);
+  const calEvents = calendarResult.status === "fulfilled" ? calendarResult.value : null;
+
+  const agenda = buildAgenda(tasks, upcomingReminders, calEvents, opts.timezone, now);
+  const sortedDays = Array.from(agenda.keys()).sort();
+
+  const daysToShow: string[] = [];
+  for (const day of sortedDays) {
+    if (day > todayDateStr && daysToShow.length < 3) {
+      daysToShow.push(day);
+    }
   }
 
-  // 4. News — geopolitics + economics + polymarket (if any results)
+  if (daysToShow.length > 0) {
+    const agendaLines: string[] = [];
+    for (const day of daysToShow) {
+      const items = agenda.get(day) ?? [];
+      agendaLines.push(`${dayLabel(day, opts.timezone, todayDateStr)} (${items.length})`);
+      for (const item of items) {
+        agendaLines.push(formatAgendaItem(item, opts.timezone));
+      }
+    }
+    sections.push(`🗓 Tomorrow & ahead\n${agendaLines.join("\n")}`);
+  }
+
+  // 4. Recommendations
+  const recs = buildEveningRecommendations(agenda, tasks, opts.timezone, doneToday.length);
+  if (recs.length > 0) {
+    sections.push(`💡 Recommendations\n${recs.map((r) => `• ${r}`).join("\n")}`);
+  }
+
+  // 5. News
   const geo = geoResult.status === "fulfilled" ? geoResult.value : [];
   const econ = econResult.status === "fulfilled" ? econResult.value : [];
   const poly = polyResult.status === "fulfilled" ? polyResult.value : [];

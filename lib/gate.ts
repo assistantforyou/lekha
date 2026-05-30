@@ -1,6 +1,6 @@
 import { env } from "@/lib/env";
 import { isAllowed } from "@/lib/memory/allowlist";
-import { reply, text as textMsg } from "@/lib/line/client";
+import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { signupGateFlex } from "@/lib/line/flex";
 import type { LineEvent } from "@/lib/line/types";
 
@@ -32,7 +32,7 @@ export async function passesAllowlist(event: LineEvent, gate: Gate): Promise<boo
   if (gate.admins.size === 0) {
     console.error("[webhook] ADMIN_LINE_USER_ID is not configured; denying private bot access");
     if ("replyToken" in event && event.replyToken) {
-      await reply(event.replyToken, [
+      await replyOrPush(userId, event.replyToken, [
         textMsg("This private assistant is not configured yet. Ask the admin to set ADMIN_LINE_USER_ID."),
       ]);
     }
@@ -44,7 +44,7 @@ export async function passesAllowlist(event: LineEvent, gate: Gate): Promise<boo
   if (await isAllowed(userId)) return true;
 
   if ("replyToken" in event && event.replyToken) {
-    await reply(event.replyToken, [signupGateFlex(env().APP_BASE_URL)]);
+    await replyOrPush(userId, event.replyToken, [signupGateFlex(env().APP_BASE_URL)]);
   }
   return false;
 }

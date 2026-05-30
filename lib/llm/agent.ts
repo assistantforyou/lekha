@@ -238,11 +238,15 @@ export async function runAgent(
   facts: Awaited<ReturnType<typeof loadFacts>>,
   messages: ModelMessage[],
   traceId?: string,
+  opts?: {
+    accounts?: Awaited<ReturnType<typeof listAccounts>>;
+    staged?: Awaited<ReturnType<typeof listRecentMedia>>;
+  },
 ): Promise<AgentResult> {
   const endAgent = span("agent:runAgent", traceId);
   const [accounts, staged, settings] = await Promise.all([
-    listAccounts(userId),
-    listRecentMedia(userId),
+    opts?.accounts ? Promise.resolve(opts.accounts) : listAccounts(userId),
+    opts?.staged ? Promise.resolve(opts.staged) : listRecentMedia(userId),
     getSettings(userId),
   ]);
   const userHasGoogle = accounts.accounts.length > 0;
@@ -298,7 +302,7 @@ export async function runAgent(
         tools,
         temperature: 0.4,
         stopWhen: stepCountIs(8),
-        maxRetries: 3,
+        maxRetries: 1,
         onStepFinish: (step) => {
           const now = performance.now();
           const stepMs = Math.round(now - lastStepTime);

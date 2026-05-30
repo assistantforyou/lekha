@@ -1,5 +1,5 @@
 import { generateText, type ModelMessage } from "ai";
-import { reply, text as textMsg, showLoading, getMessageContent } from "@/lib/line/client";
+import { replyOrPush, text as textMsg, showLoading, getMessageContent } from "@/lib/line/client";
 import { chatModel, AGENT_TIMEOUT_MS, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { stripMarkdown, withTimeout } from "@/lib/llm/agent";
@@ -38,7 +38,7 @@ export async function respondToImage(
   } catch (err) {
     console.warn("[webhook] image fetch failed", err);
     if (mode === "normal") {
-      await reply(replyToken, [textMsg("I couldn't load that image — can you resend it?")]);
+      await replyOrPush(userId, replyToken, [textMsg("I couldn't load that image — can you resend it?")]);
     }
     endHandler({ failed: "image-fetch" });
     return;
@@ -86,7 +86,7 @@ export async function respondToImage(
         model: chatModel(),
         system: buildSystemPrompt(factsToPromptBlock(facts), profile, settings),
         messages,
-        maxRetries: 3,
+        maxRetries: 1,
         providerOptions: GEMINI_PROVIDER_OPTIONS,
       }),
       AGENT_TIMEOUT_MS,
@@ -102,7 +102,7 @@ export async function respondToImage(
   }
 
   const endReply = span("image:reply", traceId);
-  await reply(replyToken, [textMsg(replyText)]);
+  await replyOrPush(userId, replyToken, [textMsg(replyText)]);
   endReply();
 
   const endAppend = span("image:appendTurns", traceId);

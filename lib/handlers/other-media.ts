@@ -1,4 +1,4 @@
-import { reply, text as textMsg } from "@/lib/line/client";
+import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { env } from "@/lib/env";
 import { appendTurn } from "@/lib/memory/history";
 import { appendRecentMedia } from "@/lib/memory/recent-media";
@@ -55,7 +55,7 @@ export async function respondToOtherMedia(
     ? `Got your voice memo — want me to transcribe or summarize it?`
     : `Got your ${kind}${fileName ? ` (${fileName})` : ""} — it's ready. What would you like to do with it?`;
 
-  await reply(replyToken, [textMsg(ack)]);
+  await replyOrPush(userId, replyToken, [textMsg(ack)]);
   await appendTurn(userId, {
     role: "user",
     content: `[sent a ${kind}${fileName ? `: ${fileName}` : ""}]`,

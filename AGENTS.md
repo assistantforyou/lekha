@@ -141,7 +141,7 @@ For Thai/UTF-8 fidelity. `Content-Transfer-Encoding: base64` on the text body pa
 The bot is private by default. Every event hits the allowlist gate before any other logic. Admin (env var `ADMIN_LINE_USER_ID`) always passes. Others must be in the `users:allowed` Redis set. Admin commands: `/allow <userId>`, `/remove <userId>`, `/users`. Anyone can run `/myid` to get their own LINE userId. Blocked users see their userId in the rejection message so they can send it to the admin.
 
 ### 16. Single LLM — Gemini only
-We use Gemini Flash Lite exclusively. There is no fallback cascade. `AGENT_TIMEOUT_MS` is 60s, which gives healthy agentic turns room under Gemini latency spikes while still surfacing real hangs.
+We use Gemini Flash Lite exclusively. There is no fallback cascade. `AGENT_TIMEOUT_MS` is 20s (PERFORMANCE.md R3) — fail-fast for real hangs without burning function time.
 
 ### 17. Orchestrator-level error relay enforcement
 After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.

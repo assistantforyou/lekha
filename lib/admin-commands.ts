@@ -1,4 +1,4 @@
-import { reply, text as textMsg, getProfile } from "@/lib/line/client";
+import { replyOrPush, text as textMsg, getProfile } from "@/lib/line/client";
 import {
   addToAllowlist,
   removeFromAllowlist,
@@ -23,21 +23,21 @@ export async function handleAdminCommand(
   const addMatch = userText.match(new RegExp(`^/allow\\s+(${LINE_ID_RE.source})$`, "i"));
   if (addMatch) {
     await addToAllowlist(addMatch[1]!);
-    await reply(replyToken, [textMsg(`✅ Added ${addMatch[1]} to the allowlist.`)]);
+    await replyOrPush(userId, replyToken, [textMsg(`✅ Added ${addMatch[1]} to the allowlist.`)]);
     return true;
   }
 
   const remMatch = userText.match(new RegExp(`^/remove\\s+(${LINE_ID_RE.source})$`, "i"));
   if (remMatch) {
     await removeFromAllowlist(remMatch[1]!);
-    await reply(replyToken, [textMsg(`🗑 Removed ${remMatch[1]} from the allowlist.`)]);
+    await replyOrPush(userId, replyToken, [textMsg(`🗑 Removed ${remMatch[1]} from the allowlist.`)]);
     return true;
   }
 
   if (/^\/users$/i.test(userText)) {
     const list = await listAllowed();
     if (!list.length) {
-      await reply(replyToken, [textMsg("Allowed users (0):\n\n(nobody yet)")]);
+      await replyOrPush(userId, replyToken, [textMsg("Allowed users (0):\n\n(nobody yet)")]);
       return true;
     }
     const entries = await Promise.all(
@@ -46,7 +46,7 @@ export async function handleAdminCommand(
         return p?.displayName ? `${p.displayName} (${id})` : id;
       }),
     );
-    await reply(replyToken, [textMsg(`Allowed users (${list.length}):\n\n${entries.join("\n")}`)]);
+    await replyOrPush(userId, replyToken, [textMsg(`Allowed users (${list.length}):\n\n${entries.join("\n")}`)]);
     return true;
   }
 
@@ -56,6 +56,6 @@ export async function handleAdminCommand(
 /** `/myid` — anyone can look up their own LINE userId (to request access). */
 export async function handleMyId(userId: string, userText: string, replyToken: string): Promise<boolean> {
   if (!/^\/myid$/i.test(userText)) return false;
-  await reply(replyToken, [textMsg(`Your LINE ID:\n${userId}`)]);
+  await replyOrPush(userId, replyToken, [textMsg(`Your LINE ID:\n${userId}`)]);
   return true;
 }

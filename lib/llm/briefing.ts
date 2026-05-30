@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 import { getGoogleClient, hasGoogleConnection } from "@/lib/tools/google-auth";
-import { listTasks } from "@/lib/memory/tasks";
-import { listReminders } from "@/lib/tools/reminders";
+import { listTasks, type Task } from "@/lib/memory/tasks";
+import { listReminders, type StoredReminder } from "@/lib/tools/reminders";
 import { env } from "@/lib/env";
 
 type NewsStory = { title: string; url: string };
@@ -93,9 +93,153 @@ export type BriefingResult = {
   inbox: BriefingInboxItem[] | null;
 };
 
+// ─── Agenda helpers ───
+
+type AgendaItem = {
+  ts: number;
+  type: "calendar" | "reminder" | "task";
+  text: string;
+  isAllDay: boolean;
+};
+
+function toDayKey(ts: number, tz: string): string {
+  return new Date(ts).toLocaleDateString("en-CA", { timeZone: tz });
+}
+
+function formatAgendaItem(item: AgendaItem, tz: string): string {
+  const icon = item.type === "calendar" ? "📅" : item.type === "reminder" ? "⏰" : "📋";
+  if (item.isAllDay) {
+    return `• ${icon} ${item.text}`;
+  }
+  const timeStr = new Date(item.ts).toLocaleTimeString("en-US", {
+    timeZone: tz,
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `• ${icon} ${timeStr} — ${item.text}`;
+}
+
+function buildAgenda(
+  tasks: Task[],
+  reminders: StoredReminder[],
+  calendarEvents: unknown[] | null,
+  tz: string,
+  now: number,
+): Map<string, AgendaItem[]> {
+  const map = new Map<string, AgendaItem[]>();
+
+  if (calendarEvents) {
+    for (const e of calendarEvents as Array<{
+      start?: { dateTime?: string; date?: string } | null;
+      summary?: string | null;
+    }>) {
+      const startRaw = e.start?.dateTime ?? e.start?.date ?? "";
+      if (!startRaw) continue;
+      const ts = new Date(startRaw).getTime();
+      const isAllDay = !e.start?.dateTime;
+      const day = toDayKey(ts, tz);
+      const items = map.get(day) ?? [];
+      items.push({ ts, type: "calendar", text: e.summary ?? "(untitled)", isAllDay });
+      map.set(day, items);
+    }
+  }
+
+  for (const r of reminders) {
+    if (r.cron) continue;
+    const day = toDayKey(r.fireAt, tz);
+    const items = map.get(day) ?? [];
+    items.push({ ts: r.fireAt, type: "reminder", text: r.message, isAllDay: false });
+    map.set(day, items);
+  }
+
+  for (const t of tasks) {
+    if (!t.dueAt) continue;
+    const day = toDayKey(t.dueAt, tz);
+    const items = map.get(day) ?? [];
+    const overdue = t.dueAt < now;
+    items.push({ ts: t.dueAt, type: "task", text: overdue ? `⚠️ ${t.title}` : t.title, isAllDay: false });
+    map.set(day, items);
+  }
+
+  for (const [, items] of map) {
+    items.sort((a, b) => {
+      if (a.isAllDay && !b.isAllDay) return -1;
+      if (!a.isAllDay && b.isAllDay) return 1;
+      return a.ts - b.ts;
+    });
+  }
+
+  return map;
+}
+
+function dayLabel(dayKey: string, tz: string, todayDateStr: string): string {
+  if (dayKey === todayDateStr) return "Today";
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowKey = tomorrow.toLocaleDateString("en-CA", { timeZone: tz });
+  if (dayKey === tomorrowKey) return "Tomorrow";
+  const d = new Date(dayKey + "T12:00:00");
+  const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+  const monthDay = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${weekday}, ${monthDay}`;
+}
+
+function buildRecommendations(
+  agenda: Map<string, AgendaItem[]>,
+  openTasks: Task[],
+  todayDateStr: string,
+  now: number,
+  endOfToday: number,
+): string[] {
+  const recs: string[] = [];
+  const todayItems = agenda.get(todayDateStr) ?? [];
+  const todayCount = todayItems.length;
+  const overdue = openTasks.filter((t) => t.dueAt && t.dueAt < now).sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0));
+  const dueToday = openTasks.filter((t) => t.dueAt && t.dueAt >= now && t.dueAt <= endOfToday);
+  const noDueDate = openTasks.filter((t) => !t.dueAt);
+  const calToday = todayItems.filter((i) => i.type === "calendar").length;
+  const remindersToday = todayItems.filter((i) => i.type === "reminder").length;
+  const tasksToday = todayItems.filter((i) => i.type === "task").length;
+
+  if (overdue.length > 0) {
+    const first = overdue[0]!;
+    recs.push(`Tackle your oldest overdue task first: "${first.title}".`);
+  }
+
+  if (todayCount > 6) {
+    recs.push("Busy day ahead. Consider blocking 15 min between back-to-back items.");
+  } else if (todayCount === 0 && openTasks.length > 0) {
+    recs.push("Nothing on your agenda today. Knock out a backlogged task.");
+  }
+
+  if (tasksToday >= 3 && calToday >= 2) {
+    recs.push("Mix of tasks and meetings today. Batch tasks around your calendar blocks.");
+  }
+
+  if (remindersToday >= 3) {
+    recs.push("Several reminders today. Bundle them into a single focused block.");
+  }
+
+  if (dueToday.length > 3) {
+    recs.push(`${dueToday.length} tasks due today. Start with the hardest one.`);
+  }
+
+  if (calToday > 0 && tasksToday === 0 && overdue.length === 0) {
+    recs.push("Your schedule is full but you have no tasks listed. Add any prep or follow-up items?");
+  }
+
+  if (todayCount < 3 && noDueDate.length > 0) {
+    recs.push(`You have ${noDueDate.length} task${noDueDate.length > 1 ? "s" : ""} without a due date. Consider scheduling them.`);
+  }
+
+  return recs;
+}
+
+// ─── Main builder ───
+
 /**
  * Build a daily morning briefing for a single user. Pulls weather, open tasks,
- * the next 5 upcoming calendar events, optional unread Gmail, and today's news.
+ * reminders, calendar events, optional unread Gmail, and today's news.
  * Returns structured data: main text (for the Flex bubble) + news + inbox
  * so each section can be rendered as its own rich Flex message.
  */
@@ -107,9 +251,8 @@ export async function buildMorningBriefing(
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
 
-  // "Today's date" string in the user's timezone, used to bucket reminders/events as "today"
-  const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone }); // "2026-05-15"
-  const endOfToday = new Date(`${todayDateStr}T23:59:59`).getTime(); // close enough for bucketing
+  const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone });
+  const endOfToday = new Date(`${todayDateStr}T23:59:59`).getTime();
 
   const [weatherResult, tasksResult, remindersResult, calendarResult, geoResult, econResult, inboxResult] =
     await Promise.allSettled([
@@ -128,7 +271,7 @@ export async function buildMorningBriefing(
         const r = await calendar.events.list({
           calendarId: "primary",
           timeMin: new Date(now).toISOString(),
-          maxResults: 5,
+          maxResults: 20,
           singleEvents: true,
           orderBy: "startTime",
         });
@@ -197,106 +340,46 @@ export async function buildMorningBriefing(
     sections.push(`🌤 ${loc}${line}`);
   }
 
-  // Tasks — overdue flagged, then upcoming
+  // Unified agenda
   const openTasks = tasksResult.status === "fulfilled" ? tasksResult.value : [];
-  if (openTasks.length) {
-    const overdue = openTasks
-      .filter((t) => t.dueAt && t.dueAt < now)
-      .sort((a, b) => a.dueAt! - b.dueAt!)
-      .map((t) => {
-        const when = new Date(t.dueAt!).toLocaleDateString("en-US", {
-          timeZone: opts.timezone,
-          month: "short",
-          day: "numeric",
-        });
-        return `• ⚠️ ${t.title} (overdue since ${when})`;
-      });
-    const rest = openTasks
-      .filter((t) => !t.dueAt || t.dueAt >= now)
-      .sort((a, b) => (a.dueAt ?? Infinity) - (b.dueAt ?? Infinity))
-      .slice(0, 10)
-      .map((t) => {
-        if (t.dueAt) {
-          const when = new Date(t.dueAt).toLocaleDateString("en-US", {
-            timeZone: opts.timezone,
-            month: "short",
-            day: "numeric",
-          });
-          return `• ${t.title} — due ${when}`;
-        }
-        return `• ${t.title}`;
-      });
-    const taskLines = [...overdue, ...rest].slice(0, 10);
-    const header = openTasks.length === 1 ? "📋 1 task open" : `📋 ${openTasks.length} tasks open`;
-    sections.push(`${header}\n${taskLines.join("\n")}`);
-  }
-
-  // Reminders — today's + next 48h if nothing today
   const allReminders = remindersResult.status === "fulfilled" ? remindersResult.value : [];
   const upcomingReminders = allReminders.filter((r) => !r.cron && r.fireAt > now);
-  const todayReminders = upcomingReminders.filter((r) => r.fireAt <= endOfToday);
-  const showReminders = todayReminders.length > 0 ? todayReminders : upcomingReminders.slice(0, 3);
-  if (showReminders.length > 0) {
-    const lines = showReminders.map((r) => {
-      const timeStr = new Date(r.fireAt).toLocaleTimeString("en-US", {
-        timeZone: opts.timezone,
-        hour: "numeric",
-        minute: "2-digit",
-      });
-      const isToday = r.fireAt <= endOfToday;
-      const dateStr = isToday
-        ? timeStr
-        : new Date(r.fireAt).toLocaleDateString("en-US", {
-            timeZone: opts.timezone,
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          });
-      return `• ${dateStr} — ${r.message}`;
-    });
-    const label = todayReminders.length > 0 ? "⏰ Reminders today" : "⏰ Coming up";
-    sections.push(`${label}\n${lines.join("\n")}`);
+  const calEvents = calendarResult.status === "fulfilled" ? calendarResult.value : null;
+
+  const agenda = buildAgenda(openTasks, upcomingReminders, calEvents, opts.timezone, now);
+  const sortedDays = Array.from(agenda.keys()).sort();
+
+  const daysToShow: string[] = [];
+  if (agenda.has(todayDateStr)) daysToShow.push(todayDateStr);
+  for (const day of sortedDays) {
+    if (day > todayDateStr && daysToShow.length < 4) {
+      daysToShow.push(day);
+    }
   }
 
-  // Calendar — next 5 events
-  const calEvents = calendarResult.status === "fulfilled" ? calendarResult.value : null;
-  if (calEvents && calEvents.length > 0) {
-    const lines = calEvents.map((e) => {
-      const startRaw = e.start?.dateTime ?? e.start?.date ?? "";
-      const isAllDay = !e.start?.dateTime;
-      const startMs = startRaw ? new Date(startRaw).getTime() : null;
-      const isToday = startMs !== null && startMs <= endOfToday;
-      let when: string;
-      if (!startRaw) {
-        when = "?";
-      } else if (isToday && !isAllDay) {
-        when = new Date(startRaw).toLocaleTimeString("en-US", {
-          timeZone: opts.timezone,
-          hour: "numeric",
-          minute: "2-digit",
-        });
-      } else if (isAllDay) {
-        when = new Date(startRaw).toLocaleDateString("en-US", {
-          timeZone: opts.timezone,
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        }) + ", all day";
-      } else {
-        when = new Date(startRaw).toLocaleDateString("en-US", {
-          timeZone: opts.timezone,
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        });
+  if (daysToShow.length > 0) {
+    const agendaLines: string[] = [];
+    for (const day of daysToShow) {
+      const items = agenda.get(day) ?? [];
+      agendaLines.push(`${dayLabel(day, opts.timezone, todayDateStr)} (${items.length})`);
+      for (const item of items) {
+        agendaLines.push(formatAgendaItem(item, opts.timezone));
       }
-      return `• ${when} — ${e.summary ?? "(untitled)"}`;
-    });
-    sections.push(`📅 Schedule\n${lines.join("\n")}`);
+    }
+    sections.push(`🗓 Your agenda\n${agendaLines.join("\n")}`);
+  }
+
+  // Quick tasks — no due date
+  const noDueDate = openTasks.filter((t) => !t.dueAt);
+  if (noDueDate.length > 0) {
+    const lines = noDueDate.slice(0, 5).map((t) => `• ${t.title}`);
+    sections.push(`📋 Other tasks (${noDueDate.length})\n${lines.join("\n")}`);
+  }
+
+  // Recommendations
+  const recs = buildRecommendations(agenda, openTasks, todayDateStr, now, endOfToday);
+  if (recs.length > 0) {
+    sections.push(`💡 Recommendations\n${recs.map((r) => `• ${r}`).join("\n")}`);
   }
 
   // Build structured news items (rendered as a separate Flex carousel)

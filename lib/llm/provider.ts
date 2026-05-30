@@ -26,10 +26,10 @@ export function embeddingModel() {
 }
 
 /**
- * Default agent call timeout. CLAUDE.md decision #16 — 60s gives healthy
- * agentic turns room under Gemini latency spikes while still surfacing real hangs.
+ * Default agent call timeout. PERFORMANCE.md R3 — 20s fail-fast. Most healthy
+ * requests finish in 1–3s; 20s catches real hangs without burning function time.
  */
-export const AGENT_TIMEOUT_MS = 60_000;
+export const AGENT_TIMEOUT_MS = 20_000;
 
 /**
  * Shared Gemini provider options. Safety thresholds use BLOCK_NONE (not OFF —

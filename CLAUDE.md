@@ -238,7 +238,7 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 - **LINE doesn't bundle a caption with media.** Recent-media staging spans messages within 30-min TTL.
 - **`Content-Transfer-Encoding: 7bit` is invalid for UTF-8 bodies** (Thai, emoji). Use base64.
 - **OAuth state nonce + connect-link token must be atomically consumed** (GETDEL) — non-atomic GET+DEL has a replay window.
-- **Gemini timeout at 60s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`) — Gemini occasionally hangs on overloaded requests. 60s leaves room for healthy multi-step agentic turns under latency spikes while still surfacing real hangs to the user. Image-only `generateText` calls use the same constant.
+- **Gemini timeout at 20s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`) — PERFORMANCE.md R3. Fail-fast for real hangs. Most healthy requests finish in 1–3s; 20s catches overloaded/hung requests without burning function time. Image-only `generateText` calls use the same constant.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
 - **Upstash Vector index must be dim 768, cosine** to match Gemini `text-embedding-004`. Mismatch surfaces as silent upsert failures.

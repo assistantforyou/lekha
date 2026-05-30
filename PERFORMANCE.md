@@ -110,7 +110,7 @@ Images are often **faster** than text because there's no tool execution loop —
 
 #### 1. `generateText` is the single dominant cost (~70–95% of total time)
 
-**What:** Every text request calls `generateText` with `maxRetries: 3` and `stopWhen: stepCountIs(8)`. The model can decide to call tools, wait for results, then decide again. Each step is sequential.
+**What:** Every text request calls `generateText` with `maxRetries: 1` (was 3, reduced in R4) and `stopWhen: stepCountIs(8)`. The model can decide to call tools, wait for results, then decide again. Each step is sequential.
 
 **Evidence from logs:** Look for `agent:generateText` — it's typically 2–5s but can spike to 15s+ if multiple tool steps are needed.
 
@@ -152,13 +152,13 @@ Images are often **faster** than text because there's no tool execution loop —
 
 **Impact:** ~1–3s on long conversations (cached after first hit for 7 days).
 
-#### 6. `maxRetries: 3` on `generateText` can burn time on transient failures
+#### 6. `maxRetries: 1` on `generateText` — retry burn reduced (R4)
 
-**What:** If Gemini returns a 503, the AI SDK retries automatically. Each retry is a full LLM call.
+**What:** If Gemini returns a 503, the AI SDK retries once. Each retry is a full LLM call.
 
 **Evidence:** `agent:generateText` with much higher `ms` than the sum of `agent:step` times.
 
-**Impact:** On a bad day, 3× the normal latency.
+**Impact:** On a bad day, 2× the normal latency (was 3× before R4).
 
 #### 7. Background fact extraction consumes quota every 10 turns
 
@@ -202,62 +202,70 @@ Images are often **faster** than text because there's no tool execution loop —
 
 ### Immediate Wins (Low Effort, High Impact)
 
-#### R1. Pass pre-loaded data into `runAgent` — saves 20–60ms per request
+#### ✅ R1. Pass pre-loaded data into `runAgent` — saves 20–60ms per request
 
-**Current:**
+**Status:** Implemented.
+
+**Change:** `runAgent` now accepts an optional `opts` parameter with pre-loaded `accounts` and `staged`. `respondToText` passes its pre-loaded data through, eliminating the double-fetch.
+
 ```ts
-// text.ts
-const [history, facts, staged, accounts] = await Promise.all([...]);
-// ...
-const result = await runAgent(userId, profile, facts, messages);
+// lib/handlers/text.ts
+const { text: replyText, hints } = await runAgent(userId, profile, facts, messages, traceId, {
+  accounts,
+  staged,
+});
 
-// agent.ts
-const [accounts, staged, settings] = await Promise.all([listAccounts(), listRecentMedia(), getSettings()]);
-```
-
-**Fix:** Add `accounts` and `staged` as optional parameters to `runAgent`:
-```ts
-export async function runAgent(
-  userId, profile, facts, messages,
-  opts?: { accounts?: AccountList; staged?: MediaItem[]; settings?: Settings },
-) { ... }
+// lib/llm/agent.ts
+const [accounts, staged, settings] = await Promise.all([
+  opts?.accounts ? Promise.resolve(opts.accounts) : listAccounts(userId),
+  opts?.staged ? Promise.resolve(opts.staged) : listRecentMedia(userId),
+  getSettings(userId),
+]);
 ```
 
 **Impact:** ~20–60ms saved + 2 fewer Redis round-trips per text request.
 
 ---
 
-#### R2. Use `replyOrPush` instead of `reply` in handlers — prevents silent failures
+#### ✅ R2. Use `replyOrPush` instead of `reply` in handlers — prevents silent failures
 
-**Current:**
-```ts
-await reply(replyToken, messages); // silently fails if token expired
-```
+**Status:** Implemented across all handlers.
 
-**Fix:**
-```ts
-await replyOrPush(userId, replyToken, messages); // falls back to push
-```
+**Files changed:** `app/api/line/webhook/route.ts`, `lib/handlers/text.ts`, `lib/handlers/image.ts`, `lib/handlers/other-media.ts`, `lib/shortcuts.ts`, `lib/webhook-postback.ts`, `lib/admin-commands.ts`, `lib/gate.ts`
+
+**Change:** Every `reply()` call replaced with `replyOrPush(userId, replyToken, messages)`. If the reply token is expired or used, the message is sent via push instead.
 
 **Impact:** Eliminates silent failures on slow requests.
 
 ---
 
-#### R3. Reduce `AGENT_TIMEOUT_MS` from 60s to 20s — fail fast, retry via push
+#### ✅ R3. Reduce `AGENT_TIMEOUT_MS` from 60s to 20s — fail fast
 
-**Current:** 60s timeout means a hung request blocks the function for a full minute.
+**Status:** Implemented.
 
-**Fix:** Lower to 20s. If timeout hits, use `replyOrPush` to send a "still thinking" message, then continue in background (or ask user to retry).
+**Change:** `lib/llm/provider.ts` — `AGENT_TIMEOUT_MS` changed from `60_000` to `20_000`.
 
-**Impact:** Faster failure detection, better user experience.
+```ts
+export const AGENT_TIMEOUT_MS = 20_000;
+```
+
+**Impact:** Faster failure detection. Most healthy requests finish in 1–3s; 20s catches real hangs without burning function time.
 
 ---
 
-#### R4. Add `maxRetries: 1` instead of `3` — reduce retry burn
+#### ✅ R4. Add `maxRetries: 1` instead of `3` — reduce retry burn
 
-**Current:** `maxRetries: 3` in `generateText`.
+**Status:** Implemented.
 
-**Fix:** `maxRetries: 1` for chat, `maxRetries: 2` for background tasks.
+**Change:** `maxRetries` changed from `3` to `1` in `lib/llm/agent.ts` and `lib/handlers/image.ts`.
+
+```ts
+generateText({
+  // ...
+  maxRetries: 1,
+  // ...
+});
+```
 
 **Impact:** On transient 503s, reduces worst-case latency from 3× to 2×.
 
@@ -265,57 +273,59 @@ await replyOrPush(userId, replyToken, messages); // falls back to push
 
 ### Medium Effort, High Impact
 
-#### R5. Cache `toolsForUser` result per user
+#### ✅ R5. Cache `toolsForUser` result per user
 
-**Current:** Builds the tool registry from scratch on every request.
+**Status:** Implemented.
 
-**Fix:** Cache the registry in Redis with a 5-minute TTL, keyed by userId + connected-accounts hash.
+**Change:** In-memory cache in `lib/tools/index.ts` with 5-minute TTL. Cache key = `userId:userHasGoogle`. Tool sets contain functions (can't serialize to Redis), so an in-memory `Map` is used — effective on warm Vercel function invocations.
 
 ```ts
-const cacheKey = `tools:${userId}:${hashAccounts(accounts)}`;
-const cached = await redis().get(cacheKey);
-if (cached) return cached;
-const tools = await buildTools(userId, accounts);
-await redis().set(cacheKey, tools, { ex: 300 });
+const toolCache = new Map<string, { tools: ToolSet; ts: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
 ```
 
-**Impact:** ~10–30ms saved per request. More importantly, reduces CPU time on every request.
+**Impact:** ~10–30ms saved per request on warm starts. Reduces CPU time on every request.
 
 ---
 
 #### R6. Pre-compute history summary in background
 
-**Current:** Summarization happens synchronously when token cap is exceeded.
-
-**Fix:** On every `appendTurn`, check if we're approaching the cap (e.g., >2500 tokens). If so, fire a background summarization task so the next request has a warm cache.
-
-**Impact:** Eliminates the 1–3s blocking summarization on cache miss.
+**Status:** Not implemented. The cache miss penalty is acceptable (~1–3s, cached for 7 days after first hit). Background pre-computation would add complexity for marginal gain on a personal bot with short conversations.
 
 ---
 
-#### R7. Bundle media download with preflight
+#### ✅ R7. Bundle media download with preflight
 
-**Current:** In `respondToText`, `getMessageContent` is fetched after `runAgent` preloads but before `runAgent` starts.
+**Status:** Implemented.
 
-**Fix:** If `freshImage` is detected, start `getMessageContent` in parallel with `Promise.all([loadHistory, loadFacts, ...])`.
+**Change:** `lib/handlers/text.ts` — load `staged` first to detect `freshImage`, then kick off `getMessageContent` in parallel with `loadHistory`, `loadFacts`, and `listAccounts`.
+
+```ts
+const staged = await listRecentMedia(userId);
+const freshImage = staged.find((m) => m.kind === "image" && Date.now() - m.ts < 30_000);
+const imagePromise = freshImage
+  ? getMessageContent(freshImage.messageId).catch(() => null)
+  : Promise.resolve(null);
+const [history, facts, accounts, imageData] = await Promise.all([
+  loadHistory(userId), loadFacts(userId), listAccounts(userId), imagePromise,
+]);
+```
 
 **Impact:** Up to 500ms saved on image+text combo messages.
 
 ---
 
-#### R8. Add streaming response for long tasks
+#### R8. Add "Working on it..." push for long operations
 
-**Current:** The user sees nothing until the entire `generateText` completes.
-
-**Fix:** For known-long operations (e.g., "summarize my last 50 emails"), send an immediate "Working on it..." push, then send the result when done.
-
-**Impact:** Perceived latency drops from 5s to 0.5s for heavy requests.
+**Status:** Not implemented. The `showLoading()` API is already called at the start of every handler, which shows a typing indicator for up to 60s. A separate push message would require intent classification (to know which requests are "long"), adding complexity.
 
 ---
 
 ### Big Bets (High Effort, High Impact)
 
 #### R9. Replace `googleapis` with scoped `@googleapis/*` packages
+
+**Status:** Not implemented (big bet, deferred).
 
 **Current:**
 ```json
@@ -332,9 +342,13 @@ await redis().set(cacheKey, tools, { ex: 300 });
 
 **Impact:** ~100MB smaller server bundle → faster cold starts on Vercel.
 
+**Blocker:** Every file that imports `googleapis` (`lib/tools/calendar.ts`, `lib/tools/drive.ts`, `lib/tools/email.ts`, `lib/tools/gmail-inbox.ts`, `lib/tools/docs.ts`, `lib/tools/with-google.ts`, `lib/webhook-postback.ts`) would need to be updated. The API surface is identical but import paths change. This is a safe but tedious change best done in a dedicated session.
+
 ---
 
 #### R10. Add a fast-path for common queries
+
+**Status:** Not implemented (big bet, deferred).
 
 **What:** 30–40% of user messages are simple lookups ("what's the weather", "what's on my calendar today", "set a reminder"). These don't need the full 18-tool registry.
 
@@ -345,9 +359,13 @@ await redis().set(cacheKey, tools, { ex: 300 });
 
 **Impact:** Simple queries drop from 3s to 1s. Complex queries unchanged.
 
+**Blocker:** Requires building a reliable intent classifier. Regex would be brittle; a small model adds another LLM call. The current "hi" latency is already ~1.1s after R1, so the marginal gain is smaller than it was.
+
 ---
 
 #### R11. Move to Vercel AI SDK v7 with `streamText` + tool streaming
+
+**Status:** Not implemented (big bet, deferred).
 
 **What:** AI SDK v6 doesn't support streaming tool execution. v7 does.
 
@@ -355,15 +373,22 @@ await redis().set(cacheKey, tools, { ex: 300 });
 
 **Impact:** Perceived latency drops significantly because the user sees the response forming in real-time.
 
+**Blocker:** AI SDK v7 is a major version bump with breaking changes. The `generateText` API changes, tool result streaming is experimental, and the Gemini provider options schema may differ. Best done in a dedicated session with thorough testing.
+
 ---
 
-#### R12. Cache common tool results
+#### ✅ R12. Cache common tool results
 
-**What:** "What's the weather in Bangkok" or "What's on my calendar today" are asked repeatedly.
+**Status:** Implemented for weather. Calendar / inbox deferred.
 
-**Fix:** Cache weather results for 10 minutes, calendar "today" for 1 minute, inbox summary for 5 minutes.
+**Change:** `lib/tools/weather.ts` — in-memory cache per location with 10-minute TTL.
 
-**Impact:** Repeated queries drop from 3s to 200ms.
+```ts
+const weatherCache = new Map<string, { result: unknown; ts: number }>();
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
+```
+
+**Impact:** Repeated weather queries drop from ~1.5s to ~10ms (cache hit). Calendar and inbox caching is deferred — these change frequently and the cache invalidation logic is more complex.
 
 ---
 
@@ -386,12 +411,24 @@ After deploying with `DEBUG_TIMING=1`, watch for these patterns in Vercel logs:
 
 ## Quick Wins Summary
 
-Do these in order for maximum speed improvement with minimal risk:
+Implemented in this session:
 
-1. **R2** — `replyOrPush` fallback (prevents silent failures)
-2. **R1** — Pass pre-loaded data to `runAgent` (saves 20–60ms)
-3. **R4** — Reduce `maxRetries` from 3 → 1 (reduces retry burn)
-4. **R3** — Lower timeout from 60s → 20s (fail fast)
-5. **R7** — Parallelize media download (saves up to 500ms on image+text)
-6. **R5** — Cache `toolsForUser` (saves 10–30ms + CPU)
-7. **R12** — Cache common tool results (saves 1–3s on repeats)
+| # | Recommendation | Status | Est. Impact |
+|---|---|---|---|
+| 1 | **R2** — `replyOrPush` fallback in all handlers | ✅ Done | Prevents silent failures on slow requests |
+| 2 | **R1** — Pass pre-loaded data to `runAgent` | ✅ Done | ~20–60ms saved per text request |
+| 3 | **R4** — Reduce `maxRetries` from 3 → 1 | ✅ Done | Reduces worst-case retry burn 3× → 2× |
+| 4 | **R3** — Lower timeout from 60s → 20s | ✅ Done | Faster failure detection |
+| 5 | **R7** — Parallelize media download with preflight | ✅ Done | Up to 500ms saved on image+text combos |
+| 6 | **R5** — Cache `toolsForUser` per-user (5min) | ✅ Done | ~10–30ms + CPU saved on warm starts |
+| 7 | **R12** — Cache weather results (10min TTL) | ✅ Done | Repeated weather queries → ~10ms |
+
+### Deferred (big bets)
+
+| # | Recommendation | Reason |
+|---|---|---|
+| R6 | Pre-compute history summaries | Cache miss is rare (7-day TTL); marginal gain |
+| R8 | "Working on it..." push | `showLoading()` already covers this |
+| R9 | Replace `googleapis` with scoped packages | Safe but tedious — ~10 files to update |
+| R10 | Fast-path classifier for simple queries | Requires reliable intent detection |
+| R11 | AI SDK v7 streaming tool execution | Major version bump, breaking changes |
