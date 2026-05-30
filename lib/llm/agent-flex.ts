@@ -54,7 +54,6 @@ export function buildFlexFromToolResults(result: { steps?: StepLike[] }): {
 
       // ── Morning briefing ───────────────────────────────────────────────
       if (toolName === "get_morning_briefing" && value.briefingType === "morning") {
-        if (value.empty) continue; // Nothing to show
         const text = String(value.text ?? "");
         const news = Array.isArray(value.news) ? value.news as Array<{ title: string; url: string; source: string }> : [];
         const inbox = Array.isArray(value.inbox) ? value.inbox as Array<{ id: string; from: string; subject: string; snippet: string }> : [];
@@ -68,7 +67,6 @@ export function buildFlexFromToolResults(result: { steps?: StepLike[] }): {
 
       // ── Evening summary ────────────────────────────────────────────────
       if (toolName === "get_evening_summary" && value.briefingType === "evening") {
-        if (value.empty) continue; // Nothing to show
         const text = String(value.text ?? "");
         const news = Array.isArray(value.news) ? value.news as Array<{ title: string; url: string; source: string }> : [];
         if (text) out.push(briefingFlex("evening", text));

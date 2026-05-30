@@ -256,7 +256,13 @@ export async function getGoogleClient(userId: string, email?: string, requiredSc
   }
   const stored = await redis().get<string>(tokensKey(userId, target));
   if (!stored) throw new GoogleAuthRequired(SCOPES);
-  const tokens = JSON.parse(decrypt(stored)) as StoredTokens;
+  let tokens: StoredTokens;
+  try {
+    tokens = JSON.parse(decrypt(stored)) as StoredTokens;
+  } catch {
+    console.warn("[google-auth] token decrypt failed — treating as re-auth required", target);
+    throw new GoogleAuthRequired(SCOPES);
+  }
   if (requiredScopes.length) {
     const grantedScopes = new Set((tokens.scope ?? "").split(/\s+/).filter(Boolean));
     const missing = requiredScopes.filter((s) => !grantedScopes.has(s));

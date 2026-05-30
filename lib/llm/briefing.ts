@@ -218,7 +218,7 @@ function buildRecommendations(
 export async function buildMorningBriefing(
   userId: string,
   opts: { timezone: string; location: string | null; includeInbox: boolean },
-): Promise<BriefingResult | null> {
+): Promise<BriefingResult> {
   const sections: string[] = [];
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
@@ -339,6 +339,8 @@ export async function buildMorningBriefing(
       }
     }
     sections.push(`🗓 Your agenda\n${agendaLines.join("\n")}`);
+  } else {
+    sections.push("🗓 Your agenda\n• Nothing scheduled for today or tomorrow.");
   }
 
   // Quick tasks — no due date
@@ -346,6 +348,8 @@ export async function buildMorningBriefing(
   if (noDueDate.length > 0) {
     const lines = noDueDate.slice(0, 5).map((t) => `• ${t.title}`);
     sections.push(`📋 Other tasks (${noDueDate.length})\n${lines.join("\n")}`);
+  } else {
+    sections.push("📋 Other tasks\n• No open tasks without a due date.");
   }
 
   // Recommendations
@@ -365,8 +369,6 @@ export async function buildMorningBriefing(
   // Build structured inbox items (rendered as a separate Flex carousel)
   const inboxRaw = inboxResult.status === "fulfilled" ? inboxResult.value : null;
   const inbox = inboxRaw && inboxRaw.length > 0 ? (inboxRaw as BriefingInboxItem[]) : null;
-
-  if (!sections.length && !news.length && !inbox) return null;
 
   // Date header in user's timezone
   const dateHeader = new Date().toLocaleDateString("en-US", {

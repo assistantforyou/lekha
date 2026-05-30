@@ -21,7 +21,7 @@ type Shortcut = {
 
 const helpTrigger = /^\/?(help|what can you do|capabilities)$/i;
 const briefingTrigger =
-  /\b(morning briefing|daily briefing|daily summary)\b|^(give me|show me|what'?s|send me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary)[\s?!.]*$/i;
+  /\b(morning briefing|daily briefing|daily summary|morning brief)\b|^(give me|show me|what'?s|send me|can you give me|can you show me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary|brief)[\s?!.]*$/i;
 const eveningTrigger =
   /\b(evening summary|evening briefing|evening wrap.?up|nightly summary)\b|^(give me|show me|what'?s|send me)?\s*(my\s*)?(evening|nightly)\s*(summary|briefing|wrap.?up)[\s?!.]*$/i;
 
@@ -55,10 +55,6 @@ const SHORTCUTS: Shortcut[] = [
         location: settings.location,
         includeInbox: settings.inboxBriefingEnabled,
       });
-      if (!briefing) {
-        await replyOrPush(userId, replyToken, [textMsg("Nothing to show in your briefing right now.")]);
-        return;
-      }
       const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
       if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
       if (briefing.inbox && briefing.inbox.length > 0) {

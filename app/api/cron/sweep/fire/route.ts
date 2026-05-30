@@ -72,15 +72,13 @@ export async function POST(req: NextRequest) {
         location: settings.location,
         includeInbox: settings.inboxBriefingEnabled,
       });
-      if (briefing) {
-        const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
-        if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
-        if (briefing.inbox && briefing.inbox.length > 0) {
-          msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
-        }
-        await push(userId, msgs);
-        await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
+      const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
+      if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
+      if (briefing.inbox && briefing.inbox.length > 0) {
+        msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
       }
+      await push(userId, msgs);
+      await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
     }
   } catch (err) {
     console.error("[sweep] morning briefing failed", userId, err);

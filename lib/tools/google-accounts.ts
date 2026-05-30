@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { tool } from "ai";
+import { redis } from "@/lib/memory/redis";
 import { listAccounts, setActiveAccount, removeAccount, buildConnectUrl } from "./google-auth";
 
 export function buildGoogleAccountTools(userId: string) {
@@ -47,9 +48,19 @@ export function buildGoogleAccountTools(userId: string) {
 
     disconnect_google_account: tool({
       description:
-        "Remove a connected Google account. The user can re-add it later with connect_google_account.",
+        "Remove a connected Google account. DESTRUCTIVE — requires user confirmation. The first call sets a 60-second confirmation window. The user must explicitly confirm before the account is removed.",
       inputSchema: z.object({ email: z.string().email() }),
       execute: async ({ email }) => {
+        const confirmKey = `google:disconnect_confirm:${userId}:${email}`;
+        const confirmed = await redis().get<number>(confirmKey);
+        if (!confirmed) {
+          await redis().set(confirmKey, 1, { ex: 60 });
+          return {
+            ok: false,
+            error: `This will permanently disconnect ${email} and revoke the token at Google. Reply YES to confirm within 60 seconds, or say NO to cancel.`,
+          };
+        }
+        await redis().del(confirmKey);
         const ok = await removeAccount(userId, email);
         return ok ? { ok: true } : { ok: false, error: `${email} was not connected.` };
       },
