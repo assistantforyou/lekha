@@ -383,7 +383,15 @@ export async function buildMorningBriefing(
   }
   const news: BriefingNewsItem[] = allNewsStories
     .slice(0, 5)
-    .map((s) => ({ title: s.title, url: s.url, source: "News" }));
+    .map((s) => {
+      let source = "News";
+      try {
+        const host = new URL(s.url).hostname.replace(/^www\./, "");
+        source = host.split(".")[0] ?? "News";
+        source = source.charAt(0).toUpperCase() + source.slice(1);
+      } catch { /* ignore parse errors */ }
+      return { title: s.title, url: s.url, source };
+    });
 
   // Build structured inbox items (rendered as a separate Flex carousel)
   const inboxRaw = inboxResult.status === "fulfilled" ? inboxResult.value : null;

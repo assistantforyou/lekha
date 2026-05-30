@@ -42,13 +42,13 @@ const LekhaMark = () => (
 
 /* ============== DATA ============== */
 const TOPICS = [
-  { id: "stocks",   emoji: "📈", name: "Stock Markets",       thai: "หุ้นและการลงทุน",   desc: "Live quotes, sentiment, watchlist alerts and earnings calendar.", sources: 42 },
-  { id: "wellness", emoji: "🌿", name: "Wellness",             thai: "สุขภาพและความเป็นอยู่", desc: "Research-backed health, sleep, nutrition and recovery.",            sources: 28 },
-  { id: "politics", emoji: "🏛️", name: "Politics",             thai: "การเมือง",          desc: "Policy, regulation and government — Thailand and global.",          sources: 36 },
-  { id: "crime",    emoji: "🚨", name: "Breaking & Crime",     thai: "ข่าวด่วนและอาชญากรรม", desc: "Critical safety alerts and major incidents only — no clickbait.",  sources: 24 },
-  { id: "sports",   emoji: "⚽", name: "Sports Journalism",    thai: "กีฬาเชิงลึก",        desc: "Long-form sports — strategy, business of sport, athlete profiles.", sources: 21 },
-  { id: "business", emoji: "💼", name: "Business & Economy",   thai: "ธุรกิจและเศรษฐกิจ", desc: "M&A, macro trends, ASEAN markets, and global business news.",       sources: 58 },
-  { id: "entertain",emoji: "🎬", name: "Entertainment & Celebrity", thai: "บันเทิงและคนดัง", desc: "Film, music, lifestyle, celebrity moves — curated, not gossipy.", sources: 19 },
+  { id: "stocks",   emoji: "📈", name: "Stock Markets",       thai: "หุ้นและการลงทุน",   desc: "Live quotes, sentiment, watchlist alerts and earnings calendar." },
+  { id: "wellness", emoji: "🌿", name: "Wellness",             thai: "สุขภาพและความเป็นอยู่", desc: "Research-backed health, sleep, nutrition and recovery." },
+  { id: "politics", emoji: "🏛️", name: "Politics",             thai: "การเมือง",          desc: "Policy, regulation and government — Thailand and global." },
+  { id: "crime",    emoji: "🚨", name: "Breaking & Crime",     thai: "ข่าวด่วนและอาชญากรรม", desc: "Critical safety alerts and major incidents only — no clickbait." },
+  { id: "sports",   emoji: "⚽", name: "Sports Journalism",    thai: "กีฬาเชิงลึก",        desc: "Long-form sports — strategy, business of sport, athlete profiles." },
+  { id: "business", emoji: "💼", name: "Business & Economy",   thai: "ธุรกิจและเศรษฐกิจ", desc: "M&A, macro trends, ASEAN markets, and global business news." },
+  { id: "entertain",emoji: "🎬", name: "Entertainment & Celebrity", thai: "บันเทิงและคนดัง", desc: "Film, music, lifestyle, celebrity moves — curated, not gossipy." },
 ];
 
 const TOOLS = [
@@ -95,15 +95,6 @@ const TOOLS = [
   },
 ];
 
-const CONNECTIONS = [
-  { id: "line",     name: "LINE Messenger",  meta: "Lekha runs here",         status: "connected" as const,    handle: "LEKHA Official · LINE ID captured",  brand: "#06C755", glyph: "L" },
-  { id: "gcal",     name: "Google Calendar", meta: "Schedule, briefs, deep-work",   status: "connected" as const, handle: "Connected · last sync 2 min ago", brand: "#4285F4", glyph: "C" },
-  { id: "gmail",    name: "Gmail",           meta: "Triage, draft, send",     status: "connected" as const,    handle: "Connected · sync active", brand: "#EA4335", glyph: "M" },
-  { id: "gdrive",   name: "Google Drive",    meta: "Search and summarise",    status: "connected" as const,    handle: "Connected · 14.2 GB / 30 GB", brand: "#34A853", glyph: "D" },
-  { id: "gcontacts",name: "Google Contacts", meta: "Resolve \"mom\", \"bob\" to email", status: "disconnected" as const, handle: "Not connected", brand: "#FBBC05", glyph: "P" },
-  { id: "gpeople",  name: "Notion",          meta: "Export memos and briefs", status: "disconnected" as const, handle: "Connect to sync", brand: "#000", glyph: "N" },
-];
-
 const NAV_SECTIONS = [
   { group: "WORKSPACE", items: [
     { id: "overview",     label: "Overview",                ico: <I.home/>,  count: null as string | null },
@@ -111,18 +102,19 @@ const NAV_SECTIONS = [
   { group: "CUSTOMIZE LEKHA", items: [
     { id: "briefing",     label: "Daily Brief Topics",      ico: <I.news/>,  countKey: "topicsOn" as const, total: 7 },
     { id: "tools",        label: "Productivity Tools",      ico: <I.bolt/>,  countKey: "toolsOn" as const,  total: 5 },
-    { id: "connections",  label: "Connections",             ico: <I.link/>,  countKey: "connsOn" as const,  total: 6 },
+    { id: "connections",  label: "Connections",             ico: <I.link/>,  countKey: "connsOn" as const,  total: 1 },
     { id: "memory",       label: "Memory & Persona",        ico: <I.brain/>, count: null as string | null },
   ]},
   { group: "ACCOUNT", items: [
-    { id: "plan",         label: "Plan & Billing",          ico: <I.card/>,  count: null as string | null },
+    { id: "plan",         label: "Account",          ico: <I.card/>,  count: null as string | null },
   ]},
 ];
 
 /* ============== DEFAULT STATE ============== */
-function makeDefaultState(displayName: string) {
+function makeDefaultState(displayName: string, userId?: string) {
   const firstName = displayName.split(" ")[0] ?? "You";
   return {
+    userId: userId ?? "",
     /* Schedule */
     morningOn: true,
     morningTime: "07:00",
@@ -147,17 +139,11 @@ function makeDefaultState(displayName: string) {
       drive:     { scope: "My Drive", fmt: "Bullets", autosort: true },
     } as Record<string, Record<string, unknown>>,
     /* Connections */
-    connections: { line: true, gcal: true, gmail: true, gdrive: true, gcontacts: false, gpeople: false } as Record<string, boolean>,
+    connections: { line: true, gcal: false, gmail: false, gdrive: false, gcontacts: false, gpeople: false } as Record<string, boolean>,
     /* Memory */
     compactAt: 10,
     memoryEnabled: true,
-    memories: [
-      { tag: "Coffee",  text: "Prefers espresso. No sugar." },
-      { tag: "Family",  text: "Wife: Pim · Birthday Mar 14" },
-      { tag: "Work",    text: "CEO, Saraburi Group · Bangkok" },
-      { tag: "Habit",   text: "Walks every morning before briefing" },
-      { tag: "Watchlist", text: "NVDA · TSLA · SET · BTC" },
-    ] as Array<{ tag: string; text: string }>,
+    memories: [] as Array<{ id: string; tag: string; text: string }>,
     /* Persona */
     persona: {
       tone: "Warm" as "Warm" | "Professional" | "Playful",
@@ -166,6 +152,10 @@ function makeDefaultState(displayName: string) {
       voiceMatch: true,
     },
     displayName: firstName,
+    googleAccounts: [] as Array<{ email: string; addedAt: number }>,
+    activeGoogleEmail: null as string | null,
+    joinedAt: null as number | null,
+    subscriptionActive: false,
   };
 }
 
@@ -251,7 +241,7 @@ const Sidebar = ({ active, setActive, counts, displayName }: { active: string; s
       <div className="avatar">{displayName.charAt(0).toUpperCase()}</div>
       <div className="meta">
         <div className="name">{displayName}</div>
-        <div className="plan">YEARLY · เลขา</div>
+        <div className="plan">LEKHA DASHBOARD</div>
       </div>
     </div>
   </aside>
@@ -265,7 +255,7 @@ const Topbar = ({ active }: { active: string }) => {
     tools: ["Customize Lekha", "Productivity"],
     connections: ["Customize Lekha", "Connections"],
     memory: ["Customize Lekha", "Memory & Persona"],
-    plan: ["Account", "Plan & Billing"],
+    plan: ["Account", "Profile"],
   };
   const c = crumbs[active] || ["Workspace"];
   return (
@@ -292,7 +282,6 @@ const Topbar = ({ active }: { active: string }) => {
 const OverviewView = ({ state, setActive }: { state: State; setActive: (id: string) => void }) => {
   const topicsOn = Object.values(state.topics).filter(Boolean).length;
   const toolsOn = Object.values(state.tools).filter(Boolean).length;
-  const connsOn = Object.values(state.connections).filter(Boolean).length;
   return (
     <div className="row-gap">
       <div className="section-hdr">
@@ -305,20 +294,17 @@ const OverviewView = ({ state, setActive }: { state: State; setActive: (id: stri
         <div className="stat">
           <div className="v"><span className="gold-text">{topicsOn}</span><span style={{opacity:0.35}}>/7</span></div>
           <div className="lbl">Topics<br/>Active</div>
-          <div className="trend">+2 this week</div>
         </div>
         <div className="stat">
           <div className="v"><span className="gold-text">{toolsOn}</span><span style={{opacity:0.35}}>/5</span></div>
           <div className="lbl">Tools<br/>Enabled</div>
-          <div className="trend">All connected</div>
         </div>
         <div className="stat">
           <div className="v">{state.memories.length}</div>
           <div className="lbl">Memory<br/>Entries</div>
-          <div className="trend">compacts at {state.compactAt}</div>
         </div>
         <div className="stat">
-          <div className="v"><span className="gold-text">2</span><span style={{opacity:0.35}}>×</span></div>
+          <div className="v">{state.morningOn && state.eveningOn ? 2 : state.morningOn || state.eveningOn ? 1 : 0}</div>
           <div className="lbl">Daily Briefs<br/>Scheduled</div>
           <div className="trend">{state.morningOn ? state.morningTime : "—"} · {state.eveningOn ? state.eveningTime : "—"}</div>
         </div>
@@ -366,18 +352,24 @@ const OverviewView = ({ state, setActive }: { state: State; setActive: (id: stri
             <div className="card-hdr-icon"><I.link/></div>
             <div>
               <h3>Connections</h3>
-              <p className="sub">{connsOn} of 6 services connected.</p>
+              <p className="sub">{state.googleAccounts.length} Google account{state.googleAccounts.length !== 1 ? "s" : ""} connected.</p>
             </div>
             <div className="card-hdr-trail"><I.caret/></div>
           </div>
           <div style={{display:"flex", gap:8}}>
-            {CONNECTIONS.filter(c => state.connections[c.id]).slice(0,5).map(c => (
-              <div key={c.id} style={{
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: "#06C755", display: "grid", placeItems: "center",
+              fontFamily: "Sora, sans-serif", fontWeight: 800, fontSize: 14,
+              color: "white", boxShadow: "0 0 0 2px rgba(7,17,44,1)"
+            }}>L</div>
+            {state.googleAccounts.map((acc) => (
+              <div key={acc.email} style={{
                 width: 32, height: 32, borderRadius: 8,
-                background: c.brand, display: "grid", placeItems: "center",
+                background: "#4285F4", display: "grid", placeItems: "center",
                 fontFamily: "Sora, sans-serif", fontWeight: 800, fontSize: 14,
                 color: "white", boxShadow: "0 0 0 2px rgba(7,17,44,1)"
-              }}>{c.glyph}</div>
+              }}>G</div>
             ))}
           </div>
         </button>
@@ -393,8 +385,8 @@ const OverviewView = ({ state, setActive }: { state: State; setActive: (id: stri
             <div className="card-hdr-trail"><I.caret/></div>
           </div>
           <div className="mem-list">
-            {state.memories.slice(0, 2).map((m, i) => (
-              <div key={i} className="mem-row" style={{pointerEvents:"none"}}>
+            {state.memories.slice(0, 2).map((m) => (
+              <div key={m.id} className="mem-row" style={{pointerEvents:"none"}}>
                 <span className="mem-tag">{m.tag}</span>
                 <span className="mem-text">{m.text}</span>
               </div>
@@ -496,7 +488,7 @@ const BriefingView = ({ state, set }: { state: State; set: (patch: Partial<State
                   <div className="topic-thai">{t.thai}</div>
                 </div>
                 <div className="topic-desc">{t.desc}</div>
-                <div className="topic-sources"><span className="pip"/> {t.sources} sources</div>
+                <div className="topic-sources"><span className="pip"/> Tavily news search</div>
               </div>
             );
           })}
@@ -666,7 +658,8 @@ const ToolsView = ({ state, set }: { state: State; set: (patch: Partial<State>) 
 };
 
 /* ============== CONNECTIONS VIEW ============== */
-const ConnectionsView = ({ state, set }: { state: State; set: (patch: Partial<State>) => void }) => {
+const ConnectionsView = ({ state }: { state: State }) => {
+  const hasGoogle = state.googleAccounts.length > 0;
   return (
     <div className="row-gap">
       <div className="section-hdr">
@@ -680,25 +673,17 @@ const ConnectionsView = ({ state, set }: { state: State; set: (patch: Partial<St
           <div className="card-hdr-icon" style={{background: "rgba(6,199,85,0.12)", color: "#06C755", borderColor: "rgba(6,199,85,0.3)"}}><I.chat/></div>
           <div>
             <h3>Primary channel</h3>
-            <p className="sub">Where you talk to Lekha. Identity captured automatically — no manual entry.</p>
+            <p className="sub">Where you talk to Lekha. Identity captured automatically.</p>
           </div>
         </div>
         <div className="conn-list">
-          {CONNECTIONS.filter(c => c.id === "line").map(c => {
-            const on = state.connections[c.id];
-            return (
-              <div key={c.id} className={`conn ${on ? "connected" : ""}`}>
-                <div className="conn-logo" style={{background: c.brand, color: "white", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>{c.glyph}</div>
-                <div className="conn-body">
-                  <div className="conn-name">{c.name}</div>
-                  <div className={`conn-meta ${on ? "ok" : ""}`}>{on ? "● " + c.handle : c.handle}</div>
-                </div>
-                <button className="btn-mini disconnect" onClick={() => set({ connections: { ...state.connections, [c.id]: !on } })}>
-                  {on ? "Disconnect" : "Connect"}
-                </button>
-              </div>
-            );
-          })}
+          <div className="conn connected">
+            <div className="conn-logo" style={{background: "#06C755", color: "white", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>L</div>
+            <div className="conn-body">
+              <div className="conn-name">LINE Messenger</div>
+              <div className="conn-meta ok">● Connected</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -707,59 +692,34 @@ const ConnectionsView = ({ state, set }: { state: State; set: (patch: Partial<St
           <div className="card-hdr-icon"><I.drive/></div>
           <div>
             <h3>Google Workspace</h3>
-            <p className="sub">Calendar, Gmail, Drive — connected in a single OAuth flow.</p>
+            <p className="sub">Calendar, Gmail, Drive, Contacts — connected in a single OAuth flow.</p>
           </div>
           <div className="card-hdr-trail">
             <span className="kbd">SECURE · OAUTH 2.0</span>
           </div>
         </div>
         <div className="conn-list">
-          {CONNECTIONS.filter(c => c.id !== "line" && c.id !== "gpeople").map(c => {
-            const on = state.connections[c.id];
-            return (
-              <div key={c.id} className={`conn ${on ? "connected" : ""}`}>
-                <div className="conn-logo" style={{background: c.brand, color: "white", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>{c.glyph}</div>
-                <div className="conn-body">
-                  <div className="conn-name">{c.name}</div>
-                  <div className={`conn-meta ${on ? "ok" : ""}`}>{on ? "● " + c.handle : c.handle}</div>
-                </div>
-                {on ? (
-                  <button className="btn-mini disconnect" onClick={() => set({ connections: { ...state.connections, [c.id]: false } })}>Disconnect</button>
-                ) : (
-                  <button className="btn-mini connect" onClick={() => set({ connections: { ...state.connections, [c.id]: true } })}>Connect</button>
-                )}
+          {hasGoogle ? state.googleAccounts.map(acc => (
+            <div key={acc.email} className="conn connected">
+              <div className="conn-logo" style={{background: "#4285F4", color: "white", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>G</div>
+              <div className="conn-body">
+                <div className="conn-name">{acc.email}</div>
+                <div className="conn-meta ok">● Connected · Calendar, Gmail, Drive, Contacts</div>
               </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-hdr">
-          <div className="card-hdr-icon"><I.link/></div>
-          <div>
-            <h3>Optional integrations</h3>
-            <p className="sub">Extend Lekha to your other tools. We add new ones every month.</p>
-          </div>
-        </div>
-        <div className="conn-list">
-          {CONNECTIONS.filter(c => c.id === "gpeople").map(c => {
-            const on = state.connections[c.id];
-            return (
-              <div key={c.id} className={`conn ${on ? "connected" : ""}`}>
-                <div className="conn-logo" style={{background: c.brand, color: "white", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>{c.glyph}</div>
-                <div className="conn-body">
-                  <div className="conn-name">{c.name}</div>
-                  <div className={`conn-meta ${on ? "ok" : ""}`}>{on ? "● " + c.handle : c.handle}</div>
-                </div>
-                {on ? (
-                  <button className="btn-mini disconnect" onClick={() => set({ connections: { ...state.connections, [c.id]: false } })}>Disconnect</button>
-                ) : (
-                  <button className="btn-mini connect" onClick={() => set({ connections: { ...state.connections, [c.id]: true } })}>Connect</button>
-                )}
+              {acc.email === state.activeGoogleEmail && (
+                <span className="kbd" style={{fontSize: 11}}>Active</span>
+              )}
+            </div>
+          )) : (
+            <div className="conn">
+              <div className="conn-logo" style={{background: "#333", color: "white", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>G</div>
+              <div className="conn-body">
+                <div className="conn-name">Google Account</div>
+                <div className="conn-meta">Not connected</div>
               </div>
-            );
-          })}
+              <a className="btn-mini connect" href="/api/auth/google/start">Connect</a>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -769,10 +729,43 @@ const ConnectionsView = ({ state, set }: { state: State; set: (patch: Partial<St
 /* ============== MEMORY & PERSONA VIEW ============== */
 const MemoryView = ({ state, set }: { state: State; set: (patch: Partial<State>) => void }) => {
   const [draft, setDraft] = useState("");
-  const addMemory = () => {
-    if (!draft.trim()) return;
-    set({ memories: [...state.memories, { tag: "Note", text: draft.trim() }] });
-    setDraft("");
+  const [saving, setSaving] = useState(false);
+
+  const addMemory = async () => {
+    if (!draft.trim() || saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/dashboard/facts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add", content: draft.trim(), category: "other" }),
+      });
+      const data = await res.json();
+      if (data.facts) {
+        set({ memories: data.facts.map((f: { id: string; category: string; content: string }) => ({ id: f.id, tag: f.category, text: f.content })) });
+      }
+      setDraft("");
+    } catch (err) {
+      console.error("[dashboard] failed to add fact", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteMemory = async (id: string) => {
+    try {
+      const res = await fetch("/api/dashboard/facts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", id }),
+      });
+      const data = await res.json();
+      if (data.facts) {
+        set({ memories: data.facts.map((f: { id: string; category: string; content: string }) => ({ id: f.id, tag: f.category, text: f.content })) });
+      }
+    } catch (err) {
+      console.error("[dashboard] failed to delete fact", err);
+    }
   };
 
   return (
@@ -799,10 +792,6 @@ const MemoryView = ({ state, set }: { state: State; set: (patch: Partial<State>)
           <div className="field" style={{marginTop: 12}}>
             <div className="field-label">Auto-compact at</div>
             <div className="field-control"><Slider value={state.compactAt} min={5} max={30} step={1} fmt={(v) => v + " messages"} onChange={(v) => set({ compactAt: v })}/></div>
-          </div>
-          <div className="divider"/>
-          <div style={{fontSize: 12.5, color: "var(--ink-mute)", fontFamily:"JetBrains Mono, monospace", letterSpacing:"0.04em"}}>
-            Last compaction: 14 min ago · 27 messages summarised into 184 tokens
           </div>
         </div>
 
@@ -856,11 +845,16 @@ const MemoryView = ({ state, set }: { state: State; set: (patch: Partial<State>)
           </div>
         </div>
         <div className="mem-list">
-          {state.memories.map((m, i) => (
-            <div key={i} className="mem-row">
+          {state.memories.length === 0 && (
+            <div className="mem-row" style={{opacity: 0.5}}>
+              <span className="mem-text">No memories yet — add one below.</span>
+            </div>
+          )}
+          {state.memories.map((m) => (
+            <div key={m.id} className="mem-row">
               <span className="mem-tag">{m.tag}</span>
               <span className="mem-text">{m.text}</span>
-              <button className="mem-del" onClick={() => set({ memories: state.memories.filter((_, j) => j !== i) })}>
+              <button className="mem-del" onClick={() => deleteMemory(m.id)}>
                 <I.trash/>
               </button>
             </div>
@@ -870,7 +864,7 @@ const MemoryView = ({ state, set }: { state: State; set: (patch: Partial<State>)
             <input value={draft} placeholder="Tell Lekha something she should remember about you…"
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addMemory()}/>
-            <button className="btn-mini" onClick={addMemory}>Add</button>
+            <button className="btn-mini" onClick={addMemory} disabled={saving}>{saving ? "Saving…" : "Add"}</button>
           </div>
         </div>
       </div>
@@ -879,76 +873,56 @@ const MemoryView = ({ state, set }: { state: State; set: (patch: Partial<State>)
 };
 
 /* ============== PLAN VIEW ============== */
-const PlanView = ({ state }: { state: State }) => (
-  <div className="row-gap">
-    <div className="section-hdr">
-      <div className="section-eyebrow">Account · Plan &amp; Billing</div>
-      <h1 className="section-title">Your <span className="gold-text">subscription.</span></h1>
-      <p className="section-desc">Monthly subscription, billed in Thai Baht. Cancel anytime.</p>
-    </div>
-
-    <div className="plan-card">
-      <div className="plan-eyebrow">CURRENT PLAN</div>
-      <div className="plan-name">Yearly · เลขา</div>
-      <div className="plan-price">฿ 5,990 / year · ฿499 effective per month · 2 months free</div>
-      <div className="plan-row"><span className="k">Renews on</span> <span className="v">23 May 2027</span></div>
-      <div className="plan-row"><span className="k">Payment method</span> <span className="v">•••• 4242 · expires 09/28</span></div>
-      <div className="plan-row"><span className="k">Billing email</span> <span className="v">{state.displayName.toLowerCase().replace(/\s/g, ".")}@example.com</span></div>
-      <div className="plan-row"><span className="k">Next charge</span> <span className="v gold">฿ 5,990</span></div>
-      <div style={{display:"flex", gap: 10, marginTop: 22}}>
-        <button className="btn-mini">Update payment</button>
-        <button className="btn-mini">Switch to monthly</button>
-        <button className="btn-mini disconnect">Cancel subscription</button>
+const PlanView = ({ state }: { state: State }) => {
+  const joined = state.joinedAt
+    ? new Date(state.joinedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    : "—";
+  return (
+    <div className="row-gap">
+      <div className="section-hdr">
+        <div className="section-eyebrow">Account · Profile</div>
+        <h1 className="section-title">Your <span className="gold-text">account.</span></h1>
+        <p className="section-desc">Manage your profile and connected services.</p>
       </div>
-    </div>
 
-    <div className="card">
-      <div className="card-hdr">
-        <div className="card-hdr-icon"><I.doc/></div>
-        <div>
-          <h3>Recent invoices</h3>
-          <p className="sub">All receipts stored in Drive › Receipts / Lekha.</p>
-        </div>
+      <div className="plan-card">
+        <div className="plan-eyebrow">PROFILE</div>
+        <div className="plan-name">{state.displayName}</div>
+        <div className="plan-price">LINE user · {state.userId?.slice(0, 8) ?? ""}…</div>
+        <div className="plan-row"><span className="k">Joined</span> <span className="v">{joined}</span></div>
+        <div className="plan-row"><span className="k">Subscription</span> <span className="v" style={{color: state.subscriptionActive ? "var(--ok)" : "var(--warn)"}}>{state.subscriptionActive ? "● Active" : "Inactive"}</span></div>
+        <div className="plan-row"><span className="k">Google accounts</span> <span className="v">{state.googleAccounts.length} connected</span></div>
+        <div className="plan-row"><span className="k">Memory entries</span> <span className="v">{state.memories.length} facts</span></div>
       </div>
-      <div className="mem-list">
-        {[
-          { d: "23 May 2026", a: "฿ 5,990", s: "Paid · Yearly plan" },
-          { d: "23 May 2025", a: "฿ 5,990", s: "Paid · Yearly plan" },
-          { d: "18 Apr 2025", a: "฿ 599",   s: "Paid · Final monthly bill before upgrade" },
-        ].map((r, i) => (
-          <div key={i} className="mem-row">
-            <span className="mem-tag" style={{background:"rgba(16,185,129,0.14)", color:"#6ee7b7"}}>{r.d.split(" ")[2]}</span>
-            <span className="mem-text"><span style={{color:"var(--ink)"}}>{r.d}</span> · {r.s}</span>
-            <span style={{fontFamily:"JetBrains Mono, monospace", fontSize: 13, color: "var(--gold)", marginRight: 8}}>{r.a}</span>
-            <button className="btn-mini">Download</button>
+
+      {state.googleAccounts.length > 0 && (
+        <div className="card">
+          <div className="card-hdr">
+            <div className="card-hdr-icon"><I.drive/></div>
+            <div>
+              <h3>Connected Google accounts</h3>
+              <p className="sub">Calendar, Gmail, Drive and Contacts are enabled for each account.</p>
+            </div>
           </div>
-        ))}
-      </div>
+          <div className="mem-list">
+            {state.googleAccounts.map((acc) => (
+              <div key={acc.email} className="mem-row">
+                <span className="mem-tag" style={{background:"rgba(66,133,244,0.14)", color:"#4285F4"}}>G</span>
+                <span className="mem-text"><span style={{color:"var(--ink)"}}>{acc.email}</span> {acc.email === state.activeGoogleEmail ? "· Active" : ""}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-);
-
-/* ============== LIVE LINE PREVIEW ============== */
-const SAMPLE_BRIEFS: Record<string, [string, string][]> = {
-  stocks:    [["SET",     "opens +0.6% · banking leads, energy lags on oil pullback"], ["NVDA", "up 2.1% pre-market on Computex keynote leaks"]],
-  wellness:  [["Sleep",   "New Stanford study: 7-min morning light beats caffeine for focus"], ["You",  "Sleep score dipped 12% this week — try winding down 30 min earlier"]],
-  politics:  [["ASEAN",   "Summit concludes with new digital trade pact — Thailand among signatories"], ["Policy", "BoT signals possible 25bps cut at June meeting"]],
-  crime:     [["Bangkok", "Sukhumvit Rd cordoned 14:30–16:00 — plan around it"], ["Travel","Holiday warning issued for southern provinces"]],
-  sports:    [["Premier",  "Manchester derby preview — tactical breakdown attached"], ["F1", "Monaco GP — Verstappen 0.04s off Leclerc in FP2"]],
-  business:  [["M&A",     "Saraburi cement consolidates — peer multiples up 8%"], ["Macro",  "US PCE data tonight 9pm ICT — watch dollar pairs"]],
-  entertain: [["Film",    "Cannes wraps — Thai short film wins jury prize"], ["Music",  "Solo album from your saved artist drops Friday"]],
+  );
 };
 
+/* ============== LIVE LINE PREVIEW ============== */
 const Phone = ({ state, scene }: { state: State; scene: string }) => {
   const activeTopics = TOPICS.filter(t => state.topics[t.id]);
 
-  // Build a sample briefing message based on currently-active topics
-  const briefRows = activeTopics.slice(0, 4).map(t => {
-    const sample = SAMPLE_BRIEFS[t.id]?.[0] || ["", ""];
-    return { tag: sample[0] || t.name, text: sample[1] || t.desc };
-  });
-
-  const today = "Tuesday · May 20";
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   const greeting = ({
     Warm:         "Good morning",
     Professional: "Morning",
@@ -967,15 +941,15 @@ const Phone = ({ state, scene }: { state: State; scene: string }) => {
       <div className="bubble user">Brief me on today.</div>
       <div className="bubble bot rich">
         <h4>{today} · {activeTopics.length} verticals</h4>
-        {briefRows.length === 0 && (
+        {activeTopics.length === 0 && (
           <div style={{fontSize: 12, color: "#888", padding: "8px 0"}}>
             No topics enabled — turn some on in the dashboard.
           </div>
         )}
-        {briefRows.map((r, i) => (
+        {activeTopics.slice(0, 4).map((t, i) => (
           <div key={i} className="brief-row">
-            <span className="brief-pill">{r.tag}</span>
-            <span className="txt">{r.text}</span>
+            <span className="brief-pill">{t.emoji}</span>
+            <span className="txt">{t.name} — {t.desc}</span>
           </div>
         ))}
       </div>
@@ -985,19 +959,18 @@ const Phone = ({ state, scene }: { state: State; scene: string }) => {
     <>
       <div className="bubble user">What&apos;s on for today?</div>
       <div className="bubble bot rich">
-        <h4>3 tasks · 2 meetings</h4>
-        <div className="brief-row"><span className="brief-pill">9:00</span><span className="txt">Review Q3 deck before 10am board</span></div>
-        <div className="brief-row"><span className="brief-pill">10:00</span><span className="txt">Board meeting — pre-read sent</span></div>
-        <div className="brief-row"><span className="brief-pill">14:00</span><span className="txt">Call Khun Anan back</span></div>
-        <div className="brief-row"><span className="brief-pill">16:30</span><span className="txt">Sign term sheet — Atlas</span></div>
+        <h4>Your agenda</h4>
+        <div style={{fontSize: 12, color: "#888", padding: "8px 0"}}>
+          Tasks and meetings from your connected calendar will appear here.
+        </div>
       </div>
       <div className="bubble bot">I&apos;ll nudge you {state.toolSettings.reminders?.preempt as number ?? 15} min before each meeting.</div>
     </>
   ) : (
     <>
-      <div className="bubble user">Set me a reminder for vitamins, 8am every weekday.</div>
+      <div className="bubble user">Set me a reminder for 8am every weekday.</div>
       <div className="bubble bot">Set. Recurring weekdays · 8:00 AM. {(state.toolSettings.reminders?.skipHolidays as boolean) ? "I&apos;ll skip public holidays." : ""} Sound right?</div>
-      <div className="bubble user">Also — draft a reply to David about Friday.</div>
+      <div className="bubble user">Draft a reply to my last email.</div>
       <div className="bubble bot">Drafting now in a <strong>{(state.toolSettings.email?.tone as string ?? "warm").toLowerCase()}</strong> tone. Want to review before I send?</div>
     </>
   );
@@ -1082,7 +1055,7 @@ const VIEWS: Record<string, React.FC<any>> = {
 
 export default function DashboardClient({ userId, displayName }: { userId: string; displayName: string }) {
   const [active, setActive] = useState("briefing");
-  const [state, setState] = useState<State>(() => makeDefaultState(displayName));
+  const [state, setState] = useState<State>(() => makeDefaultState(displayName, userId));
   const [loaded, setLoaded] = useState(false);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1115,6 +1088,21 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
               voiceMatch: s.personaVoiceMatch ?? prev.persona.voiceMatch,
             },
             displayName: data.displayName ?? prev.displayName,
+            memories: data.facts
+              ? data.facts.map((f: { id: string; category: string; content: string }) => ({ id: f.id, tag: f.category, text: f.content }))
+              : prev.memories,
+            googleAccounts: data.googleAccounts ?? prev.googleAccounts,
+            activeGoogleEmail: data.activeGoogleEmail ?? prev.activeGoogleEmail,
+            joinedAt: data.joinedAt ?? prev.joinedAt,
+            subscriptionActive: data.subscriptionActive ?? prev.subscriptionActive,
+            connections: {
+              ...prev.connections,
+              line: true,
+              gcal: (data.googleAccounts?.length ?? 0) > 0,
+              gmail: (data.googleAccounts?.length ?? 0) > 0,
+              gdrive: (data.googleAccounts?.length ?? 0) > 0,
+              gcontacts: (data.googleAccounts?.length ?? 0) > 0,
+            },
           }));
         }
         setLoaded(true);
@@ -1181,7 +1169,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
   const counts = {
     topicsOn: Object.values(state.topics).filter(Boolean).length,
     toolsOn:  Object.values(state.tools).filter(Boolean).length,
-    connsOn:  Object.values(state.connections).filter(Boolean).length,
+    connsOn:  state.googleAccounts.length,
   };
 
   const ViewComp = (VIEWS[active] ?? VIEWS.briefing) as React.FC<any>;
@@ -1216,7 +1204,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
             </div>
             <button className="btn btn-ghost" onClick={() => {
               if (confirm("Reset all customizations to default?")) {
-                const def = makeDefaultState(displayName);
+                const def = makeDefaultState(displayName, userId);
                 setState(def);
                 syncToBackend(def);
               }
