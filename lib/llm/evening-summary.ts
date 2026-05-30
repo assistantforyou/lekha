@@ -4,35 +4,7 @@ import { listTasks, type Task } from "@/lib/memory/tasks";
 import { listReminders, type StoredReminder } from "@/lib/tools/reminders";
 import { redis } from "@/lib/memory/redis";
 import { env } from "@/lib/env";
-
-type NewsStory = { title: string; url: string };
-
-async function fetchNews(query: string, apiKey: string): Promise<NewsStory[]> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 8000);
-  try {
-    const r = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        api_key: apiKey,
-        query,
-        max_results: 4,
-        search_depth: "basic",
-        topic: "news",
-        days: 1,
-      }),
-      signal: ctrl.signal,
-    });
-    if (!r.ok) return [];
-    const data = (await r.json()) as { results?: Array<{ title: string; url: string }> };
-    return (data.results ?? []).map((s) => ({ title: s.title, url: s.url }));
-  } catch {
-    return [];
-  } finally {
-    clearTimeout(t);
-  }
-}
+import { fetchCachedNews, type NewsStory } from "@/lib/news-cache";
 
 export type EveningSummaryResult = {
   text: string;
@@ -216,15 +188,15 @@ export async function buildEveningSummary(
       listReminders(userId),
 
       apiKey
-        ? fetchNews("geopolitics world news today major outlets", apiKey)
+        ? fetchCachedNews("geopolitics world news today major outlets", apiKey)
         : Promise.resolve([] as NewsStory[]),
 
       apiKey
-        ? fetchNews("global economics finance markets today", apiKey)
+        ? fetchCachedNews("global economics finance markets today", apiKey)
         : Promise.resolve([] as NewsStory[]),
 
       apiKey
-        ? fetchNews("polymarket prediction markets today", apiKey)
+        ? fetchCachedNews("polymarket prediction markets today", apiKey)
         : Promise.resolve([] as NewsStory[]),
     ]);
 
