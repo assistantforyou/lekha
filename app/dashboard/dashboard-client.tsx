@@ -42,13 +42,13 @@ const LekhaMark = () => (
 
 /* ============== DATA ============== */
 const TOPICS = [
-  { id: "stocks",   emoji: "📈", name: "Stock Markets",       thai: "หุ้นและการลงทุน",   desc: "Live quotes, sentiment, watchlist alerts and earnings calendar." },
-  { id: "wellness", emoji: "🌿", name: "Wellness",             thai: "สุขภาพและความเป็นอยู่", desc: "Research-backed health, sleep, nutrition and recovery." },
-  { id: "politics", emoji: "🏛️", name: "Politics",             thai: "การเมือง",          desc: "Policy, regulation and government — Thailand and global." },
-  { id: "crime",    emoji: "🚨", name: "Breaking & Crime",     thai: "ข่าวด่วนและอาชญากรรม", desc: "Critical safety alerts and major incidents only — no clickbait." },
-  { id: "sports",   emoji: "⚽", name: "Sports Journalism",    thai: "กีฬาเชิงลึก",        desc: "Long-form sports — strategy, business of sport, athlete profiles." },
-  { id: "business", emoji: "💼", name: "Business & Economy",   thai: "ธุรกิจและเศรษฐกิจ", desc: "M&A, macro trends, ASEAN markets, and global business news." },
-  { id: "entertain",emoji: "🎬", name: "Entertainment & Celebrity", thai: "บันเทิงและคนดัง", desc: "Film, music, lifestyle, celebrity moves — curated, not gossipy." },
+  { id: "stocks",   emoji: "📈", name: "Stock Markets",       thai: "หุ้นและการลงทุน",   desc: "Live quotes, sentiment, watchlist alerts and earnings calendar.", sources: ["Bloomberg", "Reuters", "MarketWatch", "SET"] },
+  { id: "wellness", emoji: "🌿", name: "Wellness",             thai: "สุขภาพและความเป็นอยู่", desc: "Research-backed health, sleep, nutrition and recovery.", sources: ["Healthline", "Mayo Clinic", "NIH", "WHO"] },
+  { id: "politics", emoji: "🏛️", name: "Politics",             thai: "การเมือง",          desc: "Policy, regulation and government — Thailand and global.", sources: ["BBC", "Reuters", "AP", "Bangkok Post"] },
+  { id: "crime",    emoji: "🚨", name: "Breaking & Crime",     thai: "ข่าวด่วนและอาชญากรรม", desc: "Critical safety alerts and major incidents only — no clickbait.", sources: ["BBC", "CNN", "Local news", "Police feeds"] },
+  { id: "sports",   emoji: "⚽", name: "Sports Journalism",    thai: "กีฬาเชิงลึก",        desc: "Long-form sports — strategy, business of sport, athlete profiles.", sources: ["ESPN", "BBC Sport", "The Athletic", "SI"] },
+  { id: "business", emoji: "💼", name: "Business & Economy",   thai: "ธุรกิจและเศรษฐกิจ", desc: "M&A, macro trends, ASEAN markets, and global business news.", sources: ["WSJ", "FT", "Bloomberg", "Nikkei"] },
+  { id: "entertain",emoji: "🎬", name: "Entertainment & Celebrity", thai: "บันเทิงและคนดัง", desc: "Film, music, lifestyle, celebrity moves — curated, not gossipy.", sources: ["Variety", "THR", "Billboard", "Deadline"] },
 ];
 
 const TOOLS = [
@@ -488,7 +488,7 @@ const BriefingView = ({ state, set }: { state: State; set: (patch: Partial<State
                   <div className="topic-thai">{t.thai}</div>
                 </div>
                 <div className="topic-desc">{t.desc}</div>
-                <div className="topic-sources"><span className="pip"/> Tavily news search</div>
+                <div className="topic-sources"><span className="pip"/> {t.sources.slice(0, 3).join(" · ")}</div>
               </div>
             );
           })}
@@ -658,33 +658,62 @@ const ToolsView = ({ state, set }: { state: State; set: (patch: Partial<State>) 
 };
 
 /* ============== CONNECTIONS VIEW ============== */
-const ConnectionsView = ({ state }: { state: State }) => {
+const ConnectionsView = ({ state, set }: { state: State; set: (patch: Partial<State>) => void }) => {
+  const [connecting, setConnecting] = useState(false);
+
+  const addGoogle = async () => {
+    if (connecting) return;
+    setConnecting(true);
+    try {
+      const res = await fetch("/api/dashboard/connect-google");
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert("Google OAuth is not configured.");
+      }
+    } catch (err) {
+      console.error("[dashboard] failed to get connect url", err);
+      alert("Could not start Google connection.");
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const disconnectGoogle = async (email: string) => {
+    if (!confirm(`Disconnect ${email}? This will revoke access at Google.`)) return;
+    try {
+      const res = await fetch("/api/dashboard/disconnect-google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.accounts) {
+        set({
+          googleAccounts: data.accounts,
+          activeGoogleEmail: data.activeEmail,
+          connections: {
+            ...state.connections,
+            gcal: data.accounts.length > 0,
+            gmail: data.accounts.length > 0,
+            gdrive: data.accounts.length > 0,
+            gcontacts: data.accounts.length > 0,
+          },
+        });
+      }
+    } catch (err) {
+      console.error("[dashboard] failed to disconnect", err);
+    }
+  };
+
   const hasGoogle = state.googleAccounts.length > 0;
   return (
     <div className="row-gap">
       <div className="section-hdr">
         <div className="section-eyebrow">Customize Lekha · Connections</div>
         <h1 className="section-title">Plug in <span className="gold-text">your stack.</span></h1>
-        <p className="section-desc">Lekha lives inside LINE and bridges to Google Workspace for calendar, mail and Drive. OAuth captures your identity once — no manual entry.</p>
-      </div>
-
-      <div className="card">
-        <div className="card-hdr">
-          <div className="card-hdr-icon" style={{background: "rgba(6,199,85,0.12)", color: "#06C755", borderColor: "rgba(6,199,85,0.3)"}}><I.chat/></div>
-          <div>
-            <h3>Primary channel</h3>
-            <p className="sub">Where you talk to Lekha. Identity captured automatically.</p>
-          </div>
-        </div>
-        <div className="conn-list">
-          <div className="conn connected">
-            <div className="conn-logo" style={{background: "#06C755", color: "white", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>L</div>
-            <div className="conn-body">
-              <div className="conn-name">LINE Messenger</div>
-              <div className="conn-meta ok">● Connected</div>
-            </div>
-          </div>
-        </div>
+        <p className="section-desc">Connect Google Workspace for calendar, mail, Drive and contacts. OAuth captures your identity once.</p>
       </div>
 
       <div className="card">
@@ -699,25 +728,41 @@ const ConnectionsView = ({ state }: { state: State }) => {
           </div>
         </div>
         <div className="conn-list">
-          {hasGoogle ? state.googleAccounts.map(acc => (
+          {state.googleAccounts.map(acc => (
             <div key={acc.email} className="conn connected">
               <div className="conn-logo" style={{background: "#4285F4", color: "white", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>G</div>
               <div className="conn-body">
                 <div className="conn-name">{acc.email}</div>
                 <div className="conn-meta ok">● Connected · Calendar, Gmail, Drive, Contacts</div>
               </div>
-              {acc.email === state.activeGoogleEmail && (
-                <span className="kbd" style={{fontSize: 11}}>Active</span>
-              )}
+              <div style={{display:"flex", gap: 8, alignItems:"center"}}>
+                {acc.email === state.activeGoogleEmail && (
+                  <span className="kbd" style={{fontSize: 11}}>Active</span>
+                )}
+                <button className="btn-mini disconnect" onClick={() => disconnectGoogle(acc.email)}>Disconnect</button>
+              </div>
             </div>
-          )) : (
+          ))}
+          <div className="conn" style={{borderStyle: "dashed", opacity: 0.7}}>
+            <div className="conn-logo" style={{background: "rgba(66,133,244,0.15)", color: "#4285F4", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>+</div>
+            <div className="conn-body">
+              <div className="conn-name" style={{color: "var(--ink-dim)"}}>Add another Google account</div>
+              <div className="conn-meta">Multi-account support</div>
+            </div>
+            <button className="btn-mini connect" onClick={addGoogle} disabled={connecting}>
+              {connecting ? "…" : "Connect"}
+            </button>
+          </div>
+          {!hasGoogle && (
             <div className="conn">
               <div className="conn-logo" style={{background: "#333", color: "white", fontFamily:"Sora,sans-serif", fontWeight:800, fontSize: 18}}>G</div>
               <div className="conn-body">
                 <div className="conn-name">Google Account</div>
                 <div className="conn-meta">Not connected</div>
               </div>
-              <a className="btn-mini connect" href="/api/auth/google/start">Connect</a>
+              <button className="btn-mini connect" onClick={addGoogle} disabled={connecting}>
+                {connecting ? "…" : "Connect"}
+              </button>
             </div>
           )}
         </div>

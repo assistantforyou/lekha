@@ -35,8 +35,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/page.tsx": {
-    "mtime": 1780153975.097811,
-    "ast_hash": "900b21de1b9d0efb948ff97f7d90294a",
+    "mtime": 1780153980.5142558,
+    "ast_hash": "ca002d3c43a3b23aad322cb6f4f38cb3",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/signup/page.tsx": {
@@ -105,8 +105,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/cron/sweep/fire/route.ts": {
-    "mtime": 1780153975.0971053,
-    "ast_hash": "b57f89826b9c38f35203395cc9e3bee6",
+    "mtime": 1780153980.5120132,
+    "ast_hash": "88e28e1c2723b54f9aeaae8a9be66adc",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/connect/[token]/page.tsx": {
@@ -265,8 +265,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/shortcuts.ts": {
-    "mtime": 1780153975.1007586,
-    "ast_hash": "da4df6bc70e5246dedc2b94247c5409f",
+    "mtime": 1780153980.7701473,
+    "ast_hash": "95a70108d4c423e2fd249af0854d6e6c",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/env.ts": {
@@ -360,8 +360,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/morning-briefing.ts": {
-    "mtime": 1780153975.1013682,
-    "ast_hash": "5e647467b15eb424ce6c0b86e7df2b69",
+    "mtime": 1780153980.7725394,
+    "ast_hash": "7549a19934706234c07afdb3cb8e443d",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/scheduled-email.ts": {
@@ -375,8 +375,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/index.ts": {
-    "mtime": 1780153975.1010714,
-    "ast_hash": "0758be9c7742f1fa06a685f80d95f816",
+    "mtime": 1780153980.7716491,
+    "ast_hash": "6df0319b156833e3dfefc0168cc4114f",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/google-accounts.ts": {
@@ -415,18 +415,18 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/evening-summary.ts": {
-    "mtime": 1780153975.0996032,
-    "ast_hash": "44c3b90a572e00e29c9ce64927822406",
+    "mtime": 1780153980.7630825,
+    "ast_hash": "6d1bc2c8947a88bd0d82ec0013d7baee",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/briefing.ts": {
-    "mtime": 1780153975.0990193,
-    "ast_hash": "9102edfb06909ed03ea4441c8a928aae",
+    "mtime": 1780156230.1067736,
+    "ast_hash": "5c91135f4d373f9a0b7e292acb7d56f9",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/agent.ts": {
-    "mtime": 1780153975.0982177,
-    "ast_hash": "26dd8e7adccc6b5d6ced8125f6dfa73f",
+    "mtime": 1780153980.7609925,
+    "ast_hash": "c79b97cb668072b18143b545fb5f2459",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/render-drafts.ts": {
@@ -435,8 +435,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/prompts.ts": {
-    "mtime": 1780153975.100079,
-    "ast_hash": "76485bfb092bb051988219cc817ebe0c",
+    "mtime": 1780153980.764224,
+    "ast_hash": "c9254d5a5fea127841a1f3671693548f",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/agent-flex.ts": {
@@ -475,8 +475,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/settings.ts": {
-    "mtime": 1780153975.1003726,
-    "ast_hash": "92eee881ce9b2af7eeb91f72d190ef9f",
+    "mtime": 1780153980.7688017,
+    "ast_hash": "1b4f5fff7e362c0d167431cb2c92e32c",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/redis.ts": {
@@ -827,6 +827,231 @@
   "/Users/jamesperenchio/Desktop/lekha/lib/news-cache.ts": {
     "mtime": 1780134308.6975067,
     "ast_hash": "5d40fc8e90d1f46cc6e88ea95e1732ef",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/app/dashboard/dashboard-client.tsx": {
+    "mtime": 1780156992.31922,
+    "ast_hash": "4c7713dddd442cffcb89946c5023c4eb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/app/dashboard/page.tsx": {
+    "mtime": 1780153980.5137355,
+    "ast_hash": "6283028c0cd9f1340765650e9e50d919",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/app/api/auth/line/dashboard-callback/route.ts": {
+    "mtime": 1780153980.5112834,
+    "ast_hash": "4147bb2258a2cb8a22916dd57a57faff",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/app/api/auth/line/dashboard-start/route.ts": {
+    "mtime": 1780153980.5116057,
+    "ast_hash": "69af6cf42795fa1a5b0ac396c0e5b9a2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/app/api/dashboard/settings/route.ts": {
+    "mtime": 1780153980.5125403,
+    "ast_hash": "88cc11e33b1c0d6e3b3c6c7554a0067a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/app/api/dashboard/me/route.ts": {
+    "mtime": 1780156217.3455608,
+    "ast_hash": "7ef11d079b9dfe53af3e71ccaf270ec4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/app/api/dashboard/facts/route.ts": {
+    "mtime": 1780156194.940073,
+    "ast_hash": "f3f7da3faee5b16e9dfb1958483e744e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/dashboard-app.jsx": {
+    "mtime": 1780153980.51509,
+    "ast_hash": "0c00f76e9844abe833ac6d6130af1398",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/dashboard-sections.jsx": {
+    "mtime": 1780153980.5157738,
+    "ast_hash": "95a94a3d297fd68e1d352a333ea0efe0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/dashboard-core.jsx": {
+    "mtime": 1780153980.5153825,
+    "ast_hash": "d73036886d6f1ccee1cca7cb156f3664",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/tweaks-panel.jsx": {
+    "mtime": 1780153980.518792,
+    "ast_hash": "7551642a9e3749f69d28086fe1a03b23",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/app.jsx": {
+    "mtime": 1780153980.530288,
+    "ast_hash": "132cb5333baafbdfe2cee50d5cb16156",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/tweaks-panel.jsx": {
+    "mtime": 1780153980.6920614,
+    "ast_hash": "7551642a9e3749f69d28086fe1a03b23",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/lib/dashboard-auth.ts": {
+    "mtime": 1780153980.760399,
+    "ast_hash": "25b399e61e27b487c0000ae047b7897e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/README.md": {
+    "mtime": 1780153980.514492,
+    "ast_hash": "41c0dea5e35d1ee0449e8d38cf32f4a9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/index.html": {
+    "mtime": 1780153980.5169404,
+    "ast_hash": "9306861e3364d0600c9507da9ec001f7",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/README.md": {
+    "mtime": 1780153980.5279872,
+    "ast_hash": "0f32d58cd99552d26435782dc840def5",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/index.html": {
+    "mtime": 1780153980.6908674,
+    "ast_hash": "2610974a6bf7b53d4e41b6467aa5877b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA - Customer Journey Flowchart.pdf": {
+    "mtime": 1780153980.5254984,
+    "ast_hash": "51e7d38a163d2426d54444825b13b787",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/screenshots/03-after-render.png": {
+    "mtime": 1780153980.5184803,
+    "ast_hash": "64c7a54fab517d532d5e5e5f3e8174af",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/screenshots/01-briefing.png": {
+    "mtime": 1780153980.5175364,
+    "ast_hash": "64c7a54fab517d532d5e5e5f3e8174af",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/screenshots/02-debug.png": {
+    "mtime": 1780153980.5180733,
+    "ast_hash": "64c7a54fab517d532d5e5e5f3e8174af",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/ChatGPT Image May 20, 2026, 04_19_13 PM.png": {
+    "mtime": 1780153980.7021744,
+    "ast_hash": "16942ed868e038e80a21cfe25acd8bda",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/assisstantforyou_qr.png": {
+    "mtime": 1780153980.7581804,
+    "ast_hash": "b765fa3d51eb9b876444f60b20bf2d55",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/TODO.png": {
+    "mtime": 1780153980.7496514,
+    "ast_hash": "d296df9fa42539de0234d3e49aac70eb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/Screenshot 2569-05-26 at 12.42.33.png": {
+    "mtime": 1780153980.7265127,
+    "ast_hash": "c685e3527d56582a890e9c91cbcb5a6f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/For analysts.png": {
+    "mtime": 1780153980.710693,
+    "ast_hash": "5cc7c8e7ac724c6718fa3caba9692011",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/ChatGPT Image May 14, 2026, 07_45_31 PM.png": {
+    "mtime": 1780153980.6980286,
+    "ast_hash": "7abb07a3079a23ac09fe4fcd84ebfe08",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/ChatGPT Image May 14, 2026, 07_35_27 PM.png": {
+    "mtime": 1780153980.6938982,
+    "ast_hash": "814441203de7c7f79bd8a4cb7176783f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/draw-eaa08df9-44e3-46ff-91ac-0d9057c1ae64.png": {
+    "mtime": 1780153980.7597466,
+    "ast_hash": "4ac03abf20bb4271c40acc2f474ec561",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/L_gainfriends_2dbarcodes_BW.png": {
+    "mtime": 1780153980.723643,
+    "ast_hash": "b3b52282dd2994eac860efa02705e594",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/Screenshot 2569-05-26 at 12.44.11.png": {
+    "mtime": 1780153980.7404819,
+    "ast_hash": "61f23f2124d38946bbc8581c845867e2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/For executives.png": {
+    "mtime": 1780153980.7120476,
+    "ast_hash": "1931b50648ff5345b2e40af7757d7930",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/For founders.png": {
+    "mtime": 1780153980.722603,
+    "ast_hash": "249dcb0b90482f620795bd1f5c7e0b28",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/ChatGPT Image May 14, 2026, 07_42_09 PM.png": {
+    "mtime": 1780153980.695836,
+    "ast_hash": "c71f658d97e5ea2b12480683eb5cfe15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/lekha-briefing.png": {
+    "mtime": 1780153980.5575106,
+    "ast_hash": "c71f658d97e5ea2b12480683eb5cfe15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/use-analysts.png": {
+    "mtime": 1780153980.610412,
+    "ast_hash": "5cc7c8e7ac724c6718fa3caba9692011",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/lekha-instruction.png": {
+    "mtime": 1780153980.574803,
+    "ast_hash": "814441203de7c7f79bd8a4cb7176783f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/use-founders.png": {
+    "mtime": 1780153980.6881115,
+    "ast_hash": "249dcb0b90482f620795bd1f5c7e0b28",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/lekha-hero.png": {
+    "mtime": 1780153980.5665681,
+    "ast_hash": "16942ed868e038e80a21cfe25acd8bda",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/lekha-tasks.png": {
+    "mtime": 1780153980.586779,
+    "ast_hash": "7abb07a3079a23ac09fe4fcd84ebfe08",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/instagram-qr.png": {
+    "mtime": 1780153980.5496,
+    "ast_hash": "b765fa3d51eb9b876444f60b20bf2d55",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/use-executives.png": {
+    "mtime": 1780153980.6600397,
+    "ast_hash": "1931b50648ff5345b2e40af7757d7930",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/use-busy.png": {
+    "mtime": 1780153980.6343706,
+    "ast_hash": "d296df9fa42539de0234d3e49aac70eb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/line-qr.png": {
+    "mtime": 1780153980.589388,
+    "ast_hash": "b3b52282dd2994eac860efa02705e594",
     "semantic_hash": ""
   }
 }
