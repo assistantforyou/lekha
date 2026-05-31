@@ -1,27 +1,12 @@
 import { z } from "zod";
 import { tool } from "ai";
+import { fetchJSON } from "@/lib/fetch";
 
 /**
  * Fast, no-auth realtime data tools. Each has a hard ~3s AbortController.
  * Prefer these over web_search whenever the model can — single-digit-ms
  * round-trips vs Tavily's 5-8s for the same answer.
  */
-
-// Bumped from 3s to 12s — Fluid Compute affords this and slow finance
-// upstreams (CoinGecko, Yahoo) were causing spurious failures.
-const TIMEOUT_MS = 12000;
-
-async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-  try {
-    const r = await fetch(url, { ...init, signal: ctrl.signal });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return (await r.json()) as T;
-  } finally {
-    clearTimeout(t);
-  }
-}
 
 export function buildFinanceTools() {
   return {

@@ -15,6 +15,8 @@ export type UserSettings = {
   inboxBriefingEnabled: boolean;
   /** Last time we ran the morning briefing for this user (ms). */
   lastMorningBriefingTs: number | null;
+  /** QStash schedule id for the morning briefing. Internal. */
+  morningBriefingScheduleId: string | null;
   /** Set of disabled tool categories — used to gate tools the user opted out of. */
   disabledCategories: string[];
   /** Whether to push an evening summary (tasks leftover, tomorrow's events, top news). */
@@ -23,6 +25,8 @@ export type UserSettings = {
   eveningSummaryTime: string;
   /** Last time we ran the evening summary for this user (ms). */
   lastEveningSummaryTs: number | null;
+  /** QStash schedule id for the evening summary. Internal. */
+  eveningSummaryScheduleId: string | null;
   // ── Dashboard-surfaced feature controls ─────────────────────────────────
   /** Daily end-of-day task check-in: ask "Did you finish X?" for all open tasks. */
   taskCheckInEnabled: boolean;
@@ -30,6 +34,8 @@ export type UserSettings = {
   taskCheckInTime: string;
   /** Last time the task check-in was sent (ms). Internal — not surfaced in dashboard. */
   lastTaskCheckInTs: number | null;
+  /** QStash schedule id for the task check-in. Internal. */
+  taskCheckInScheduleId: string | null;
   // ── Dashboard state (v4) ───────────────────────────────────────────────
   /** Which briefing topic verticals are enabled. */
   briefingTopics: Record<string, boolean>;
@@ -70,13 +76,14 @@ export type UserSettings = {
 };
 
 // Bump this and add a migration entry below every time you change a default value.
-const CURRENT_VERSION = 4;
+const CURRENT_VERSION = 5;
 
 const DEFAULTS: UserSettings = {
   timezone: "Asia/Bangkok",
   language: null,
   location: null,
   morningBriefingTime: "07:00",
+  morningBriefingScheduleId: null,
   preMeetingLeads: [1440, 60, 15],
   inboxBriefingEnabled: true,
   lastMorningBriefingTs: null,
@@ -84,9 +91,11 @@ const DEFAULTS: UserSettings = {
   eveningSummaryEnabled: true,
   eveningSummaryTime: "21:00",
   lastEveningSummaryTs: null,
+  eveningSummaryScheduleId: null,
   taskCheckInEnabled: true,
   taskCheckInTime: "20:30",
   lastTaskCheckInTs: null,
+  taskCheckInScheduleId: null,
   // dashboard defaults
   briefingTopics: {
     stocks: true,
@@ -179,6 +188,15 @@ const MIGRATIONS: Array<(s: StoredSettings, configured: Set<string>) => Partial<
     if (!configured.has("eveningSummaryTime")) patch.eveningSummaryTime = DEFAULTS.eveningSummaryTime;
     return patch;
   },
+
+  // v4 → v5: add QStash schedule ids for proactive fixed-time events
+  () => {
+    const patch: Partial<UserSettings> = {};
+    patch.morningBriefingScheduleId = null;
+    patch.eveningSummaryScheduleId = null;
+    patch.taskCheckInScheduleId = null;
+    return patch;
+  },
 ];
 
 function applyMigrations(stored: StoredSettings): StoredSettings {
@@ -203,6 +221,10 @@ export async function getSettings(userId: string): Promise<UserSettings> {
   // Persist after migration so it only runs once per user per version bump.
   if ((stored.settingsVersion ?? 0) < CURRENT_VERSION) {
     void redis().set(key(userId), { ...migrated, updatedAt: Date.now() });
+    // v4 → v5: create per-user QStash schedules for existing users.
+    if ((stored.settingsVersion ?? 0) < 5) {
+      void import("@/lib/proactive-schedules").then((m) => m.syncAllProactiveSchedules(userId));
+    }
   }
   return { ...DEFAULTS, ...migrated };
 }
@@ -221,6 +243,9 @@ export async function updateSettings(
     "lastMorningBriefingTs",
     "lastEveningSummaryTs",
     "lastTaskCheckInTs",
+    "morningBriefingScheduleId",
+    "eveningSummaryScheduleId",
+    "taskCheckInScheduleId",
     "userConfigured",
     "settingsVersion",
     "updatedAt",

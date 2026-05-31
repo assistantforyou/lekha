@@ -4,6 +4,8 @@ import { google } from "googleapis";
 import { getGoogleClient } from "./google-auth";
 import { withGoogleClient, guardGoogleApiCall } from "./with-google";
 import { appendPending, type CreateCalendarEventAction } from "@/lib/confirm";
+import { getSettings } from "@/lib/memory/settings";
+import { schedulePreMeetingAlerts } from "@/lib/proactive-schedules";
 
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const CAL_READ_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
@@ -224,7 +226,7 @@ export async function createCalendarEvent(
     location?: string;
     fromEmail?: string;
   },
-): Promise<{ htmlLink: string | null; from: string }> {
+): Promise<{ htmlLink: string | null; from: string; eventId: string }> {
   const { client, email: from } = await getGoogleClient(userId, args.fromEmail);
   const calendar = google.calendar({ version: "v3", auth: client });
   return guardGoogleApiCall(async () => {
@@ -240,6 +242,19 @@ export async function createCalendarEvent(
       },
       sendUpdates: args.attendees?.length ? "all" : "none",
     });
-    return { htmlLink: r.data.htmlLink ?? null, from };
+    const eventId = r.data.id ?? "";
+    // Schedule pre-meeting alerts for bot-created events.
+    if (eventId) {
+      const settings = await getSettings(userId);
+      if (settings.preMeetingLeads.length > 0) {
+        await schedulePreMeetingAlerts(
+          userId,
+          eventId,
+          args.startISO,
+          settings.preMeetingLeads,
+        );
+      }
+    }
+    return { htmlLink: r.data.htmlLink ?? null, from, eventId };
   });
 }

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { tool } from "ai";
+import { fetchJSON } from "@/lib/fetch";
 
 // R12: Cache weather results per location for 10 minutes.
 const weatherCache = new Map<string, { result: unknown; ts: number }>();
@@ -30,18 +31,6 @@ export function buildWeatherTools() {
       },
     }),
   };
-}
-
-async function fetchJSON<T>(url: string, timeoutMs = 12000): Promise<T> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const r = await fetch(url, { signal: ctrl.signal, headers: { "user-agent": "lekha-bot" } });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return (await r.json()) as T;
-  } finally {
-    clearTimeout(t);
-  }
 }
 
 async function tryWttr(location: string) {

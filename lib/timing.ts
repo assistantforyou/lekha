@@ -1,5 +1,21 @@
 import { performance } from "perf_hooks";
 
+export class AgentTimeoutError extends Error {
+  constructor(public readonly seconds: number) {
+    super(`Agent call exceeded ${seconds}s`);
+    this.name = "AgentTimeoutError";
+  }
+}
+
+export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new AgentTimeoutError(Math.round(ms / 1000))), ms),
+    ),
+  ]);
+}
+
 /**
  * Lightweight structured timing logger. Zero overhead when DEBUG_TIMING is unset:
  * module checks the env once at load and exports no-op functions.

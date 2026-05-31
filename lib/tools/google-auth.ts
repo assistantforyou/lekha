@@ -63,6 +63,10 @@ export async function buildConnectUrl(userId: string): Promise<string> {
   return `${env().APP_BASE_URL}/connect/${token}`;
 }
 
+export async function formatReconnectPrompt(userId: string): Promise<string> {
+  return `Your Google account needs to be reconnected (the authorization token has expired or been revoked). Tap the link to reconnect:\n${await buildConnectUrl(userId)}`;
+}
+
 /**
  * Validate a connect-link token and return the userId.
  *

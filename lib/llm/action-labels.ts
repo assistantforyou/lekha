@@ -1,0 +1,22 @@
+/** Human-readable labels for common tool names (used in Done! fallback and timeout recovery). */
+export const ACTION_LABELS: Record<string, string> = {
+  set_reminder: "Reminder set",
+  set_recurring_reminder: "Recurring reminder set",
+  cancel_reminder: "Reminder cancelled",
+  schedule_email: "Email scheduled",
+  cancel_scheduled_email: "Scheduled email cancelled",
+  add_task: "Task added",
+  complete_task: "Task done",
+  delete_task: "Task deleted",
+  remember: "Saved to memory",
+  forget_memory: "Memory removed",
+  clear_all_memories: "Memories cleared",
+  draft_calendar_event: "Calendar event drafted",
+  set_timezone: "Timezone updated",
+  set_location: "Location updated",
+  set_language: "Language updated",
+  enable_morning_briefing: "Morning briefing enabled",
+  disable_morning_briefing: "Morning briefing disabled",
+  enable_evening_summary: "Evening summary enabled",
+  disable_evening_summary: "Evening summary disabled",
+};

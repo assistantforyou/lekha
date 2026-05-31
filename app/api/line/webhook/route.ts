@@ -20,6 +20,7 @@ import { respondToOtherMedia } from "@/lib/handlers/other-media";
 import { maybeExtractFacts } from "@/lib/maybe-extract";
 import { handlePostback } from "@/lib/webhook-postback";
 import { span } from "@/lib/timing";
+import { markUserActive } from "@/lib/sweep";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,6 +92,10 @@ async function handleEvent(
     return;
   }
 
+  // Mark user active for proactive-layer suppression (10-min window).
+  const uid = event.source?.userId;
+  if (uid) markUserActive(uid).catch(() => {});
+
   if (event.type === "follow") {
     const userId = event.source?.userId;
     if (!userId || !("replyToken" in event)) {
@@ -129,7 +134,7 @@ async function handleEvent(
   }
   const message = event.message;
 
-  // Pre-flight in parallel. registerUser is fire-and-forget — cron sweep needs it.
+  // Pre-flight in parallel. registerUser creates per-user QStash schedules.
   registerUser(userId).catch(() => {});
   const endPreflight = span("webhook:prelight", traceId);
   const [rl, profile, pending] = await Promise.all([

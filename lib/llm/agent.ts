@@ -9,77 +9,12 @@ import { getSettings } from "@/lib/memory/settings";
 import { toolsForUser } from "@/lib/tools";
 import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
-import { GoogleAuthRequired, NeedsConfirmation, RateLimited } from "@/lib/errors";
+import { GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapCause, unwrapAuthRequired } from "@/lib/errors";
 import type { LineMessage } from "@/lib/line/client";
 import { buildFlexFromToolResults, buildFollowUps } from "@/lib/llm/agent-flex";
-import { span, tick } from "@/lib/timing";
-
-/** Strip markdown syntax that LINE renders as raw punctuation. Model-independent guarantee. */
-export function stripMarkdown(s: string): string {
-  return s
-    .replace(/\*\*([^*\n]+)\*\*/g, "$1")  // **bold** → bold (no cross-line)
-    .replace(/\*([^*\n]+)\*/g, "$1")       // *italic* → italic (no cross-line)
-    .replace(/^#{1,6} /gm, "")             // ## headers → plain
-    .replace(/^[ \t]*\*[ \t]+/gm, "• ")   // * bullets → • (handles "* " or "*   ")
-    .replace(/^[ \t]*-[ \t]+/gm, "• ")    // - bullets → •
-    .replace(/`([^`\n]+)`/g, "$1")         // `code` → plain
-    .trim();
-}
-
-/** Human-readable labels for common tool names (used in Done! fallback and timeout recovery). */
-export const ACTION_LABELS: Record<string, string> = {
-  set_reminder: "Reminder set",
-  set_recurring_reminder: "Recurring reminder set",
-  cancel_reminder: "Reminder cancelled",
-  schedule_email: "Email scheduled",
-  cancel_scheduled_email: "Scheduled email cancelled",
-  add_task: "Task added",
-  complete_task: "Task done",
-  delete_task: "Task deleted",
-  remember: "Saved to memory",
-  forget_memory: "Memory removed",
-  clear_all_memories: "Memories cleared",
-  draft_calendar_event: "Calendar event drafted",
-  set_timezone: "Timezone updated",
-  set_location: "Location updated",
-  set_language: "Language updated",
-  enable_morning_briefing: "Morning briefing enabled",
-  disable_morning_briefing: "Morning briefing disabled",
-  enable_evening_summary: "Evening summary enabled",
-  disable_evening_summary: "Evening summary disabled",
-};
-
-export class AgentTimeoutError extends Error {
-  constructor(public readonly seconds: number) {
-    super(`Agent call exceeded ${seconds}s`);
-    this.name = "AgentTimeoutError";
-  }
-}
-
-export function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    p,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new AgentTimeoutError(Math.round(ms / 1000))), ms),
-    ),
-  ]);
-}
-
-export function unwrap(err: unknown): unknown {
-  const seen = new Set<unknown>();
-  let cur: unknown = err;
-  while (cur && typeof cur === "object" && !seen.has(cur)) {
-    seen.add(cur);
-    if (cur instanceof GoogleAuthRequired) return cur;
-    if (cur instanceof NeedsConfirmation) return cur;
-    if (cur instanceof RateLimited) return cur;
-    const next = (cur as { cause?: unknown; originalError?: unknown }).cause
-      ?? (cur as { originalError?: unknown }).originalError;
-    if (!next) break;
-    cur = next;
-  }
-  return err;
-}
+import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
+import { stripMarkdown } from "@/lib/format";
+import { ACTION_LABELS } from "@/lib/llm/action-labels";
 
 export function extractToolValue(output: unknown): unknown {
   if (output && typeof output === "object") {
@@ -88,6 +23,74 @@ export function extractToolValue(output: unknown): unknown {
     return output;
   }
   return output;
+}
+
+function classifyResultType(val: unknown): string {
+  if (val && typeof val === "object") {
+    const v = val as Record<string, unknown>;
+    if (v.ok === false) return "error";
+    if (v.need_google_auth) return "auth";
+    if (v.google_api_disabled) return "disabled";
+    if (v.google_error) return "api-err";
+  }
+  return "ok";
+}
+
+/** Tracks step timing, tool calls, and successful tool results across agent steps. */
+function createStepTracker(traceId: string | undefined) {
+  const stepTimes: number[] = [];
+  const allCalls: { toolName: string; input: unknown }[] = [];
+  const successfulCalls: { toolName: string; input: unknown }[] = [];
+  const succeededTools: string[] = [];
+  let lastStepTime = performance.now();
+
+  function isSuccess(tr: { toolName?: string; output?: unknown }): boolean {
+    const val = extractToolValue(tr.output);
+    if (val && typeof val === "object") {
+      const v = val as Record<string, unknown>;
+      return v.ok !== false && !v.need_google_auth && !v.google_api_disabled && !v.google_error;
+    }
+    // Non-object results (e.g. plain strings from successful tools) count as success.
+    return true;
+  }
+
+  return {
+    record(step: { toolCalls: { toolName: string; input: unknown }[]; toolResults: { toolName?: string; output?: unknown }[]; text?: string; finishReason?: string }) {
+      const now = performance.now();
+      const stepMs = Math.round(now - lastStepTime);
+      stepTimes.push(stepMs);
+      lastStepTime = now;
+
+      for (const c of step.toolCalls) {
+        if (c) allCalls.push({ toolName: c.toolName, input: c.input });
+      }
+      // Match toolCalls to toolResults by index within this step.
+      for (let i = 0; i < step.toolCalls.length; i++) {
+        const c = step.toolCalls[i];
+        const tr = step.toolResults[i];
+        if (c && tr && isSuccess(tr)) {
+          successfulCalls.push({ toolName: c.toolName, input: c.input });
+          succeededTools.push(c.toolName);
+        }
+      }
+
+      const toolNames = step.toolCalls.map((c) => c?.toolName).filter(Boolean);
+      const resultTypes = step.toolResults.map((r) => classifyResultType((r as { output?: unknown }).output));
+
+      tick("agent:step", traceId, {
+        stepMs,
+        stepIndex: stepTimes.length,
+        toolCalls: toolNames,
+        resultTypes,
+        textLength: step.text?.length ?? 0,
+        finishReason: step.finishReason,
+      });
+    },
+    get stepTimes() { return stepTimes; },
+    get allCalls() { return allCalls; },
+    get successfulCalls() { return successfulCalls; },
+    get succeededTools() { return succeededTools; },
+  };
 }
 
 type ProcessedResult = {
@@ -107,8 +110,9 @@ function processResult(
   let authNeeded: { connectUrl: string; reason: string } | null = null;
   let apiDisabled: { api: string; enableUrl: string | null; message: string } | null = null;
   let googleErr: { status: number | null; message: string } | null = null;
+  const toolErrors: string[] = [];
 
-  // allCalls already populated by onStepFinish; scan steps only for auth/error signals
+  // Single pass: scan all tool results for auth/errors/tool-errors
   for (const step of result.steps) {
     for (const tr of step.toolResults) {
       if (!tr) continue;
@@ -128,6 +132,9 @@ function processResult(
           status: typeof v.status === "number" ? v.status : null,
           message: typeof v.message === "string" ? v.message : "",
         };
+      } else if (v.ok === false && typeof v.error === "string") {
+        const toolName = (tr as { toolName?: string }).toolName ?? "tool";
+        toolErrors.push(`${toolName}: ${v.error}`);
       }
     }
   }
@@ -135,20 +142,6 @@ function processResult(
   if (authNeeded) return { reply: "", authNeeded, apiDisabled: null, googleErr: null };
   if (apiDisabled) return { reply: "", authNeeded: null, apiDisabled, googleErr: null };
   if (googleErr) return { reply: "", authNeeded: null, apiDisabled: null, googleErr };
-
-  const toolErrors: string[] = [];
-  for (const step of result.steps) {
-    for (const tr of step.toolResults) {
-      const value = extractToolValue((tr as { output?: unknown }).output);
-      if (value && typeof value === "object") {
-        const v = value as Record<string, unknown>;
-        if (v.ok === false && typeof v.error === "string") {
-          const toolName = (tr as { toolName?: string }).toolName ?? "tool";
-          toolErrors.push(`${toolName}: ${v.error}`);
-        }
-      }
-    }
-  }
 
   const draftBlock = renderDraftsBlock(allCalls, activeEmail, timezone);
   const modelText = result.text?.trim() ?? "";
@@ -168,11 +161,6 @@ function processResult(
 
   if (modelText.length > 0) return { reply: modelText, authNeeded: null, apiDisabled: null, googleErr: null };
   if (allCalls.length > 0) {
-    // Verbatim-content tools: if model returns empty text but one of these ran,
-    // pull the string result from the tool output rather than showing a "✓" label.
-    // get_morning_briefing / get_evening_summary return structured data — handled
-    // by buildFlexFromToolResults; return empty string so suppressText kicks in
-    // and only the Flex bubbles are sent.
     for (const step of result.steps) {
       for (const tr of step.toolResults) {
         const toolName = (tr as { toolName?: string }).toolName ?? "";
@@ -283,10 +271,7 @@ export async function runAgent(
     { role: "assistant" as const, content: "Noted." },
   ];
 
-  const stepTimes: number[] = [];
-  let lastStepTime = performance.now();
-  const allCalls: { toolName: string; input: unknown }[] = [];
-  const succeededTools: string[] = [];
+  const tracker = createStepTracker(traceId);
 
   try {
     const endTools = span("agent:toolsForUser", traceId);
@@ -303,64 +288,22 @@ export async function runAgent(
         temperature: 0.4,
         stopWhen: stepCountIs(8),
         maxRetries: 1,
-        onStepFinish: (step) => {
-          const now = performance.now();
-          const stepMs = Math.round(now - lastStepTime);
-          stepTimes.push(stepMs);
-          lastStepTime = now;
-
-          // Populate allCalls here so they're available on timeout (Bug 3)
-          for (const c of step.toolCalls) {
-            if (c) allCalls.push({ toolName: c.toolName, input: c.input });
-          }
-          // Track tools that returned ok (not auth/api-disabled/error) for timeout recovery
-          for (const tr of step.toolResults) {
-            const val = extractToolValue((tr as { output?: unknown }).output);
-            if (val && typeof val === "object") {
-              const v = val as Record<string, unknown>;
-              if (v.ok !== false && !v.need_google_auth && !v.google_api_disabled && !v.google_error) {
-                succeededTools.push((tr as { toolName?: string }).toolName ?? "");
-              }
-            }
-          }
-
-          const toolNames = step.toolCalls.map((c) => c?.toolName).filter(Boolean);
-          const resultTypes = step.toolResults.map((r) => {
-            const val = extractToolValue((r as { output?: unknown }).output);
-            if (val && typeof val === "object") {
-              const v = val as Record<string, unknown>;
-              if (v.ok === false) return "error";
-              if (v.need_google_auth) return "auth";
-              if (v.google_api_disabled) return "disabled";
-              if (v.google_error) return "api-err";
-            }
-            return "ok";
-          });
-
-          tick("agent:step", traceId, {
-            stepMs,
-            stepIndex: stepTimes.length,
-            toolCalls: toolNames,
-            resultTypes,
-            textLength: step.text?.length ?? 0,
-            finishReason: step.finishReason,
-          });
-        },
+        onStepFinish: (step) => tracker.record(step as Parameters<ReturnType<typeof createStepTracker>["record"]>[0]),
         providerOptions: GEMINI_PROVIDER_OPTIONS,
       }),
       AGENT_TIMEOUT_MS,
     );
     endGenerate({
       steps: result.steps.length,
-      toolCalls: allCalls.length,
-      stepTimes,
-      totalToolMs: stepTimes.reduce((a, b) => a + b, 0),
+      toolCalls: tracker.allCalls.length,
+      stepTimes: tracker.stepTimes,
+      totalToolMs: tracker.stepTimes.reduce((a, b) => a + b, 0),
     });
     const endProcess = span("agent:processResult", traceId);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const processed = processResult(result as any, accounts.activeEmail, allCalls, settings?.timezone);
+    const processed = processResult(result as any, accounts.activeEmail, tracker.successfulCalls, settings?.timezone);
     const text = formatProcessed(processed);
-    const draftToolNames = allCalls
+    const draftToolNames = tracker.successfulCalls
       .filter((c) =>
         c.toolName === "draft_email" ||
         c.toolName === "draft_calendar_event" ||
@@ -368,24 +311,20 @@ export async function runAgent(
       )
       .map((c) => c.toolName);
     const confirmDraft = draftToolNames.length > 0;
-    if (confirmDraft && allCalls.length === 0) {
-      console.error("[agent] BUG: confirmDraft=true but allCalls is empty — this should never happen");
+    if (confirmDraft && tracker.successfulCalls.length === 0) {
+      console.error("[agent] BUG: confirmDraft=true but successfulCalls is empty — this should never happen");
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any);
-    // Suppress verbose model text when a display-only tool (news, morning briefing)
-    // generated a Flex that IS the reply — avoids double output (text blob + carousel).
     const finalText = suppressText ? "" : text;
-    const followUps = buildFollowUps(allCalls.map((c) => c.toolName), { confirmDraft, modelText: text });
+    const followUps = buildFollowUps(tracker.successfulCalls.map((c) => c.toolName), { confirmDraft, modelText: text });
     endProcess({ confirmDraft, flexCount: flexMessages?.length ?? 0 });
     const hints: AgentHints = {
       confirmDraft,
-      // Only show account picker for explicit write-action ambiguity
-      // (sending email, creating events). Read actions use active account silently.
       pickAccount:
         accounts.accounts.length > 1 &&
         /which (google )?account/i.test(text) &&
-        allCalls.some((c) =>
+        tracker.successfulCalls.some((c) =>
           c.toolName === "draft_email" ||
           c.toolName === "draft_calendar_event" ||
           c.toolName === "upload_to_drive",
@@ -395,21 +334,20 @@ export async function runAgent(
       flexMessages,
       followUps,
     };
-    endAgent({ success: true, steps: result.steps.length, toolCalls: allCalls.length, replyLength: finalText.length });
+    endAgent({ success: true, steps: result.steps.length, toolCalls: tracker.allCalls.length, replyLength: finalText.length });
     return { text: finalText, hints };
   } catch (err) {
-    // Bug 3: timeout after tools already completed — synthesize from what finished
-    if (err instanceof AgentTimeoutError && succeededTools.length > 0) {
-      const draftBlock = renderDraftsBlock(allCalls, accounts.activeEmail, settings.timezone);
+    if (err instanceof AgentTimeoutError && tracker.succeededTools.length > 0) {
+      const draftBlock = renderDraftsBlock(tracker.successfulCalls, accounts.activeEmail, settings.timezone);
       const text = draftBlock
         ? stripMarkdown(draftBlock)
         : stripMarkdown(
-            [...new Set(succeededTools.filter(Boolean))]
+            [...new Set(tracker.succeededTools.filter(Boolean))]
               .map((t) => ACTION_LABELS[t] ?? t)
               .join(" • "),
           );
-      console.warn("[agent] timeout with completed tools — returning summary", { succeededTools });
-      endAgent({ timeout: true, recovered: true, succeededTools: succeededTools.length, stepTimes });
+      console.warn("[agent] timeout with completed tools — returning summary", { succeededTools: tracker.succeededTools });
+      endAgent({ timeout: true, recovered: true, succeededTools: tracker.succeededTools.length, stepTimes: tracker.stepTimes });
       return {
         text,
         hints: {
@@ -420,29 +358,31 @@ export async function runAgent(
       };
     }
     const errText = await handleError(err, userId);
-    endAgent({ error: err instanceof Error ? err.message : String(err), stepTimes });
+    endAgent({ error: err instanceof Error ? err.message : String(err), stepTimes: tracker.stepTimes });
     return {
       text: errText,
       hints: {
         confirmDraft: false,
         pickAccount: false,
-        needsGoogleConnect: unwrap(err) instanceof GoogleAuthRequired,
+        needsGoogleConnect: unwrapAuthRequired(err) !== undefined,
       },
     };
   }
 }
 
 async function handleError(err: unknown, userId: string): Promise<string> {
-  const inner = unwrap(err);
-  if (inner instanceof GoogleAuthRequired) {
+  const authErr = unwrapAuthRequired(err);
+  if (authErr) {
     const url = await buildConnectUrl(userId);
     return `To do that I need access to your Google account. Connect here (link expires in 10 min):\n${url}`;
   }
-  if (inner instanceof NeedsConfirmation) {
-    return (inner as NeedsConfirmation).message;
+  const confirmErr = unwrapCause(err, (v): v is NeedsConfirmation => v instanceof NeedsConfirmation);
+  if (confirmErr) {
+    return confirmErr.message;
   }
-  if (inner instanceof RateLimited) {
-    return `I'm being rate-limited. Try again in ~${(inner as RateLimited).retryAfterSec}s.`;
+  const rateErr = unwrapCause(err, (v): v is RateLimited => v instanceof RateLimited);
+  if (rateErr) {
+    return `I'm being rate-limited. Try again in ~${rateErr.retryAfterSec}s.`;
   }
   if (err instanceof AgentTimeoutError) {
     console.warn("[agent] timeout", { seconds: err.seconds });

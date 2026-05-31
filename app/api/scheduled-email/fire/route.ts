@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { Receiver } from "@upstash/qstash";
 import { z } from "zod";
-import { env, hasQStash } from "@/lib/env";
+import { hasQStash } from "@/lib/env";
 import { push, text as textMsg } from "@/lib/line/client";
 import { consumeScheduledEmail } from "@/lib/tools/scheduled-email";
 import { sendEmail } from "@/lib/tools/email";
 import { logSent } from "@/lib/memory/sent-log";
+import { verifyQStashSignature, unauthorized, badRequest, notConfigured } from "@/lib/qstash-verify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,30 +16,17 @@ const Body = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  if (!hasQStash()) return new NextResponse("not configured", { status: 503 });
+  if (!hasQStash()) return notConfigured();
   const raw = await req.text();
   const sig = req.headers.get("upstash-signature") ?? req.headers.get("Upstash-Signature");
-  if (!sig) return new NextResponse("missing signature", { status: 401 });
-  const receiver = new Receiver({
-    currentSigningKey: env().QSTASH_CURRENT_SIGNING_KEY!,
-    nextSigningKey: env().QSTASH_NEXT_SIGNING_KEY ?? env().QSTASH_CURRENT_SIGNING_KEY!,
-  });
-  try {
-    const ok = await receiver.verify({
-      signature: sig,
-      body: raw,
-      url: `${env().APP_BASE_URL}/api/scheduled-email/fire`,
-    });
-    if (!ok) return new NextResponse("invalid signature", { status: 401 });
-  } catch {
-    return new NextResponse("invalid signature", { status: 401 });
-  }
+  const ok = await verifyQStashSignature(raw, sig, "/api/scheduled-email/fire");
+  if (!ok) return unauthorized();
 
   let body;
   try {
     body = Body.parse(JSON.parse(raw));
   } catch {
-    return new NextResponse("bad body", { status: 400 });
+    return badRequest();
   }
 
   const sched = await consumeScheduledEmail(body.userId, body.id);

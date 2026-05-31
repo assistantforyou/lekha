@@ -15,6 +15,8 @@ import { getSettings } from "@/lib/memory/settings";
 import { appendRecentMedia, listRecentMedia } from "@/lib/memory/recent-media";
 import type { ModelMessage } from "ai";
 import { span } from "@/lib/timing";
+import { classify, clearPending, getPending } from "@/lib/confirm";
+import { executePendingAll } from "@/lib/pending-runner";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -152,7 +154,32 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── TEXT PATH (existing) ────────────────────────────────────────────────
+  // ── TEXT PATH ───────────────────────────────────────────────────────────
+  // Check pending actions first (same logic as production webhook).
+  const pending = await getPending(userId);
+  if (pending.length > 0) {
+    const decision = classify(text);
+    if (decision === "yes") {
+      const result = await executePendingAll(userId, pending);
+      await clearPending(userId);
+      await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
+      await appendTurn(userId, { role: "assistant", content: result, ts: Date.now() });
+      push(userId, [textMsg(result)]).catch(() => {});
+      endRequest({ replyLength: result.length, pendingExecuted: pending.length });
+      return NextResponse.json({ reply: result, hints: { confirmDraft: false } });
+    }
+    if (decision === "no") {
+      await clearPending(userId);
+      const msg = `Cancelled ${pending.length === 1 ? "that" : `all ${pending.length}`}.`;
+      await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
+      await appendTurn(userId, { role: "assistant", content: msg, ts: Date.now() });
+      push(userId, [textMsg(msg)]).catch(() => {});
+      endRequest({ replyLength: msg.length, pendingCancelled: pending.length });
+      return NextResponse.json({ reply: msg, hints: { confirmDraft: false } });
+    }
+    await clearPending(userId);
+  }
+
   const endPreload = span("dev:preload", traceId);
   const [historyMsgs, facts, profile] = await Promise.all([
     historyForPrompt(userId),
