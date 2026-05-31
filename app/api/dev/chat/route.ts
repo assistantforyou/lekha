@@ -57,7 +57,12 @@ async function convertHeicToJpeg(base64: string): Promise<Uint8Array> {
   const tmpOut = `/tmp/heic_out_${Date.now()}.jpg`;
   try {
     await fs.promises.writeFile(tmpIn, input);
-    await execAsync(`heif-convert "${tmpIn}" "${tmpOut}" 2>/dev/null`);
+    try {
+      await execAsync(`heif-convert "${tmpIn}" "${tmpOut}" 2>/dev/null`);
+    } catch {
+      // Fallback to macOS sips
+      await execAsync(`sips -s format jpeg "${tmpIn}" --out "${tmpOut}" 2>/dev/null`);
+    }
     const out = await fs.promises.readFile(tmpOut);
     return new Uint8Array(out);
   } catch {
@@ -65,6 +70,44 @@ async function convertHeicToJpeg(base64: string): Promise<Uint8Array> {
   } finally {
     await fs.promises.unlink(tmpIn).catch(() => {});
     await fs.promises.unlink(tmpOut).catch(() => {});
+  }
+}
+
+async function extractPptxText(base64: string): Promise<string> {
+  const { exec } = await import("child_process");
+  const { promisify } = await import("util");
+  const fs = await import("fs");
+  const execAsync = promisify(exec);
+  const tmpIn = `/tmp/pptx_in_${Date.now()}.pptx`;
+  const tmpPy = `/tmp/pptx_extract_${Date.now()}.py`;
+  try {
+    await fs.promises.writeFile(tmpIn, Buffer.from(base64, "base64"));
+    const script = `
+import zipfile, xml.etree.ElementTree as ET, sys
+try:
+    with zipfile.ZipFile(sys.argv[1], 'r') as z:
+        texts = []
+        for name in sorted(z.namelist()):
+            if name.startswith('ppt/slides/slide') and name.endswith('.xml'):
+                root = ET.fromstring(z.read(name))
+                slide_texts = []
+                for elem in root.iter():
+                    if elem.text and elem.text.strip():
+                        slide_texts.append(elem.text.strip())
+                if slide_texts:
+                    texts.append('\\n'.join(slide_texts))
+        print('\\n\\n---SLIDE---\\n\\n'.join(texts))
+except Exception as e:
+    print(f'Error: {e}')
+`;
+    await fs.promises.writeFile(tmpPy, script);
+    const { stdout } = await execAsync(`python3 "${tmpPy}" "${tmpIn}"`);
+    return stdout.trim();
+  } catch (err) {
+    throw new Error(`Could not extract text from PPTX: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    await fs.promises.unlink(tmpIn).catch(() => {});
+    await fs.promises.unlink(tmpPy).catch(() => {});
   }
 }
 
@@ -150,7 +193,8 @@ export async function POST(req: NextRequest) {
     try {
       const bytes = Uint8Array.from(Buffer.from(fileBase64, "base64"));
       const lowerName = (fileName || "document.pdf").toLowerCase();
-      const contentType = lowerName.endsWith(".pptx")
+      const isPptx = lowerName.endsWith(".pptx");
+      const contentType = isPptx
         ? "application/vnd.openxmlformats-officedocument.presentationml.presentation"
         : lowerName.endsWith(".docx")
           ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -176,20 +220,32 @@ export async function POST(req: NextRequest) {
       ]);
       endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
 
-      // Direct document read with extractorModel (dev chat bypasses LINE fetch).
-      const result = await generateText({
-        model: extractorModel(),
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: text || "Summarize this document." },
-              { type: "file", data: bytes, mediaType: contentType },
-            ],
-          },
-        ],
-      });
-      const replyText = result.text?.trim() || "I couldn't read that document.";
+      let resultText: string;
+      if (isPptx) {
+        // Gemini doesn't accept PPTX directly — extract text server-side.
+        const extracted = await extractPptxText(fileBase64);
+        const prompt = `${text || "Summarize this presentation."}\n\n--- Extracted slide text ---\n\n${extracted}`;
+        const result = await generateText({
+          model: extractorModel(),
+          messages: [{ role: "user", content: prompt }],
+        });
+        resultText = result.text.trim();
+      } else {
+        const result = await generateText({
+          model: extractorModel(),
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: text || "Summarize this document." },
+                { type: "file", data: bytes, mediaType: contentType },
+              ],
+            },
+          ],
+        });
+        resultText = result.text.trim();
+      }
+      const replyText = resultText || "I couldn't read that document.";
 
       await appendTurn(userId, { role: "user", content: `[sent a file: ${fileName || "document.pdf"}] ${text}`, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
