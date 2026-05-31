@@ -1,16 +1,16 @@
 # Graph Report - lekha  (2026-05-31)
 
 ## Corpus Check
-- 168 files · ~2,827,515 words
+- 167 files · ~2,827,447 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1519 nodes · 2841 edges · 83 communities (75 shown, 8 thin omitted)
+- 1517 nodes · 2840 edges · 83 communities (74 shown, 9 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 3 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `035f44c6`
+- Built from commit: `ae03e459`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -64,6 +64,7 @@
 - [[_COMMUNITY_Community 48|Community 48]]
 - [[_COMMUNITY_Community 50|Community 50]]
 - [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
 - [[_COMMUNITY_Community 53|Community 53]]
 - [[_COMMUNITY_Community 54|Community 54]]
 - [[_COMMUNITY_Community 55|Community 55]]
@@ -84,7 +85,7 @@
 - [[_COMMUNITY_Community 72|Community 72]]
 - [[_COMMUNITY_Community 73|Community 73]]
 - [[_COMMUNITY_Community 74|Community 74]]
-- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 78|Community 78]]
 - [[_COMMUNITY_Community 79|Community 79]]
 - [[_COMMUNITY_Community 80|Community 80]]
@@ -114,38 +115,38 @@
   app/api/cron/sweep/fire/route.ts → lib/memory/settings.ts
 - `POST()` --calls--> `getSettings()`  [EXTRACTED]
   app/api/dev/chat/route.ts → lib/memory/settings.ts
-- `main()` --calls--> `getSettings()`  [EXTRACTED]
-  scripts/measure-prompt.ts → lib/memory/settings.ts
+- `GET()` --calls--> `getSettings()`  [EXTRACTED]
+  app/api/dashboard/settings/route.ts → lib/memory/settings.ts
 
-## Communities (83 total, 8 thin omitted)
+## Communities (83 total, 9 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.11
-Nodes (25): briefingFlex(), parseSections(), Section, CalendarEventRow, calendarEventsFlex(), gmailResultsFlex(), GmailRow, listItemsFlex() (+17 more)
+Cohesion: 0.10
+Nodes (28): briefingFlex(), parseSections(), Section, CalendarEventRow, calendarEventsFlex(), confirmCancelFlex(), gmailResultsFlex(), GmailRow (+20 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.16
-Nodes (14): GET(), escapeHtml(), htmlPage(), AFFIRMATIVE, AffirmDecision, appendPending(), clearPending(), getPending() (+6 more)
+Cohesion: 0.10
+Nodes (25): getProfile(), getOrCreateProfile(), isFirstContact(), key(), Profile, countTokens(), DUMMY, DUMMY_HEX64 (+17 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.05
-Nodes (79): Body, POST(), respondToImage(), respondToText(), stripMarkdown(), maybeExtractFacts(), AgentTimeoutError, genTraceId() (+71 more)
+Cohesion: 0.12
+Nodes (25): unwrapAuthRequired(), unwrapCause(), stripMarkdown(), AgentTimeoutError, genTraceId(), tick(), TimingMeta, withTimeout() (+17 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.05
-Nodes (37): fetchJSON(), key(), listSent(), logSent(), SentEntry, buildContactsTools(), PersonShape, READ_SCOPES (+29 more)
+Nodes (40): hasGoogleOAuth(), fetchJSON(), key(), listSent(), logSent(), SentEntry, buildCalendarTools(), buildContactsTools() (+32 more)
 
 ### Community 4 - "Community 4"
 Cohesion: 0.20
-Nodes (13): PendingAction, errorMessage(), GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapAuthRequired(), unwrapCause(), executeOne() (+5 more)
+Nodes (19): Body, POST(), env, maybeExtractFacts(), buildSystemPrompt(), sanitizePromptValue(), chatModel(), extractorModel() (+11 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.03
 Nodes (59): app/ directory, Audit: Inventory, Duplicate / near-duplicate logic, Files not imported anywhere (dead code), lib/confirm.ts, lib/cron.ts, lib/env.ts, lib/errors.ts (+51 more)
 
 ### Community 6 - "Community 6"
-Cohesion: 0.07
-Nodes (43): GET(), GET(), redisCreds(), getProfile(), addToAllowlist(), addToPending(), adminNotifKey(), approvePending() (+35 more)
+Cohesion: 0.06
+Nodes (48): GET(), GET(), EnvShape, redisCreds(), checkRateLimit(), getLimiter(), addToAllowlist(), addToPending() (+40 more)
 
 ### Community 7 - "Community 7"
 Cohesion: 0.05
@@ -156,8 +157,8 @@ Cohesion: 0.04
 Nodes (47): A. Drive files, A new LLM provider, A new pending-action type, A new tool, Adding new capabilities, Architecture, Attachment system, B. LINE-staged media (multi-file batching) (+39 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.10
-Nodes (34): hasUpstashVector(), ExtractedFact, Schema, embeddingModel(), appendArchive(), ArchivedSummary, embedText(), key() (+26 more)
+Cohesion: 0.08
+Nodes (39): hasUpstashVector(), extractAndMergeFacts(), ExtractedFact, Schema, embeddingModel(), appendArchive(), ArchivedSummary, embedText() (+31 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.10
@@ -176,12 +177,12 @@ Cohesion: 0.11
 Nodes (18): 10. Rate limit per user, 11. Settings injected into every system prompt, 12. Long-term memory via summarization, not vectors, 13. Proactive layer via QStash schedule, 14. Email body is base64-encoded, 15. Private allowlist — `ADMIN_LINE_USER_ID` + `users:allowed` Redis set, 16. Single LLM — Gemini only, 17. Orchestrator-level error relay enforcement (+10 more)
 
 ### Community 14 - "Community 14"
-Cohesion: 0.20
-Nodes (20): ConnectPage(), Account, AccountsBlob, accountsKey(), addAccount(), completeOAuth(), connectLinkKey(), getGoogleClient() (+12 more)
+Cohesion: 0.05
+Nodes (65): AFFIRMATIVE, AffirmDecision, appendPending(), CreateCalendarEventAction, NEGATIVE, PendingAction, ScheduleEmailAction, SendEmailAction (+57 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.21
-Nodes (8): CreateCalendarEventAction, buildCalendarTools(), ApiDisabledResult, AuthRequiredResult, classifyGoogleError(), GoogleErrorResult, withGoogleClient(), withTimeout()
+Cohesion: 0.12
+Nodes (15): AudioMessage, FileMessage, FollowEvent, ImageMessage, Message, MessageEvent, OtherEvent, OtherMessage (+7 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.08
@@ -200,8 +201,8 @@ Cohesion: 0.10
 Nodes (20): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+12 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.27
-Nodes (11): buildEmailTools(), buildRawMime(), chunkBase64(), defaultFilename(), encodeHeader(), escapeMimeHeaderValue(), fetchDriveFile(), FetchedAttachment (+3 more)
+Cohesion: 0.22
+Nodes (10): getMessageContent(), clearRecentMedia(), key(), listRecentMedia(), MediaKind, RecentMedia, buildDriveTools(), DriveFileLite (+2 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.10
@@ -213,7 +214,7 @@ Nodes (14): dependencies, react, react-dom, devDependencies, vite, @vitejs/plugi
 
 ### Community 23 - "Community 23"
 Cohesion: 0.09
-Nodes (33): fetchCachedNews(), NewsStory, AgendaItem, BriefingInboxItem, BriefingNewsItem, BriefingResult, buildAgenda(), buildMorningBriefing() (+25 more)
+Nodes (34): fetchCachedNews(), NewsStory, AgendaItem, BriefingInboxItem, BriefingNewsItem, BriefingResult, buildAgenda(), buildMorningBriefing() (+26 more)
 
 ### Community 24 - "Community 24"
 Cohesion: 0.15
@@ -232,8 +233,8 @@ Cohesion: 0.36
 Nodes (7): cn(), Reveal(), RevealProps, Button(), ButtonProps, buttonVariants, buttonVariantsForLink()
 
 ### Community 28 - "Community 28"
-Cohesion: 0.08
-Nodes (7): I, NAV_SECTIONS, State, TOOLS, TOPICS, TWEAK_DEFAULTS, VIEWS
+Cohesion: 0.06
+Nodes (17): GET(), I, NAV_SECTIONS, State, TOOLS, TOPICS, TWEAK_DEFAULTS, VIEWS (+9 more)
 
 ### Community 29 - "Community 29"
 Cohesion: 0.10
@@ -273,39 +274,35 @@ Nodes (16): Adding a new pending-action type, Adding a new tool, Claude bot acce
 
 ### Community 45 - "Community 45"
 Cohesion: 0.25
-Nodes (17): Body, POST(), Body, POST(), Body, POST(), taskCheckinFlex(), hasQStash() (+9 more)
+Nodes (18): Body, POST(), Body, POST(), Body, POST(), hasQStash(), badRequest() (+10 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.06
 Nodes (21): App(), BASE_PRICING, BUILTFOR, CAPABILITIES, CHAT_SCRIPTS, CMD_EVENTS, CMD_OPS, CMD_TASKS (+13 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.18
-Nodes (11): 10. `googleapis` package bloats server bundle, 11. No provider-level timeout on Gemini, 1. `generateText` is the single dominant cost (~70–95% of total time), 2. No `replyOrPush` fallback on expired replyToken, 3. Tool execution happens sequentially inside `generateText`, 8. Sequential `appendTurn` ×2, 9. `toolsForUser` re-evaluates env gates on every request, Identified Bottlenecks (+3 more)
+Cohesion: 0.17
+Nodes (12): 10. `googleapis` package bloats server bundle, 11. No provider-level timeout on Gemini, 4. Redundant `listAccounts` / `listRecentMedia` fetch, 5. History summarization blocks on cache miss, 6. `maxRetries: 3` on `generateText` can burn time on transient failures, 7. Background fact extraction consumes quota every 10 turns, 8. Sequential `appendTurn` ×2, 9. `toolsForUser` re-evaluates env gates on every request (+4 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.10
 Nodes (21): 10. Rate limit per user, 11. Settings injected into every system prompt, 12. Long-term memory via Upstash Vector (with substring fallback), 13. Proactive layer via QStash schedule, 14. Email body is base64-encoded, 15. Private allowlist + self-serve pending queue, 16. Single LLM provider — Gemini 2.5 Flash Lite (paid), 60s timeout, 17. Orchestrator-level error relay enforcement (+13 more)
 
 ### Community 53 - "Community 53"
-Cohesion: 0.16
-Nodes (17): cancelSchedule(), localTimeToUtcCron(), qstash(), scheduleOneShot(), scheduleRecurring(), env, EnvShape, hasGoogleOAuth() (+9 more)
+Cohesion: 0.39
+Nodes (6): cancelSchedule(), localTimeToUtcCron(), qstash(), scheduleOneShot(), scheduleRecurring(), result
 
 ### Community 54 - "Community 54"
 Cohesion: 0.13
 Nodes (6): CONNECTIONS, DEFAULT_STATE, I, NAV_SECTIONS, TOOLS, TOPICS
 
 ### Community 55 - "Community 55"
-Cohesion: 0.22
-Nodes (24): parsePostbackData(), cancelTaskDeadlineWarning(), scheduleTaskDeadlineWarning(), archiveNote(), Ctx, handleCheckin(), handleConfirm(), handleEvent() (+16 more)
-
-### Community 56 - "Community 56"
-Cohesion: 0.33
-Nodes (8): decrypt(), encrypt(), hmac(), key(), safeEqual(), blob, buf, s
+Cohesion: 0.16
+Nodes (31): GET(), escapeHtml(), htmlPage(), parsePostbackData(), clearPending(), getPending(), key(), executePendingAll() (+23 more)
 
 ### Community 57 - "Community 57"
-Cohesion: 0.40
-Nodes (5): 4. Redundant `listAccounts` / `listRecentMedia` fetch, 5. History summarization blocks on cache miss, 6. `maxRetries: 3` on `generateText` can burn time on transient failures, 7. Background fact extraction consumes quota every 10 turns, P1 — Significant (adds 100ms–3s)
+Cohesion: 0.61
+Nodes (6): respondToOtherMedia(), defaultMimeForKind(), guessMimeFromFilename(), isArchive(), isReadableDoc(), appendRecentMedia()
 
 ### Community 58 - "Community 58"
 Cohesion: 0.11
@@ -335,13 +332,17 @@ Nodes (3): SAMPLE_BRIEFS, TWEAK_DEFAULTS, VIEWS
 Cohesion: 0.33
 Nodes (6): code:ts (const cacheKey = `tools:${userId}:${hashAccounts(accounts)}`), Medium Effort, High Impact, R5. Cache `toolsForUser` result per user, R6. Pre-compute history summary in background, R7. Bundle media download with preflight, R8. Add streaming response for long tasks
 
+### Community 67 - "Community 67"
+Cohesion: 0.29
+Nodes (5): verifyLineSignature(), body, sig, valid, POST()
+
 ### Community 68 - "Community 68"
-Cohesion: 0.06
-Nodes (50): signupGateFlex(), respondToOtherMedia(), handleAdminCommand(), handleMyId(), classify(), buildGate(), Gate, passesAllowlist() (+42 more)
+Cohesion: 0.16
+Nodes (32): respondToImage(), respondToText(), handleAdminCommand(), handleMyId(), classify(), enrichReply(), buildGate(), Gate (+24 more)
 
 ### Community 69 - "Community 69"
-Cohesion: 0.07
-Nodes (27): GET(), DashboardPage(), TweakColor(), TweakColor(), getSession(), secret(), sessionCookieOpts(), signSession() (+19 more)
+Cohesion: 0.21
+Nodes (16): cancelPreMeetingAlerts(), PRE_MEETING_ALERT_KEY(), schedulePreMeetingAlerts(), syncAllProactiveSchedules(), syncEveningSummarySchedule(), syncMorningBriefingSchedule(), syncTaskCheckInSchedule(), GET() (+8 more)
 
 ### Community 70 - "Community 70"
 Cohesion: 0.40
@@ -363,9 +364,9 @@ Nodes (4): chat(), check(), run(), uuid()
 Cohesion: 0.14
 Nodes (14): Adding a new pending-action type, Adding a new tool, code:bash (npm run dev          # next dev (needs .env.local; pull via ), code:block2 (app/), Collaboration, Conventions, Cron sweep setup, Gotchas (lessons learned the hard way) (+6 more)
 
-### Community 76 - "Community 76"
-Cohesion: 0.20
-Nodes (14): confirmCancelFlex(), enrichReply(), authHeaders(), clamp(), fetchWithTimeout(), LineMessage, push(), QuickReplyItem (+6 more)
+### Community 75 - "Community 75"
+Cohesion: 0.50
+Nodes (4): 1. `generateText` is the single dominant cost (~70–95% of total time), 2. No `replyOrPush` fallback on expired replyToken, 3. Tool execution happens sequentially inside `generateText`, P0 — Critical (can cause 60s timeout or silent failure)
 
 ### Community 78 - "Community 78"
 Cohesion: 0.18
@@ -396,24 +397,24 @@ Cohesion: 0.40
 Nodes (5): 4. Redundant `listAccounts` / `listRecentMedia` fetch, 5. History summarization blocks on cache miss, 6. `maxRetries: 1` on `generateText` — retry burn reduced (R4), 7. Background fact extraction consumes quota every 10 turns, P1 — Significant (adds 100ms–3s)
 
 ## Knowledge Gaps
-- **662 isolated node(s):** `DEFAULTS`, `StoredSettings`, `MIGRATIONS`, `client`, `Body` (+657 more)
+- **661 isolated node(s):** `DEFAULTS`, `StoredSettings`, `MIGRATIONS`, `Body`, `Body` (+656 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `redis()` connect `Community 6` to `Community 1`, `Community 2`, `Community 3`, `Community 68`, `Community 69`, `Community 4`, `Community 9`, `Community 45`, `Community 14`, `Community 23`, `Community 53`, `Community 55`?**
+- **Why does `redis()` connect `Community 6` to `Community 1`, `Community 3`, `Community 68`, `Community 69`, `Community 4`, `Community 9`, `Community 45`, `Community 14`, `Community 23`, `Community 20`, `Community 55`, `Community 57`, `Community 28`?**
   _High betweenness centrality (0.047) - this node is a cross-community bridge._
-- **Why does `env` connect `Community 53` to `Community 2`, `Community 3`, `Community 68`, `Community 69`, `Community 6`, `Community 9`, `Community 76`, `Community 45`, `Community 14`, `Community 23`, `Community 56`?**
-  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Why does `env` connect `Community 4` to `Community 3`, `Community 68`, `Community 6`, `Community 9`, `Community 45`, `Community 14`, `Community 53`, `Community 23`, `Community 57`, `Community 28`?**
+  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **Why does `key()` connect `Community 69` to `Community 56`, `Community 52`?**
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **What connects `DEFAULTS`, `StoredSettings`, `MIGRATIONS` to the rest of the system?**
-  _662 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _661 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.10526315789473684 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09872241579558652 - nodes in this community are weakly interconnected._
+- **Should `Community 1` be split into smaller, more focused modules?**
+  _Cohesion score 0.10256410256410256 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.052922139729678276 - nodes in this community are weakly interconnected._
-- **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.05333333333333334 - nodes in this community are weakly interconnected._
-- **Should `Community 5` be split into smaller, more focused modules?**
-  _Cohesion score 0.03278688524590164 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.125 - nodes in this community are weakly interconnected._

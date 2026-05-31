@@ -1,18 +1,29 @@
 import { scheduleRecurring, cancelSchedule, scheduleOneShot, localTimeToUtcCron } from "./cron";
 import { getSettings, updateSettings } from "./memory/settings";
 import { hasQStash } from "./env";
+import { redis } from "./memory/redis";
+
+const LOCK_KEY = (userId: string) => `lock:schedules:${userId}`;
+const LOCK_TTL_SEC = 60;
 
 /**
  * Sync per-user QStash schedules for all proactive fixed-time events.
  * Called when settings change or on first contact after a migration.
+ * Uses a Redis lock to prevent duplicate schedules from concurrent calls.
  */
 export async function syncAllProactiveSchedules(userId: string): Promise<void> {
   if (!hasQStash()) return;
-  await Promise.all([
-    syncMorningBriefingSchedule(userId),
-    syncEveningSummarySchedule(userId),
-    syncTaskCheckInSchedule(userId),
-  ]);
+  const locked = await redis().set(LOCK_KEY(userId), "1", { nx: true, ex: LOCK_TTL_SEC });
+  if (!locked) return; // another process is already syncing
+  try {
+    await Promise.all([
+      syncMorningBriefingSchedule(userId),
+      syncEveningSummarySchedule(userId),
+      syncTaskCheckInSchedule(userId),
+    ]);
+  } finally {
+    await redis().del(LOCK_KEY(userId));
+  }
 }
 
 // ─── Morning briefing ──────────────────────────────────────────────────────

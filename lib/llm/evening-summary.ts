@@ -274,31 +274,11 @@ export async function buildEveningSummary(
     sections.push(`💡 Recommendations\n${recs.map((r) => `• ${r}`).join("\n")}`);
   }
 
-  // 5. News
+  // 5. News (returned separately for Flex carousel — no URLs in text)
   const geo = geoResult.status === "fulfilled" ? geoResult.value : [];
   const econ = econResult.status === "fulfilled" ? econResult.value : [];
   const poly = polyResult.status === "fulfilled" ? polyResult.value : [];
 
-  const newsLines: string[] = [];
-  if (geo.length) {
-    newsLines.push("🌍 Geopolitics");
-    geo.slice(0, 3).forEach((s) => newsLines.push(`\n• ${s.title}\n${s.url}`));
-  }
-  if (econ.length) {
-    if (newsLines.length) newsLines.push("");
-    newsLines.push("📈 Economics");
-    econ.slice(0, 3).forEach((s) => newsLines.push(`\n• ${s.title}\n${s.url}`));
-  }
-  if (poly.length) {
-    if (newsLines.length) newsLines.push("");
-    newsLines.push("🎲 Polymarket");
-    poly.slice(0, 2).forEach((s) => newsLines.push(`\n• ${s.title}\n${s.url}`));
-  }
-  if (newsLines.length) {
-    sections.push(`📰 Today's news\n${newsLines.join("\n")}`);
-  }
-
-  // Build structured news items for Flex carousel rendering
   const news: { title: string; url: string; source: string }[] = [
     ...geo.slice(0, 3).map((s) => ({ title: s.title, url: s.url, source: "World" })),
     ...econ.slice(0, 2).map((s) => ({ title: s.title, url: s.url, source: "Markets" })),

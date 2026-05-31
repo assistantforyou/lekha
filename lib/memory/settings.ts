@@ -219,7 +219,9 @@ export async function getSettings(userId: string): Promise<UserSettings> {
   if (!stored) {
     const defaults = { ...DEFAULTS };
     void redis().set(key(userId), { ...defaults, updatedAt: Date.now() });
-    void import("@/lib/proactive-schedules").then((m) => m.syncAllProactiveSchedules(userId));
+    void import("@/lib/proactive-schedules")
+      .then((m) => m.syncAllProactiveSchedules(userId))
+      .catch((e) => console.error("[settings] failed to sync schedules for new user", userId, e));
     return defaults;
   }
   const migrated = applyMigrations(stored);

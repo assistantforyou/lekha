@@ -10,7 +10,11 @@ const REGISTRY_KEY = "users:active";
  */
 export async function registerUser(userId: string): Promise<void> {
   await redis().sadd(REGISTRY_KEY, userId);
-  await syncAllProactiveSchedules(userId);
+  try {
+    await syncAllProactiveSchedules(userId);
+  } catch (e) {
+    console.error("[registry] failed to sync schedules for", userId, e);
+  }
 }
 
 export async function listAllUsers(): Promise<string[]> {

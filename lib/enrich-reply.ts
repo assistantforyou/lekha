@@ -49,7 +49,7 @@ export function enrichReply(
   }
 
   // When text is empty (suppressed for display tools), just send the Flex messages.
-  if (!replyText && flex.length > 0) {
+  if (!replyText.trim() && flex.length > 0) {
     return flex;
   }
 

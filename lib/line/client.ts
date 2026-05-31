@@ -162,8 +162,9 @@ export async function getProfile(userId: string): Promise<{ displayName: string 
 }
 
 export function text(s: string): TextMessage {
-  // LINE caps text messages at 5000 chars.
-  return { type: "text", text: s.slice(0, 5000) };
+  // LINE caps text messages at 5000 chars. Empty text causes API errors.
+  const t = s.slice(0, 5000).trim();
+  return { type: "text", text: t || "…" };
 }
 
 async function safeText(r: Response): Promise<string> {
