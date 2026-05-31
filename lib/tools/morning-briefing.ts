@@ -7,7 +7,7 @@ export function buildMorningBriefingTool(userId: string) {
   return {
     get_morning_briefing: tool({
       description:
-        "Generate and return the user's morning briefing — tasks, upcoming calendar events, news headlines with links, and unread inbox summary. Call this whenever the user asks for their morning briefing or daily summary.",
+        "Generate the user's morning briefing. ONLY call this when the user EXPLICITLY says 'morning briefing', 'daily briefing', 'daily summary', or similar. NEVER call this proactively, for greetings, or for casual chat.",
       inputSchema: z.object({}),
       execute: async () => {
         const s = await getSettings(userId);

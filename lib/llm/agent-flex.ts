@@ -119,7 +119,10 @@ export function buildFlexFromToolResults(result: { steps?: StepLike[] }): {
       }
 
       // ── Calendar events ───────────────────────────────────────────────
-      if (toolName === "list_upcoming_events" && Array.isArray(value.events)) {
+      if (
+        (toolName === "list_upcoming_events" || toolName === "calendar_today" || toolName === "calendar_week") &&
+        Array.isArray(value.events)
+      ) {
         const events = (value.events as Array<Record<string, unknown>>).map((e) => ({
           id: String(e.id ?? ""),
           summary: String(e.summary ?? "(no title)"),

@@ -4,69 +4,6 @@
   "graph": {},
   "nodes": [
     {
-      "label": "route.ts",
-      "file_type": "code",
-      "source_file": "app/api/cron/sweep/fire/route.ts",
-      "source_location": "L1",
-      "id": "app_api_cron_sweep_fire_route_ts",
-      "community": 69,
-      "norm_label": "route.ts"
-    },
-    {
-      "label": "Body",
-      "file_type": "code",
-      "source_file": "app/api/cron/sweep/fire/route.ts",
-      "source_location": "L18",
-      "id": "fire_route_body",
-      "community": 69,
-      "norm_label": "body"
-    },
-    {
-      "label": "POST()",
-      "file_type": "code",
-      "source_file": "app/api/cron/sweep/fire/route.ts",
-      "source_location": "L36",
-      "id": "fire_route_post",
-      "community": 69,
-      "norm_label": "post()"
-    },
-    {
-      "label": "runSweepForUser()",
-      "file_type": "code",
-      "source_file": "app/api/cron/sweep/fire/route.ts",
-      "source_location": "L191",
-      "id": "fire_route_runsweepforuser",
-      "community": 69,
-      "norm_label": "runsweepforuser()"
-    },
-    {
-      "label": "route.ts",
-      "file_type": "code",
-      "source_file": "app/api/line/webhook/route.ts",
-      "source_location": "L1",
-      "id": "app_api_line_webhook_route_ts",
-      "community": 56,
-      "norm_label": "route.ts"
-    },
-    {
-      "label": "POST()",
-      "file_type": "code",
-      "source_file": "app/api/line/webhook/route.ts",
-      "source_location": "L28",
-      "id": "webhook_route_post",
-      "community": 67,
-      "norm_label": "post()"
-    },
-    {
-      "label": "handleEvent()",
-      "file_type": "code",
-      "source_file": "app/api/line/webhook/route.ts",
-      "source_location": "L81",
-      "id": "webhook_route_handleevent",
-      "community": 56,
-      "norm_label": "handleevent()"
-    },
-    {
       "label": "agent.ts",
       "file_type": "code",
       "source_file": "lib/llm/agent.ts",
@@ -160,316 +97,415 @@
       "label": "handleAgentError()",
       "file_type": "code",
       "source_file": "lib/llm/agent.ts",
-      "source_location": "L354",
+      "source_location": "L355",
       "id": "llm_agent_handleagenterror",
       "community": 68,
       "norm_label": "handleagenterror()"
+    },
+    {
+      "label": "prompts.ts",
+      "file_type": "code",
+      "source_file": "lib/llm/prompts.ts",
+      "source_location": "L1",
+      "id": "lib_llm_prompts_ts",
+      "community": 81,
+      "norm_label": "prompts.ts"
+    },
+    {
+      "label": "buildTimeContext()",
+      "file_type": "code",
+      "source_file": "lib/llm/prompts.ts",
+      "source_location": "L59",
+      "id": "llm_prompts_buildtimecontext",
+      "community": 68,
+      "norm_label": "buildtimecontext()"
+    },
+    {
+      "label": "sanitizePromptValue()",
+      "file_type": "code",
+      "source_file": "lib/llm/prompts.ts",
+      "source_location": "L66",
+      "id": "llm_prompts_sanitizepromptvalue",
+      "community": 81,
+      "norm_label": "sanitizepromptvalue()"
+    },
+    {
+      "label": "buildSystemPrompt()",
+      "file_type": "code",
+      "source_file": "lib/llm/prompts.ts",
+      "source_location": "L70",
+      "id": "llm_prompts_buildsystemprompt",
+      "community": 81,
+      "norm_label": "buildsystemprompt()"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "app/api/cron/sweep/fire/route.ts",
+      "source_location": "L1",
+      "community": 69,
+      "norm_label": "route.ts",
+      "id": "app_api_cron_sweep_fire_route_ts"
+    },
+    {
+      "label": "Body",
+      "file_type": "code",
+      "source_file": "app/api/cron/sweep/fire/route.ts",
+      "source_location": "L18",
+      "community": 69,
+      "norm_label": "body",
+      "id": "fire_route_body"
+    },
+    {
+      "label": "POST()",
+      "file_type": "code",
+      "source_file": "app/api/cron/sweep/fire/route.ts",
+      "source_location": "L36",
+      "community": 69,
+      "norm_label": "post()",
+      "id": "fire_route_post"
+    },
+    {
+      "label": "runSweepForUser()",
+      "file_type": "code",
+      "source_file": "app/api/cron/sweep/fire/route.ts",
+      "source_location": "L191",
+      "community": 69,
+      "norm_label": "runsweepforuser()",
+      "id": "fire_route_runsweepforuser"
+    },
+    {
+      "label": "route.ts",
+      "file_type": "code",
+      "source_file": "app/api/line/webhook/route.ts",
+      "source_location": "L1",
+      "community": 56,
+      "norm_label": "route.ts",
+      "id": "app_api_line_webhook_route_ts"
+    },
+    {
+      "label": "POST()",
+      "file_type": "code",
+      "source_file": "app/api/line/webhook/route.ts",
+      "source_location": "L28",
+      "community": 67,
+      "norm_label": "post()",
+      "id": "webhook_route_post"
+    },
+    {
+      "label": "handleEvent()",
+      "file_type": "code",
+      "source_file": "app/api/line/webhook/route.ts",
+      "source_location": "L81",
+      "community": 56,
+      "norm_label": "handleevent()",
+      "id": "webhook_route_handleevent"
     },
     {
       "label": "settings.ts",
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L1",
-      "id": "lib_memory_settings_ts",
       "community": 69,
-      "norm_label": "settings.ts"
+      "norm_label": "settings.ts",
+      "id": "lib_memory_settings_ts"
     },
     {
       "label": "UserSettings",
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L3",
-      "id": "memory_settings_usersettings",
       "community": 28,
-      "norm_label": "usersettings"
+      "norm_label": "usersettings",
+      "id": "memory_settings_usersettings"
     },
     {
       "label": "DEFAULTS",
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L75",
-      "id": "memory_settings_defaults",
       "community": 69,
-      "norm_label": "defaults"
+      "norm_label": "defaults",
+      "id": "memory_settings_defaults"
     },
     {
       "label": "StoredSettings",
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L129",
-      "id": "memory_settings_storedsettings",
       "community": 69,
-      "norm_label": "storedsettings"
+      "norm_label": "storedsettings",
+      "id": "memory_settings_storedsettings"
     },
     {
       "label": "MIGRATIONS",
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L137",
-      "id": "memory_settings_migrations",
       "community": 69,
-      "norm_label": "migrations"
+      "norm_label": "migrations",
+      "id": "memory_settings_migrations"
     },
     {
       "label": "applyMigrations()",
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L187",
-      "id": "memory_settings_applymigrations",
       "community": 69,
-      "norm_label": "applymigrations()"
+      "norm_label": "applymigrations()",
+      "id": "memory_settings_applymigrations"
     },
     {
       "label": "key()",
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L200",
-      "id": "memory_settings_key",
       "community": 52,
-      "norm_label": "key()"
+      "norm_label": "key()",
+      "id": "memory_settings_key"
     },
     {
       "label": "getSettings()",
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L202",
-      "id": "memory_settings_getsettings",
       "community": 1,
-      "norm_label": "getsettings()"
+      "norm_label": "getsettings()",
+      "id": "memory_settings_getsettings"
     },
     {
       "label": "updateSettings()",
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L221",
-      "id": "memory_settings_updatesettings",
       "community": 69,
-      "norm_label": "updatesettings()"
+      "norm_label": "updatesettings()",
+      "id": "memory_settings_updatesettings"
     },
     {
       "label": "user-registry.ts",
       "file_type": "code",
       "source_file": "lib/memory/user-registry.ts",
       "source_location": "L1",
-      "id": "lib_memory_user_registry_ts",
       "community": 69,
-      "norm_label": "user-registry.ts"
+      "norm_label": "user-registry.ts",
+      "id": "lib_memory_user_registry_ts"
     },
     {
       "label": "registerUser()",
       "file_type": "code",
       "source_file": "lib/memory/user-registry.ts",
       "source_location": "L8",
-      "id": "memory_user_registry_registeruser",
       "community": 56,
-      "norm_label": "registeruser()"
+      "norm_label": "registeruser()",
+      "id": "memory_user_registry_registeruser"
     },
     {
       "label": "listAllUsers()",
       "file_type": "code",
       "source_file": "lib/memory/user-registry.ts",
       "source_location": "L12",
-      "id": "memory_user_registry_listallusers",
       "community": 69,
-      "norm_label": "listallusers()"
+      "norm_label": "listallusers()",
+      "id": "memory_user_registry_listallusers"
     },
     {
       "label": "unregisterUser()",
       "file_type": "code",
       "source_file": "lib/memory/user-registry.ts",
       "source_location": "L16",
-      "id": "memory_user_registry_unregisteruser",
       "community": 6,
-      "norm_label": "unregisteruser()"
+      "norm_label": "unregisteruser()",
+      "id": "memory_user_registry_unregisteruser"
     },
     {
       "label": "news-cache.ts",
       "file_type": "code",
       "source_file": "lib/news-cache.ts",
       "source_location": "L1",
-      "id": "lib_news_cache_ts",
       "community": 84,
-      "norm_label": "news-cache.ts"
+      "norm_label": "news-cache.ts",
+      "id": "lib_news_cache_ts"
     },
     {
       "label": "NewsStory",
       "file_type": "code",
       "source_file": "lib/news-cache.ts",
       "source_location": "L3",
-      "id": "lib_news_cache_newsstory",
       "community": 84,
-      "norm_label": "newsstory"
+      "norm_label": "newsstory",
+      "id": "lib_news_cache_newsstory"
     },
     {
       "label": "cleanTitle()",
       "file_type": "code",
       "source_file": "lib/news-cache.ts",
       "source_location": "L8",
-      "id": "lib_news_cache_cleantitle",
       "community": 84,
-      "norm_label": "cleantitle()"
+      "norm_label": "cleantitle()",
+      "id": "lib_news_cache_cleantitle"
     },
     {
       "label": "fetchCachedNews()",
       "file_type": "code",
       "source_file": "lib/news-cache.ts",
       "source_location": "L30",
-      "id": "lib_news_cache_fetchcachednews",
       "community": 84,
-      "norm_label": "fetchcachednews()"
+      "norm_label": "fetchcachednews()",
+      "id": "lib_news_cache_fetchcachednews"
     },
     {
       "label": "proactive-schedules.ts",
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L1",
-      "id": "lib_proactive_schedules_ts",
       "community": 90,
-      "norm_label": "proactive-schedules.ts"
+      "norm_label": "proactive-schedules.ts",
+      "id": "lib_proactive_schedules_ts"
     },
     {
       "label": "scheduleTaskDeadlineWarning()",
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L13",
-      "id": "lib_proactive_schedules_scheduletaskdeadlinewarning",
       "community": 55,
-      "norm_label": "scheduletaskdeadlinewarning()"
+      "norm_label": "scheduletaskdeadlinewarning()",
+      "id": "lib_proactive_schedules_scheduletaskdeadlinewarning"
     },
     {
       "label": "cancelTaskDeadlineWarning()",
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L35",
-      "id": "lib_proactive_schedules_canceltaskdeadlinewarning",
       "community": 55,
-      "norm_label": "canceltaskdeadlinewarning()"
+      "norm_label": "canceltaskdeadlinewarning()",
+      "id": "lib_proactive_schedules_canceltaskdeadlinewarning"
     },
     {
       "label": "PRE_MEETING_ALERT_KEY()",
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L48",
-      "id": "lib_proactive_schedules_pre_meeting_alert_key",
       "community": 90,
-      "norm_label": "pre_meeting_alert_key()"
+      "norm_label": "pre_meeting_alert_key()",
+      "id": "lib_proactive_schedules_pre_meeting_alert_key"
     },
     {
       "label": "schedulePreMeetingAlerts()",
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L55",
-      "id": "lib_proactive_schedules_schedulepremeetingalerts",
       "community": 90,
-      "norm_label": "schedulepremeetingalerts()"
+      "norm_label": "schedulepremeetingalerts()",
+      "id": "lib_proactive_schedules_schedulepremeetingalerts"
     },
     {
       "label": "cancelPreMeetingAlerts()",
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L84",
-      "id": "lib_proactive_schedules_cancelpremeetingalerts",
       "community": 90,
-      "norm_label": "cancelpremeetingalerts()"
+      "norm_label": "cancelpremeetingalerts()",
+      "id": "lib_proactive_schedules_cancelpremeetingalerts"
     },
     {
       "label": "settings.ts",
       "file_type": "code",
       "source_file": "lib/tools/settings.ts",
       "source_location": "L1",
-      "id": "lib_tools_settings_ts",
       "community": 3,
-      "norm_label": "settings.ts"
+      "norm_label": "settings.ts",
+      "id": "lib_tools_settings_ts"
     },
     {
       "label": "formatLead()",
       "file_type": "code",
       "source_file": "lib/tools/settings.ts",
       "source_location": "L7",
-      "id": "tools_settings_formatlead",
       "community": 3,
-      "norm_label": "formatlead()"
+      "norm_label": "formatlead()",
+      "id": "tools_settings_formatlead"
     },
     {
       "label": "buildSettingsTools()",
       "file_type": "code",
       "source_file": "lib/tools/settings.ts",
       "source_location": "L13",
-      "id": "tools_settings_buildsettingstools",
       "community": 3,
-      "norm_label": "buildsettingstools()"
+      "norm_label": "buildsettingstools()",
+      "id": "tools_settings_buildsettingstools"
     },
     {
       "label": "with-google.ts",
       "file_type": "code",
       "source_file": "lib/tools/with-google.ts",
       "source_location": "L1",
-      "id": "lib_tools_with_google_ts",
       "community": 4,
-      "norm_label": "with-google.ts"
+      "norm_label": "with-google.ts",
+      "id": "lib_tools_with_google_ts"
     },
     {
       "label": "AuthRequiredResult",
       "file_type": "code",
       "source_file": "lib/tools/with-google.ts",
       "source_location": "L5",
-      "id": "tools_with_google_authrequiredresult",
       "community": 4,
-      "norm_label": "authrequiredresult"
+      "norm_label": "authrequiredresult",
+      "id": "tools_with_google_authrequiredresult"
     },
     {
       "label": "ApiDisabledResult",
       "file_type": "code",
       "source_file": "lib/tools/with-google.ts",
       "source_location": "L12",
-      "id": "tools_with_google_apidisabledresult",
       "community": 4,
-      "norm_label": "apidisabledresult"
+      "norm_label": "apidisabledresult",
+      "id": "tools_with_google_apidisabledresult"
     },
     {
       "label": "GoogleErrorResult",
       "file_type": "code",
       "source_file": "lib/tools/with-google.ts",
       "source_location": "L20",
-      "id": "tools_with_google_googleerrorresult",
       "community": 4,
-      "norm_label": "googleerrorresult"
+      "norm_label": "googleerrorresult",
+      "id": "tools_with_google_googleerrorresult"
     },
     {
       "label": "guardGoogleApiCall()",
       "file_type": "code",
       "source_file": "lib/tools/with-google.ts",
       "source_location": "L33",
-      "id": "tools_with_google_guardgoogleapicall",
       "community": 20,
-      "norm_label": "guardgoogleapicall()"
+      "norm_label": "guardgoogleapicall()",
+      "id": "tools_with_google_guardgoogleapicall"
     },
     {
       "label": "withTimeout()",
       "file_type": "code",
       "source_file": "lib/tools/with-google.ts",
       "source_location": "L58",
-      "id": "tools_with_google_withtimeout",
       "community": 4,
-      "norm_label": "withtimeout()"
+      "norm_label": "withtimeout()",
+      "id": "tools_with_google_withtimeout"
     },
     {
       "label": "withGoogleClient()",
       "file_type": "code",
       "source_file": "lib/tools/with-google.ts",
       "source_location": "L67",
-      "id": "tools_with_google_withgoogleclient",
       "community": 4,
-      "norm_label": "withgoogleclient()"
+      "norm_label": "withgoogleclient()",
+      "id": "tools_with_google_withgoogleclient"
     },
     {
       "label": "classifyGoogleError()",
       "file_type": "code",
       "source_file": "lib/tools/with-google.ts",
       "source_location": "L112",
-      "id": "tools_with_google_classifygoogleerror",
       "community": 4,
-      "norm_label": "classifygoogleerror()"
+      "norm_label": "classifygoogleerror()",
+      "id": "tools_with_google_classifygoogleerror"
     },
     {
       "label": "enrich-reply.ts",
@@ -6078,42 +6114,6 @@
       "community": 68,
       "norm_label": "fmtdate()",
       "id": "llm_render_drafts_fmtdate"
-    },
-    {
-      "label": "prompts.ts",
-      "file_type": "code",
-      "source_file": "lib/llm/prompts.ts",
-      "source_location": "L1",
-      "community": 81,
-      "norm_label": "prompts.ts",
-      "id": "lib_llm_prompts_ts"
-    },
-    {
-      "label": "buildTimeContext()",
-      "file_type": "code",
-      "source_file": "lib/llm/prompts.ts",
-      "source_location": "L58",
-      "community": 68,
-      "norm_label": "buildtimecontext()",
-      "id": "llm_prompts_buildtimecontext"
-    },
-    {
-      "label": "sanitizePromptValue()",
-      "file_type": "code",
-      "source_file": "lib/llm/prompts.ts",
-      "source_location": "L65",
-      "community": 81,
-      "norm_label": "sanitizepromptvalue()",
-      "id": "llm_prompts_sanitizepromptvalue"
-    },
-    {
-      "label": "buildSystemPrompt()",
-      "file_type": "code",
-      "source_file": "lib/llm/prompts.ts",
-      "source_location": "L69",
-      "community": 81,
-      "norm_label": "buildsystemprompt()",
-      "id": "llm_prompts_buildsystemprompt"
     },
     {
       "label": "agent-flex.ts",
@@ -12438,7 +12438,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L109",
-      "community": 48,
+      "community": 53,
       "norm_label": "p0 \u2014 critical (can cause 60s timeout or silent failure)",
       "id": "distracted_wilbur_8b4651_performance_p0_critical_can_cause_60s_timeout_or_silent_failure"
     },
@@ -12447,7 +12447,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L111",
-      "community": 48,
+      "community": 53,
       "norm_label": "1. `generatetext` is the single dominant cost (~70\u201395% of total time)",
       "id": "distracted_wilbur_8b4651_performance_1_generatetext_is_the_single_dominant_cost_70_95_of_total_time"
     },
@@ -12456,7 +12456,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L119",
-      "community": 48,
+      "community": 53,
       "norm_label": "2. no `replyorpush` fallback on expired replytoken",
       "id": "distracted_wilbur_8b4651_performance_2_no_replyorpush_fallback_on_expired_replytoken"
     },
@@ -12465,7 +12465,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L127",
-      "community": 48,
+      "community": 53,
       "norm_label": "3. tool execution happens sequentially inside `generatetext`",
       "id": "distracted_wilbur_8b4651_performance_3_tool_execution_happens_sequentially_inside_generatetext"
     },
@@ -12474,7 +12474,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L137",
-      "community": 53,
+      "community": 48,
       "norm_label": "p1 \u2014 significant (adds 100ms\u20133s)",
       "id": "distracted_wilbur_8b4651_performance_p1_significant_adds_100ms_3s"
     },
@@ -12483,7 +12483,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L139",
-      "community": 53,
+      "community": 48,
       "norm_label": "4. redundant `listaccounts` / `listrecentmedia` fetch",
       "id": "distracted_wilbur_8b4651_performance_4_redundant_listaccounts_listrecentmedia_fetch"
     },
@@ -12492,7 +12492,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L147",
-      "community": 53,
+      "community": 48,
       "norm_label": "5. history summarization blocks on cache miss",
       "id": "distracted_wilbur_8b4651_performance_5_history_summarization_blocks_on_cache_miss"
     },
@@ -12501,7 +12501,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L155",
-      "community": 53,
+      "community": 48,
       "norm_label": "6. `maxretries: 3` on `generatetext` can burn time on transient failures",
       "id": "distracted_wilbur_8b4651_performance_6_maxretries_3_on_generatetext_can_burn_time_on_transient_failures"
     },
@@ -12510,7 +12510,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L163",
-      "community": 53,
+      "community": 48,
       "norm_label": "7. background fact extraction consumes quota every 10 turns",
       "id": "distracted_wilbur_8b4651_performance_7_background_fact_extraction_consumes_quota_every_10_turns"
     },
@@ -13672,6 +13672,1082 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_provider_chatmodel"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_provider_gemini_provider_options"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_llm_prompts_ts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_prompts_buildsystemprompt"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_prompts_buildtimecontext"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "memory_facts_factstopromptblock"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "memory_facts_loadfacts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "tools_google_auth_listaccounts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "memory_recent_media_listrecentmedia"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "memory_settings_getsettings"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "tools_index_toolsforuser"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_render_drafts_renderdraftsblock"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "tools_google_auth_buildconnecturl"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_errors_googleauthrequired"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_errors_needsconfirmation"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_errors_ratelimited"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_errors_unwrapcause"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_errors_unwrapauthrequired"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "line_client_linemessage"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_flex_buildflexfromtoolresults"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_flex_buildfollowups"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_timing_span"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_timing_tick"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_timing_withtimeout"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_timing_agenttimeouterror"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_format_stripmarkdown"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_action_labels_action_labels"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L82",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_extracttoolvalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L28",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_classifyresulttype"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_createsteptracker"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L91",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_processedresult"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L99",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_processresult"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L188",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_formatprocessed"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L214",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_agenthints"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L227",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_agentresult"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L232",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_runagent"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L354",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "llm_agent_handleagenterror"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_memory_settings_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/enrich-reply.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_enrich_reply_ts",
+      "target": "lib_llm_agent_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_line_client_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/api/dev/chat/route.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "app_api_dev_chat_route_ts",
+      "target": "lib_llm_agent_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_errors_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_format_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/handlers/image.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_handlers_image_ts",
+      "target": "lib_llm_agent_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_llm_action_labels_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_tools_google_auth_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_timing_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_tools_index_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_llm_provider_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_memory_facts_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_memory_recent_media_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_ts",
+      "target": "lib_llm_render_drafts_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent-flex.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_flex_ts",
+      "target": "lib_llm_agent_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/handlers/text.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_handlers_text_ts",
+      "target": "lib_llm_agent_ts"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L112",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "llm_agent_processresult",
+      "target": "llm_agent_extracttoolvalue"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent-flex.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_agent_flex_ts",
+      "target": "llm_agent_extracttoolvalue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent-flex.ts",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "llm_agent_flex_buildflexfromtoolresults",
+      "target": "llm_agent_extracttoolvalue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L274",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_agent_createsteptracker"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L80",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "llm_agent_createsteptracker",
+      "target": "lib_timing_tick"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L332",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_agent_processresult"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L151",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "llm_agent_processresult",
+      "target": "llm_render_drafts_renderdraftsblock"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L333",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_agent_formatprocessed"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L197",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "llm_agent_formatprocessed",
+      "target": "lib_format_stripmarkdown"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/enrich-reply.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_enrich_reply_ts",
+      "target": "llm_agent_agenthints"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L341",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_agent_handleagenterror"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L271",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_prompts_buildsystemprompt"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L277",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_prompts_buildtimecontext"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L245",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "memory_settings_getsettings"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L283",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "tools_with_google_withtimeout"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/api/dev/chat/route.ts",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "app_api_dev_chat_route_ts",
+      "target": "llm_agent_runagent"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/api/dev/chat/route.ts",
+      "source_location": "L50",
+      "weight": 1.0,
+      "source": "chat_route_post",
+      "target": "llm_agent_runagent"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L367",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "lib_errors_unwrapauthrequired"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L343",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "lib_format_stripmarkdown"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L242",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "lib_timing_span"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L243",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "tools_google_auth_listaccounts"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L249",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "lib_timing_tick"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L282",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "lib_timing_withtimeout"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L287",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "tools_index_toolsforuser"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/handlers/text.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_handlers_text_ts",
+      "target": "llm_agent_runagent"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L244",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "memory_recent_media_listrecentmedia"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L271",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "memory_facts_factstopromptblock"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L292",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_provider_chatmodel"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L338",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_agent_flex_buildflexfromtoolresults"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L339",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_agent_flex_buildfollowups"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/llm/agent.ts",
+      "source_location": "L361",
+      "weight": 1.0,
+      "source": "llm_agent_runagent",
+      "target": "llm_render_drafts_renderdraftsblock"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/handlers/text.ts",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "handlers_text_respondtotext",
+      "target": "llm_agent_runagent"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/prompts.ts",
+      "source_location": "L58",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_prompts_ts",
+      "target": "llm_prompts_buildtimecontext"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/prompts.ts",
+      "source_location": "L65",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_prompts_ts",
+      "target": "llm_prompts_sanitizepromptvalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/prompts.ts",
+      "source_location": "L65",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_llm_prompts_ts",
+      "target": "llm_prompts_buildsystemprompt"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/api/dev/chat/route.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "app_api_dev_chat_route_ts",
+      "target": "lib_llm_prompts_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/handlers/image.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_handlers_image_ts",
+      "target": "lib_llm_prompts_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/measure-prompt.ts",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_measure_prompt_ts",
+      "target": "lib_llm_prompts_ts"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/llm/prompts.ts",
+      "source_location": "L75",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "llm_prompts_buildsystemprompt",
+      "target": "llm_prompts_sanitizepromptvalue"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/api/dev/chat/route.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "app_api_dev_chat_route_ts",
+      "target": "llm_prompts_buildsystemprompt"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/api/dev/chat/route.ts",
+      "source_location": "L77",
+      "weight": 1.0,
+      "source": "chat_route_post",
+      "target": "llm_prompts_buildsystemprompt"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/handlers/image.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_handlers_image_ts",
+      "target": "llm_prompts_buildsystemprompt"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/handlers/image.ts",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "handlers_image_respondtoimage",
+      "target": "llm_prompts_buildsystemprompt"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/measure-prompt.ts",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_measure_prompt_ts",
+      "target": "llm_prompts_buildsystemprompt"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/measure-prompt.ts",
+      "source_location": "L290",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_measure_prompt_main",
+      "target": "llm_prompts_buildsystemprompt"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L4",
       "weight": 1.0,
@@ -13840,9 +14916,9 @@
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_cron_sweep_fire_route_ts",
-      "target": "lib_memory_user_registry_ts",
-      "confidence_score": 1.0
+      "target": "lib_memory_user_registry_ts"
     },
     {
       "relation": "imports",
@@ -13851,9 +14927,9 @@
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_cron_sweep_fire_route_ts",
-      "target": "memory_user_registry_listallusers",
-      "confidence_score": 1.0
+      "target": "memory_user_registry_listallusers"
     },
     {
       "relation": "imports",
@@ -13916,9 +14992,9 @@
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_cron_sweep_fire_route_ts",
-      "target": "fire_route_body",
-      "confidence_score": 1.0
+      "target": "fire_route_body"
     },
     {
       "relation": "contains",
@@ -13926,9 +15002,9 @@
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L36",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_cron_sweep_fire_route_ts",
-      "target": "fire_route_post",
-      "confidence_score": 1.0
+      "target": "fire_route_post"
     },
     {
       "relation": "contains",
@@ -13936,9 +15012,9 @@
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L191",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_cron_sweep_fire_route_ts",
-      "target": "fire_route_runsweepforuser",
-      "confidence_score": 1.0
+      "target": "fire_route_runsweepforuser"
     },
     {
       "relation": "imports_from",
@@ -14090,9 +15166,9 @@
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L65",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "fire_route_post",
-      "target": "fire_route_runsweepforuser",
-      "confidence_score": 1.0
+      "target": "fire_route_runsweepforuser"
     },
     {
       "relation": "calls",
@@ -14134,9 +15210,9 @@
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L192",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "fire_route_runsweepforuser",
-      "target": "memory_settings_getsettings",
-      "confidence_score": 1.0
+      "target": "memory_settings_getsettings"
     },
     {
       "relation": "calls",
@@ -14145,9 +15221,9 @@
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L218",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "fire_route_runsweepforuser",
-      "target": "memory_settings_updatesettings",
-      "confidence_score": 1.0
+      "target": "memory_settings_updatesettings"
     },
     {
       "relation": "imports",
@@ -14998,942 +16074,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_provider_chatmodel"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_provider_gemini_provider_options"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_prompts_buildsystemprompt"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_prompts_buildtimecontext"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "memory_facts_factstopromptblock"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "memory_facts_loadfacts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "tools_google_auth_listaccounts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "memory_recent_media_listrecentmedia"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_memory_settings_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "memory_settings_getsettings"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "tools_index_toolsforuser"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_render_drafts_renderdraftsblock"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "tools_google_auth_buildconnecturl"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_errors_googleauthrequired"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_errors_needsconfirmation"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_errors_ratelimited"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_errors_unwrapcause"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_errors_unwrapauthrequired"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "line_client_linemessage"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_flex_buildflexfromtoolresults"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_flex_buildfollowups"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_timing_span"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_timing_tick"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_timing_withtimeout"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_timing_agenttimeouterror"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_format_stripmarkdown"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_action_labels_action_labels"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L82",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_extracttoolvalue"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L28",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_classifyresulttype"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L40",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_createsteptracker"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L91",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_processedresult"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L99",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_processresult"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L188",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_formatprocessed"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L214",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_agenthints"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L227",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_agentresult"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L232",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_runagent"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L354",
-      "weight": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "llm_agent_handleagenterror",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/enrich-reply.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_enrich_reply_ts",
-      "target": "lib_llm_agent_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_line_client_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/api/dev/chat/route.ts",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "app_api_dev_chat_route_ts",
-      "target": "lib_llm_agent_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L11",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_errors_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_format_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/handlers/image.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_handlers_image_ts",
-      "target": "lib_llm_agent_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_llm_action_labels_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_tools_google_auth_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_timing_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_tools_index_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_llm_provider_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_llm_prompts_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_memory_facts_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_memory_recent_media_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_ts",
-      "target": "lib_llm_render_drafts_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent-flex.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_flex_ts",
-      "target": "lib_llm_agent_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/handlers/text.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_handlers_text_ts",
-      "target": "lib_llm_agent_ts"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L112",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "llm_agent_processresult",
-      "target": "llm_agent_extracttoolvalue"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent-flex.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_agent_flex_ts",
-      "target": "llm_agent_extracttoolvalue"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent-flex.ts",
-      "source_location": "L29",
-      "weight": 1.0,
-      "source": "llm_agent_flex_buildflexfromtoolresults",
-      "target": "llm_agent_extracttoolvalue"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L274",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_agent_createsteptracker"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L80",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "llm_agent_createsteptracker",
-      "target": "lib_timing_tick"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L332",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_agent_processresult"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L151",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "llm_agent_processresult",
-      "target": "llm_render_drafts_renderdraftsblock"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L333",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_agent_formatprocessed"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L197",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "llm_agent_formatprocessed",
-      "target": "lib_format_stripmarkdown"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/enrich-reply.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_enrich_reply_ts",
-      "target": "llm_agent_agenthints"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L341",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_agent_handleagenterror",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L245",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "memory_settings_getsettings"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "INFERRED",
-      "confidence_score": 0.8,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L283",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "tools_with_google_withtimeout"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/api/dev/chat/route.ts",
-      "source_location": "L9",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "app_api_dev_chat_route_ts",
-      "target": "llm_agent_runagent"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "app/api/dev/chat/route.ts",
-      "source_location": "L50",
-      "weight": 1.0,
-      "source": "chat_route_post",
-      "target": "llm_agent_runagent"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L367",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "lib_errors_unwrapauthrequired"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L343",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "lib_format_stripmarkdown"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L242",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "lib_timing_span"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L243",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "tools_google_auth_listaccounts"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L249",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "lib_timing_tick"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L282",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "lib_timing_withtimeout"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L287",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "tools_index_toolsforuser"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/handlers/text.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_handlers_text_ts",
-      "target": "llm_agent_runagent"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L244",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "memory_recent_media_listrecentmedia"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L271",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_prompts_buildsystemprompt"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L271",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "memory_facts_factstopromptblock"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L277",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_prompts_buildtimecontext"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L292",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_provider_chatmodel"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L338",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_agent_flex_buildflexfromtoolresults"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L339",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_agent_flex_buildfollowups"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/llm/agent.ts",
-      "source_location": "L361",
-      "weight": 1.0,
-      "source": "llm_agent_runagent",
-      "target": "llm_render_drafts_renderdraftsblock"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/handlers/text.ts",
-      "source_location": "L49",
-      "weight": 1.0,
-      "source": "handlers_text_respondtotext",
-      "target": "llm_agent_runagent"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L1",
       "weight": 1.0,
@@ -16683,9 +16823,9 @@
       "source_file": "lib/news-cache.ts",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_news_cache_ts",
-      "target": "lib_news_cache_cleantitle",
-      "confidence_score": 1.0
+      "target": "lib_news_cache_cleantitle"
     },
     {
       "relation": "contains",
@@ -20158,17 +20298,6 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "app/api/dev/chat/route.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "app_api_dev_chat_route_ts",
-      "target": "llm_prompts_buildsystemprompt"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/api/dev/chat/route.ts",
       "source_location": "L13",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -20365,17 +20494,6 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "app/api/dev/chat/route.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "app_api_dev_chat_route_ts",
-      "target": "lib_llm_prompts_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/api/dev/chat/route.ts",
       "source_location": "L15",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -20436,17 +20554,6 @@
       "weight": 1.0,
       "source": "chat_route_post",
       "target": "llm_provider_chatmodel"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "app/api/dev/chat/route.ts",
-      "source_location": "L77",
-      "weight": 1.0,
-      "source": "chat_route_post",
-      "target": "llm_prompts_buildsystemprompt"
     },
     {
       "relation": "calls",
@@ -21369,17 +21476,6 @@
       "target": "llm_provider_gemini_provider_options"
     },
     {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/handlers/image.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_handlers_image_ts",
-      "target": "llm_prompts_buildsystemprompt"
-    },
-    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -21493,17 +21589,6 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "lib/handlers/image.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_handlers_image_ts",
-      "target": "lib_llm_prompts_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/handlers/image.ts",
       "source_location": "L3",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -21575,17 +21660,6 @@
       "weight": 1.0,
       "source": "handlers_image_respondtoimage",
       "target": "lib_timing_withtimeout"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/handlers/image.ts",
-      "source_location": "L75",
-      "weight": 1.0,
-      "source": "handlers_image_respondtoimage",
-      "target": "llm_prompts_buildsystemprompt"
     },
     {
       "relation": "calls",
@@ -29382,28 +29456,6 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "scripts/measure-prompt.ts",
-      "source_location": "L48",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_measure_prompt_ts",
-      "target": "lib_llm_prompts_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/measure-prompt.ts",
-      "source_location": "L48",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_measure_prompt_ts",
-      "target": "llm_prompts_buildsystemprompt"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/measure-prompt.ts",
       "source_location": "L49",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -29768,17 +29820,6 @@
       "confidence_score": 1.0,
       "source": "scripts_measure_prompt_main",
       "target": "memory_recent_media_listrecentmedia"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/measure-prompt.ts",
-      "source_location": "L290",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "scripts_measure_prompt_main",
-      "target": "llm_prompts_buildsystemprompt"
     },
     {
       "relation": "calls",
@@ -33270,47 +33311,6 @@
       "confidence_score": 1.0,
       "source": "llm_render_drafts_fmtrange",
       "target": "llm_render_drafts_fmtdate"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/prompts.ts",
-      "source_location": "L58",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_prompts_ts",
-      "target": "llm_prompts_buildtimecontext"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/prompts.ts",
-      "source_location": "L65",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_prompts_ts",
-      "target": "llm_prompts_sanitizepromptvalue"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/prompts.ts",
-      "source_location": "L65",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_llm_prompts_ts",
-      "target": "llm_prompts_buildsystemprompt"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/llm/prompts.ts",
-      "source_location": "L75",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "llm_prompts_buildsystemprompt",
-      "target": "llm_prompts_sanitizepromptvalue"
     },
     {
       "relation": "imports_from",
@@ -43328,5 +43328,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "700b7c009325062675ff2598acb8f02fc8f4a688"
+  "built_at_commit": "819a9c272b153d7caee3926ee4e8319ce3f93a15"
 }

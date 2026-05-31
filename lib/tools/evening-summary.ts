@@ -7,7 +7,7 @@ export function buildEveningSummaryTool(userId: string) {
   return {
     get_evening_summary: tool({
       description:
-        "Generate and return the user's evening summary — tasks completed today, leftover open tasks, upcoming calendar events, and today's news with links. Call this whenever the user asks for their evening summary or wrap-up.",
+        "Generate the user's evening summary. ONLY call this when the user EXPLICITLY says 'evening summary', 'wrap-up', or similar. NEVER call this proactively, for greetings, or for casual chat.",
       inputSchema: z.object({}),
       execute: async () => {
         const s = await getSettings(userId);

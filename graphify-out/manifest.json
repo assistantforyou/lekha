@@ -65,8 +65,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/health/route.ts": {
-    "mtime": 1779890885.8655753,
-    "ast_hash": "f9034fd17f9e48cdab297a53c8f1382b",
+    "mtime": 1780242986.3378828,
+    "ast_hash": "15d058cb8b3ec72f818c7fd89a8ffd64",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/subscribe/route.ts": {
@@ -210,8 +210,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/sweep.ts": {
-    "mtime": 1780236642.7858407,
-    "ast_hash": "dd11a6a1f2608e5abf1a51b86b991855",
+    "mtime": 1780242775.4802406,
+    "ast_hash": "f649ee4aed00ab56625b05d5ea1d6bcb",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/gate.ts": {
@@ -425,8 +425,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/agent.ts": {
-    "mtime": 1780242135.779823,
-    "ast_hash": "94a62111f503e20f11ed29c7095ba4a4",
+    "mtime": 1780244059.1441443,
+    "ast_hash": "d760096ea5ba4d1b04f83a7795a76144",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/render-drafts.ts": {
@@ -435,8 +435,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/prompts.ts": {
-    "mtime": 1780153980.764224,
-    "ast_hash": "c9254d5a5fea127841a1f3671693548f",
+    "mtime": 1780243881.6779742,
+    "ast_hash": "2b5ae1afa120b6c4a37f44f58e3a5501",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/agent-flex.ts": {
@@ -475,8 +475,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/settings.ts": {
-    "mtime": 1780242405.9965496,
-    "ast_hash": "6ab081e10b7082fcb6bbbfe90c85cc49",
+    "mtime": 1780242760.9765368,
+    "ast_hash": "e60c13efdf729b671e0d0c9f16481f8f",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/redis.ts": {
