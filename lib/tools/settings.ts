@@ -87,11 +87,15 @@ export function buildSettingsTools(userId: string) {
 
     enable_evening_summary: tool({
       description:
-        "Turn on a daily 9 PM push with leftover tasks, tomorrow's next 5 calendar events, and today's geopolitics + economics news headlines.",
-      inputSchema: z.object({}),
-      execute: async () => {
-        await updateSettings(userId, { eveningSummaryEnabled: true });
-        return { ok: true, note: "Evening summary enabled. I'll push you a wrap-up each night at 9 PM." };
+        "Turn on a daily evening summary push with leftover tasks, tomorrow's calendar events, and today's news. Optional custom time (default 21:00).",
+      inputSchema: z.object({
+        time: z.string().regex(/^\d{1,2}:\d{2}$/).optional().describe("HH:mm 24h in user's timezone. Defaults to 21:00."),
+      }),
+      execute: async ({ time }) => {
+        const patch: Parameters<typeof updateSettings>[1] = { eveningSummaryEnabled: true };
+        if (time) patch.eveningSummaryTime = time;
+        const next = await updateSettings(userId, patch);
+        return { ok: true, eveningSummaryTime: next.eveningSummaryTime, note: `Evening summary enabled. I'll push you a wrap-up each night at ${next.eveningSummaryTime ?? "21:00"}.` };
       },
     }),
 

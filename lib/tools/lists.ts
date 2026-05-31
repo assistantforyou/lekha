@@ -25,6 +25,19 @@ async function getListItems(userId: string, name: string): Promise<string[]> {
 
 export function buildListTools(userId: string) {
   return {
+    create_list: tool({
+      description:
+        "Create a new empty named list (grocery list, packing list, to-watch list, etc.). Use when the user says 'create a list', 'start a list', or 'make a list'.",
+      inputSchema: z.object({
+        list_name: z.string().min(1).max(MAX_NAME).describe("Name of the list, e.g. 'grocery list', 'packing list'"),
+      }),
+      execute: async ({ list_name }) => {
+        const name = normalizeName(list_name);
+        await redis().sadd(namesKey(userId), name);
+        return { ok: true as const, list: name, note: `Created empty list "${name}".` };
+      },
+    }),
+
     add_to_list: tool({
       description:
         "Add an item to a named list (grocery list, packing list, to-watch list, etc.). Creates the list if it doesn't exist. Example: add_to_list('grocery list', 'milk').",

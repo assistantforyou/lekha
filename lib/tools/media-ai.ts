@@ -11,24 +11,6 @@ import { getMessageContent } from "@/lib/line/client";
  */
 export function buildMediaAiTools(userId: string) {
   return {
-    transcribe_audio: tool({
-      description:
-        "Transcribe a voice memo / audio file the user sent in LINE. Defaults to the most recent audio. Returns plain text.",
-      inputSchema: z.object({
-        index: z.number().int().min(1).optional().describe("1-indexed staged position. Omit for most-recent audio."),
-      }),
-      execute: async ({ index }) =>
-        runMediaPrompt(userId, index, "audio", "Transcribe this audio verbatim. Do not summarize. Output only the transcript text."),
-    }),
-
-    summarize_audio: tool({
-      description:
-        "Summarize the contents of a voice memo or audio file the user sent in LINE.",
-      inputSchema: z.object({ index: z.number().int().min(1).optional() }),
-      execute: async ({ index }) =>
-        runMediaPrompt(userId, index, "audio", "Summarize this audio in 2-4 sentences. Capture the key points and action items if any."),
-    }),
-
     ocr_image: tool({
       description:
         "Extract all readable text from an image the user sent in LINE (receipts, signs, screenshots, handwriting). Returns the verbatim text.",

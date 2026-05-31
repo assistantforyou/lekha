@@ -1,7 +1,7 @@
 # Graph Report - lekha  (2026-06-01)
 
 ## Corpus Check
-- 167 files · ~2,829,070 words
+- 167 files · ~2,829,145 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5c144564`
+- Built from commit: `7a7630f2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -128,12 +128,12 @@
   dashboard/project/tweaks-panel.jsx → lib/memory/settings.ts
 - `TweakColor()` --calls--> `key()`  [INFERRED]
   dashboard/project/uploads/LEKHA-handoff (2)/project/tweaks-panel.jsx → lib/memory/settings.ts
-- `POST()` --calls--> `runAgent()`  [EXTRACTED]
-  app/api/dev/chat/route.ts → lib/llm/agent.ts
-- `POST()` --calls--> `buildSystemPrompt()`  [EXTRACTED]
-  app/api/dev/chat/route.ts → lib/llm/prompts.ts
-- `main()` --calls--> `buildSystemPrompt()`  [EXTRACTED]
-  scripts/measure-prompt.ts → lib/llm/prompts.ts
+- `POST()` --calls--> `getSettings()`  [EXTRACTED]
+  app/api/cron/sweep/fire/route.ts → lib/memory/settings.ts
+- `runSweepForUser()` --calls--> `getSettings()`  [EXTRACTED]
+  app/api/cron/sweep/fire/route.ts → lib/memory/settings.ts
+- `handleEvent()` --calls--> `registerUser()`  [EXTRACTED]
+  app/api/line/webhook/route.ts → lib/memory/user-registry.ts
 
 ## Communities (100 total, 7 thin omitted)
 
@@ -146,8 +146,8 @@ Cohesion: 0.10
 Nodes (28): GET(), getOrCreateProfile(), isFirstContact(), key(), Profile, getSettings(), countTokens(), DUMMY (+20 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.40
-Nodes (5): 4. Redundant `listAccounts` / `listRecentMedia` fetch, 5. History summarization blocks on cache miss, 6. `maxRetries: 3` on `generateText` can burn time on transient failures, 7. Background fact extraction consumes quota every 10 turns, P1 — Significant (adds 100ms–3s)
+Cohesion: 0.50
+Nodes (4): 1. `generateText` is the single dominant cost (~70–95% of total time), 2. No `replyOrPush` fallback on expired replyToken, 3. Tool execution happens sequentially inside `generateText`, P0 — Critical (can cause 60s timeout or silent failure)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.13
@@ -298,8 +298,8 @@ Cohesion: 0.06
 Nodes (21): App(), BASE_PRICING, BUILTFOR, CAPABILITIES, CHAT_SCRIPTS, CMD_EVENTS, CMD_OPS, CMD_TASKS (+13 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.18
-Nodes (11): 10. `googleapis` package bloats server bundle, 11. No provider-level timeout on Gemini, 1. `generateText` is the single dominant cost (~70–95% of total time), 2. No `replyOrPush` fallback on expired replyToken, 3. Tool execution happens sequentially inside `generateText`, 8. Sequential `appendTurn` ×2, 9. `toolsForUser` re-evaluates env gates on every request, Identified Bottlenecks (+3 more)
+Cohesion: 0.17
+Nodes (12): 10. `googleapis` package bloats server bundle, 11. No provider-level timeout on Gemini, 4. Redundant `listAccounts` / `listRecentMedia` fetch, 5. History summarization blocks on cache miss, 6. `maxRetries: 3` on `generateText` can burn time on transient failures, 7. Background fact extraction consumes quota every 10 turns, 8. Sequential `appendTurn` ×2, 9. `toolsForUser` re-evaluates env gates on every request (+4 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.10
@@ -490,7 +490,7 @@ Cohesion: 0.50
 Nodes (3): NEITHER_CASES, NO_CASES, YES_CASES
 
 ## Knowledge Gaps
-- **662 isolated node(s):** `ProcessedResult`, `AgentResult`, `PLACEHOLDER_REPLIES`, `Body`, `Body` (+657 more)
+- **662 isolated node(s):** `Body`, `ProcessedResult`, `AgentResult`, `PLACEHOLDER_REPLIES`, `Body` (+657 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -503,7 +503,7 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.027) - this node is a cross-community bridge._
 - **Why does `env` connect `Community 90` to `Community 96`, `Community 3`, `Community 100`, `Community 101`, `Community 6`, `Community 75`, `Community 76`, `Community 77`, `Community 14`, `Community 45`, `Community 23`, `Community 87`, `Community 56`, `Community 91`, `Community 28`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
-- **What connects `ProcessedResult`, `AgentResult`, `PLACEHOLDER_REPLIES` to the rest of the system?**
+- **What connects `Body`, `ProcessedResult`, `AgentResult` to the rest of the system?**
   _662 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.10128205128205128 - nodes in this community are weakly interconnected._

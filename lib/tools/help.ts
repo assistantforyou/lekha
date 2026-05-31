@@ -36,11 +36,11 @@ const HELP_TEXT = `Here's what I can do:
 - "read me that doc"
 
 📷 *Media*
-- Send any photo / video / audio / file → I keep it for ~30 min
+- Send any photo / video / file → I keep it for ~30 min
 - "email all of those to bob" — attaches the staged files
 - "what's in this photo" — vision Q&A
-- "transcribe this voice memo" — audio transcription
 - "extract the text from this image" — OCR
+- "summarize this document" — PDF, Word, PowerPoint, Excel
 
 🌍 *Settings*
 - "set my timezone to Asia/Bangkok"

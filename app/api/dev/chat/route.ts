@@ -25,9 +25,48 @@ const Body = z.object({
   userId: z.string().min(1),
   text: z.string().min(1).max(4000),
   imageBase64: z.string().optional(),
+  imageMediaType: z.string().optional(),
   fileBase64: z.string().optional(),
   fileName: z.string().optional(),
 });
+
+function detectImageMediaType(base64: string): string {
+  const header = base64.slice(0, 24);
+  const bytes = Buffer.from(header, "base64");
+  // PNG: 89 50 4E 47
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+  // JPEG: FF D8 FF
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  // WEBP: RIFF....WEBP
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return "image/webp";
+  // HEIC/HEIF: ftyp heic / ftyp mif1
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    const brand = bytes.slice(8, 12).toString("ascii").toLowerCase();
+    if (brand === "heic" || brand === "heix" || brand === "mif1") return "image/heic";
+  }
+  return "image/png";
+}
+
+async function convertHeicToJpeg(base64: string): Promise<Uint8Array> {
+  const input = Buffer.from(base64, "base64");
+  const { exec } = await import("child_process");
+  const { promisify } = await import("util");
+  const fs = await import("fs");
+  const execAsync = promisify(exec);
+  const tmpIn = `/tmp/heic_in_${Date.now()}.heic`;
+  const tmpOut = `/tmp/heic_out_${Date.now()}.jpg`;
+  try {
+    await fs.promises.writeFile(tmpIn, input);
+    await execAsync(`heif-convert "${tmpIn}" "${tmpOut}" 2>/dev/null`);
+    const out = await fs.promises.readFile(tmpOut);
+    return new Uint8Array(out);
+  } catch {
+    throw new Error("HEIC conversion failed. Please send the image as JPEG or PNG instead.");
+  } finally {
+    await fs.promises.unlink(tmpIn).catch(() => {});
+    await fs.promises.unlink(tmpOut).catch(() => {});
+  }
+}
 
 export async function POST(req: NextRequest) {
   const secret = env().DEV_CHAT_SECRET;
@@ -46,7 +85,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid body", issues: parsed.error.issues }, { status: 400 });
   }
 
-  const { userId, text, imageBase64, fileBase64, fileName } = parsed.data;
+  const { userId, text, imageBase64, imageMediaType, fileBase64, fileName } = parsed.data;
   const traceId = `dev_${userId}_${Date.now().toString(36)}`;
   const endRequest = span("dev:chat", traceId);
 
@@ -63,12 +102,23 @@ export async function POST(req: NextRequest) {
       ]);
       endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
 
+      const mediaType = imageMediaType || detectImageMediaType(imageBase64);
+      let imageBytes: Uint8Array = bytes;
+      if (mediaType === "image/heic") {
+        try {
+          imageBytes = await convertHeicToJpeg(imageBase64);
+        } catch (err) {
+          endImage({ error: err instanceof Error ? err.message : String(err) });
+          return NextResponse.json({ error: "HEIC not supported", detail: err instanceof Error ? err.message : String(err) }, { status: 400 });
+        }
+      }
+
       const messages: ModelMessage[] = [
         ...historyMsgs,
         {
           role: "user",
           content: [
-            { type: "image" as const, image: bytes, mediaType: "image/png" },
+            { type: "image" as const, image: imageBytes, mediaType: mediaType === "image/heic" ? "image/jpeg" : mediaType },
             { type: "text", text: text || "What do you see?" },
           ],
         },
@@ -94,16 +144,25 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── FILE (PDF) PATH ─────────────────────────────────────────────────────
+  // ── FILE (PDF / PPTX / DOCX) PATH ───────────────────────────────────────
   if (fileBase64) {
     const endFile = span("dev:file", traceId);
     try {
       const bytes = Uint8Array.from(Buffer.from(fileBase64, "base64"));
+      const lowerName = (fileName || "document.pdf").toLowerCase();
+      const contentType = lowerName.endsWith(".pptx")
+        ? "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        : lowerName.endsWith(".docx")
+          ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          : lowerName.endsWith(".xlsx")
+            ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            : "application/pdf";
+
       // Stage in Redis so summarize_document / read_document tools can find it
       await appendRecentMedia(userId, {
         kind: "file",
         messageId: `dev_${Date.now()}`,
-        contentType: "application/pdf",
+        contentType,
         fileName: fileName || "document.pdf",
         sizeBytes: bytes.byteLength,
         ts: Date.now(),
@@ -117,17 +176,6 @@ export async function POST(req: NextRequest) {
       ]);
       endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
 
-      // Stage in Redis so subsequent text messages in the same dev session can
-      // reference it via summarize_document / read_document tools.
-      await appendRecentMedia(userId, {
-        kind: "file",
-        messageId: `dev_${Date.now()}`,
-        contentType: "application/pdf",
-        fileName: fileName || "document.pdf",
-        sizeBytes: bytes.byteLength,
-        ts: Date.now(),
-      });
-
       // Direct document read with extractorModel (dev chat bypasses LINE fetch).
       const result = await generateText({
         model: extractorModel(),
@@ -136,7 +184,7 @@ export async function POST(req: NextRequest) {
             role: "user",
             content: [
               { type: "text", text: text || "Summarize this document." },
-              { type: "file", data: bytes, mediaType: "application/pdf" },
+              { type: "file", data: bytes, mediaType: contentType },
             ],
           },
         ],

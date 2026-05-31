@@ -51,22 +51,46 @@ export function buildMemoryTools(userId: string) {
     }),
 
     update_memory: tool({
-      description: "Replace a stored fact at a 1-indexed position (display order — same as list_memories).",
+      description: "Replace a stored fact by 1-indexed position OR by matching text. If match_text is provided, finds the first fact containing that text (case-insensitive) and updates it.",
       inputSchema: z.object({
-        index: z.number().int().min(1),
+        index: z.number().int().min(1).optional(),
+        match_text: z.string().optional().describe("Text to search for in existing facts. Finds first match (case-insensitive)."),
         new_fact: z.string().min(3).max(240),
       }),
-      execute: async ({ index, new_fact }) => {
-        const ok = await updateFact(userId, index, new_fact);
+      execute: async ({ index, match_text, new_fact }) => {
+        let targetIndex = index;
+        if (targetIndex === undefined && match_text) {
+          const f = await loadFacts(userId);
+          const ordered = displayOrder(f.facts);
+          const lower = match_text.toLowerCase();
+          targetIndex = ordered.findIndex((fact) => fact.content.toLowerCase().includes(lower)) + 1;
+        }
+        if (!targetIndex || targetIndex < 1) {
+          return { ok: false, error: match_text ? `No memory matching "${match_text}".` : "Index or match_text required." };
+        }
+        const ok = await updateFact(userId, targetIndex, new_fact);
         return ok ? { ok: true } : { ok: false, error: "Index out of range" };
       },
     }),
 
     forget_memory: tool({
-      description: "Delete a stored fact at a 1-indexed position (display order).",
-      inputSchema: z.object({ index: z.number().int().min(1) }),
-      execute: async ({ index }) => {
-        const ok = await removeFact(userId, index);
+      description: "Delete a stored fact by 1-indexed position OR by matching text. If match_text is provided, finds the first fact containing that text (case-insensitive) and removes it.",
+      inputSchema: z.object({
+        index: z.number().int().min(1).optional(),
+        match_text: z.string().optional().describe("Text to search for in existing facts. Finds first match (case-insensitive)."),
+      }),
+      execute: async ({ index, match_text }) => {
+        let targetIndex = index;
+        if (targetIndex === undefined && match_text) {
+          const f = await loadFacts(userId);
+          const ordered = displayOrder(f.facts);
+          const lower = match_text.toLowerCase();
+          targetIndex = ordered.findIndex((fact) => fact.content.toLowerCase().includes(lower)) + 1;
+        }
+        if (!targetIndex || targetIndex < 1) {
+          return { ok: false, error: match_text ? `No memory matching "${match_text}".` : "Index or match_text required." };
+        }
+        const ok = await removeFact(userId, targetIndex);
         return ok ? { ok: true } : { ok: false, error: "Index out of range" };
       },
     }),

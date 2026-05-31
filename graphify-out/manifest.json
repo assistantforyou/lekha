@@ -105,8 +105,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/cron/sweep/fire/route.ts": {
-    "mtime": 1780242556.215056,
-    "ast_hash": "e53172055c89708e60744a74b880e462",
+    "mtime": 1780248789.700828,
+    "ast_hash": "9d2013034cc76384423a3d41f3559d1b",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/connect/[token]/page.tsx": {
@@ -510,8 +510,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/user-registry.ts": {
-    "mtime": 1780242476.6934688,
-    "ast_hash": "29b799fcd73514bdd726a3ebd1827e2a",
+    "mtime": 1780248778.4866564,
+    "ast_hash": "901aaf15a0d3ee666871d0cc0bd706e8",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/facts.ts": {
