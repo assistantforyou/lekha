@@ -29,7 +29,7 @@ export async function loadHistory(userId: string): Promise<StoredTurn[]> {
 
 export async function appendTurn(userId: string, turn: StoredTurn): Promise<number> {
   // Never store empty or placeholder replies — they poison the model's history.
-  if (turn.role === "assistant" && PLACEHOLDER_REPLIES.has(turn.content.trim())) {
+  if (turn.role === "assistant" && isPlaceholderReply(turn.content)) {
     const len = await redis().llen(key(userId));
     return len;
   }
@@ -101,11 +101,23 @@ export async function historyForPrompt(userId: string): Promise<ModelMessage[]> 
   return [summaryTurn, ack, ...recent.map(toModelMessage).filter(Boolean) as ModelMessage[]];
 }
 
-const PLACEHOLDER_REPLIES = new Set(["…", "...", "", " "]);
+const PLACEHOLDER_REPLIES = new Set(["…", "...", "", " ", "Done."]);
+const FALLBACK_PATTERN = /^[a-z_]+ ✓$/i; // e.g. "list_tasks ✓", "weather ✓"
+
+function isPlaceholderReply(text: string): boolean {
+  const trimmed = text.trim();
+  if (PLACEHOLDER_REPLIES.has(trimmed)) return true;
+  if (FALLBACK_PATTERN.test(trimmed)) return true;
+  // Catch ultra-short replies that are just labels ("Reminder set", "Task added")
+  if (/^(Reminder set|Recurring reminder set|Reminder cancelled|Email scheduled|Scheduled email cancelled|Task added|Task done|Task deleted|Saved to memory|Memory removed|Memories cleared|Calendar event drafted|Timezone updated|Location updated|Language updated|Morning briefing enabled|Morning briefing disabled|Evening summary enabled|Evening summary disabled)$/.test(trimmed)) {
+    return true;
+  }
+  return false;
+}
 
 function toModelMessage(t: StoredTurn): ModelMessage | null {
   // Skip empty or placeholder assistant replies — they teach the model bad habits.
-  if (t.role === "assistant" && PLACEHOLDER_REPLIES.has(t.content.trim())) {
+  if (t.role === "assistant" && isPlaceholderReply(t.content)) {
     return null;
   }
   return { role: t.role === "user" ? "user" : "assistant", content: t.content };

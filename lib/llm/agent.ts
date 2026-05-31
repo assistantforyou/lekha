@@ -257,6 +257,113 @@ function renderDisplayFallback(result: { steps?: { toolResults?: { toolName?: st
         }
         return line;
       }
+
+      // ── Gmail search ───────────────────────────────────────────────────
+      if (tr.toolName === "gmail_search" && Array.isArray(val.messages)) {
+        const msgs = val.messages as Array<Record<string, unknown>>;
+        if (msgs.length === 0) return "No emails found.";
+        return msgs
+          .map((m, i) => {
+            const from = String(m.from ?? "unknown");
+            const subject = String(m.subject ?? "(no subject)");
+            const date = String(m.date ?? "").slice(0, 10);
+            return `${i + 1}. ${subject} — ${from}${date ? ` (${date})` : ""}`;
+          })
+          .join("\n");
+      }
+
+      // ── News search ────────────────────────────────────────────────────
+      if ((tr.toolName === "news_search" || tr.toolName === "search_news") && Array.isArray(val.stories)) {
+        const stories = val.stories as Array<Record<string, unknown>>;
+        if (stories.length === 0) return "No news stories found.";
+        return stories
+          .map((s, i) => {
+            const title = String(s.title ?? "Untitled");
+            const source = s.source ? ` — ${s.source}` : "";
+            return `${i + 1}. ${title}${source}`;
+          })
+          .join("\n");
+      }
+
+      // ── Named lists ────────────────────────────────────────────────────
+      if (tr.toolName === "list_items" && Array.isArray(val.items)) {
+        const items = val.items as string[];
+        const listName = String(val.list ?? "list");
+        if (items.length === 0) return `${listName}: empty.`;
+        return `📋 ${listName}:\n${items.map((s) => `• ${s}`).join("\n")}`;
+      }
+
+      // ── Contacts search ────────────────────────────────────────────────
+      if (tr.toolName === "contacts_search" && Array.isArray(val.contacts)) {
+        const contacts = val.contacts as Array<Record<string, unknown>>;
+        if (contacts.length === 0) return "No contacts found.";
+        return contacts
+          .map((c) => {
+            const name = String(c.name ?? "Unknown");
+            const email = String(c.email ?? "");
+            return `• ${name}${email ? ` — ${email}` : ""}`;
+          })
+          .join("\n");
+      }
+
+      // ── Reminders ──────────────────────────────────────────────────────
+      if (tr.toolName === "list_reminders" && Array.isArray(val.reminders)) {
+        const reminders = val.reminders as Array<Record<string, unknown>>;
+        if (reminders.length === 0) return "No reminders set.";
+        return reminders
+          .map((r) => {
+            const text = String(r.text ?? "");
+            const fireAt = String(r.fireAt ?? "").slice(0, 16).replace("T", " ");
+            return `• ${text}${fireAt ? ` — ${fireAt}` : ""}`;
+          })
+          .join("\n");
+      }
+
+      // ── Crypto price ───────────────────────────────────────────────────
+      if (tr.toolName === "crypto_price" && typeof val.usd === "number") {
+        const id = String(val.id ?? "").toUpperCase();
+        const usd = val.usd as number;
+        const change = val.change24h as number | null;
+        const source = String(val.source ?? "");
+        let line = `• ${id}: $${usd.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+        if (change != null) {
+          const arrow = change >= 0 ? "▲" : "▼";
+          line += ` ${arrow} ${Math.abs(change).toFixed(2)}% (24h)`;
+        }
+        if (source) line += ` (source: ${source})`;
+        return line;
+      }
+
+      // ── Stock price ────────────────────────────────────────────────────
+      if (tr.toolName === "stock_price" && typeof val.price === "number") {
+        const symbol = String(val.symbol ?? "").toUpperCase();
+        const price = val.price as number;
+        const change = val.change as number | null;
+        const changePct = val.changePercent as number | null;
+        const currency = String(val.currency ?? "USD");
+        const source = String(val.source ?? "");
+        let line = `• ${symbol}: ${price.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${currency}`;
+        if (change != null && changePct != null) {
+          const arrow = change >= 0 ? "▲" : "▼";
+          line += ` ${arrow} ${change.toFixed(2)} (${changePct.toFixed(2)}%)`;
+        }
+        if (source) line += ` (source: ${source})`;
+        return line;
+      }
+
+      // ── FX rate ────────────────────────────────────────────────────────
+      if (tr.toolName === "fx_rate" && typeof val.rate === "number") {
+        const from = String(val.from ?? "").toUpperCase();
+        const to = String(val.to ?? "").toUpperCase();
+        const rate = val.rate as number;
+        const amount = val.amount as number;
+        const converted = val.converted as number;
+        const source = String(val.source ?? "");
+        let line = `• ${amount} ${from} = ${converted.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${to}`;
+        line += ` (rate: ${rate.toFixed(4)})`;
+        if (source) line += ` (source: ${source})`;
+        return line;
+      }
     }
   }
   return null;

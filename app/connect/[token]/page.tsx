@@ -63,21 +63,27 @@ export default async function ConnectPage({
             Open in your browser
           </h1>
           <p className="mt-3 text-base leading-7 text-[#bdb6ad]">
-            Google requires signing in with Chrome or Safari. The app you&apos;re using
-            right now can&apos;t complete this step.
+            Google blocks sign-in from inside chat apps. You need to open this in
+            your phone&apos;s regular browser.
           </p>
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-base leading-7 text-[#bdb6ad]">
-            <li>Tap and hold the link below</li>
-            <li>Choose <strong className="text-white">Open in Chrome / Safari</strong></li>
+            <li>
+              Tap the <strong className="text-white">⋮</strong> menu at the top right of this screen
+            </li>
+            <li>
+              Choose <strong className="text-white">Open in external browser</strong>
+            </li>
             <li>Sign in with Google</li>
           </ol>
+          <p className="mt-3 text-sm text-[#7a756e]">
+            (On some phones it&apos;s a share icon or "Open in Chrome/Safari" instead.)
+          </p>
           <a
             href={consentUrl}
             className="mt-6 block w-full rounded-xl bg-[#e7c88d] px-5 py-3.5 text-center text-base font-semibold text-[#1a1a1a] transition hover:bg-[#d4b67a] active:scale-[0.98]"
           >
             Continue to Google
           </a>
-          <p className="mt-4 break-all text-xs text-[#7a756e]">{consentUrl}</p>
         </section>
       </main>
     );
