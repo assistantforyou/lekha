@@ -10,8 +10,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/package.json": {
-    "mtime": 1779760850.080479,
-    "ast_hash": "8e714e717354c9449d013b91dff4b073",
+    "mtime": 1780252405.703639,
+    "ast_hash": "5b347e36bf0302fddc7a934a623c3164",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/tsconfig.json": {
@@ -80,8 +80,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/dev/chat/route.ts": {
-    "mtime": 1780252173.886884,
-    "ast_hash": "b8d5b5334608273bcb79572683956201",
+    "mtime": 1780252489.6342998,
+    "ast_hash": "e0fa56e55e242bed850ca61b8bb19b67",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/scheduled-email/fire/route.ts": {
@@ -1102,6 +1102,11 @@
   "/Users/jamesperenchio/Desktop/lekha/test images/IMG_2816.jpeg": {
     "mtime": 1780250852.9051423,
     "ast_hash": "3921a42c8c86942af9368b480cce3238",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/types/heic-convert.d.ts": {
+    "mtime": 1780252495.5026886,
+    "ast_hash": "6c2ff85822659e4bfac582a0db70ce2e",
     "semantic_hash": ""
   }
 }

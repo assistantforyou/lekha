@@ -43,7 +43,7 @@
       "label": "extractPptxText()",
       "file_type": "code",
       "source_file": "app/api/dev/chat/route.ts",
-      "source_location": "L76",
+      "source_location": "L61",
       "id": "chat_route_extractpptxtext",
       "community": 75,
       "norm_label": "extractpptxtext()"
@@ -52,10 +52,469 @@
       "label": "POST()",
       "file_type": "code",
       "source_file": "app/api/dev/chat/route.ts",
-      "source_location": "L114",
+      "source_location": "L86",
       "id": "chat_route_post",
       "community": 75,
       "norm_label": "post()"
+    },
+    {
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L1",
+      "id": "package_json",
+      "community": 57,
+      "norm_label": "package.json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "id": "lekha_package_name",
+      "community": 57,
+      "norm_label": "name"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "id": "lekha_package_version",
+      "community": 57,
+      "norm_label": "version"
+    },
+    {
+      "label": "private",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "id": "lekha_package_private",
+      "community": 57,
+      "norm_label": "private"
+    },
+    {
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "id": "lekha_package_scripts",
+      "community": 95,
+      "norm_label": "scripts"
+    },
+    {
+      "label": "dev",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "id": "lekha_package_scripts_dev",
+      "community": 95,
+      "norm_label": "dev"
+    },
+    {
+      "label": "build",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L7",
+      "id": "lekha_package_scripts_build",
+      "community": 95,
+      "norm_label": "build"
+    },
+    {
+      "label": "start",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L8",
+      "id": "lekha_package_scripts_start",
+      "community": 95,
+      "norm_label": "start"
+    },
+    {
+      "label": "lint",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L9",
+      "id": "lekha_package_scripts_lint",
+      "community": 95,
+      "norm_label": "lint"
+    },
+    {
+      "label": "typecheck",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L10",
+      "id": "lekha_package_scripts_typecheck",
+      "community": 95,
+      "norm_label": "typecheck"
+    },
+    {
+      "label": "test",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L11",
+      "id": "lekha_package_scripts_test",
+      "community": 95,
+      "norm_label": "test"
+    },
+    {
+      "label": "test:watch",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "id": "lekha_package_scripts_test_watch",
+      "community": 95,
+      "norm_label": "test:watch"
+    },
+    {
+      "label": "test:coverage",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "id": "lekha_package_scripts_test_coverage",
+      "community": 95,
+      "norm_label": "test:coverage"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "id": "lekha_package_dependencies",
+      "community": 15,
+      "norm_label": "dependencies"
+    },
+    {
+      "label": "@ai-sdk/google",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "id": "lekha_package_dependencies_ai_sdk_google",
+      "community": 15,
+      "norm_label": "@ai-sdk/google"
+    },
+    {
+      "label": "@tailwindcss/postcss",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "id": "lekha_package_dependencies_tailwindcss_postcss",
+      "community": 15,
+      "norm_label": "@tailwindcss/postcss"
+    },
+    {
+      "label": "@upstash/qstash",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "id": "lekha_package_dependencies_upstash_qstash",
+      "community": 15,
+      "norm_label": "@upstash/qstash"
+    },
+    {
+      "label": "@upstash/ratelimit",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "id": "lekha_package_dependencies_upstash_ratelimit",
+      "community": 15,
+      "norm_label": "@upstash/ratelimit"
+    },
+    {
+      "label": "@upstash/redis",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "id": "lekha_package_dependencies_upstash_redis",
+      "community": 15,
+      "norm_label": "@upstash/redis"
+    },
+    {
+      "label": "@upstash/vector",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "id": "lekha_package_dependencies_upstash_vector",
+      "community": 15,
+      "norm_label": "@upstash/vector"
+    },
+    {
+      "label": "@vercel/analytics",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L22",
+      "id": "lekha_package_dependencies_vercel_analytics",
+      "community": 15,
+      "norm_label": "@vercel/analytics"
+    },
+    {
+      "label": "@vercel/speed-insights",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L23",
+      "id": "lekha_package_dependencies_vercel_speed_insights",
+      "community": 15,
+      "norm_label": "@vercel/speed-insights"
+    },
+    {
+      "label": "ai",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L24",
+      "id": "lekha_package_dependencies_ai",
+      "community": 15,
+      "norm_label": "ai"
+    },
+    {
+      "label": "class-variance-authority",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "id": "lekha_package_dependencies_class_variance_authority",
+      "community": 15,
+      "norm_label": "class-variance-authority"
+    },
+    {
+      "label": "clsx",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "id": "lekha_package_dependencies_clsx",
+      "community": 15,
+      "norm_label": "clsx"
+    },
+    {
+      "label": "framer-motion",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "id": "lekha_package_dependencies_framer_motion",
+      "community": 15,
+      "norm_label": "framer-motion"
+    },
+    {
+      "label": "googleapis",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L28",
+      "id": "lekha_package_dependencies_googleapis",
+      "community": 15,
+      "norm_label": "googleapis"
+    },
+    {
+      "label": "heic-convert",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L29",
+      "id": "lekha_package_dependencies_heic_convert",
+      "community": 15,
+      "norm_label": "heic-convert"
+    },
+    {
+      "label": "jszip",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L30",
+      "id": "lekha_package_dependencies_jszip",
+      "community": 15,
+      "norm_label": "jszip"
+    },
+    {
+      "label": "lucide-react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L31",
+      "id": "lekha_package_dependencies_lucide_react",
+      "community": 15,
+      "norm_label": "lucide-react"
+    },
+    {
+      "label": "next",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "id": "lekha_package_dependencies_next",
+      "community": 15,
+      "norm_label": "next"
+    },
+    {
+      "label": "react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L33",
+      "id": "lekha_package_dependencies_react",
+      "community": 15,
+      "norm_label": "react"
+    },
+    {
+      "label": "react-dom",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L34",
+      "id": "lekha_package_dependencies_react_dom",
+      "community": 15,
+      "norm_label": "react-dom"
+    },
+    {
+      "label": "stripe",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L35",
+      "id": "lekha_package_dependencies_stripe",
+      "community": 15,
+      "norm_label": "stripe"
+    },
+    {
+      "label": "tailwind-merge",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L36",
+      "id": "lekha_package_dependencies_tailwind_merge",
+      "community": 15,
+      "norm_label": "tailwind-merge"
+    },
+    {
+      "label": "tailwindcss",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L37",
+      "id": "lekha_package_dependencies_tailwindcss",
+      "community": 15,
+      "norm_label": "tailwindcss"
+    },
+    {
+      "label": "zod",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L38",
+      "id": "lekha_package_dependencies_zod",
+      "community": 15,
+      "norm_label": "zod"
+    },
+    {
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L40",
+      "id": "lekha_package_devdependencies",
+      "community": 90,
+      "norm_label": "devdependencies"
+    },
+    {
+      "label": "@types/node",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L41",
+      "id": "lekha_package_devdependencies_types_node",
+      "community": 90,
+      "norm_label": "@types/node"
+    },
+    {
+      "label": "@types/react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L42",
+      "id": "lekha_package_devdependencies_types_react",
+      "community": 90,
+      "norm_label": "@types/react"
+    },
+    {
+      "label": "@types/react-dom",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L43",
+      "id": "lekha_package_devdependencies_types_react_dom",
+      "community": 90,
+      "norm_label": "@types/react-dom"
+    },
+    {
+      "label": "@vitest/coverage-v8",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L44",
+      "id": "lekha_package_devdependencies_vitest_coverage_v8",
+      "community": 90,
+      "norm_label": "@vitest/coverage-v8"
+    },
+    {
+      "label": "eslint",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L45",
+      "id": "lekha_package_devdependencies_eslint",
+      "community": 90,
+      "norm_label": "eslint"
+    },
+    {
+      "label": "eslint-config-next",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L46",
+      "id": "lekha_package_devdependencies_eslint_config_next",
+      "community": 90,
+      "norm_label": "eslint-config-next"
+    },
+    {
+      "label": "typescript",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L47",
+      "id": "lekha_package_devdependencies_typescript",
+      "community": 90,
+      "norm_label": "typescript"
+    },
+    {
+      "label": "vite-tsconfig-paths",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L48",
+      "id": "lekha_package_devdependencies_vite_tsconfig_paths",
+      "community": 90,
+      "norm_label": "vite-tsconfig-paths"
+    },
+    {
+      "label": "vitest",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L49",
+      "id": "lekha_package_devdependencies_vitest",
+      "community": 90,
+      "norm_label": "vitest"
+    },
+    {
+      "label": "overrides",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L51",
+      "id": "lekha_package_overrides",
+      "community": 57,
+      "norm_label": "overrides"
+    },
+    {
+      "label": "next",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L52",
+      "id": "lekha_package_overrides_next",
+      "community": 57,
+      "norm_label": "next"
+    },
+    {
+      "label": "postcss",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L53",
+      "id": "lekha_package_next_postcss",
+      "community": 57,
+      "norm_label": "postcss"
+    },
+    {
+      "label": "heic-convert.d.ts",
+      "file_type": "code",
+      "source_file": "types/heic-convert.d.ts",
+      "source_location": "L1",
+      "id": "types_heic_convert_d_ts",
+      "community": 100,
+      "norm_label": "heic-convert.d.ts"
     },
     {
       "label": "prompts.ts",
@@ -116,7 +575,7 @@
       "file_type": "code",
       "source_file": "lib/tools/lists.ts",
       "source_location": "L1",
-      "community": 6,
+      "community": 3,
       "norm_label": "lists.ts",
       "id": "lib_tools_lists_ts"
     },
@@ -125,7 +584,7 @@
       "file_type": "code",
       "source_file": "lib/tools/lists.ts",
       "source_location": "L15",
-      "community": 6,
+      "community": 3,
       "norm_label": "normalizename()",
       "id": "tools_lists_normalizename"
     },
@@ -134,7 +593,7 @@
       "file_type": "code",
       "source_file": "lib/tools/lists.ts",
       "source_location": "L19",
-      "community": 6,
+      "community": 3,
       "norm_label": "listkey()",
       "id": "tools_lists_listkey"
     },
@@ -143,7 +602,7 @@
       "file_type": "code",
       "source_file": "lib/tools/lists.ts",
       "source_location": "L20",
-      "community": 6,
+      "community": 3,
       "norm_label": "nameskey()",
       "id": "tools_lists_nameskey"
     },
@@ -152,7 +611,7 @@
       "file_type": "code",
       "source_file": "lib/tools/lists.ts",
       "source_location": "L22",
-      "community": 6,
+      "community": 3,
       "norm_label": "getlistitems()",
       "id": "tools_lists_getlistitems"
     },
@@ -161,7 +620,7 @@
       "file_type": "code",
       "source_file": "lib/tools/lists.ts",
       "source_location": "L26",
-      "community": 6,
+      "community": 3,
       "norm_label": "buildlisttools()",
       "id": "tools_lists_buildlisttools"
     },
@@ -170,7 +629,7 @@
       "file_type": "code",
       "source_file": "lib/tools/media-ai.ts",
       "source_location": "L1",
-      "community": 53,
+      "community": 75,
       "norm_label": "media-ai.ts",
       "id": "lib_tools_media_ai_ts"
     },
@@ -179,7 +638,7 @@
       "file_type": "code",
       "source_file": "lib/tools/media-ai.ts",
       "source_location": "L12",
-      "community": 53,
+      "community": 3,
       "norm_label": "buildmediaaitools()",
       "id": "tools_media_ai_buildmediaaitools"
     },
@@ -188,7 +647,7 @@
       "file_type": "code",
       "source_file": "lib/tools/media-ai.ts",
       "source_location": "L54",
-      "community": 53,
+      "community": 75,
       "norm_label": "runmediaprompt()",
       "id": "tools_media_ai_runmediaprompt"
     },
@@ -197,7 +656,7 @@
       "file_type": "code",
       "source_file": "lib/tools/media-ai.ts",
       "source_location": "L135",
-      "community": 53,
+      "community": 75,
       "norm_label": "normalizemediatype()",
       "id": "tools_media_ai_normalizemediatype"
     },
@@ -224,7 +683,7 @@
       "file_type": "code",
       "source_file": "lib/tools/settings.ts",
       "source_location": "L1",
-      "community": 69,
+      "community": 3,
       "norm_label": "settings.ts",
       "id": "lib_tools_settings_ts"
     },
@@ -233,7 +692,7 @@
       "file_type": "code",
       "source_file": "lib/tools/settings.ts",
       "source_location": "L7",
-      "community": 69,
+      "community": 3,
       "norm_label": "formatlead()",
       "id": "tools_settings_formatlead"
     },
@@ -242,7 +701,7 @@
       "file_type": "code",
       "source_file": "lib/tools/settings.ts",
       "source_location": "L13",
-      "community": 69,
+      "community": 3,
       "norm_label": "buildsettingstools()",
       "id": "tools_settings_buildsettingstools"
     },
@@ -269,7 +728,7 @@
       "file_type": "code",
       "source_file": "lib/tools/tasks.ts",
       "source_location": "L32",
-      "community": 3,
+      "community": 55,
       "norm_label": "buildtasktools()",
       "id": "tools_tasks_buildtasktools"
     },
@@ -278,7 +737,7 @@
       "file_type": "code",
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L1",
-      "community": 69,
+      "community": 23,
       "norm_label": "route.ts",
       "id": "app_api_cron_sweep_fire_route_ts"
     },
@@ -287,7 +746,7 @@
       "file_type": "code",
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L18",
-      "community": 69,
+      "community": 23,
       "norm_label": "body",
       "id": "fire_route_body"
     },
@@ -296,7 +755,7 @@
       "file_type": "code",
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L36",
-      "community": 69,
+      "community": 23,
       "norm_label": "post()",
       "id": "fire_route_post"
     },
@@ -305,7 +764,7 @@
       "file_type": "code",
       "source_file": "app/api/cron/sweep/fire/route.ts",
       "source_location": "L197",
-      "community": 69,
+      "community": 23,
       "norm_label": "runsweepforuser()",
       "id": "fire_route_runsweepforuser"
     },
@@ -323,7 +782,7 @@
       "file_type": "code",
       "source_file": "lib/memory/user-registry.ts",
       "source_location": "L8",
-      "community": 6,
+      "community": 56,
       "norm_label": "registeruser()",
       "id": "memory_user_registry_registeruser"
     },
@@ -332,7 +791,7 @@
       "file_type": "code",
       "source_file": "lib/memory/user-registry.ts",
       "source_location": "L12",
-      "community": 69,
+      "community": 23,
       "norm_label": "listallusers()",
       "id": "memory_user_registry_listallusers"
     },
@@ -350,7 +809,7 @@
       "file_type": "code",
       "source_file": "app/connect/[token]/page.tsx",
       "source_location": "L1",
-      "community": 57,
+      "community": 14,
       "norm_label": "page.tsx",
       "id": "app_connect_token_page_tsx"
     },
@@ -359,7 +818,7 @@
       "file_type": "code",
       "source_file": "app/connect/[token]/page.tsx",
       "source_location": "L6",
-      "community": 57,
+      "community": 14,
       "norm_label": "isembeddedwebview()",
       "id": "token_page_isembeddedwebview"
     },
@@ -368,7 +827,7 @@
       "file_type": "code",
       "source_file": "app/connect/[token]/page.tsx",
       "source_location": "L22",
-      "community": 57,
+      "community": 14,
       "norm_label": "connectpage()",
       "id": "token_page_connectpage"
     },
@@ -404,7 +863,7 @@
       "file_type": "code",
       "source_file": "lib/llm/agent.ts",
       "source_location": "L40",
-      "community": 68,
+      "community": 20,
       "norm_label": "createsteptracker()",
       "id": "llm_agent_createsteptracker"
     },
@@ -449,7 +908,7 @@
       "file_type": "code",
       "source_file": "lib/llm/agent.ts",
       "source_location": "L398",
-      "community": 0,
+      "community": 52,
       "norm_label": "agenthints",
       "id": "llm_agent_agenthints"
     },
@@ -467,7 +926,7 @@
       "file_type": "code",
       "source_file": "lib/llm/agent.ts",
       "source_location": "L416",
-      "community": 68,
+      "community": 20,
       "norm_label": "runagent()",
       "id": "llm_agent_runagent"
     },
@@ -530,7 +989,7 @@
       "file_type": "code",
       "source_file": "lib/memory/history.ts",
       "source_location": "L30",
-      "community": 91,
+      "community": 20,
       "norm_label": "appendturn()",
       "id": "memory_history_appendturn"
     },
@@ -611,7 +1070,7 @@
       "file_type": "code",
       "source_file": "lib/handlers/image.ts",
       "source_location": "L1",
-      "community": 68,
+      "community": 20,
       "norm_label": "image.ts",
       "id": "lib_handlers_image_ts"
     },
@@ -620,7 +1079,7 @@
       "file_type": "code",
       "source_file": "lib/handlers/image.ts",
       "source_location": "L13",
-      "community": 68,
+      "community": 20,
       "norm_label": "respondtoimage()",
       "id": "handlers_image_respondtoimage"
     },
@@ -629,7 +1088,7 @@
       "file_type": "code",
       "source_file": "lib/handlers/text.ts",
       "source_location": "L1",
-      "community": 68,
+      "community": 20,
       "norm_label": "text.ts",
       "id": "lib_handlers_text_ts"
     },
@@ -638,7 +1097,7 @@
       "file_type": "code",
       "source_file": "lib/handlers/text.ts",
       "source_location": "L11",
-      "community": 68,
+      "community": 20,
       "norm_label": "respondtotext()",
       "id": "handlers_text_respondtotext"
     },
@@ -728,7 +1187,7 @@
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L200",
-      "community": 69,
+      "community": 2,
       "norm_label": "key()",
       "id": "memory_settings_key"
     },
@@ -746,7 +1205,7 @@
       "file_type": "code",
       "source_file": "lib/memory/settings.ts",
       "source_location": "L221",
-      "community": 69,
+      "community": 23,
       "norm_label": "updatesettings()",
       "id": "memory_settings_updatesettings"
     },
@@ -791,7 +1250,7 @@
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L1",
-      "community": 77,
+      "community": 55,
       "norm_label": "proactive-schedules.ts",
       "id": "lib_proactive_schedules_ts"
     },
@@ -818,7 +1277,7 @@
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L48",
-      "community": 77,
+      "community": 55,
       "norm_label": "pre_meeting_alert_key()",
       "id": "lib_proactive_schedules_pre_meeting_alert_key"
     },
@@ -827,7 +1286,7 @@
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L55",
-      "community": 77,
+      "community": 55,
       "norm_label": "schedulepremeetingalerts()",
       "id": "lib_proactive_schedules_schedulepremeetingalerts"
     },
@@ -836,7 +1295,7 @@
       "file_type": "code",
       "source_file": "lib/proactive-schedules.ts",
       "source_location": "L84",
-      "community": 77,
+      "community": 55,
       "norm_label": "cancelpremeetingalerts()",
       "id": "lib_proactive_schedules_cancelpremeetingalerts"
     },
@@ -881,7 +1340,7 @@
       "file_type": "code",
       "source_file": "lib/tools/with-google.ts",
       "source_location": "L33",
-      "community": 4,
+      "community": 94,
       "norm_label": "guardgoogleapicall()",
       "id": "tools_with_google_guardgoogleapicall"
     },
@@ -917,7 +1376,7 @@
       "file_type": "code",
       "source_file": "lib/enrich-reply.ts",
       "source_location": "L1",
-      "community": 0,
+      "community": 52,
       "norm_label": "enrich-reply.ts",
       "id": "lib_enrich_reply_ts"
     },
@@ -926,7 +1385,7 @@
       "file_type": "code",
       "source_file": "lib/enrich-reply.ts",
       "source_location": "L15",
-      "community": 0,
+      "community": 52,
       "norm_label": "enrichreply()",
       "id": "lib_enrich_reply_enrichreply"
     },
@@ -935,7 +1394,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L1",
-      "community": 0,
+      "community": 52,
       "norm_label": "client.ts",
       "id": "lib_line_client_ts"
     },
@@ -944,7 +1403,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L7",
-      "community": 56,
+      "community": 1,
       "norm_label": "fetchwithtimeout()",
       "id": "line_client_fetchwithtimeout"
     },
@@ -953,7 +1412,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L14",
-      "community": 0,
+      "community": 52,
       "norm_label": "textmessage",
       "id": "line_client_textmessage"
     },
@@ -962,7 +1421,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L16",
-      "community": 0,
+      "community": 52,
       "norm_label": "quickreplyitem",
       "id": "line_client_quickreplyitem"
     },
@@ -971,7 +1430,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L21",
-      "community": 0,
+      "community": 52,
       "norm_label": "quickreplymessage",
       "id": "line_client_quickreplymessage"
     },
@@ -989,7 +1448,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L36",
-      "community": 0,
+      "community": 52,
       "norm_label": "linemessage",
       "id": "line_client_linemessage"
     },
@@ -998,7 +1457,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L39",
-      "community": 0,
+      "community": 52,
       "norm_label": "withquickreplies()",
       "id": "line_client_withquickreplies"
     },
@@ -1007,7 +1466,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L54",
-      "community": 56,
+      "community": 77,
       "norm_label": "authheaders()",
       "id": "line_client_authheaders"
     },
@@ -1025,7 +1484,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L83",
-      "community": 56,
+      "community": 23,
       "norm_label": "push()",
       "id": "line_client_push"
     },
@@ -1043,7 +1502,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L117",
-      "community": 56,
+      "community": 20,
       "norm_label": "showloading()",
       "id": "line_client_showloading"
     },
@@ -1052,7 +1511,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L130",
-      "community": 53,
+      "community": 20,
       "norm_label": "getmessagecontent()",
       "id": "line_client_getmessagecontent"
     },
@@ -1070,7 +1529,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L164",
-      "community": 56,
+      "community": 52,
       "norm_label": "text()",
       "id": "line_client_text"
     },
@@ -1079,7 +1538,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L170",
-      "community": 56,
+      "community": 52,
       "norm_label": "safetext()",
       "id": "line_client_safetext"
     },
@@ -1088,7 +1547,7 @@
       "file_type": "code",
       "source_file": "lib/line/client.ts",
       "source_location": "L178",
-      "community": 0,
+      "community": 52,
       "norm_label": "clamp()",
       "id": "line_client_clamp"
     },
@@ -1205,7 +1664,7 @@
       "file_type": "code",
       "source_file": "app/api/reminders/fire/route.ts",
       "source_location": "L1",
-      "community": 23,
+      "community": 77,
       "norm_label": "route.ts",
       "id": "app_api_reminders_fire_route_ts"
     },
@@ -1214,7 +1673,7 @@
       "file_type": "code",
       "source_file": "app/api/reminders/fire/route.ts",
       "source_location": "L12",
-      "community": 23,
+      "community": 77,
       "norm_label": "body",
       "id": "app_api_reminders_fire_route_ts_fire_route_body"
     },
@@ -1367,7 +1826,7 @@
       "file_type": "code",
       "source_file": "lib/format.ts",
       "source_location": "L1",
-      "community": 68,
+      "community": 20,
       "norm_label": "format.ts",
       "id": "lib_format_ts"
     },
@@ -1376,7 +1835,7 @@
       "file_type": "code",
       "source_file": "lib/format.ts",
       "source_location": "L2",
-      "community": 68,
+      "community": 20,
       "norm_label": "stripmarkdown()",
       "id": "lib_format_stripmarkdown"
     },
@@ -1511,7 +1970,7 @@
       "file_type": "code",
       "source_file": "lib/pending-runner.ts",
       "source_location": "L10",
-      "community": 75,
+      "community": 56,
       "norm_label": "executependingall()",
       "id": "lib_pending_runner_executependingall"
     },
@@ -1592,7 +2051,7 @@
       "file_type": "code",
       "source_file": "lib/sweep.ts",
       "source_location": "L1",
-      "community": 0,
+      "community": 23,
       "norm_label": "sweep.ts",
       "id": "lib_sweep_ts"
     },
@@ -1610,7 +2069,7 @@
       "file_type": "code",
       "source_file": "lib/sweep.ts",
       "source_location": "L14",
-      "community": 0,
+      "community": 23,
       "norm_label": "isuserrecentlyactive()",
       "id": "lib_sweep_isuserrecentlyactive"
     },
@@ -1619,7 +2078,7 @@
       "file_type": "code",
       "source_file": "lib/sweep.ts",
       "source_location": "L21",
-      "community": 0,
+      "community": 23,
       "norm_label": "pushtext()",
       "id": "lib_sweep_pushtext"
     },
@@ -1628,7 +2087,7 @@
       "file_type": "code",
       "source_file": "lib/sweep.ts",
       "source_location": "L25",
-      "community": 0,
+      "community": 23,
       "norm_label": "sweeptaskcheckin()",
       "id": "lib_sweep_sweeptaskcheckin"
     },
@@ -1637,7 +2096,7 @@
       "file_type": "code",
       "source_file": "lib/timing.ts",
       "source_location": "L1",
-      "community": 68,
+      "community": 20,
       "norm_label": "timing.ts",
       "id": "lib_timing_ts"
     },
@@ -1664,7 +2123,7 @@
       "file_type": "code",
       "source_file": "lib/timing.ts",
       "source_location": "L10",
-      "community": 68,
+      "community": 20,
       "norm_label": "withtimeout()",
       "id": "lib_timing_withtimeout"
     },
@@ -1673,7 +2132,7 @@
       "file_type": "code",
       "source_file": "lib/timing.ts",
       "source_location": "L35",
-      "community": 68,
+      "community": 20,
       "norm_label": "gentraceid()",
       "id": "lib_timing_gentraceid"
     },
@@ -1682,7 +2141,7 @@
       "file_type": "code",
       "source_file": "lib/timing.ts",
       "source_location": "L39",
-      "community": 68,
+      "community": 20,
       "norm_label": "timingmeta",
       "id": "lib_timing_timingmeta"
     },
@@ -1691,7 +2150,7 @@
       "file_type": "code",
       "source_file": "lib/timing.ts",
       "source_location": "L42",
-      "community": 68,
+      "community": 20,
       "norm_label": "span()",
       "id": "lib_timing_span"
     },
@@ -1700,7 +2159,7 @@
       "file_type": "code",
       "source_file": "lib/timing.ts",
       "source_location": "L55",
-      "community": 68,
+      "community": 20,
       "norm_label": "timed()",
       "id": "lib_timing_timed"
     },
@@ -1709,7 +2168,7 @@
       "file_type": "code",
       "source_file": "lib/timing.ts",
       "source_location": "L75",
-      "community": 68,
+      "community": 20,
       "norm_label": "tick()",
       "id": "lib_timing_tick"
     },
@@ -1754,7 +2213,7 @@
       "file_type": "code",
       "source_file": "lib/tools/calendar.ts",
       "source_location": "L218",
-      "community": 4,
+      "community": 94,
       "norm_label": "createcalendarevent()",
       "id": "tools_calendar_createcalendarevent"
     },
@@ -1862,7 +2321,7 @@
       "file_type": "code",
       "source_file": "lib/tools/google-auth.ts",
       "source_location": "L44",
-      "community": 57,
+      "community": 14,
       "norm_label": "connectlinkkey()",
       "id": "tools_google_auth_connectlinkkey"
     },
@@ -1898,7 +2357,7 @@
       "file_type": "code",
       "source_file": "lib/tools/google-auth.ts",
       "source_location": "L88",
-      "community": 57,
+      "community": 14,
       "norm_label": "verifyconnecttoken()",
       "id": "tools_google_auth_verifyconnecttoken"
     },
@@ -1907,7 +2366,7 @@
       "file_type": "code",
       "source_file": "lib/tools/google-auth.ts",
       "source_location": "L110",
-      "community": 57,
+      "community": 14,
       "norm_label": "startoauth()",
       "id": "tools_google_auth_startoauth"
     },
@@ -1952,7 +2411,7 @@
       "file_type": "code",
       "source_file": "lib/tools/google-auth.ts",
       "source_location": "L204",
-      "community": 68,
+      "community": 20,
       "norm_label": "listaccounts()",
       "id": "tools_google_auth_listaccounts"
     },
@@ -2060,7 +2519,7 @@
       "file_type": "code",
       "source_file": "lib/webhook-postback.ts",
       "source_location": "L15",
-      "community": 55,
+      "community": 87,
       "norm_label": "archivenote()",
       "id": "lib_webhook_postback_archivenote"
     },
@@ -2159,7 +2618,7 @@
       "file_type": "code",
       "source_file": "lib/webhook-postback.ts",
       "source_location": "L199",
-      "community": 55,
+      "community": 56,
       "norm_label": "handlepostback()",
       "id": "lib_webhook_postback_handlepostback"
     },
@@ -2700,7 +3159,7 @@
       "file_type": "code",
       "source_file": "lib/shortcuts.ts",
       "source_location": "L1",
-      "community": 0,
+      "community": 52,
       "norm_label": "shortcuts.ts",
       "id": "lib_shortcuts_ts"
     },
@@ -2709,7 +3168,7 @@
       "file_type": "code",
       "source_file": "lib/shortcuts.ts",
       "source_location": "L10",
-      "community": 0,
+      "community": 52,
       "norm_label": "ctx",
       "id": "lib_shortcuts_ctx"
     },
@@ -2718,7 +3177,7 @@
       "file_type": "code",
       "source_file": "lib/shortcuts.ts",
       "source_location": "L16",
-      "community": 0,
+      "community": 52,
       "norm_label": "shortcut",
       "id": "lib_shortcuts_shortcut"
     },
@@ -2727,7 +3186,7 @@
       "file_type": "code",
       "source_file": "lib/shortcuts.ts",
       "source_location": "L28",
-      "community": 0,
+      "community": 52,
       "norm_label": "shortcuts",
       "id": "lib_shortcuts_shortcuts"
     },
@@ -2763,7 +3222,7 @@
       "file_type": "code",
       "source_file": "app/api/dashboard/connect-google/route.ts",
       "source_location": "L1",
-      "community": 94,
+      "community": 28,
       "norm_label": "route.ts",
       "id": "app_api_dashboard_connect_google_route_ts"
     },
@@ -2772,7 +3231,7 @@
       "file_type": "code",
       "source_file": "app/api/dashboard/connect-google/route.ts",
       "source_location": "L8",
-      "community": 94,
+      "community": 28,
       "norm_label": "get()",
       "id": "connect_google_route_get"
     },
@@ -2781,7 +3240,7 @@
       "file_type": "code",
       "source_file": "app/api/dashboard/disconnect-google/route.ts",
       "source_location": "L1",
-      "community": 28,
+      "community": 14,
       "norm_label": "route.ts",
       "id": "app_api_dashboard_disconnect_google_route_ts"
     },
@@ -2790,7 +3249,7 @@
       "file_type": "code",
       "source_file": "app/api/dashboard/disconnect-google/route.ts",
       "source_location": "L8",
-      "community": 28,
+      "community": 14,
       "norm_label": "post()",
       "id": "disconnect_google_route_post"
     },
@@ -2826,7 +3285,7 @@
       "file_type": "code",
       "source_file": "app/api/dashboard/me/route.ts",
       "source_location": "L1",
-      "community": 28,
+      "community": 69,
       "norm_label": "route.ts",
       "id": "app_api_dashboard_me_route_ts"
     },
@@ -2835,7 +3294,7 @@
       "file_type": "code",
       "source_file": "app/api/dashboard/me/route.ts",
       "source_location": "L12",
-      "community": 28,
+      "community": 69,
       "norm_label": "get()",
       "id": "me_route_get"
     },
@@ -2898,7 +3357,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L1",
-      "community": 7,
+      "community": 57,
       "norm_label": "package.json",
       "id": "users_jamesperenchio_desktop_lekha_claude_worktrees_trusting_perlman_d52b73_package_json"
     },
@@ -2907,7 +3366,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L2",
-      "community": 7,
+      "community": 57,
       "norm_label": "name",
       "id": "trusting_perlman_d52b73_package_name"
     },
@@ -2916,7 +3375,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L3",
-      "community": 7,
+      "community": 57,
       "norm_label": "version",
       "id": "trusting_perlman_d52b73_package_version"
     },
@@ -2925,7 +3384,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L4",
-      "community": 7,
+      "community": 57,
       "norm_label": "private",
       "id": "trusting_perlman_d52b73_package_private"
     },
@@ -2934,7 +3393,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L5",
-      "community": 7,
+      "community": 97,
       "norm_label": "scripts",
       "id": "trusting_perlman_d52b73_package_scripts"
     },
@@ -2943,7 +3402,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L6",
-      "community": 7,
+      "community": 97,
       "norm_label": "dev",
       "id": "trusting_perlman_d52b73_package_scripts_dev"
     },
@@ -2952,7 +3411,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L7",
-      "community": 7,
+      "community": 97,
       "norm_label": "build",
       "id": "trusting_perlman_d52b73_package_scripts_build"
     },
@@ -2961,7 +3420,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L8",
-      "community": 7,
+      "community": 97,
       "norm_label": "start",
       "id": "trusting_perlman_d52b73_package_scripts_start"
     },
@@ -2970,7 +3429,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L9",
-      "community": 7,
+      "community": 97,
       "norm_label": "lint",
       "id": "trusting_perlman_d52b73_package_scripts_lint"
     },
@@ -2979,7 +3438,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L10",
-      "community": 7,
+      "community": 97,
       "norm_label": "typecheck",
       "id": "trusting_perlman_d52b73_package_scripts_typecheck"
     },
@@ -2988,7 +3447,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L11",
-      "community": 7,
+      "community": 97,
       "norm_label": "test",
       "id": "trusting_perlman_d52b73_package_scripts_test"
     },
@@ -2997,7 +3456,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L12",
-      "community": 7,
+      "community": 97,
       "norm_label": "test:watch",
       "id": "trusting_perlman_d52b73_package_scripts_test_watch"
     },
@@ -3006,7 +3465,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L13",
-      "community": 7,
+      "community": 97,
       "norm_label": "test:coverage",
       "id": "trusting_perlman_d52b73_package_scripts_test_coverage"
     },
@@ -3213,7 +3672,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L38",
-      "community": 7,
+      "community": 93,
       "norm_label": "devdependencies",
       "id": "trusting_perlman_d52b73_package_devdependencies"
     },
@@ -3222,7 +3681,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L39",
-      "community": 7,
+      "community": 93,
       "norm_label": "@types/node",
       "id": "trusting_perlman_d52b73_package_devdependencies_types_node"
     },
@@ -3231,7 +3690,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L40",
-      "community": 7,
+      "community": 93,
       "norm_label": "@types/react",
       "id": "trusting_perlman_d52b73_package_devdependencies_types_react"
     },
@@ -3240,7 +3699,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L41",
-      "community": 7,
+      "community": 93,
       "norm_label": "@types/react-dom",
       "id": "trusting_perlman_d52b73_package_devdependencies_types_react_dom"
     },
@@ -3249,7 +3708,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L42",
-      "community": 7,
+      "community": 93,
       "norm_label": "@vitest/coverage-v8",
       "id": "trusting_perlman_d52b73_package_devdependencies_vitest_coverage_v8"
     },
@@ -3258,7 +3717,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L43",
-      "community": 7,
+      "community": 93,
       "norm_label": "eslint",
       "id": "trusting_perlman_d52b73_package_devdependencies_eslint"
     },
@@ -3267,7 +3726,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L44",
-      "community": 7,
+      "community": 93,
       "norm_label": "eslint-config-next",
       "id": "trusting_perlman_d52b73_package_devdependencies_eslint_config_next"
     },
@@ -3276,7 +3735,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L45",
-      "community": 7,
+      "community": 93,
       "norm_label": "typescript",
       "id": "trusting_perlman_d52b73_package_devdependencies_typescript"
     },
@@ -3285,7 +3744,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L46",
-      "community": 7,
+      "community": 93,
       "norm_label": "vite-tsconfig-paths",
       "id": "trusting_perlman_d52b73_package_devdependencies_vite_tsconfig_paths"
     },
@@ -3294,7 +3753,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L47",
-      "community": 7,
+      "community": 93,
       "norm_label": "vitest",
       "id": "trusting_perlman_d52b73_package_devdependencies_vitest"
     },
@@ -3303,7 +3762,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L49",
-      "community": 7,
+      "community": 57,
       "norm_label": "overrides",
       "id": "trusting_perlman_d52b73_package_overrides"
     },
@@ -3312,7 +3771,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L50",
-      "community": 7,
+      "community": 57,
       "norm_label": "next",
       "id": "trusting_perlman_d52b73_package_overrides_next"
     },
@@ -3321,7 +3780,7 @@
       "file_type": "code",
       "source_file": ".claude/worktrees/trusting-perlman-d52b73/package.json",
       "source_location": "L51",
-      "community": 7,
+      "community": 57,
       "norm_label": "postcss",
       "id": "trusting_perlman_d52b73_package_next_postcss"
     },
@@ -4032,7 +4491,7 @@
       "file_type": "code",
       "source_file": "app/api/auth/line/start/route.ts",
       "source_location": "L1",
-      "community": 6,
+      "community": 98,
       "norm_label": "route.ts",
       "id": "app_api_auth_line_start_route_ts"
     },
@@ -4041,7 +4500,7 @@
       "file_type": "code",
       "source_file": "app/api/auth/line/start/route.ts",
       "source_location": "L8",
-      "community": 6,
+      "community": 98,
       "norm_label": "get()",
       "id": "start_route_get"
     },
@@ -4050,7 +4509,7 @@
       "file_type": "code",
       "source_file": "app/api/auth/line/callback/route.ts",
       "source_location": "L1",
-      "community": 6,
+      "community": 98,
       "norm_label": "route.ts",
       "id": "app_api_auth_line_callback_route_ts"
     },
@@ -4059,7 +4518,7 @@
       "file_type": "code",
       "source_file": "app/api/auth/line/callback/route.ts",
       "source_location": "L9",
-      "community": 6,
+      "community": 98,
       "norm_label": "get()",
       "id": "app_api_auth_line_callback_route_ts_callback_route_get"
     },
@@ -4113,7 +4572,7 @@
       "file_type": "code",
       "source_file": "app/api/webhooks/stripe/route.ts",
       "source_location": "L1",
-      "community": 6,
+      "community": 99,
       "norm_label": "route.ts",
       "id": "app_api_webhooks_stripe_route_ts"
     },
@@ -4122,7 +4581,7 @@
       "file_type": "code",
       "source_file": "app/api/webhooks/stripe/route.ts",
       "source_location": "L8",
-      "community": 6,
+      "community": 99,
       "norm_label": "post()",
       "id": "stripe_route_post"
     },
@@ -4257,7 +4716,7 @@
       "file_type": "code",
       "source_file": "tests/cron.test.ts",
       "source_location": "L1",
-      "community": 77,
+      "community": 55,
       "norm_label": "cron.test.ts",
       "id": "tests_cron_test_ts"
     },
@@ -4266,7 +4725,7 @@
       "file_type": "code",
       "source_file": "tests/cron.test.ts",
       "source_location": "L32",
-      "community": 77,
+      "community": 55,
       "norm_label": "result",
       "id": "tests_cron_test_result"
     },
@@ -4275,7 +4734,7 @@
       "file_type": "code",
       "source_file": "tests/confirm.test.ts",
       "source_location": "L1",
-      "community": 90,
+      "community": 84,
       "norm_label": "confirm.test.ts",
       "id": "tests_confirm_test_ts"
     },
@@ -4284,7 +4743,7 @@
       "file_type": "code",
       "source_file": "tests/confirm.test.ts",
       "source_location": "L5",
-      "community": 90,
+      "community": 84,
       "norm_label": "yes_cases",
       "id": "tests_confirm_test_yes_cases"
     },
@@ -4293,7 +4752,7 @@
       "file_type": "code",
       "source_file": "tests/confirm.test.ts",
       "source_location": "L6",
-      "community": 90,
+      "community": 84,
       "norm_label": "no_cases",
       "id": "tests_confirm_test_no_cases"
     },
@@ -4302,7 +4761,7 @@
       "file_type": "code",
       "source_file": "tests/confirm.test.ts",
       "source_location": "L7",
-      "community": 90,
+      "community": 84,
       "norm_label": "neither_cases",
       "id": "tests_confirm_test_neither_cases"
     },
@@ -4509,7 +4968,7 @@
       "file_type": "code",
       "source_file": "tests/crypto.test.ts",
       "source_location": "L1",
-      "community": 57,
+      "community": 14,
       "norm_label": "crypto.test.ts",
       "id": "tests_crypto_test_ts"
     },
@@ -4518,7 +4977,7 @@
       "file_type": "code",
       "source_file": "tests/crypto.test.ts",
       "source_location": "L26",
-      "community": 57,
+      "community": 14,
       "norm_label": "s",
       "id": "tests_crypto_test_s"
     },
@@ -4527,7 +4986,7 @@
       "file_type": "code",
       "source_file": "tests/crypto.test.ts",
       "source_location": "L36",
-      "community": 57,
+      "community": 14,
       "norm_label": "blob",
       "id": "tests_crypto_test_blob"
     },
@@ -4536,7 +4995,7 @@
       "file_type": "code",
       "source_file": "tests/crypto.test.ts",
       "source_location": "L37",
-      "community": 57,
+      "community": 14,
       "norm_label": "buf",
       "id": "tests_crypto_test_buf"
     },
@@ -5247,7 +5706,7 @@
       "file_type": "code",
       "source_file": "lib/confirm.ts",
       "source_location": "L5",
-      "community": 84,
+      "community": 4,
       "norm_label": "sendemailaction",
       "id": "lib_confirm_sendemailaction"
     },
@@ -5256,7 +5715,7 @@
       "file_type": "code",
       "source_file": "lib/confirm.ts",
       "source_location": "L28",
-      "community": 84,
+      "community": 4,
       "norm_label": "createcalendareventaction",
       "id": "lib_confirm_createcalendareventaction"
     },
@@ -5427,7 +5886,7 @@
       "file_type": "code",
       "source_file": "lib/admin-commands.ts",
       "source_location": "L1",
-      "community": 56,
+      "community": 99,
       "norm_label": "admin-commands.ts",
       "id": "lib_admin_commands_ts"
     },
@@ -5436,7 +5895,7 @@
       "file_type": "code",
       "source_file": "lib/admin-commands.ts",
       "source_location": "L15",
-      "community": 56,
+      "community": 99,
       "norm_label": "handleadmincommand()",
       "id": "lib_admin_commands_handleadmincommand"
     },
@@ -5454,7 +5913,7 @@
       "file_type": "code",
       "source_file": "lib/ratelimit.ts",
       "source_location": "L1",
-      "community": 6,
+      "community": 56,
       "norm_label": "ratelimit.ts",
       "id": "lib_ratelimit_ts"
     },
@@ -5463,7 +5922,7 @@
       "file_type": "code",
       "source_file": "lib/ratelimit.ts",
       "source_location": "L6",
-      "community": 6,
+      "community": 56,
       "norm_label": "getlimiter()",
       "id": "lib_ratelimit_getlimiter"
     },
@@ -5472,7 +5931,7 @@
       "file_type": "code",
       "source_file": "lib/ratelimit.ts",
       "source_location": "L21",
-      "community": 6,
+      "community": 56,
       "norm_label": "checkratelimit()",
       "id": "lib_ratelimit_checkratelimit"
     },
@@ -5481,7 +5940,7 @@
       "file_type": "code",
       "source_file": "lib/cron.ts",
       "source_location": "L1",
-      "community": 77,
+      "community": 55,
       "norm_label": "cron.ts",
       "id": "lib_cron_ts"
     },
@@ -5490,7 +5949,7 @@
       "file_type": "code",
       "source_file": "lib/cron.ts",
       "source_location": "L4",
-      "community": 77,
+      "community": 55,
       "norm_label": "qstash()",
       "id": "lib_cron_qstash"
     },
@@ -5499,7 +5958,7 @@
       "file_type": "code",
       "source_file": "lib/cron.ts",
       "source_location": "L15",
-      "community": 77,
+      "community": 55,
       "norm_label": "schedulerecurring()",
       "id": "lib_cron_schedulerecurring"
     },
@@ -5508,7 +5967,7 @@
       "file_type": "code",
       "source_file": "lib/cron.ts",
       "source_location": "L30",
-      "community": 77,
+      "community": 55,
       "norm_label": "cancelschedule()",
       "id": "lib_cron_cancelschedule"
     },
@@ -5517,7 +5976,7 @@
       "file_type": "code",
       "source_file": "lib/cron.ts",
       "source_location": "L38",
-      "community": 77,
+      "community": 55,
       "norm_label": "scheduleoneshot()",
       "id": "lib_cron_scheduleoneshot"
     },
@@ -5526,7 +5985,7 @@
       "file_type": "code",
       "source_file": "lib/cron.ts",
       "source_location": "L58",
-      "community": 77,
+      "community": 55,
       "norm_label": "localtimetoutccron()",
       "id": "lib_cron_localtimetoutccron"
     },
@@ -5535,7 +5994,7 @@
       "file_type": "code",
       "source_file": "lib/env.ts",
       "source_location": "L1",
-      "community": 23,
+      "community": 98,
       "norm_label": "env.ts",
       "id": "lib_env_ts"
     },
@@ -5544,7 +6003,7 @@
       "file_type": "code",
       "source_file": "lib/env.ts",
       "source_location": "L71",
-      "community": 23,
+      "community": 77,
       "norm_label": "env",
       "id": "lib_env_env"
     },
@@ -5553,7 +6012,7 @@
       "file_type": "code",
       "source_file": "lib/env.ts",
       "source_location": "L67",
-      "community": 23,
+      "community": 98,
       "norm_label": "envshape",
       "id": "lib_env_envshape"
     },
@@ -5562,7 +6021,7 @@
       "file_type": "code",
       "source_file": "lib/env.ts",
       "source_location": "L86",
-      "community": 6,
+      "community": 98,
       "norm_label": "rediscreds()",
       "id": "lib_env_rediscreds"
     },
@@ -5571,7 +6030,7 @@
       "file_type": "code",
       "source_file": "lib/env.ts",
       "source_location": "L98",
-      "community": 14,
+      "community": 3,
       "norm_label": "hasgoogleoauth()",
       "id": "lib_env_hasgoogleoauth"
     },
@@ -5589,7 +6048,7 @@
       "file_type": "code",
       "source_file": "lib/env.ts",
       "source_location": "L108",
-      "community": 9,
+      "community": 87,
       "norm_label": "hasupstashvector()",
       "id": "lib_env_hasupstashvector"
     },
@@ -5742,7 +6201,7 @@
       "file_type": "code",
       "source_file": "lib/tools/staged-media.ts",
       "source_location": "L5",
-      "community": 53,
+      "community": 3,
       "norm_label": "buildstagedmediatools()",
       "id": "tools_staged_media_buildstagedmediatools"
     },
@@ -5751,7 +6210,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L1",
-      "community": 20,
+      "community": 94,
       "norm_label": "email.ts",
       "id": "lib_tools_email_ts"
     },
@@ -5760,7 +6219,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L14",
-      "community": 20,
+      "community": 3,
       "norm_label": "buildemailtools()",
       "id": "tools_email_buildemailtools"
     },
@@ -5769,7 +6228,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L119",
-      "community": 20,
+      "community": 94,
       "norm_label": "sendemail()",
       "id": "tools_email_sendemail"
     },
@@ -5778,7 +6237,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L192",
-      "community": 20,
+      "community": 94,
       "norm_label": "fetchedattachment",
       "id": "tools_email_fetchedattachment"
     },
@@ -5787,7 +6246,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L198",
-      "community": 20,
+      "community": 94,
       "norm_label": "fetchdrivefile()",
       "id": "tools_email_fetchdrivefile"
     },
@@ -5796,7 +6255,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L251",
-      "community": 20,
+      "community": 94,
       "norm_label": "buildrawmime()",
       "id": "tools_email_buildrawmime"
     },
@@ -5805,7 +6264,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L319",
-      "community": 20,
+      "community": 94,
       "norm_label": "encodeheader()",
       "id": "tools_email_encodeheader"
     },
@@ -5814,7 +6273,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L323",
-      "community": 20,
+      "community": 94,
       "norm_label": "escapemimeheadervalue()",
       "id": "tools_email_escapemimeheadervalue"
     },
@@ -5823,7 +6282,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L326",
-      "community": 20,
+      "community": 94,
       "norm_label": "chunkbase64()",
       "id": "tools_email_chunkbase64"
     },
@@ -5832,7 +6291,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L331",
-      "community": 20,
+      "community": 94,
       "norm_label": "defaultfilename()",
       "id": "tools_email_defaultfilename"
     },
@@ -5841,7 +6300,7 @@
       "file_type": "code",
       "source_file": "lib/tools/email.ts",
       "source_location": "L335",
-      "community": 20,
+      "community": 94,
       "norm_label": "mimetoext()",
       "id": "tools_email_mimetoext"
     },
@@ -5850,7 +6309,7 @@
       "file_type": "code",
       "source_file": "lib/tools/reminders.ts",
       "source_location": "L1",
-      "community": 23,
+      "community": 77,
       "norm_label": "reminders.ts",
       "id": "lib_tools_reminders_ts"
     },
@@ -5859,7 +6318,7 @@
       "file_type": "code",
       "source_file": "lib/tools/reminders.ts",
       "source_location": "L8",
-      "community": 23,
+      "community": 77,
       "norm_label": "qstash()",
       "id": "tools_reminders_qstash"
     },
@@ -5868,7 +6327,7 @@
       "file_type": "code",
       "source_file": "lib/tools/reminders.ts",
       "source_location": "L13",
-      "community": 23,
+      "community": 77,
       "norm_label": "storedreminder",
       "id": "tools_reminders_storedreminder"
     },
@@ -5877,7 +6336,7 @@
       "file_type": "code",
       "source_file": "lib/tools/reminders.ts",
       "source_location": "L23",
-      "community": 23,
+      "community": 77,
       "norm_label": "reminderkey()",
       "id": "tools_reminders_reminderkey"
     },
@@ -5886,7 +6345,7 @@
       "file_type": "code",
       "source_file": "lib/tools/reminders.ts",
       "source_location": "L24",
-      "community": 23,
+      "community": 77,
       "norm_label": "reminderlistkey()",
       "id": "tools_reminders_reminderlistkey"
     },
@@ -5895,7 +6354,7 @@
       "file_type": "code",
       "source_file": "lib/tools/reminders.ts",
       "source_location": "L26",
-      "community": 76,
+      "community": 77,
       "norm_label": "listreminders()",
       "id": "tools_reminders_listreminders"
     },
@@ -5913,7 +6372,7 @@
       "file_type": "code",
       "source_file": "lib/tools/reminders.ts",
       "source_location": "L212",
-      "community": 23,
+      "community": 77,
       "norm_label": "consumereminder()",
       "id": "tools_reminders_consumereminder"
     },
@@ -5922,7 +6381,7 @@
       "file_type": "code",
       "source_file": "lib/tools/export.ts",
       "source_location": "L1",
-      "community": 3,
+      "community": 96,
       "norm_label": "export.ts",
       "id": "lib_tools_export_ts"
     },
@@ -5931,7 +6390,7 @@
       "file_type": "code",
       "source_file": "lib/tools/export.ts",
       "source_location": "L10",
-      "community": 3,
+      "community": 96,
       "norm_label": "buildexporttools()",
       "id": "tools_export_buildexporttools"
     },
@@ -5940,7 +6399,7 @@
       "file_type": "code",
       "source_file": "lib/tools/gmail-inbox.ts",
       "source_location": "L1",
-      "community": 84,
+      "community": 4,
       "norm_label": "gmail-inbox.ts",
       "id": "lib_tools_gmail_inbox_ts"
     },
@@ -5949,7 +6408,7 @@
       "file_type": "code",
       "source_file": "lib/tools/gmail-inbox.ts",
       "source_location": "L10",
-      "community": 84,
+      "community": 4,
       "norm_label": "headers",
       "id": "tools_gmail_inbox_headers"
     },
@@ -5958,7 +6417,7 @@
       "file_type": "code",
       "source_file": "lib/tools/gmail-inbox.ts",
       "source_location": "L12",
-      "community": 84,
+      "community": 4,
       "norm_label": "headermap()",
       "id": "tools_gmail_inbox_headermap"
     },
@@ -5967,7 +6426,7 @@
       "file_type": "code",
       "source_file": "lib/tools/gmail-inbox.ts",
       "source_location": "L20",
-      "community": 84,
+      "community": 4,
       "norm_label": "decodebody()",
       "id": "tools_gmail_inbox_decodebody"
     },
@@ -5976,7 +6435,7 @@
       "file_type": "code",
       "source_file": "lib/tools/gmail-inbox.ts",
       "source_location": "L53",
-      "community": 84,
+      "community": 4,
       "norm_label": "buildgmailinboxtools()",
       "id": "tools_gmail_inbox_buildgmailinboxtools"
     },
@@ -5985,7 +6444,7 @@
       "file_type": "code",
       "source_file": "lib/tools/gmail-inbox.ts",
       "source_location": "L253",
-      "community": 84,
+      "community": 4,
       "norm_label": "extractemail()",
       "id": "tools_gmail_inbox_extractemail"
     },
@@ -6138,7 +6597,7 @@
       "file_type": "code",
       "source_file": "lib/tools/index.ts",
       "source_location": "L84",
-      "community": 23,
+      "community": 3,
       "norm_label": "envhas()",
       "id": "tools_index_envhas"
     },
@@ -6147,7 +6606,7 @@
       "file_type": "code",
       "source_file": "lib/tools/index.ts",
       "source_location": "L104",
-      "community": 68,
+      "community": 20,
       "norm_label": "toolsforuser()",
       "id": "tools_index_toolsforuser"
     },
@@ -6174,7 +6633,7 @@
       "file_type": "code",
       "source_file": "lib/tools/receipts.ts",
       "source_location": "L1",
-      "community": 6,
+      "community": 92,
       "norm_label": "receipts.ts",
       "id": "lib_tools_receipts_ts"
     },
@@ -6183,7 +6642,7 @@
       "file_type": "code",
       "source_file": "lib/tools/receipts.ts",
       "source_location": "L15",
-      "community": 6,
+      "community": 92,
       "norm_label": "randomid()",
       "id": "tools_receipts_randomid"
     },
@@ -6192,7 +6651,7 @@
       "file_type": "code",
       "source_file": "lib/tools/receipts.ts",
       "source_location": "L38",
-      "community": 6,
+      "community": 92,
       "norm_label": "buildreceipttools()",
       "id": "tools_receipts_buildreceipttools"
     },
@@ -6255,7 +6714,7 @@
       "file_type": "code",
       "source_file": "lib/tools/sent-history.ts",
       "source_location": "L1",
-      "community": 3,
+      "community": 96,
       "norm_label": "sent-history.ts",
       "id": "lib_tools_sent_history_ts"
     },
@@ -6264,7 +6723,7 @@
       "file_type": "code",
       "source_file": "lib/tools/sent-history.ts",
       "source_location": "L5",
-      "community": 3,
+      "community": 96,
       "norm_label": "buildsenthistorytools()",
       "id": "tools_sent_history_buildsenthistorytools"
     },
@@ -6273,7 +6732,7 @@
       "file_type": "code",
       "source_file": "lib/llm/render-drafts.ts",
       "source_location": "L1",
-      "community": 87,
+      "community": 68,
       "norm_label": "render-drafts.ts",
       "id": "lib_llm_render_drafts_ts"
     },
@@ -6282,7 +6741,7 @@
       "file_type": "code",
       "source_file": "lib/llm/render-drafts.ts",
       "source_location": "L7",
-      "community": 87,
+      "community": 68,
       "norm_label": "toolcall",
       "id": "llm_render_drafts_toolcall"
     },
@@ -6291,7 +6750,7 @@
       "file_type": "code",
       "source_file": "lib/llm/render-drafts.ts",
       "source_location": "L12",
-      "community": 87,
+      "community": 68,
       "norm_label": "renderdraftsblock()",
       "id": "llm_render_drafts_renderdraftsblock"
     },
@@ -6300,7 +6759,7 @@
       "file_type": "code",
       "source_file": "lib/llm/render-drafts.ts",
       "source_location": "L107",
-      "community": 87,
+      "community": 68,
       "norm_label": "fmtrange()",
       "id": "llm_render_drafts_fmtrange"
     },
@@ -6309,7 +6768,7 @@
       "file_type": "code",
       "source_file": "lib/llm/render-drafts.ts",
       "source_location": "L117",
-      "community": 87,
+      "community": 68,
       "norm_label": "fmtdate()",
       "id": "llm_render_drafts_fmtdate"
     },
@@ -6372,7 +6831,7 @@
       "file_type": "code",
       "source_file": "lib/llm/agent-flex.ts",
       "source_location": "L199",
-      "community": 68,
+      "community": 0,
       "norm_label": "buildfollowups()",
       "id": "llm_agent_flex_buildfollowups"
     },
@@ -6453,7 +6912,7 @@
       "file_type": "code",
       "source_file": "lib/llm/provider.ts",
       "source_location": "L24",
-      "community": 9,
+      "community": 87,
       "norm_label": "embeddingmodel()",
       "id": "llm_provider_embeddingmodel"
     },
@@ -6507,7 +6966,7 @@
       "file_type": "code",
       "source_file": "lib/memory/allowlist.ts",
       "source_location": "L11",
-      "community": 6,
+      "community": 99,
       "norm_label": "addtoallowlist()",
       "id": "memory_allowlist_addtoallowlist"
     },
@@ -6516,7 +6975,7 @@
       "file_type": "code",
       "source_file": "lib/memory/allowlist.ts",
       "source_location": "L14",
-      "community": 6,
+      "community": 99,
       "norm_label": "removefromallowlist()",
       "id": "memory_allowlist_removefromallowlist"
     },
@@ -6525,7 +6984,7 @@
       "file_type": "code",
       "source_file": "lib/memory/allowlist.ts",
       "source_location": "L17",
-      "community": 6,
+      "community": 99,
       "norm_label": "listallowed()",
       "id": "memory_allowlist_listallowed"
     },
@@ -6651,7 +7110,7 @@
       "file_type": "code",
       "source_file": "lib/memory/recent-media.ts",
       "source_location": "L24",
-      "community": 91,
+      "community": 53,
       "norm_label": "appendrecentmedia()",
       "id": "memory_recent_media_appendrecentmedia"
     },
@@ -6660,7 +7119,7 @@
       "file_type": "code",
       "source_file": "lib/memory/recent-media.ts",
       "source_location": "L34",
-      "community": 68,
+      "community": 53,
       "norm_label": "listrecentmedia()",
       "id": "memory_recent_media_listrecentmedia"
     },
@@ -6678,7 +7137,7 @@
       "file_type": "code",
       "source_file": "lib/memory/archive.ts",
       "source_location": "L1",
-      "community": 9,
+      "community": 87,
       "norm_label": "archive.ts",
       "id": "lib_memory_archive_ts"
     },
@@ -6687,7 +7146,7 @@
       "file_type": "code",
       "source_file": "lib/memory/archive.ts",
       "source_location": "L7",
-      "community": 9,
+      "community": 87,
       "norm_label": "archivedsummary",
       "id": "memory_archive_archivedsummary"
     },
@@ -6696,7 +7155,7 @@
       "file_type": "code",
       "source_file": "lib/memory/archive.ts",
       "source_location": "L17",
-      "community": 9,
+      "community": 87,
       "norm_label": "key()",
       "id": "memory_archive_key"
     },
@@ -6705,7 +7164,7 @@
       "file_type": "code",
       "source_file": "lib/memory/archive.ts",
       "source_location": "L21",
-      "community": 9,
+      "community": 87,
       "norm_label": "vector()",
       "id": "memory_archive_vector"
     },
@@ -6714,7 +7173,7 @@
       "file_type": "code",
       "source_file": "lib/memory/archive.ts",
       "source_location": "L32",
-      "community": 9,
+      "community": 87,
       "norm_label": "embedtext()",
       "id": "memory_archive_embedtext"
     },
@@ -6723,7 +7182,7 @@
       "file_type": "code",
       "source_file": "lib/memory/archive.ts",
       "source_location": "L42",
-      "community": 9,
+      "community": 87,
       "norm_label": "appendarchive()",
       "id": "memory_archive_appendarchive"
     },
@@ -6732,7 +7191,7 @@
       "file_type": "code",
       "source_file": "lib/memory/archive.ts",
       "source_location": "L71",
-      "community": 9,
+      "community": 87,
       "norm_label": "listarchive()",
       "id": "memory_archive_listarchive"
     },
@@ -6741,7 +7200,7 @@
       "file_type": "code",
       "source_file": "lib/memory/archive.ts",
       "source_location": "L84",
-      "community": 9,
+      "community": 87,
       "norm_label": "searcharchive()",
       "id": "memory_archive_searcharchive"
     },
@@ -6750,7 +7209,7 @@
       "file_type": "code",
       "source_file": "lib/memory/redis.ts",
       "source_location": "L1",
-      "community": 6,
+      "community": 98,
       "norm_label": "redis.ts",
       "id": "lib_memory_redis_ts"
     },
@@ -6768,7 +7227,7 @@
       "file_type": "code",
       "source_file": "lib/memory/crypto.ts",
       "source_location": "L1",
-      "community": 57,
+      "community": 14,
       "norm_label": "crypto.ts",
       "id": "lib_memory_crypto_ts"
     },
@@ -6777,7 +7236,7 @@
       "file_type": "code",
       "source_file": "lib/memory/crypto.ts",
       "source_location": "L6",
-      "community": 57,
+      "community": 14,
       "norm_label": "key()",
       "id": "memory_crypto_key"
     },
@@ -6786,7 +7245,7 @@
       "file_type": "code",
       "source_file": "lib/memory/crypto.ts",
       "source_location": "L11",
-      "community": 57,
+      "community": 14,
       "norm_label": "encrypt()",
       "id": "memory_crypto_encrypt"
     },
@@ -6804,7 +7263,7 @@
       "file_type": "code",
       "source_file": "lib/memory/crypto.ts",
       "source_location": "L32",
-      "community": 57,
+      "community": 14,
       "norm_label": "hmac()",
       "id": "memory_crypto_hmac"
     },
@@ -6813,7 +7272,7 @@
       "file_type": "code",
       "source_file": "lib/memory/crypto.ts",
       "source_location": "L37",
-      "community": 57,
+      "community": 14,
       "norm_label": "safeequal()",
       "id": "memory_crypto_safeequal"
     },
@@ -6822,7 +7281,7 @@
       "file_type": "code",
       "source_file": "lib/memory/sent-log.ts",
       "source_location": "L1",
-      "community": 3,
+      "community": 96,
       "norm_label": "sent-log.ts",
       "id": "lib_memory_sent_log_ts"
     },
@@ -6831,7 +7290,7 @@
       "file_type": "code",
       "source_file": "lib/memory/sent-log.ts",
       "source_location": "L3",
-      "community": 3,
+      "community": 96,
       "norm_label": "sententry",
       "id": "memory_sent_log_sententry"
     },
@@ -6840,7 +7299,7 @@
       "file_type": "code",
       "source_file": "lib/memory/sent-log.ts",
       "source_location": "L11",
-      "community": 3,
+      "community": 96,
       "norm_label": "key()",
       "id": "memory_sent_log_key"
     },
@@ -6849,7 +7308,7 @@
       "file_type": "code",
       "source_file": "lib/memory/sent-log.ts",
       "source_location": "L14",
-      "community": 3,
+      "community": 96,
       "norm_label": "logsent()",
       "id": "memory_sent_log_logsent"
     },
@@ -6858,7 +7317,7 @@
       "file_type": "code",
       "source_file": "lib/memory/sent-log.ts",
       "source_location": "L25",
-      "community": 3,
+      "community": 96,
       "norm_label": "listsent()",
       "id": "memory_sent_log_listsent"
     },
@@ -6912,7 +7371,7 @@
       "file_type": "code",
       "source_file": "lib/memory/receipts.ts",
       "source_location": "L1",
-      "community": 6,
+      "community": 92,
       "norm_label": "receipts.ts",
       "id": "lib_memory_receipts_ts"
     },
@@ -6921,7 +7380,7 @@
       "file_type": "code",
       "source_file": "lib/memory/receipts.ts",
       "source_location": "L5",
-      "community": 6,
+      "community": 92,
       "norm_label": "receipt",
       "id": "memory_receipts_receipt"
     },
@@ -6930,7 +7389,7 @@
       "file_type": "code",
       "source_file": "lib/memory/receipts.ts",
       "source_location": "L20",
-      "community": 6,
+      "community": 92,
       "norm_label": "key()",
       "id": "memory_receipts_key"
     },
@@ -6939,7 +7398,7 @@
       "file_type": "code",
       "source_file": "lib/memory/receipts.ts",
       "source_location": "L22",
-      "community": 6,
+      "community": 92,
       "norm_label": "appendreceipt()",
       "id": "memory_receipts_appendreceipt"
     },
@@ -6948,7 +7407,7 @@
       "file_type": "code",
       "source_file": "lib/memory/receipts.ts",
       "source_location": "L28",
-      "community": 6,
+      "community": 92,
       "norm_label": "listreceipts()",
       "id": "memory_receipts_listreceipts"
     },
@@ -6957,7 +7416,7 @@
       "file_type": "code",
       "source_file": "lib/memory/receipts.ts",
       "source_location": "L35",
-      "community": 6,
+      "community": 92,
       "norm_label": "deletereceipt()",
       "id": "memory_receipts_deletereceipt"
     },
@@ -6966,7 +7425,7 @@
       "file_type": "code",
       "source_file": "lib/memory/receipts.ts",
       "source_location": "L55",
-      "community": 6,
+      "community": 92,
       "norm_label": "searchreceipts()",
       "id": "memory_receipts_searchreceipts"
     },
@@ -7119,7 +7578,7 @@
       "file_type": "code",
       "source_file": "lib/memory/facts.ts",
       "source_location": "L164",
-      "community": 68,
+      "community": 75,
       "norm_label": "factstopromptblock()",
       "id": "memory_facts_factstopromptblock"
     },
@@ -7173,7 +7632,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L1",
-      "community": 15,
+      "community": 55,
       "norm_label": "types.ts",
       "id": "lib_line_types_ts"
     },
@@ -7182,7 +7641,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L3",
-      "community": 15,
+      "community": 55,
       "norm_label": "source",
       "id": "line_types_source"
     },
@@ -7191,7 +7650,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L10",
-      "community": 15,
+      "community": 55,
       "norm_label": "textmessage",
       "id": "line_types_textmessage"
     },
@@ -7200,7 +7659,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L16",
-      "community": 15,
+      "community": 55,
       "norm_label": "imagemessage",
       "id": "line_types_imagemessage"
     },
@@ -7209,7 +7668,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L22",
-      "community": 15,
+      "community": 55,
       "norm_label": "videomessage",
       "id": "line_types_videomessage"
     },
@@ -7218,7 +7677,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L29",
-      "community": 15,
+      "community": 55,
       "norm_label": "audiomessage",
       "id": "line_types_audiomessage"
     },
@@ -7227,7 +7686,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L36",
-      "community": 15,
+      "community": 55,
       "norm_label": "filemessage",
       "id": "line_types_filemessage"
     },
@@ -7236,7 +7695,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L43",
-      "community": 15,
+      "community": 55,
       "norm_label": "stickermessage",
       "id": "line_types_stickermessage"
     },
@@ -7245,7 +7704,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L50",
-      "community": 15,
+      "community": 55,
       "norm_label": "othermessage",
       "id": "line_types_othermessage"
     },
@@ -7254,7 +7713,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L55",
-      "community": 15,
+      "community": 55,
       "norm_label": "message",
       "id": "line_types_message"
     },
@@ -7263,7 +7722,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L65",
-      "community": 15,
+      "community": 55,
       "norm_label": "messageevent",
       "id": "line_types_messageevent"
     },
@@ -7272,7 +7731,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L75",
-      "community": 15,
+      "community": 55,
       "norm_label": "followevent",
       "id": "line_types_followevent"
     },
@@ -7281,7 +7740,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L83",
-      "community": 15,
+      "community": 55,
       "norm_label": "unfollowevent",
       "id": "line_types_unfollowevent"
     },
@@ -7290,7 +7749,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L90",
-      "community": 15,
+      "community": 55,
       "norm_label": "postbackevent",
       "id": "line_types_postbackevent"
     },
@@ -7299,7 +7758,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L102",
-      "community": 15,
+      "community": 55,
       "norm_label": "otherevent",
       "id": "line_types_otherevent"
     },
@@ -7308,7 +7767,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L109",
-      "community": 56,
+      "community": 55,
       "norm_label": "lineevent",
       "id": "line_types_lineevent"
     },
@@ -7317,7 +7776,7 @@
       "file_type": "code",
       "source_file": "lib/line/types.ts",
       "source_location": "L112",
-      "community": 15,
+      "community": 55,
       "norm_label": "webhook",
       "id": "line_types_webhook"
     },
@@ -7551,7 +8010,7 @@
       "file_type": "code",
       "source_file": "lib/line/flex/confirm-cancel.ts",
       "source_location": "L12",
-      "community": 0,
+      "community": 52,
       "norm_label": "confirmcancelflex()",
       "id": "flex_confirm_cancel_confirmcancelflex"
     },
@@ -7578,7 +8037,7 @@
       "file_type": "code",
       "source_file": "lib/line/flex/task-checkin.ts",
       "source_location": "L14",
-      "community": 0,
+      "community": 23,
       "norm_label": "taskcheckinflex()",
       "id": "flex_task_checkin_taskcheckinflex"
     },
@@ -7596,7 +8055,7 @@
       "file_type": "code",
       "source_file": "lib/line/flex/index.ts",
       "source_location": "L22",
-      "community": 55,
+      "community": 0,
       "norm_label": "parsepostbackdata()",
       "id": "flex_index_parsepostbackdata"
     },
@@ -7614,7 +8073,7 @@
       "file_type": "code",
       "source_file": "lib/line/flex/signup-gate.ts",
       "source_location": "L4",
-      "community": 0,
+      "community": 56,
       "norm_label": "signupgateflex()",
       "id": "flex_signup_gate_signupgateflex"
     },
@@ -11655,7 +12114,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L1",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweaks-panel.jsx",
       "id": "dashboard_project_tweaks_panel_jsx"
     },
@@ -11664,7 +12123,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L162",
-      "community": 52,
+      "community": 2,
       "norm_label": "usetweaks()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_usetweaks"
     },
@@ -11673,7 +12132,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L186",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweakspanel()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweakspanel"
     },
@@ -11682,7 +12141,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L278",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweaksection()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweaksection"
     },
@@ -11691,7 +12150,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L287",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweakrow()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweakrow"
     },
@@ -11700,7 +12159,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L301",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweakslider()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweakslider"
     },
@@ -11709,7 +12168,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L310",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweaktoggle()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweaktoggle"
     },
@@ -11718,7 +12177,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L321",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweakradio()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweakradio"
     },
@@ -11727,7 +12186,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L393",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweakselect()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweakselect"
     },
@@ -11736,7 +12195,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L407",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweaktext()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweaktext"
     },
@@ -11745,7 +12204,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L416",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweaknumber()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweaknumber"
     },
@@ -11754,7 +12213,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L453",
-      "community": 52,
+      "community": 2,
       "norm_label": "__twkislight()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_twkislight"
     },
@@ -11763,7 +12222,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L462",
-      "community": 52,
+      "community": 2,
       "norm_label": "__twkcheck()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_twkcheck"
     },
@@ -11772,7 +12231,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L476",
-      "community": 69,
+      "community": 2,
       "norm_label": "tweakcolor()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweakcolor"
     },
@@ -11781,7 +12240,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/tweaks-panel.jsx",
       "source_location": "L519",
-      "community": 52,
+      "community": 2,
       "norm_label": "tweakbutton()",
       "id": "dashboard_project_tweaks_panel_jsx_project_tweaks_panel_tweakbutton"
     },
@@ -12276,7 +12735,7 @@
       "file_type": "code",
       "source_file": "dashboard/project/uploads/LEKHA-handoff (2)/project/tweaks-panel.jsx",
       "source_location": "L476",
-      "community": 69,
+      "community": 2,
       "norm_label": "tweakcolor()",
       "id": "dashboard_project_uploads_lekha_handoff_2_project_tweaks_panel_jsx_project_tweaks_panel_tweakcolor"
     },
@@ -13559,15 +14018,6 @@
       "id": "trusting_perlman_d52b73_tailwind_config_config"
     },
     {
-      "label": "package.json",
-      "file_type": "code",
-      "source_file": "package.json",
-      "source_location": "L1",
-      "community": 7,
-      "norm_label": "package.json",
-      "id": "package_json"
-    },
-    {
       "label": "tsconfig.json",
       "file_type": "code",
       "source_file": "tsconfig.json",
@@ -14040,9 +14490,9 @@
       "source_file": "app/api/dev/chat/route.ts",
       "source_location": "L76",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_dev_chat_route_ts",
-      "target": "chat_route_extractpptxtext",
-      "confidence_score": 1.0
+      "target": "chat_route_extractpptxtext"
     },
     {
       "relation": "contains",
@@ -14226,9 +14676,9 @@
       "source_file": "app/api/dev/chat/route.ts",
       "source_location": "L226",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "chat_route_post",
-      "target": "chat_route_extractpptxtext",
-      "confidence_score": 1.0
+      "target": "chat_route_extractpptxtext"
     },
     {
       "relation": "calls",
@@ -14416,6 +14866,566 @@
       "weight": 1.0,
       "source": "chat_route_post",
       "target": "llm_extract_facts_extractandmergefacts"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "lekha_package_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "lekha_package_version",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "lekha_package_private",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "lekha_package_scripts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "lekha_package_dependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "lekha_package_devdependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "lekha_package_overrides",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "package_json",
+      "target": "trusting_perlman_d52b73_package_name"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "package_json",
+      "target": "trusting_perlman_d52b73_package_version"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "package_json",
+      "target": "trusting_perlman_d52b73_package_private"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "package_json",
+      "target": "trusting_perlman_d52b73_package_scripts"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "package_json",
+      "target": "trusting_perlman_d52b73_package_dependencies"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L38",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "package_json",
+      "target": "trusting_perlman_d52b73_package_devdependencies"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "package_json",
+      "target": "trusting_perlman_d52b73_package_overrides"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "lekha_package_scripts",
+      "target": "lekha_package_scripts_dev",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "lekha_package_scripts",
+      "target": "lekha_package_scripts_build",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "lekha_package_scripts",
+      "target": "lekha_package_scripts_start",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "lekha_package_scripts",
+      "target": "lekha_package_scripts_lint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "lekha_package_scripts",
+      "target": "lekha_package_scripts_typecheck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "lekha_package_scripts",
+      "target": "lekha_package_scripts_test",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "lekha_package_scripts",
+      "target": "lekha_package_scripts_test_watch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "lekha_package_scripts",
+      "target": "lekha_package_scripts_test_coverage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_ai_sdk_google",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_tailwindcss_postcss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_upstash_qstash",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_upstash_ratelimit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_upstash_redis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_upstash_vector",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_vercel_analytics",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_vercel_speed_insights",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_ai",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_class_variance_authority",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_clsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_framer_motion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_googleapis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_heic_convert",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_jszip",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_lucide_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_next",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_react_dom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_stripe",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_tailwind_merge",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_tailwindcss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "lekha_package_dependencies",
+      "target": "lekha_package_dependencies_zod",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "lekha_package_devdependencies",
+      "target": "lekha_package_devdependencies_types_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "lekha_package_devdependencies",
+      "target": "lekha_package_devdependencies_types_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L43",
+      "weight": 1.0,
+      "source": "lekha_package_devdependencies",
+      "target": "lekha_package_devdependencies_types_react_dom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "lekha_package_devdependencies",
+      "target": "lekha_package_devdependencies_vitest_coverage_v8",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L45",
+      "weight": 1.0,
+      "source": "lekha_package_devdependencies",
+      "target": "lekha_package_devdependencies_eslint",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "lekha_package_devdependencies",
+      "target": "lekha_package_devdependencies_eslint_config_next",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "lekha_package_devdependencies",
+      "target": "lekha_package_devdependencies_typescript",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "lekha_package_devdependencies",
+      "target": "lekha_package_devdependencies_vite_tsconfig_paths",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "lekha_package_devdependencies",
+      "target": "lekha_package_devdependencies_vitest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "lekha_package_overrides",
+      "target": "lekha_package_overrides_next",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "lekha_package_overrides_next",
+      "target": "lekha_package_next_postcss",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -27790,36 +28800,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package_json",
-      "target": "trusting_perlman_d52b73_package_name"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "package.json",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package_json",
-      "target": "trusting_perlman_d52b73_package_version"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "package.json",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package_json",
-      "target": "trusting_perlman_d52b73_package_private"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "package.json",
       "source_location": "L6",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -27895,16 +28875,6 @@
       "confidence_score": 1.0,
       "source": "trusting_perlman_d52b73_package_scripts",
       "target": "trusting_perlman_d52b73_package_scripts_test_coverage"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "package.json",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package_json",
-      "target": "trusting_perlman_d52b73_package_scripts"
     },
     {
       "relation": "contains",
@@ -28120,16 +29090,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package_json",
-      "target": "trusting_perlman_d52b73_package_dependencies"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "package.json",
       "source_location": "L39",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -28220,31 +29180,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L38",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package_json",
-      "target": "trusting_perlman_d52b73_package_devdependencies"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "package.json",
       "source_location": "L50",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "trusting_perlman_d52b73_package_overrides",
       "target": "trusting_perlman_d52b73_package_overrides_next"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "package.json",
-      "source_location": "L49",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "package_json",
-      "target": "trusting_perlman_d52b73_package_overrides"
     },
     {
       "relation": "contains",
@@ -43612,5 +44552,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "673e421a25e205d6b5d89519b7023b23f698d681"
+  "built_at_commit": "1f20a9c6f2cae522b9b09102c7c158e1d74d4575"
 }

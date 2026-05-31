@@ -36,15 +36,30 @@ export function buildReminderTools(userId: string) {
   return {
     set_reminder: tool({
       description:
-        "Schedule a reminder. Use when the user asks you to remind them about something at a future time. Pass an ISO 8601 timestamp in their local time zone if known, otherwise UTC.",
+        "Schedule a reminder. Use when the user asks you to remind them about something at a future time. For relative times like 'in 30 minutes', use relative_minutes. For absolute times like 'tomorrow at 3pm', pass an ISO 8601 timestamp with timezone offset.",
       inputSchema: z.object({
         when: z
           .string()
-          .describe("ISO 8601 datetime when the reminder should fire (e.g. 2026-05-02T15:00:00+07:00)"),
+          .optional()
+          .describe("ISO 8601 datetime when the reminder should fire (e.g. 2026-05-02T15:00:00+07:00). Use this OR relative_minutes, not both."),
+        relative_minutes: z
+          .number()
+          .int()
+          .min(1)
+          .max(60 * 24 * 365)
+          .optional()
+          .describe("Minutes from now. Use for 'in 30 minutes', 'in 2 hours' (convert to minutes)."),
         message: z.string().min(1).max(500).describe("What to remind the user about, in their voice (e.g. 'call mom')"),
       }),
-      execute: async ({ when, message }) => {
-        const fireAt = new Date(when).getTime();
+      execute: async ({ when, relative_minutes, message }) => {
+        let fireAt: number;
+        if (relative_minutes !== undefined) {
+          fireAt = Date.now() + relative_minutes * 60 * 1000;
+        } else if (when) {
+          fireAt = new Date(when).getTime();
+        } else {
+          return { ok: false, error: "Provide either 'when' (ISO timestamp) or 'relative_minutes'." };
+        }
         if (!Number.isFinite(fireAt)) {
           console.warn("[reminder] invalid when:", when);
           return { ok: false, error: `Invalid datetime "${when}". Pass an ISO 8601 string.` };

@@ -85,12 +85,14 @@ const REGISTRY: Entry[] = [
   { build: (u) => buildListTools(u) },
 ];
 
-function envHas(need: Need, userHasGoogle: boolean): boolean {
+function envHas(need: Need, _userHasGoogle: boolean): boolean {
   switch (need) {
     case "google_oauth_env":
       return hasGoogleOAuth();
     case "google_user_connected":
-      return userHasGoogle;
+      // Always register Google-dependent tools so the model can offer connect links.
+      // Tools handle missing auth at runtime via withGoogleClient → { need_google_auth }.
+      return true;
     case "qstash":
       return hasQStash();
     case "tavily":
@@ -118,7 +120,8 @@ export async function toolsForUser(
 
   const disabled = opts?.disabledCategories ?? [];
   const disabledKey = disabled.sort().join(",");
-  const cacheKey = `${userId}:${userHasGoogle ? 1 : 0}:${disabledKey}`;
+  // v2: Google tools are always registered (auth handled at runtime)
+  const cacheKey = `v2:${userId}:${disabledKey}`;
   const cached = toolCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.tools;
