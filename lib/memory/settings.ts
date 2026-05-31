@@ -199,11 +199,20 @@ function applyMigrations(stored: StoredSettings): StoredSettings {
 
 const key = (userId: string) => `user:${userId}:settings`;
 
+// In-memory cache for settings (TTL = 5s) — avoids repeated Redis reads within a single request.
+const settingsCache = new Map<string, { data: UserSettings; ts: number }>();
+const SETTINGS_CACHE_TTL_MS = 5000;
+
 export async function getSettings(userId: string): Promise<UserSettings> {
+  const cached = settingsCache.get(userId);
+  if (cached && Date.now() - cached.ts < SETTINGS_CACHE_TTL_MS) {
+    return cached.data;
+  }
   const stored = await redis().get<StoredSettings>(key(userId));
   if (!stored) {
     const defaults = { ...DEFAULTS };
     await redis().set(key(userId), { ...defaults, updatedAt: Date.now() });
+    settingsCache.set(userId, { data: defaults, ts: Date.now() });
     return defaults;
   }
   const migrated = applyMigrations(stored);
@@ -211,7 +220,9 @@ export async function getSettings(userId: string): Promise<UserSettings> {
   if ((stored.settingsVersion ?? 0) < CURRENT_VERSION) {
     await redis().set(key(userId), { ...migrated, updatedAt: Date.now() });
   }
-  return { ...DEFAULTS, ...migrated };
+  const result = { ...DEFAULTS, ...migrated };
+  settingsCache.set(userId, { data: result, ts: Date.now() });
+  return result;
 }
 
 /**
@@ -247,5 +258,6 @@ export async function updateSettings(
     updatedAt: Date.now(),
   };
   await redis().set(key(userId), next);
+  settingsCache.delete(userId);
   return next;
 }
