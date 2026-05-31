@@ -169,10 +169,10 @@ function processResult(
         }
       }
     }
-    // If model generated empty text after a weather call, render the data ourselves.
-    const weatherText = renderWeatherFallback(result);
-    if (weatherText) {
-      return { reply: weatherText, authNeeded: null, apiDisabled: null, googleErr: null };
+    // If model generated empty text after a display tool call, render the data ourselves.
+    const displayText = renderDisplayFallback(result);
+    if (displayText) {
+      return { reply: displayText, authNeeded: null, apiDisabled: null, googleErr: null };
     }
     const labels = allCalls.map((c) => ACTION_LABELS[c.toolName] ?? c.toolName).filter(Boolean);
     const unique = [...new Set(labels)];
@@ -181,47 +181,80 @@ function processResult(
   return { reply: "I didn't catch that — could you rephrase?", authNeeded: null, apiDisabled: null, googleErr: null };
 }
 
-function renderWeatherFallback(result: { steps?: { toolResults?: { toolName?: string; output?: unknown }[] }[] }): string | null {
+function renderDisplayFallback(result: { steps?: { toolResults?: { toolName?: string; output?: unknown }[] }[] }): string | null {
   for (const step of result.steps ?? []) {
     for (const tr of step.toolResults ?? []) {
-      if (tr?.toolName !== "weather") continue;
+      if (!tr) continue;
       const v = extractToolValue(tr.output);
       if (!v || typeof v !== "object") continue;
       const val = v as Record<string, unknown>;
       if (val.ok !== true) continue;
-      const place = String(val.place ?? "unknown location");
-      const current = val.current as Record<string, unknown> | null;
-      if (!current) continue;
-      const tempC = current.tempC;
-      const tempF = current.tempF;
-      const description = String(current.description ?? "").toLowerCase();
-      const humidity = current.humidityPct;
-      const wind = current.windKmh;
-      const source = String(val.source ?? "");
-      let line = place;
-      if (typeof tempC === "number") {
-        line += ` — ${tempC}°C`;
-        if (typeof tempF === "number") line += ` / ${tempF}°F`;
+
+      // ── Tasks ──────────────────────────────────────────────────────────
+      if (tr.toolName === "list_tasks" && Array.isArray(val.tasks)) {
+        const tasks = val.tasks as Array<Record<string, unknown>>;
+        if (tasks.length === 0) return "You don't have any tasks right now.";
+        const open = tasks.filter((t) => !t.doneAt).map((t) => `• ${t.title}`).join("\n");
+        const done = tasks.filter((t) => t.doneAt).map((t) => `• ${t.title} ✓`).join("\n");
+        const parts: string[] = [];
+        if (open) parts.push(`Open tasks:\n${open}`);
+        if (done) parts.push(`Done:\n${done}`);
+        return parts.join("\n\n") || "Tasks loaded.";
       }
-      if (description) line += `, ${description}`;
-      if (typeof humidity === "number") line += `, humidity ${humidity}%`;
-      if (typeof wind === "number") line += `, wind ${wind} km/h`;
-      if (source) line += ` (source: ${source})`;
-      const forecast = val.forecast as Array<Record<string, unknown>> | null;
-      if (forecast && forecast.length > 0) {
-        const fc = forecast.slice(0, 3).map((d) => {
-          const date = String(d.date ?? "").slice(5);
-          const high = d.highC;
-          const low = d.lowC;
-          const cond = String(d.condition ?? "").toLowerCase();
-          if (typeof high === "number" && typeof low === "number") {
-            return `${date}: ${low}°C–${high}°C${cond ? `, ${cond}` : ""}`;
-          }
-          return null;
-        }).filter(Boolean);
-        if (fc.length) line += `\n\nForecast:\n${fc.join("\n")}`;
+
+      // ── Calendar ───────────────────────────────────────────────────────
+      if (
+        (tr.toolName === "list_upcoming_events" || tr.toolName === "calendar_today" || tr.toolName === "calendar_week") &&
+        Array.isArray(val.events)
+      ) {
+        const events = val.events as Array<Record<string, unknown>>;
+        if (events.length === 0) return "No upcoming events.";
+        return events
+          .map((e) => {
+            const summary = String(e.summary ?? "(no title)");
+            const start = String(e.start ?? "").slice(0, 16).replace("T", " ");
+            const loc = e.location ? ` @ ${e.location}` : "";
+            return `• ${summary}${start ? ` — ${start}` : ""}${loc}`;
+          })
+          .join("\n");
       }
-      return line;
+
+      // ── Weather ────────────────────────────────────────────────────────
+      if (tr.toolName === "weather") {
+        const place = String(val.place ?? "unknown location");
+        const current = val.current as Record<string, unknown> | null;
+        if (!current) continue;
+        const tempC = current.tempC;
+        const tempF = current.tempF;
+        const description = String(current.description ?? "").toLowerCase();
+        const humidity = current.humidityPct;
+        const wind = current.windKmh;
+        const source = String(val.source ?? "");
+        let line = place;
+        if (typeof tempC === "number") {
+          line += ` — ${tempC}°C`;
+          if (typeof tempF === "number") line += ` / ${tempF}°F`;
+        }
+        if (description) line += `, ${description}`;
+        if (typeof humidity === "number") line += `, humidity ${humidity}%`;
+        if (typeof wind === "number") line += `, wind ${wind} km/h`;
+        if (source) line += ` (source: ${source})`;
+        const forecast = val.forecast as Array<Record<string, unknown>> | null;
+        if (forecast && forecast.length > 0) {
+          const fc = forecast.slice(0, 3).map((d) => {
+            const date = String(d.date ?? "").slice(5);
+            const high = d.highC;
+            const low = d.lowC;
+            const cond = String(d.condition ?? "").toLowerCase();
+            if (typeof high === "number" && typeof low === "number") {
+              return `${date}: ${low}°C–${high}°C${cond ? `, ${cond}` : ""}`;
+            }
+            return null;
+          }).filter(Boolean);
+          if (fc.length) line += `\n\nForecast:\n${fc.join("\n")}`;
+        }
+        return line;
+      }
     }
   }
   return null;
