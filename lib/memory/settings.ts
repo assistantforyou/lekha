@@ -216,7 +216,12 @@ const key = (userId: string) => `user:${userId}:settings`;
 
 export async function getSettings(userId: string): Promise<UserSettings> {
   const stored = await redis().get<StoredSettings>(key(userId));
-  if (!stored) return { ...DEFAULTS };
+  if (!stored) {
+    const defaults = { ...DEFAULTS };
+    void redis().set(key(userId), { ...defaults, updatedAt: Date.now() });
+    void import("@/lib/proactive-schedules").then((m) => m.syncAllProactiveSchedules(userId));
+    return defaults;
+  }
   const migrated = applyMigrations(stored);
   // Persist after migration so it only runs once per user per version bump.
   if ((stored.settingsVersion ?? 0) < CURRENT_VERSION) {
