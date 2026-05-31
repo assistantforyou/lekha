@@ -48,66 +48,38 @@ function detectImageMediaType(base64: string): string {
 }
 
 async function convertHeicToJpeg(base64: string): Promise<Uint8Array> {
-  const input = Buffer.from(base64, "base64");
-  const { exec } = await import("child_process");
-  const { promisify } = await import("util");
-  const fs = await import("fs");
-  const execAsync = promisify(exec);
-  const tmpIn = `/tmp/heic_in_${Date.now()}.heic`;
-  const tmpOut = `/tmp/heic_out_${Date.now()}.jpg`;
   try {
-    await fs.promises.writeFile(tmpIn, input);
-    try {
-      await execAsync(`heif-convert "${tmpIn}" "${tmpOut}" 2>/dev/null`);
-    } catch {
-      // Fallback to macOS sips
-      await execAsync(`sips -s format jpeg "${tmpIn}" --out "${tmpOut}" 2>/dev/null`);
-    }
-    const out = await fs.promises.readFile(tmpOut);
-    return new Uint8Array(out);
+    const input = Buffer.from(base64, "base64");
+    const { default: convert } = await import("heic-convert");
+    const output = await convert({ buffer: input, format: "JPEG", quality: 0.9 });
+    return new Uint8Array(output);
   } catch {
     throw new Error("HEIC conversion failed. Please send the image as JPEG or PNG instead.");
-  } finally {
-    await fs.promises.unlink(tmpIn).catch(() => {});
-    await fs.promises.unlink(tmpOut).catch(() => {});
   }
 }
 
 async function extractPptxText(base64: string): Promise<string> {
-  const { exec } = await import("child_process");
-  const { promisify } = await import("util");
-  const fs = await import("fs");
-  const execAsync = promisify(exec);
-  const tmpIn = `/tmp/pptx_in_${Date.now()}.pptx`;
-  const tmpPy = `/tmp/pptx_extract_${Date.now()}.py`;
   try {
-    await fs.promises.writeFile(tmpIn, Buffer.from(base64, "base64"));
-    const script = `
-import zipfile, xml.etree.ElementTree as ET, sys
-try:
-    with zipfile.ZipFile(sys.argv[1], 'r') as z:
-        texts = []
-        for name in sorted(z.namelist()):
-            if name.startswith('ppt/slides/slide') and name.endswith('.xml'):
-                root = ET.fromstring(z.read(name))
-                slide_texts = []
-                for elem in root.iter():
-                    if elem.text and elem.text.strip():
-                        slide_texts.append(elem.text.strip())
-                if slide_texts:
-                    texts.append('\\n'.join(slide_texts))
-        print('\\n\\n---SLIDE---\\n\\n'.join(texts))
-except Exception as e:
-    print(f'Error: {e}')
-`;
-    await fs.promises.writeFile(tmpPy, script);
-    const { stdout } = await execAsync(`python3 "${tmpPy}" "${tmpIn}"`);
-    return stdout.trim();
+    const JSZip = (await import("jszip")).default;
+    const data = Buffer.from(base64, "base64");
+    const zip = await JSZip.loadAsync(data);
+    const promises: Promise<{ name: string; texts: string[] }>[] = [];
+    zip.forEach((name: string, file: { async: (type: "string") => Promise<string> }) => {
+      if (name.startsWith("ppt/slides/slide") && name.endsWith(".xml")) {
+        promises.push(
+          file.async("string").then((txt) => {
+            const matches = txt.match(/<a:t>([^<]*)<\/a:t>/g);
+            const texts = matches ? matches.map((m) => m.replace(/<\/?a:t>/g, "")).filter((t) => t.trim()) : [];
+            return { name, texts };
+          }),
+        );
+      }
+    });
+    const results = await Promise.all(promises);
+    results.sort((a, b) => a.name.localeCompare(b.name));
+    return results.map((s) => s.texts.join("\n")).filter(Boolean).join("\n\n---SLIDE---\n\n");
   } catch (err) {
     throw new Error(`Could not extract text from PPTX: ${err instanceof Error ? err.message : String(err)}`);
-  } finally {
-    await fs.promises.unlink(tmpIn).catch(() => {});
-    await fs.promises.unlink(tmpPy).catch(() => {});
   }
 }
 
