@@ -39,6 +39,8 @@ export type UserSettings = {
   briefingLanguage: "English" | "ไทย" | "EN + ไทย";
   /** Briefing delivery channels. */
   briefingChannels: { line: boolean; email: boolean; push: boolean };
+  /** Per-topic custom news source domains (e.g. { stocks: ["bloomberg.com", "reuters.com"] }). */
+  briefingTopicSources: Record<string, string[]>;
   /** Per-tool enabled flags (todo, reminders, calendar, email, drive). */
   tools: Record<string, boolean>;
   /** Per-tool configuration objects. */
@@ -98,6 +100,7 @@ const DEFAULTS: UserSettings = {
   briefingLength: "Headlines",
   briefingLanguage: "EN + ไทย",
   briefingChannels: { line: true, email: false, push: true },
+  briefingTopicSources: {},
   tools: {
     todo: true,
     reminders: true,

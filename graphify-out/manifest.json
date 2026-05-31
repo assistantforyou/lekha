@@ -830,8 +830,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/dashboard/dashboard-client.tsx": {
-    "mtime": 1780156992.31922,
-    "ast_hash": "4c7713dddd442cffcb89946c5023c4eb",
+    "mtime": 1780158209.9855132,
+    "ast_hash": "4b8f3d9045721d3298ab4b7409402e98",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/dashboard/page.tsx": {
@@ -1052,6 +1052,16 @@
   "/Users/jamesperenchio/Desktop/lekha/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/line-qr.png": {
     "mtime": 1780153980.589388,
     "ast_hash": "b3b52282dd2994eac860efa02705e594",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/app/api/dashboard/connect-google/route.ts": {
+    "mtime": 1780157841.40144,
+    "ast_hash": "144da0e8a5f9e3ce3f4a26b0310ae306",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/app/api/dashboard/disconnect-google/route.ts": {
+    "mtime": 1780157886.7607937,
+    "ast_hash": "d9c6562aceeda9a0cae224de6671e4d0",
     "semantic_hash": ""
   }
 }

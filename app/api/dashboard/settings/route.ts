@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
   if (raw.briefChannels && typeof raw.briefChannels === "object") {
     patch.briefingChannels = raw.briefChannels as UserSettings["briefingChannels"];
   }
+  if (raw.briefingTopicSources && typeof raw.briefingTopicSources === "object") {
+    patch.briefingTopicSources = raw.briefingTopicSources as Record<string, string[]>;
+  }
 
   // Tools → disabledCategories
   if (raw.tools && typeof raw.tools === "object") {

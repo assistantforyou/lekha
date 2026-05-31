@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
         location: settings.location,
         includeInbox: settings.inboxBriefingEnabled,
         briefingTopics: settings.briefingTopics,
+        briefingTopicSources: settings.briefingTopicSources,
       });
       const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
       if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));

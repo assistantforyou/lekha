@@ -227,7 +227,7 @@ const TOPIC_QUERIES: Record<string, string> = {
 
 export async function buildMorningBriefing(
   userId: string,
-  opts: { timezone: string; location: string | null; includeInbox: boolean; briefingTopics?: Record<string, boolean> },
+  opts: { timezone: string; location: string | null; includeInbox: boolean; briefingTopics?: Record<string, boolean>; briefingTopicSources?: Record<string, string[]> },
 ): Promise<BriefingResult> {
   const sections: string[] = [];
   const now = Date.now();
@@ -245,7 +245,13 @@ export async function buildMorningBriefing(
     .filter((q): q is string => !!q)
     .slice(0, 3);
   const newsFetches = apiKey
-    ? topicQueries.map(q => fetchCachedNews(q, apiKey))
+    ? topicQueries.map(q => {
+        const topicId = Object.entries(TOPIC_QUERIES).find(([, query]) => query === q)?.[0];
+        const customSources = topicId
+          ? opts.briefingTopicSources?.[topicId]
+          : undefined;
+        return fetchCachedNews(q, apiKey, Array.isArray(customSources) ? customSources : undefined);
+      })
     : [];
   // Always include a general world news fallback if no topics are enabled
   if (apiKey && topicQueries.length === 0) {

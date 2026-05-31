@@ -129,6 +129,7 @@ function makeDefaultState(displayName: string, userId?: string) {
     briefLength: "Headlines" as "Headlines" | "Bullets" | "Full",
     briefLang: "EN + ไทย" as "English" | "ไทย" | "EN + ไทย",
     briefChannels: { line: true, email: false, push: true },
+    topicSources: {} as Record<string, string[]>,
     /* Productivity */
     tools: { todo: true, reminders: true, calendar: true, email: true, drive: true } as Record<string, boolean>,
     toolSettings: {
@@ -401,6 +402,27 @@ const OverviewView = ({ state, setActive }: { state: State; setActive: (id: stri
 /* ============== DAILY BRIEF VIEW ============== */
 const BriefingView = ({ state, set }: { state: State; set: (patch: Partial<State>) => void }) => {
   const topicsOn = Object.values(state.topics).filter(Boolean).length;
+  const [editingSources, setEditingSources] = useState<string | null>(null);
+  const [sourceDraft, setSourceDraft] = useState("");
+
+  const addSource = (topicId: string) => {
+    const domain = sourceDraft.trim().toLowerCase();
+    if (!domain) return;
+    const current = state.topicSources[topicId] ?? [];
+    if (current.includes(domain)) return;
+    set({
+      topicSources: { ...state.topicSources, [topicId]: [...current, domain] },
+    });
+    setSourceDraft("");
+  };
+
+  const removeSource = (topicId: string, domain: string) => {
+    const current = state.topicSources[topicId] ?? [];
+    set({
+      topicSources: { ...state.topicSources, [topicId]: current.filter(d => d !== domain) },
+    });
+  };
+
   return (
     <div className="row-gap">
       <div className="section-hdr">
@@ -475,6 +497,9 @@ const BriefingView = ({ state, set }: { state: State; set: (patch: Partial<State
         <div className="topic-grid">
           {TOPICS.map(t => {
             const on = !!state.topics[t.id];
+            const custom = state.topicSources[t.id] ?? [];
+            const isEditing = editingSources === t.id;
+            const sourceList = custom.length > 0 ? custom : t.sources;
             return (
               <div key={t.id} className={`topic ${on ? "on" : ""}`} role="button" tabIndex={0}
                 onClick={() => set({ topics: { ...state.topics, [t.id]: !on } })}
@@ -488,7 +513,42 @@ const BriefingView = ({ state, set }: { state: State; set: (patch: Partial<State
                   <div className="topic-thai">{t.thai}</div>
                 </div>
                 <div className="topic-desc">{t.desc}</div>
-                <div className="topic-sources"><span className="pip"/> {t.sources.slice(0, 3).join(" · ")}</div>
+                <div className="topic-sources" onClick={(e) => e.stopPropagation()}>
+                  <span className="pip"/> {sourceList.slice(0, 3).join(" · ")}
+                  <button className="btn-mini" style={{marginLeft: "auto", fontSize: 10, padding: "2px 8px"}}
+                    onClick={(e) => { e.stopPropagation(); setEditingSources(isEditing ? null : t.id); }}>
+                    {isEditing ? "Done" : "Edit sources"}
+                  </button>
+                </div>
+                {isEditing && (
+                  <div className="topic-source-editor" onClick={(e) => e.stopPropagation()}>
+                    <div style={{fontSize: 11, color: "var(--ink-mute)", marginBottom: 6}}>
+                      {custom.length > 0 ? "Custom sources" : "Default sources"} — add domains like <code>bloomberg.com</code>
+                    </div>
+                    <div style={{display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8}}>
+                      {sourceList.map((s) => (
+                        <span key={s} className="chip on" style={{fontSize: 10, padding: "3px 8px", display: "flex", alignItems: "center", gap: 4}}>
+                          {s}
+                          <button style={{background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 12, padding: 0, lineHeight: 1}}
+                            onClick={() => removeSource(t.id, s)}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{display: "flex", gap: 6}}>
+                      <input value={sourceDraft} placeholder="e.g. reuters.com"
+                        onChange={(e) => setSourceDraft(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSource(t.id); } }}
+                        style={{flex: 1, background: "rgba(0,0,0,0.2)", border: "1px solid var(--line)", borderRadius: 6, padding: "5px 10px", color: "inherit", fontSize: 12, fontFamily: "inherit"}}/>
+                      <button className="btn-mini" onClick={() => addSource(t.id)}>Add</button>
+                    </div>
+                    {custom.length > 0 && (
+                      <button className="btn-mini btn-ghost" style={{marginTop: 6, fontSize: 10}}
+                        onClick={() => set({ topicSources: { ...state.topicSources, [t.id]: [] } })}>
+                        Reset to defaults
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -838,6 +898,10 @@ const MemoryView = ({ state, set }: { state: State; set: (patch: Partial<State>)
             <div className="field-label">Auto-compact at</div>
             <div className="field-control"><Slider value={state.compactAt} min={5} max={30} step={1} fmt={(v) => v + " messages"} onChange={(v) => set({ compactAt: v })}/></div>
           </div>
+          <div className="divider"/>
+          <div style={{fontSize: 12, color: "var(--ink-mute)", lineHeight: 1.5}}>
+            <strong style={{color: "var(--ink-dim)"}}>How facts are added:</strong> Every 10 messages, Lekha automatically extracts durable facts about you — preferences, people, habits, work — and stores them here. You can also add or remove facts manually below.
+          </div>
         </div>
 
         <div className="card">
@@ -1122,6 +1186,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
             briefLength: s.briefingLength ?? prev.briefLength,
             briefLang: s.briefingLanguage ?? prev.briefLang,
             briefChannels: s.briefingChannels ?? prev.briefChannels,
+            topicSources: s.briefingTopicSources ?? prev.topicSources,
             tools: s.tools ?? prev.tools,
             toolSettings: s.toolSettings ?? prev.toolSettings,
             compactAt: s.memoryCompactAt ?? prev.compactAt,
@@ -1174,6 +1239,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
           briefLength: next.briefLength,
           briefLang: next.briefLang,
           briefChannels: next.briefChannels,
+          briefingTopicSources: next.topicSources,
           tools: next.tools,
           toolSettings: next.toolSettings,
           compactAt: next.compactAt,
