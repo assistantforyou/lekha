@@ -188,7 +188,9 @@ function renderDisplayFallback(result: { steps?: { toolResults?: { toolName?: st
       const v = extractToolValue(tr.output);
       if (!v || typeof v !== "object") continue;
       const val = v as Record<string, unknown>;
-      if (val.ok !== true) continue;
+      // Some tools return {ok:true, ...} on success; others just return the data.
+      // Only skip if it's explicitly an error.
+      if (val.ok === false || val.need_google_auth || val.google_api_disabled || val.google_error) continue;
 
       // ── Tasks ──────────────────────────────────────────────────────────
       if (tr.toolName === "list_tasks" && Array.isArray(val.tasks)) {
