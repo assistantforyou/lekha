@@ -255,8 +255,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/enrich-reply.ts": {
-    "mtime": 1780134308.692117,
-    "ast_hash": "4ea2d86ffb7a666e321df44d080ba015",
+    "mtime": 1780240217.5083165,
+    "ast_hash": "22f30bc88edc0e2febfe4141aa3c3cd8",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/cron.ts": {
@@ -415,8 +415,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/evening-summary.ts": {
-    "mtime": 1780153980.7630825,
-    "ast_hash": "6d1bc2c8947a88bd0d82ec0013d7baee",
+    "mtime": 1780239719.8830607,
+    "ast_hash": "36ac47e0f1d7b97dc72a4b26f73be081",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/llm/briefing.ts": {
@@ -475,8 +475,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/settings.ts": {
-    "mtime": 1780238754.710051,
-    "ast_hash": "709de5014be52da77de338d0bede9d51",
+    "mtime": 1780240183.3651602,
+    "ast_hash": "4f0db34509a2be51fec42058c28f7b48",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/redis.ts": {
@@ -510,8 +510,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/user-registry.ts": {
-    "mtime": 1780236860.1666305,
-    "ast_hash": "01e54eabfd137caf79367647fdcfd960",
+    "mtime": 1780240192.183139,
+    "ast_hash": "986508b9145a61ede73d606339e1a242",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/facts.ts": {
@@ -530,8 +530,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/line/client.ts": {
-    "mtime": 1780134308.6942208,
-    "ast_hash": "ff7294e71c271d59b830c67749849fff",
+    "mtime": 1780240226.1465244,
+    "ast_hash": "0176a2e3d4c49bf572828621e9dd2c52",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/line/mime.ts": {
@@ -1075,8 +1075,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/proactive-schedules.ts": {
-    "mtime": 1780236287.002014,
-    "ast_hash": "6edba0412959b605e8db22da96877a0b",
+    "mtime": 1780240209.4316354,
+    "ast_hash": "80761e0a387980c4a104f15c9558b7c4",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/qstash-verify.ts": {

@@ -5,17 +5,18 @@ import { getSettings, updateSettings } from "@/lib/memory/settings";
 import { hasGoogleConnection } from "@/lib/tools/google-auth";
 import { push, text as textMsg, type LineMessage } from "@/lib/line/client";
 import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
-import { buildMorningBriefing } from "@/lib/llm/briefing";
-import { buildEveningSummary } from "@/lib/llm/evening-summary";
+import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
+import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
 import { sweepTaskCheckIn, isUserRecentlyActive } from "@/lib/sweep";
 import { listTasks } from "@/lib/memory/tasks";
+import { listAllUsers } from "@/lib/memory/user-registry";
 import { verifyQStashSignature, unauthorized, badRequest, notConfigured, isManualBypass } from "@/lib/qstash-verify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const Body = z.object({
-  userId: z.string().min(1),
+  userId: z.string().min(1).optional(),
   type: z.enum([
     "morning_briefing",
     "evening_summary",
@@ -56,11 +57,21 @@ export async function POST(req: NextRequest) {
 
   const { userId, type } = parsed.data;
 
-  // Legacy no-type requests (from old master sweep) are now no-ops.
+  // ─── Master sweep (no type = iterate all users) ──────────────────────────
   if (!type) {
-    return NextResponse.json({ ok: true, note: "deprecated" });
+    const users = await listAllUsers();
+    for (const uid of users) {
+      try {
+        await runSweepForUser(uid);
+      } catch (err) {
+        console.error("[sweep] master sweep failed for user", uid, err);
+      }
+    }
+    return NextResponse.json({ ok: true, usersChecked: users.length });
   }
 
+  // ─── Typed one-shot (reminder, task deadline, pre-meeting alert) ─────────
+  if (!userId) return badRequest("missing userId");
   const settings = await getSettings(userId);
 
   switch (type) {
@@ -93,7 +104,9 @@ export async function POST(req: NextRequest) {
         if (settings.eveningSummaryEnabled && !(await isUserRecentlyActive(userId))) {
           const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
           if (summary) {
-            await push(userId, [briefingFlex("evening", summary.text)]);
+            const msgs: LineMessage[] = [briefingFlex("evening", summary.text)];
+            if (summary.news.length > 0) msgs.push(newsFlex(summary.news, "📰 Evening news"));
+            await push(userId, msgs);
             await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
           }
         }
@@ -171,4 +184,82 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+// ─── Master sweep logic ────────────────────────────────────────────────────
+
+async function runSweepForUser(userId: string): Promise<void> {
+  const settings = await getSettings(userId);
+
+  // Morning briefing
+  if (
+    settings.morningBriefingTime &&
+    shouldFireBriefingNow(
+      settings.morningBriefingTime,
+      settings.lastMorningBriefingTs,
+      settings.timezone,
+    ) &&
+    !(await isUserRecentlyActive(userId))
+  ) {
+    try {
+      const briefing = await buildMorningBriefing(userId, {
+        timezone: settings.timezone,
+        location: settings.location,
+        includeInbox: settings.inboxBriefingEnabled,
+        briefingTopics: settings.briefingTopics,
+        briefingTopicSources: settings.briefingTopicSources,
+      });
+      const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
+      if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
+      if (briefing.inbox && briefing.inbox.length > 0) {
+        msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
+      }
+      await push(userId, msgs);
+      await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
+    } catch (err) {
+      console.error("[sweep] morning briefing failed", userId, err);
+    }
+  }
+
+  // Evening summary
+  if (
+    settings.eveningSummaryEnabled &&
+    shouldFireEveningSummaryNow(
+      settings.lastEveningSummaryTs,
+      settings.timezone,
+      settings.eveningSummaryTime,
+    ) &&
+    !(await isUserRecentlyActive(userId))
+  ) {
+    try {
+      const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
+      if (summary) {
+        const msgs: LineMessage[] = [briefingFlex("evening", summary.text)];
+        if (summary.news.length > 0) msgs.push(newsFlex(summary.news, "📰 Evening news"));
+        await push(userId, msgs);
+        await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
+      }
+    } catch (err) {
+      console.error("[sweep] evening summary failed", userId, err);
+    }
+  }
+
+  // Task check-in
+  if (
+    settings.taskCheckInEnabled &&
+    settings.taskCheckInTime &&
+    shouldFireBriefingNow(
+      settings.taskCheckInTime,
+      settings.lastTaskCheckInTs,
+      settings.timezone,
+    ) &&
+    !(await isUserRecentlyActive(userId))
+  ) {
+    try {
+      await sweepTaskCheckIn(userId, settings.timezone, { taskCheckIns: 0 });
+      await updateSettings(userId, { lastTaskCheckInTs: Date.now() });
+    } catch (err) {
+      console.error("[sweep] task check-in failed", userId, err);
+    }
+  }
 }

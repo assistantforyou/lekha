@@ -59,9 +59,18 @@ export async function POST(req: NextRequest) {
         "message" in event &&
         event.message.type === "image";
       try {
-        await handleEvent(event, gate, thisIsImage && nextIsText ? "stage_only" : "normal");
+        const replied = await handleEvent(event, gate, thisIsImage && nextIsText ? "stage_only" : "normal");
+        if (!replied) {
+          console.warn("[webhook] event produced no reply", { type: event.type, userId: event.source?.userId });
+        }
       } catch (err) {
         console.error("[webhook] event handler crashed", err);
+        // Try to send a fallback error message if we have a userId and replyToken.
+        const uid = event.source?.userId;
+        const rt = "replyToken" in event ? event.replyToken : undefined;
+        if (uid && rt) {
+          replyOrPush(uid, rt, [textMsg("Something went wrong — try again in a moment.")]).catch(() => {});
+        }
       }
     }
   });
@@ -73,7 +82,7 @@ async function handleEvent(
   event: LineEvent,
   gate: ReturnType<typeof buildGate>,
   mode: "normal" | "stage_only" = "normal",
-): Promise<void> {
+): Promise<boolean> {
   const traceId = `${event.source?.userId ?? "unknown"}_${Date.now().toString(36)}`;
   const endEvent = span("webhook:handleEvent", traceId);
 
@@ -83,13 +92,13 @@ async function handleEvent(
     const set = await redis().set(seenKey, 1, { ex: 60 * 10, nx: true });
     if (set === null) {
       endEvent({ skipped: "duplicate" });
-      return;
+      return false;
     }
   }
 
   if (!(await passesAllowlist(event, gate))) {
     endEvent({ skipped: "allowlist" });
-    return;
+    return false;
   }
 
   // Mark user active for proactive-layer suppression (10-min window).
@@ -100,7 +109,7 @@ async function handleEvent(
     const userId = event.source?.userId;
     if (!userId || !("replyToken" in event)) {
       endEvent({ skipped: "no-user" });
-      return;
+      return false;
     }
     const endProfile = span("webhook:getOrCreateProfile", traceId);
     const profile = await getOrCreateProfile(userId);
@@ -112,25 +121,25 @@ async function handleEvent(
       ),
     ]);
     endEvent({ type: "follow" });
-    return;
+    return true;
   }
 
   if (event.type === "postback") {
     await handlePostback(event);
     endEvent({ type: "postback" });
-    return;
+    return true;
   }
 
-  if (event.type !== "message") return;
+  if (event.type !== "message") return false;
 
   const userId = event.source?.userId;
   if (!userId) {
     endEvent({ skipped: "no-user" });
-    return;
+    return false;
   }
   if (!("replyToken" in event) || !("message" in event)) {
     endEvent({ skipped: "no-reply-token" });
-    return;
+    return false;
   }
   const message = event.message;
 
@@ -149,7 +158,7 @@ async function handleEvent(
       textMsg(`Easy there — give me a sec. Try again in ~${rl.retryAfterSec}s.`),
     ]);
     endEvent({ type: "rate-limited" });
-    return;
+    return true;
   }
 
   if (message.type === "text" && "text" in message && typeof message.text === "string") {
@@ -168,7 +177,7 @@ async function handleEvent(
         await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
         await appendTurn(userId, { role: "assistant", content: result, ts: Date.now() });
         endEvent({ type: "pending-yes", actions: pending.length });
-        return;
+        return true;
       }
       if (decision === "no") {
         await clearPending(userId);
@@ -176,35 +185,35 @@ async function handleEvent(
           textMsg(`Cancelled ${pending.length === 1 ? "that" : `all ${pending.length}`}.`),
         ]);
         endEvent({ type: "pending-no" });
-        return;
+        return true;
       }
       await clearPending(userId);
     }
 
     if (await handleMyId(userId, userText, event.replyToken)) {
       endEvent({ type: "myid" });
-      return;
+      return true;
     }
     if (await handleAdminCommand(userId, gate.isAdmin(userId), userText, event.replyToken)) {
       endEvent({ type: "admin" });
-      return;
+      return true;
     }
     if (await dispatchShortcut({ userId, replyToken: event.replyToken, userText })) {
       endEvent({ type: "shortcut" });
-      return;
+      return true;
     }
 
     await respondToText(event.replyToken, userId, profile, userText, traceId);
     maybeExtractFacts(userId).catch(() => {});
     endEvent({ type: "text" });
-    return;
+    return true;
   }
 
   if (message.type === "image" && "id" in message && typeof message.id === "string") {
     await respondToImage(event.replyToken, userId, profile, message.id, mode, traceId);
     if (mode !== "stage_only") maybeExtractFacts(userId).catch(() => {});
     endEvent({ type: mode === "stage_only" ? "image-stage" : "image" });
-    return;
+    return true;
   }
 
   if (
@@ -222,7 +231,7 @@ async function handleEvent(
       "duration" in message && typeof message.duration === "number" ? message.duration : undefined,
     );
     endEvent({ type: message.type });
-    return;
+    return true;
   }
 
   if (message.type === "sticker") {
@@ -230,11 +239,12 @@ async function handleEvent(
       textMsg("Cute sticker. Send me text, a photo, or a file if you'd like me to do something with it."),
     ]);
     endEvent({ type: "sticker" });
-    return;
+    return true;
   }
 
   await replyOrPush(userId, event.replyToken, [
     textMsg("I didn't recognize that message type. Try text, a photo, video, audio, or a file."),
   ]);
   endEvent({ type: "unknown" });
+  return true;
 }

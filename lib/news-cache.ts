@@ -4,6 +4,24 @@ export type NewsStory = { title: string; url: string };
 
 const CACHE_TTL_SECS = 30 * 60;
 
+/** Strip common URL cruft from a news title. */
+function cleanTitle(title: string, url: string): string {
+  const t = title.trim();
+  // If the title IS a URL, try to extract a readable fragment.
+  if (/^https?:\/\//i.test(t)) {
+    try {
+      const u = new URL(t);
+      const path = u.pathname.replace(/^\/+/, "").replace(/[-_/]/g, " ");
+      if (path.length > 5) return path.slice(0, 120);
+    } catch { /* fall through */ }
+    return "News article";
+  }
+  // Sometimes titles repeat the domain or have trailing URLs.
+  const withoutUrl = t.replace(/\s*https?:\/\/\S+$/i, "").trim();
+  if (withoutUrl.length > 3) return withoutUrl.slice(0, 200);
+  return t.slice(0, 200);
+}
+
 /**
  * Fetch news from Tavily, caching the result in Redis for 30 minutes.
  * All users with the same query + domains share a single cached result per sweep window,
@@ -42,7 +60,7 @@ export async function fetchCachedNews(
     });
     if (!r.ok) return [];
     const data = (await r.json()) as { results?: Array<{ title: string; url: string }> };
-    const results = (data.results ?? []).map((s) => ({ title: s.title, url: s.url }));
+    const results = (data.results ?? []).map((s) => ({ title: cleanTitle(s.title, s.url), url: s.url }));
     await redis().set(key, results, { ex: CACHE_TTL_SECS });
     return results;
   } catch {

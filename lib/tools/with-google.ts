@@ -72,11 +72,12 @@ export async function withGoogleClient<T>(
     client: Awaited<ReturnType<typeof getGoogleClient>>["client"];
     email: string;
   }) => Promise<T>,
+  timeoutMs?: number,
 ): Promise<T | AuthRequiredResult | ApiDisabledResult | GoogleErrorResult> {
   const end = span("google:withGoogleClient");
   try {
     const { client, email } = await getGoogleClient(userId, fromEmail, requiredScopes);
-    const result = await withTimeout(fn({ client, email }), GOOGLE_API_TIMEOUT_MS, "Google API call");
+    const result = await withTimeout(fn({ client, email }), timeoutMs ?? GOOGLE_API_TIMEOUT_MS, "Google API call");
     end({ ok: true });
     return result;
   } catch (err) {

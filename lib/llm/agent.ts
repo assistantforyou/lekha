@@ -232,48 +232,49 @@ export async function runAgent(
   },
 ): Promise<AgentResult> {
   const endAgent = span("agent:runAgent", traceId);
-  const [accounts, staged, settings] = await Promise.all([
-    opts?.accounts ? Promise.resolve(opts.accounts) : listAccounts(userId),
-    opts?.staged ? Promise.resolve(opts.staged) : listRecentMedia(userId),
-    getSettings(userId),
-  ]);
-  const userHasGoogle = accounts.accounts.length > 0;
-  tick("agent:preload-done", traceId, { accounts: accounts.accounts.length, staged: staged.length });
-  const accountsBlock = accounts.accounts.length
-    ? `\n\nConnected Google accounts: ${accounts.accounts
-        .map((a) => `${a.email}${a.email === accounts.activeEmail ? " (active)" : ""}`)
-        .join(", ")}.`
-    : "";
-  const recentBlock = staged.length
-    ? `\n\nLINE files staged for attachment (1-indexed, oldest first):\n${staged
-        .map((m, i) => {
-          const ago = Math.round((Date.now() - m.ts) / 60_000);
-          const parts = [
-            `${i + 1}. ${m.kind}`,
-            m.fileName ? `"${m.fileName}"` : null,
-            `(${m.contentType}`,
-            m.sizeBytes ? `, ${(m.sizeBytes / 1024).toFixed(0)} KB` : "",
-            `)`,
-            `— ${ago}m ago`,
-          ];
-          return parts.filter(Boolean).join(" ");
-        })
-        .join("\n")}\nUse \`attach_recent_media: true\` to attach all of them, or \`attach_recent_media_indexes: [n,…]\` to pick specific ones.`
-    : "";
-  const system =
-    buildSystemPrompt(factsToPromptBlock(facts), profile, settings) +
-    accountsBlock +
-    recentBlock;
-
-  const tz = settings.timezone ?? "Asia/Bangkok";
-  const timePrefix: ModelMessage[] = [
-    { role: "user" as const, content: buildTimeContext(tz) },
-    { role: "assistant" as const, content: "Noted." },
-  ];
-
-  const tracker = createStepTracker(traceId);
 
   try {
+    const [accounts, staged, settings] = await Promise.all([
+      opts?.accounts ? Promise.resolve(opts.accounts) : listAccounts(userId),
+      opts?.staged ? Promise.resolve(opts.staged) : listRecentMedia(userId),
+      getSettings(userId),
+    ]);
+    const userHasGoogle = accounts.accounts.length > 0;
+    tick("agent:preload-done", traceId, { accounts: accounts.accounts.length, staged: staged.length });
+    const accountsBlock = accounts.accounts.length
+      ? `\n\nConnected Google accounts: ${accounts.accounts
+          .map((a) => `${a.email}${a.email === accounts.activeEmail ? " (active)" : ""}`)
+          .join(", ")}.`
+      : "";
+    const recentBlock = staged.length
+      ? `\n\nLINE files staged for attachment (1-indexed, oldest first):\n${staged
+          .map((m, i) => {
+            const ago = Math.round((Date.now() - m.ts) / 60_000);
+            const parts = [
+              `${i + 1}. ${m.kind}`,
+              m.fileName ? `"${m.fileName}"` : null,
+              `(${m.contentType}`,
+              m.sizeBytes ? `, ${(m.sizeBytes / 1024).toFixed(0)} KB` : "",
+              `)`,
+              `— ${ago}m ago`,
+            ];
+            return parts.filter(Boolean).join(" ");
+          })
+          .join("\n")}\nUse \`attach_recent_media: true\` to attach all of them, or \`attach_recent_media_indexes: [n,…]\` to pick specific ones.`
+      : "";
+    const system =
+      buildSystemPrompt(factsToPromptBlock(facts), profile, settings) +
+      accountsBlock +
+      recentBlock;
+
+    const tz = settings.timezone ?? "Asia/Bangkok";
+    const timePrefix: ModelMessage[] = [
+      { role: "user" as const, content: buildTimeContext(tz) },
+      { role: "assistant" as const, content: "Noted." },
+    ];
+
+    const tracker = createStepTracker(traceId);
+
     const endTools = span("agent:toolsForUser", traceId);
     const tools = await toolsForUser(userId, { userHasGoogle, disabledCategories: settings.disabledCategories });
     endTools({ toolCount: Object.keys(tools).length });
@@ -337,28 +338,8 @@ export async function runAgent(
     endAgent({ success: true, steps: result.steps.length, toolCalls: tracker.allCalls.length, replyLength: finalText.length });
     return { text: finalText, hints };
   } catch (err) {
-    if (err instanceof AgentTimeoutError && tracker.succeededTools.length > 0) {
-      const draftBlock = renderDraftsBlock(tracker.successfulCalls, accounts.activeEmail, settings.timezone);
-      const text = draftBlock
-        ? stripMarkdown(draftBlock)
-        : stripMarkdown(
-            [...new Set(tracker.succeededTools.filter(Boolean))]
-              .map((t) => ACTION_LABELS[t] ?? t)
-              .join(" • "),
-          );
-      console.warn("[agent] timeout with completed tools — returning summary", { succeededTools: tracker.succeededTools });
-      endAgent({ timeout: true, recovered: true, succeededTools: tracker.succeededTools.length, stepTimes: tracker.stepTimes });
-      return {
-        text,
-        hints: {
-          confirmDraft: Boolean(draftBlock),
-          pickAccount: false,
-          needsGoogleConnect: false,
-        },
-      };
-    }
-    const errText = await handleError(err, userId);
-    endAgent({ error: err instanceof Error ? err.message : String(err), stepTimes: tracker.stepTimes });
+    const errText = await handleAgentError(err, userId, traceId);
+    endAgent({ error: err instanceof Error ? err.message : String(err) });
     return {
       text: errText,
       hints: {
@@ -370,12 +351,17 @@ export async function runAgent(
   }
 }
 
-async function handleError(err: unknown, userId: string): Promise<string> {
-  const authErr = unwrapAuthRequired(err);
-  if (authErr) {
-    const url = await buildConnectUrl(userId);
-    return `To do that I need access to your Google account. Connect here (link expires in 10 min):\n${url}`;
+async function handleAgentError(err: unknown, userId: string, traceId?: string): Promise<string> {
+  try {
+    const authErr = unwrapAuthRequired(err);
+    if (authErr) {
+      const url = await buildConnectUrl(userId);
+      return `To do that I need access to your Google account. Connect here (link expires in 10 min):\n${url}`;
+    }
+  } catch (e) {
+    console.error("[agent] buildConnectUrl failed in error handler", e);
   }
+
   const confirmErr = unwrapCause(err, (v): v is NeedsConfirmation => v instanceof NeedsConfirmation);
   if (confirmErr) {
     return confirmErr.message;
@@ -385,15 +371,15 @@ async function handleError(err: unknown, userId: string): Promise<string> {
     return `I'm being rate-limited. Try again in ~${rateErr.retryAfterSec}s.`;
   }
   if (err instanceof AgentTimeoutError) {
-    console.warn("[agent] timeout", { seconds: err.seconds });
+    console.warn("[agent] timeout", { seconds: err.seconds, traceId });
     return `Timed out after ${err.seconds}s — that was a heavy request. Try again in a sec.`;
   }
   const msg = err instanceof Error ? err.message : String(err);
   // Bug 4 & 5: Gemini 503 / cold-start Bad Gateway — return friendly message, not raw error
   if (/UNAVAILABLE|Bad.?Gateway|service.?unavailable/i.test(msg) || /\b50[23]\b/.test(msg)) {
-    console.warn("[agent] service unavailable", { msg: msg.slice(0, 200) });
+    console.warn("[agent] service unavailable", { msg: msg.slice(0, 200), traceId });
     return "Temporarily unavailable — please try again in a moment.";
   }
-  console.error("[agent] unhandled", err);
-  return `Error: ${msg.slice(0, 300)}`;
+  console.error("[agent] unhandled", err, { traceId });
+  return `Something went wrong. Try again in a moment.`;
 }

@@ -1,11 +1,6 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { getSettings, updateSettings } from "@/lib/memory/settings";
-import {
-  syncMorningBriefingSchedule,
-  syncEveningSummarySchedule,
-  syncTaskCheckInSchedule,
-} from "@/lib/proactive-schedules";
 
 const TZ_REGEX = /^[A-Za-z][A-Za-z_]*\/[A-Za-z][A-Za-z_]*(?:\/[A-Za-z][A-Za-z_]*)?$/;
 
@@ -38,14 +33,6 @@ export function buildSettingsTools(userId: string) {
           return { ok: false, error: `'${timezone}' isn't recognized. Use an IANA name.` };
         }
         const next = await updateSettings(userId, { timezone });
-        // Timezone changes shift all schedule crons — recreate them.
-        try {
-          await syncMorningBriefingSchedule(userId);
-          await syncEveningSummarySchedule(userId);
-          await syncTaskCheckInSchedule(userId);
-        } catch (e) {
-          console.error("[settings] failed to sync schedules after timezone change", e);
-        }
         return { ok: true, timezone: next.timezone };
       },
     }),
@@ -85,9 +72,6 @@ export function buildSettingsTools(userId: string) {
           patch.inboxBriefingEnabled = include_inbox;
         }
         const next = await updateSettings(userId, patch);
-        try { await syncMorningBriefingSchedule(userId); } catch (e) {
-          console.error("[settings] failed to sync morning briefing schedule", e);
-        }
         return { ok: true, morningBriefingTime: next.morningBriefingTime, inboxBriefingEnabled: next.inboxBriefingEnabled };
       },
     }),
@@ -97,9 +81,6 @@ export function buildSettingsTools(userId: string) {
       inputSchema: z.object({}),
       execute: async () => {
         await updateSettings(userId, { morningBriefingTime: null });
-        try { await syncMorningBriefingSchedule(userId); } catch (e) {
-          console.error("[settings] failed to cancel morning briefing schedule", e);
-        }
         return { ok: true };
       },
     }),
@@ -110,9 +91,6 @@ export function buildSettingsTools(userId: string) {
       inputSchema: z.object({}),
       execute: async () => {
         await updateSettings(userId, { eveningSummaryEnabled: true });
-        try { await syncEveningSummarySchedule(userId); } catch (e) {
-          console.error("[settings] failed to sync evening summary schedule", e);
-        }
         return { ok: true, note: "Evening summary enabled. I'll push you a wrap-up each night at 9 PM." };
       },
     }),
@@ -122,9 +100,6 @@ export function buildSettingsTools(userId: string) {
       inputSchema: z.object({}),
       execute: async () => {
         await updateSettings(userId, { eveningSummaryEnabled: false });
-        try { await syncEveningSummarySchedule(userId); } catch (e) {
-          console.error("[settings] failed to cancel evening summary schedule", e);
-        }
         return { ok: true };
       },
     }),
@@ -143,9 +118,6 @@ export function buildSettingsTools(userId: string) {
         const patch: Parameters<typeof updateSettings>[1] = { taskCheckInEnabled: true };
         if (time) patch.taskCheckInTime = time;
         const next = await updateSettings(userId, patch);
-        try { await syncTaskCheckInSchedule(userId); } catch (e) {
-          console.error("[settings] failed to sync task check-in schedule", e);
-        }
         return { ok: true, taskCheckInEnabled: true, taskCheckInTime: next.taskCheckInTime };
       },
     }),
@@ -155,9 +127,6 @@ export function buildSettingsTools(userId: string) {
       inputSchema: z.object({}),
       execute: async () => {
         await updateSettings(userId, { taskCheckInEnabled: false });
-        try { await syncTaskCheckInSchedule(userId); } catch (e) {
-          console.error("[settings] failed to cancel task check-in schedule", e);
-        }
         return { ok: true };
       },
     }),
@@ -169,9 +138,6 @@ export function buildSettingsTools(userId: string) {
       }),
       execute: async ({ time }) => {
         await updateSettings(userId, { taskCheckInTime: time });
-        try { await syncTaskCheckInSchedule(userId); } catch (e) {
-          console.error("[settings] failed to sync task check-in schedule", e);
-        }
         return { ok: true, taskCheckInTime: time };
       },
     }),
