@@ -28,6 +28,11 @@ export async function loadHistory(userId: string): Promise<StoredTurn[]> {
 }
 
 export async function appendTurn(userId: string, turn: StoredTurn): Promise<number> {
+  // Never store empty or placeholder replies — they poison the model's history.
+  if (turn.role === "assistant" && PLACEHOLDER_REPLIES.has(turn.content.trim())) {
+    const len = await redis().llen(key(userId));
+    return len;
+  }
   const end = span("history:append");
   const k = key(userId);
   const tx = redis().multi();
@@ -64,8 +69,9 @@ export async function historyForPrompt(userId: string): Promise<ModelMessage[]> 
   const history = await loadHistory(userId);
   const est = estimateTokens(history);
   if (est <= TOKEN_CAP || history.length <= OLDEST_CHUNK) {
+    const msgs = history.map(toModelMessage).filter(Boolean) as ModelMessage[];
     endOverall({ cached: "n/a", turns: history.length, estTokens: est });
-    return history.map(toModelMessage);
+    return msgs;
   }
   const oldest = history.slice(0, history.length - OLDEST_CHUNK);
   const recent = history.slice(history.length - OLDEST_CHUNK);
@@ -92,10 +98,16 @@ export async function historyForPrompt(userId: string): Promise<ModelMessage[]> 
     content: `[Earlier conversation summary]\n${summary ?? "(no summary available)"}`,
   };
   const ack: ModelMessage = { role: "assistant", content: "Noted." };
-  return [summaryTurn, ack, ...recent.map(toModelMessage)];
+  return [summaryTurn, ack, ...recent.map(toModelMessage).filter(Boolean) as ModelMessage[]];
 }
 
-function toModelMessage(t: StoredTurn): ModelMessage {
+const PLACEHOLDER_REPLIES = new Set(["…", "...", "", " "]);
+
+function toModelMessage(t: StoredTurn): ModelMessage | null {
+  // Skip empty or placeholder assistant replies — they teach the model bad habits.
+  if (t.role === "assistant" && PLACEHOLDER_REPLIES.has(t.content.trim())) {
+    return null;
+  }
   return { role: t.role === "user" ? "user" : "assistant", content: t.content };
 }
 

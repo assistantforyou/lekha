@@ -56,15 +56,15 @@ export async function POST(req: NextRequest) {
     try {
       const bytes = Uint8Array.from(Buffer.from(imageBase64, "base64"));
       const endPreload = span("dev:preload", traceId);
-      const [history, facts, settings] = await Promise.all([
-        loadHistory(userId),
+      const [historyMsgs, facts, settings] = await Promise.all([
+        historyForPrompt(userId),
         loadFacts(userId),
         getSettings(userId),
       ]);
-      endPreload({ historyTurns: history.length, facts: facts.facts.length });
+      endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
 
       const messages: ModelMessage[] = [
-        ...history.map<ModelMessage>((t) => ({ role: t.role, content: t.content })),
+        ...historyMsgs,
         {
           role: "user",
           content: [

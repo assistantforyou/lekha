@@ -1,7 +1,7 @@
 import { type ModelMessage } from "ai";
 import { replyOrPush, showLoading, getMessageContent } from "@/lib/line/client";
 import { runAgent } from "@/lib/llm/agent";
-import { appendTurn, loadHistory } from "@/lib/memory/history";
+import { appendTurn, historyForPrompt } from "@/lib/memory/history";
 import { loadFacts } from "@/lib/memory/facts";
 import { listRecentMedia } from "@/lib/memory/recent-media";
 import { listAccounts } from "@/lib/tools/google-auth";
@@ -32,14 +32,14 @@ export async function respondToText(
     : Promise.resolve(null);
 
   const endPreload = span("text:preload", traceId);
-  const [history, facts, accounts, imageData] = await Promise.all([
-    loadHistory(userId),
+  const [historyMsgs, facts, accounts, imageData] = await Promise.all([
+    historyForPrompt(userId),
     loadFacts(userId),
     listAccounts(userId),
     imagePromise,
   ]);
   endPreload({
-    historyTurns: history.length,
+    historyTurns: historyMsgs.length,
     facts: facts.facts.length,
     staged: staged.length,
     accounts: accounts.accounts.length,
@@ -57,7 +57,7 @@ export async function respondToText(
   }
 
   const messages: ModelMessage[] = [
-    ...history.map<ModelMessage>((t) => ({ role: t.role, content: t.content })),
+    ...historyMsgs,
     { role: "user", content: userContent },
   ];
 

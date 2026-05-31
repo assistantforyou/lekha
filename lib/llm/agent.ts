@@ -178,7 +178,7 @@ function processResult(
     const unique = [...new Set(labels)];
     return { reply: unique.length ? unique.join(" • ") + " ✓" : "Done.", authNeeded: null, apiDisabled: null, googleErr: null };
   }
-  return { reply: "…", authNeeded: null, apiDisabled: null, googleErr: null };
+  return { reply: "I didn't catch that — could you rephrase?", authNeeded: null, apiDisabled: null, googleErr: null };
 }
 
 function renderWeatherFallback(result: { steps?: { toolResults?: { toolName?: string; output?: unknown }[] }[] }): string | null {

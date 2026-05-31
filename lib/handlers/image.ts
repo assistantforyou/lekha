@@ -4,7 +4,7 @@ import { chatModel, AGENT_TIMEOUT_MS, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { stripMarkdown } from "@/lib/format";
 import { withTimeout } from "@/lib/timing";
-import { appendTurn, loadHistory } from "@/lib/memory/history";
+import { appendTurn, historyForPrompt } from "@/lib/memory/history";
 import { loadFacts, factsToPromptBlock } from "@/lib/memory/facts";
 import { getSettings } from "@/lib/memory/settings";
 import { appendRecentMedia } from "@/lib/memory/recent-media";
@@ -53,19 +53,19 @@ export async function respondToImage(
 
   showLoading(userId, 60).catch(() => {});
   const endPreload = span("image:preload", traceId);
-  const [history, facts, settings] = await Promise.all([
-    loadHistory(userId),
+  const [historyMsgs, facts, settings] = await Promise.all([
+    historyForPrompt(userId),
     loadFacts(userId),
     getSettings(userId),
   ]);
-  endPreload({ historyTurns: history.length, facts: facts.facts.length });
+  endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
 
   // Use generateText directly (no tools) so Gemini just looks at the image bytes
   // and responds in plain text. Passing through runAgent triggers summarize_image /
   // ocr_image tool calls which then return empty model text → "(…)".
   const imagePart = { type: "image" as const, image: imageBytes, mediaType: imageContentType };
   const messages: ModelMessage[] = [
-    ...history.map<ModelMessage>((t) => ({ role: t.role, content: t.content })),
+    ...historyMsgs,
     {
       role: "user",
       content: [
