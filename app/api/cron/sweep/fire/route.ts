@@ -59,7 +59,13 @@ export async function POST(req: NextRequest) {
 
   // ─── Master sweep (no type = iterate all users) ──────────────────────────
   if (!type) {
-    const users = await listAllUsers();
+    let users: string[] = [];
+    try {
+      users = await listAllUsers();
+    } catch (err) {
+      console.error("[sweep] failed to list users", err);
+      return NextResponse.json({ ok: false, error: "failed to list users" }, { status: 500 });
+    }
     for (const uid of users) {
       try {
         await runSweepForUser(uid);

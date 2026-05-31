@@ -10,7 +10,17 @@ export async function registerUser(userId: string): Promise<void> {
 }
 
 export async function listAllUsers(): Promise<string[]> {
-  return await redis().smembers(REGISTRY_KEY);
+  try {
+    return await redis().smembers(REGISTRY_KEY);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("WRONGTYPE")) {
+      console.error(`[registry] ${REGISTRY_KEY} is not a set — deleting and returning empty. Re-register users to rebuild.`);
+      await redis().del(REGISTRY_KEY).catch(() => {});
+      return [];
+    }
+    throw err;
+  }
 }
 
 export async function unregisterUser(userId: string): Promise<void> {
