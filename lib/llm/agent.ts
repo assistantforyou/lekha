@@ -178,11 +178,11 @@ function processResult(
 
 function formatProcessed(processed: ProcessedResult): string {
   if (processed.authNeeded) {
-    const isReauth = processed.authNeeded.reason.includes("scopes");
+    const isReauth = processed.authNeeded.reason.includes("scopes") || processed.authNeeded.reason.includes("reconnect") || processed.authNeeded.reason.includes("no longer valid");
     const intro = isReauth
-      ? "Your Google account needs a quick permission update to access calendar and Gmail features."
+      ? "Your Google connection expired and needs to be refreshed."
       : "I need access to your Google account to do that.";
-    return `${intro}\n\nType "connect google" to reconnect — it only takes a few seconds and you'll only need to do this once.\n\n${processed.authNeeded.connectUrl}`;
+    return `${intro}\n\nType "connect google" to reconnect — it only takes a few seconds.\n\n${processed.authNeeded.connectUrl}`;
   }
   if (processed.apiDisabled) {
     const enableHint = processed.apiDisabled.enableUrl
@@ -317,7 +317,8 @@ export async function runAgent(
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any);
-    const finalText = suppressText ? "" : text;
+    // NEVER suppress text when auth is needed — the connect message is critical.
+    const finalText = suppressText && !processed.authNeeded ? "" : text;
     const followUps = buildFollowUps(tracker.successfulCalls.map((c) => c.toolName), { confirmDraft, modelText: text });
     endProcess({ confirmDraft, flexCount: flexMessages?.length ?? 0 });
     const hints: AgentHints = {
