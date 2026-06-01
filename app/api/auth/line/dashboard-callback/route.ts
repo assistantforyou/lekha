@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 import { env } from "@/lib/env";
 import { redis } from "@/lib/memory/redis";
 import { signSession, sessionCookieOpts } from "@/lib/dashboard-auth";
@@ -18,15 +19,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${base}/?error=line_denied`);
   }
 
-  // Atomically consume state nonce
-  const stored = await redis().getdel<{ redirectTo?: string }>(`dashboard:state:${state}`);
-  if (!stored) {
+  // Atomically consume state nonce — try dashboard flow first, then signup flow.
+  const dashboardStored = await redis().getdel<{ redirectTo?: string }>(`dashboard:state:${state}`);
+  const signupStored = dashboardStored
+    ? null
+    : await redis().getdel<{ plan: "monthly" | "yearly" }>(`signup:state:${state}`);
+
+  if (!dashboardStored && !signupStored) {
     return NextResponse.redirect(`${base}/?error=invalid_state`);
   }
-  const redirectTo = stored.redirectTo ?? "/dashboard";
 
   if (!e.LINE_LOGIN_CHANNEL_ID || !e.LINE_LOGIN_CHANNEL_SECRET) {
-    return NextResponse.redirect(`${base}/?error=not_configured`);
+    const path = signupStored ? "/signup?error=not_configured" : "/?error=not_configured";
+    return NextResponse.redirect(`${base}${path}`);
   }
 
   // Exchange auth code for access token
@@ -44,8 +49,9 @@ export async function GET(req: NextRequest) {
   });
 
   if (!tokenRes.ok) {
-    console.error("[dashboard-callback] token exchange failed", await tokenRes.text());
-    return NextResponse.redirect(`${base}/?error=line_token`);
+    console.error("[line-callback] token exchange failed", await tokenRes.text());
+    const path = signupStored ? "/signup?error=line_token" : "/?error=line_token";
+    return NextResponse.redirect(`${base}${path}`);
   }
 
   const { access_token } = (await tokenRes.json()) as { access_token: string };
@@ -56,7 +62,8 @@ export async function GET(req: NextRequest) {
   });
 
   if (!profileRes.ok) {
-    return NextResponse.redirect(`${base}/?error=line_profile`);
+    const path = signupStored ? "/signup?error=line_profile" : "/?error=line_profile";
+    return NextResponse.redirect(`${base}${path}`);
   }
 
   const { userId, displayName } = (await profileRes.json()) as {
@@ -64,7 +71,37 @@ export async function GET(req: NextRequest) {
     displayName: string;
   };
 
-  // Create session
+  // ─── Signup flow ──────────────────────────────────────────────────────────
+  if (signupStored) {
+    const { plan } = signupStored;
+    const testMode = e.STRIPE_TEST_MODE === "true";
+    const stripeKey = testMode ? e.STRIPE_TEST_SECRET_KEY : e.STRIPE_SECRET_KEY;
+    const monthlyPriceId = testMode ? e.STRIPE_TEST_MONTHLY_PRICE_ID : e.STRIPE_MONTHLY_PRICE_ID;
+    const yearlyPriceId = testMode ? e.STRIPE_TEST_YEARLY_PRICE_ID : e.STRIPE_YEARLY_PRICE_ID;
+
+    if (!stripeKey || !monthlyPriceId || !yearlyPriceId) {
+      return NextResponse.redirect(`${base}/signup?error=stripe_not_configured`);
+    }
+
+    const priceId = plan === "yearly" ? yearlyPriceId : monthlyPriceId;
+    const stripe = new Stripe(stripeKey);
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: {
+        trial_period_days: 7,
+        metadata: { line_user_id: userId, line_display_name: displayName },
+      },
+      metadata: { line_user_id: userId, line_display_name: displayName, plan },
+      success_url: `${base}/signup/success`,
+      cancel_url: `${base}/signup?plan=${plan}`,
+    });
+
+    return NextResponse.redirect(session.url!);
+  }
+
+  // ─── Dashboard flow ───────────────────────────────────────────────────────
+  const redirectTo = dashboardStored?.redirectTo ?? "/dashboard";
   const token = await signSession(userId, displayName);
   const opts = sessionCookieOpts();
 

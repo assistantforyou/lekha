@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const nonce = randomBytes(16).toString("hex");
   await redis().set(`signup:state:${nonce}`, JSON.stringify({ plan }), { ex: 900 });
 
-  const redirectUri = `${e.APP_BASE_URL}/api/auth/line/callback`;
+  const redirectUri = `${e.APP_BASE_URL}/api/auth/line/dashboard-callback`;
   const authUrl = new URL("https://access.line.me/oauth2/v2.1/authorize");
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("client_id", e.LINE_LOGIN_CHANNEL_ID);
