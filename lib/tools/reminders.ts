@@ -10,12 +10,17 @@ const qstash = () => {
   return new QStash({ token: env().QSTASH_TOKEN! });
 };
 
+/** Max delay QStash free tier allows (seconds). Keep a small safety margin. */
+export const QSTASH_MAX_DELAY_SEC = 60 * 60 * 24 * 7 - 300; // 6d 23h 55m
+
 export type StoredReminder = {
   id: string;
   message: string;
   fireAt: number;
   qstashId: string; // final reminder QStash message id
   warningIds?: string[]; // pre-warning message ids (3h and/or 1h ahead)
+  /** If set, chain message ids for long-term reminders (> 7 days). */
+  relayIds?: string[];
   /** If set, this is a recurring reminder; the QStash id is a schedule, not a one-shot. */
   cron?: string;
 };
@@ -30,6 +35,59 @@ export async function listReminders(userId: string): Promise<StoredReminder[]> {
     ids.map((id) => redis().get<StoredReminder>(reminderKey(userId, id))),
   );
   return items.filter((x): x is StoredReminder => x !== null).sort((a, b) => a.fireAt - b.fireAt);
+}
+
+async function scheduleFinalReminder(
+  userId: string,
+  id: string,
+  message: string,
+  delaySec: number,
+): Promise<{ qstashId: string; warningIds: string[] }> {
+  const callbackUrl = `${env().APP_BASE_URL}/api/reminders/fire`;
+  const warningIds: string[] = [];
+
+  const delay3h = delaySec - 3 * 3600;
+  if (delay3h > 0) {
+    const r3 = await qstash().publishJSON({
+      url: callbackUrl,
+      body: { userId, id, message, type: "warning_3h" },
+      delay: delay3h,
+    });
+    warningIds.push(r3.messageId);
+  }
+
+  const delay1h = delaySec - 3600;
+  if (delay1h > 0) {
+    const r1 = await qstash().publishJSON({
+      url: callbackUrl,
+      body: { userId, id, message, type: "warning_1h" },
+      delay: delay1h,
+    });
+    warningIds.push(r1.messageId);
+  }
+
+  const res = await qstash().publishJSON({
+    url: callbackUrl,
+    body: { userId, id, message, type: "final" },
+    delay: delaySec,
+  });
+
+  return { qstashId: res.messageId, warningIds };
+}
+
+async function scheduleFirstRelay(
+  userId: string,
+  id: string,
+  message: string,
+  fireAt: number,
+): Promise<string> {
+  const relayUrl = `${env().APP_BASE_URL}/api/reminders/relay`;
+  const res = await qstash().publishJSON({
+    url: relayUrl,
+    body: { userId, id, message, fireAt },
+    delay: QSTASH_MAX_DELAY_SEC,
+  });
+  return res.messageId;
 }
 
 export function buildReminderTools(userId: string) {
@@ -71,52 +129,36 @@ export function buildReminderTools(userId: string) {
         if (delaySec > 60 * 60 * 24 * 30) return { ok: false, error: "Max 30 days ahead" };
 
         const id = crypto.randomUUID();
-        const callbackUrl = `${env().APP_BASE_URL}/api/reminders/fire`;
+
         try {
-          const warningIds: string[] = [];
+          let stored: StoredReminder;
 
-          // 3-hour heads-up (only if reminder is more than 3h out)
-          const delay3h = delaySec - 3 * 3600;
-          if (delay3h > 0) {
-            const r3 = await qstash().publishJSON({
-              url: callbackUrl,
-              body: { userId, id, message, type: "warning_3h" },
-              delay: delay3h,
-            });
-            warningIds.push(r3.messageId);
+          if (delaySec <= QSTASH_MAX_DELAY_SEC) {
+            // Short-term: direct publish.
+            const { qstashId, warningIds } = await scheduleFinalReminder(userId, id, message, delaySec);
+            stored = {
+              id,
+              message,
+              fireAt,
+              qstashId,
+              ...(warningIds.length > 0 ? { warningIds } : {}),
+            };
+          } else {
+            // Long-term: start a relay chain.
+            const relayId = await scheduleFirstRelay(userId, id, message, fireAt);
+            stored = {
+              id,
+              message,
+              fireAt,
+              qstashId: "", // filled in on last hop by relay endpoint
+              relayIds: [relayId],
+            };
           }
 
-          // 1-hour heads-up (only if reminder is more than 1h out)
-          const delay1h = delaySec - 3600;
-          if (delay1h > 0) {
-            const r1 = await qstash().publishJSON({
-              url: callbackUrl,
-              body: { userId, id, message, type: "warning_1h" },
-              delay: delay1h,
-            });
-            warningIds.push(r1.messageId);
-          }
-
-          // Final reminder at the requested time
-          const res = await qstash().publishJSON({
-            url: callbackUrl,
-            body: { userId, id, message, type: "final" },
-            delay: delaySec,
-          });
-
-          const stored: StoredReminder = {
-            id,
-            message,
-            fireAt,
-            qstashId: res.messageId,
-            ...(warningIds.length > 0 ? { warningIds } : {}),
-          };
           await redis().set(reminderKey(userId, id), stored, { ex: delaySec + 60 });
           await redis().sadd(reminderListKey(userId), id);
-          // Roll the set's TTL forward to ~14 months so it can never outlive
-          // the longest possible reminder (1 year max) without housekeeping.
           await redis().expire(reminderListKey(userId), 60 * 60 * 24 * 400);
-          console.log("[reminder] scheduled", { userId, id, fireAt: new Date(fireAt).toISOString(), delaySec, warnings: warningIds.length });
+          console.log("[reminder] scheduled", { userId, id, fireAt: new Date(fireAt).toISOString(), delaySec, chained: delaySec > QSTASH_MAX_DELAY_SEC });
           return { ok: true, id, fireAt: new Date(fireAt).toISOString() };
         } catch (err) {
           console.error("[reminder] qstash/redis failed", err);
@@ -151,6 +193,10 @@ export function buildReminderTools(userId: string) {
       execute: async ({ id }) => {
         const r = await redis().get<StoredReminder>(reminderKey(userId, id));
         if (!r) return { ok: false, error: "Reminder not found" };
+        // Cancel relay chain first (fire and forget)
+        if (r.relayIds?.length) {
+          await Promise.allSettled(r.relayIds.map((rid) => qstash().messages.delete(rid)));
+        }
         // Cancel pre-warning messages first (fire and forget errors — may already be delivered)
         if (r.warningIds?.length) {
           await Promise.allSettled(r.warningIds.map((wid) => qstash().messages.delete(wid)));
@@ -158,7 +204,7 @@ export function buildReminderTools(userId: string) {
         try {
           if (r.cron) {
             await qstash().schedules.delete(r.qstashId);
-          } else {
+          } else if (r.qstashId) {
             await qstash().messages.delete(r.qstashId);
           }
         } catch {
