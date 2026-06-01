@@ -82,6 +82,7 @@ export function buildSystemPrompt(
     personaAddressing?: string;
     personaPrimaryLang?: string;
     personaVoiceMatch?: boolean;
+    toolSettings?: Record<string, Record<string, unknown>>;
   },
 ): string {
   const intro = profile.displayName
@@ -109,5 +110,25 @@ export function buildSystemPrompt(
     personaInstructions += `Match the user's writing style and voice in your replies. `;
   }
 
-  return `${BASE_PERSONALITY}${intro}${loc}${lang}${personaInstructions ? "\n\nPersona settings:" + personaInstructions : ""}${facts}`;
+  // Tool settings that affect model behavior
+  const ts = settings?.toolSettings;
+  let toolInstructions = "";
+  if (ts) {
+    const quietStart = ts.reminders?.quietStart as string | undefined;
+    const quietEnd = ts.reminders?.quietEnd as string | undefined;
+    if (quietStart && quietEnd) {
+      toolInstructions += `\nQuiet hours: ${quietStart}–${quietEnd}. Do not set reminders or schedule anything that would fire during this window unless the user explicitly overrides. `;
+    }
+    const emailTone = ts.email?.tone as string | undefined;
+    if (emailTone) {
+      toolInstructions += `\nDefault email tone: ${emailTone}. Use this unless the user asks for something different. `;
+    }
+    const deepStart = ts.calendar?.deepStart as string | undefined;
+    const deepEnd = ts.calendar?.deepEnd as string | undefined;
+    if (deepStart && deepEnd) {
+      toolInstructions += `\nDeep-work block: ${deepStart}–${deepEnd}. Before scheduling meetings during this window, warn the user and ask for confirmation. `;
+    }
+  }
+
+  return `${BASE_PERSONALITY}${intro}${loc}${lang}${personaInstructions ? "\n\nPersona settings:" + personaInstructions : ""}${toolInstructions ? "\n\nTool preferences:" + toolInstructions : ""}${facts}`;
 }

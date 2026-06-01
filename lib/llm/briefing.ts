@@ -227,11 +227,20 @@ const TOPIC_QUERIES: Record<string, string> = {
 
 export async function buildMorningBriefing(
   userId: string,
-  opts: { timezone: string; location: string | null; includeInbox: boolean; briefingTopics?: Record<string, boolean>; briefingTopicSources?: Record<string, string[]> },
+  opts: {
+    timezone: string;
+    location: string | null;
+    includeInbox: boolean;
+    briefingTopics?: Record<string, boolean>;
+    briefingTopicSources?: Record<string, string[]>;
+    briefingLength?: "Headlines" | "Bullets" | "Full";
+    briefingLanguage?: "English" | "ไทย" | "EN + ไทย";
+  },
 ): Promise<BriefingResult> {
   const sections: string[] = [];
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
+  const length = opts.briefingLength ?? "Bullets";
 
   const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone });
   const endOfToday = new Date(`${todayDateStr}T23:59:59`).getTime();
@@ -240,10 +249,11 @@ export async function buildMorningBriefing(
   const enabledTopics = opts.briefingTopics
     ? Object.entries(opts.briefingTopics).filter(([, on]) => on).map(([id]) => id)
     : ["business", "politics"];
+  const maxTopics = length === "Headlines" ? 1 : length === "Full" ? 5 : 3;
   const topicQueries = enabledTopics
     .map(id => TOPIC_QUERIES[id])
     .filter((q): q is string => !!q)
-    .slice(0, 3);
+    .slice(0, maxTopics);
   const newsFetches = apiKey
     ? topicQueries.map(q => {
         const topicId = Object.entries(TOPIC_QUERIES).find(([, query]) => query === q)?.[0];
@@ -347,8 +357,9 @@ export async function buildMorningBriefing(
 
   const daysToShow: string[] = [];
   if (agenda.has(todayDateStr)) daysToShow.push(todayDateStr);
+  const maxDays = length === "Headlines" ? 1 : length === "Full" ? 7 : 4;
   for (const day of sortedDays) {
-    if (day > todayDateStr && daysToShow.length < 4) {
+    if (day > todayDateStr && daysToShow.length < maxDays) {
       daysToShow.push(day);
     }
   }
@@ -358,8 +369,10 @@ export async function buildMorningBriefing(
     for (const day of daysToShow) {
       const items = agenda.get(day) ?? [];
       agendaLines.push(`${dayLabel(day, opts.timezone, todayDateStr)} (${items.length})`);
-      for (const item of items) {
-        agendaLines.push(formatAgendaItem(item, opts.timezone));
+      if (length !== "Headlines") {
+        for (const item of items) {
+          agendaLines.push(formatAgendaItem(item, opts.timezone));
+        }
       }
     }
     sections.push(`🗓 Your agenda\n${agendaLines.join("\n")}`);
@@ -370,16 +383,18 @@ export async function buildMorningBriefing(
   // Quick tasks — no due date
   const noDueDate = openTasks.filter((t) => !t.dueAt);
   if (noDueDate.length > 0) {
-    const lines = noDueDate.slice(0, 5).map((t) => `• ${t.title}`);
-    sections.push(`📋 Other tasks (${noDueDate.length})\n${lines.join("\n")}`);
+    const taskLimit = length === "Headlines" ? 0 : length === "Full" ? noDueDate.length : 5;
+    const lines = taskLimit > 0 ? noDueDate.slice(0, taskLimit).map((t) => `• ${t.title}`) : [];
+    sections.push(`📋 Other tasks (${noDueDate.length})${lines.length ? "\n" + lines.join("\n") : ""}`);
   } else {
     sections.push("📋 Other tasks\n• No open tasks without a due date.");
   }
 
   // Recommendations
   const recs = buildRecommendations(agenda, openTasks, todayDateStr, now, endOfToday);
+  const recLimit = length === "Headlines" ? 1 : length === "Full" ? recs.length : recs.length;
   if (recs.length > 0) {
-    sections.push(`💡 Recommendations\n${recs.map((r) => `• ${r}`).join("\n")}`);
+    sections.push(`💡 Recommendations\n${recs.slice(0, recLimit).map((r) => `• ${r}`).join("\n")}`);
   }
 
   // Build structured news items (rendered as a separate Flex carousel)
@@ -411,7 +426,11 @@ export async function buildMorningBriefing(
     day: "numeric",
   });
 
-  const text = `Good morning! ☀️ ${dateHeader}\n\n${sections.join("\n\n")}`;
+  const langNote = opts.briefingLanguage && opts.briefingLanguage !== "English"
+    ? `[Language: ${opts.briefingLanguage}]\n`
+    : "";
+
+  const text = `${langNote}Good morning! ☀️ ${dateHeader}\n\n${sections.join("\n\n")}`;
 
   return { text, news, inbox };
 }

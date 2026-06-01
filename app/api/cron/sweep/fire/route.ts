@@ -83,13 +83,19 @@ export async function POST(req: NextRequest) {
   switch (type) {
     case "morning_briefing": {
       try {
-        if (settings.morningBriefingTime && !(await isUserRecentlyActive(userId))) {
+        if (
+          settings.morningBriefingTime &&
+          settings.briefingChannels?.line !== false &&
+          !(await isUserRecentlyActive(userId))
+        ) {
           const briefing = await buildMorningBriefing(userId, {
             timezone: settings.timezone,
             location: settings.location,
             includeInbox: settings.inboxBriefingEnabled,
             briefingTopics: settings.briefingTopics,
             briefingTopicSources: settings.briefingTopicSources,
+            briefingLength: settings.briefingLength,
+            briefingLanguage: settings.briefingLanguage,
           });
           const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
           if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
@@ -107,7 +113,11 @@ export async function POST(req: NextRequest) {
 
     case "evening_summary": {
       try {
-        if (settings.eveningSummaryEnabled && !(await isUserRecentlyActive(userId))) {
+        if (
+          settings.eveningSummaryEnabled &&
+          settings.briefingChannels?.line !== false &&
+          !(await isUserRecentlyActive(userId))
+        ) {
           const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
           if (summary) {
             const msgs: LineMessage[] = [briefingFlex("evening", summary.text)];
@@ -124,7 +134,11 @@ export async function POST(req: NextRequest) {
 
     case "task_check_in": {
       try {
-        if (settings.taskCheckInEnabled && !(await isUserRecentlyActive(userId))) {
+        if (
+          settings.taskCheckInEnabled &&
+          settings.briefingChannels?.line !== false &&
+          !(await isUserRecentlyActive(userId))
+        ) {
           await sweepTaskCheckIn(userId, settings.timezone, { taskCheckIns: 0 });
           await updateSettings(userId, { lastTaskCheckInTs: Date.now() });
         }
@@ -139,6 +153,8 @@ export async function POST(req: NextRequest) {
         const taskId = parsed.data.taskId;
         const title = parsed.data.title;
         if (!taskId || !title) break;
+        // Skip if user disabled LINE proactive pushes.
+        if (settings.briefingChannels?.line === false) break;
         const tasks = await listTasks(userId, "open");
         const task = tasks.find((t) => t.id === taskId);
         if (!task) break; // completed or deleted
@@ -167,6 +183,8 @@ export async function POST(req: NextRequest) {
         if (!eventId || lead === undefined || !eventStartISO) break;
         // Skip if user no longer has Google connected.
         if (!(await hasGoogleConnection(userId))) break;
+        // Skip if user disabled LINE proactive pushes.
+        if (settings.briefingChannels?.line === false) break;
         const startTs = new Date(eventStartISO).getTime();
         const local = new Date(startTs).toLocaleTimeString("en-US", {
           timeZone: settings.timezone,
@@ -200,6 +218,7 @@ async function runSweepForUser(userId: string): Promise<void> {
   // Morning briefing
   if (
     settings.morningBriefingTime &&
+    settings.briefingChannels?.line !== false &&
     shouldFireBriefingNow(
       settings.morningBriefingTime,
       settings.lastMorningBriefingTs,
@@ -214,6 +233,8 @@ async function runSweepForUser(userId: string): Promise<void> {
         includeInbox: settings.inboxBriefingEnabled,
         briefingTopics: settings.briefingTopics,
         briefingTopicSources: settings.briefingTopicSources,
+        briefingLength: settings.briefingLength,
+        briefingLanguage: settings.briefingLanguage,
       });
       const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
       if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
@@ -230,6 +251,7 @@ async function runSweepForUser(userId: string): Promise<void> {
   // Evening summary
   if (
     settings.eveningSummaryEnabled &&
+    settings.briefingChannels?.line !== false &&
     shouldFireEveningSummaryNow(
       settings.lastEveningSummaryTs,
       settings.timezone,
@@ -254,6 +276,7 @@ async function runSweepForUser(userId: string): Promise<void> {
   if (
     settings.taskCheckInEnabled &&
     settings.taskCheckInTime &&
+    settings.briefingChannels?.line !== false &&
     shouldFireBriefingNow(
       settings.taskCheckInTime,
       settings.lastTaskCheckInTs,

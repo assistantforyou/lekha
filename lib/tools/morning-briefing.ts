@@ -17,6 +17,8 @@ export function buildMorningBriefingTool(userId: string) {
           includeInbox: s.inboxBriefingEnabled,
           briefingTopics: s.briefingTopics,
           briefingTopicSources: s.briefingTopicSources,
+          briefingLength: s.briefingLength,
+          briefingLanguage: s.briefingLanguage,
         });
         // Return structured data so buildFlexFromToolResults can render Flex carousels.
         // The model receives this as a JSON object — it should just say "here's your briefing".
