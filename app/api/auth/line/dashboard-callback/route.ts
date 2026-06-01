@@ -87,6 +87,7 @@ export async function GET(req: NextRequest) {
     const stripe = new Stripe(stripeKey);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
+      allow_promotion_codes: true,
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: {
         trial_period_days: 7,
