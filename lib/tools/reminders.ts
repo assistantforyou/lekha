@@ -36,7 +36,7 @@ export function buildReminderTools(userId: string) {
   return {
     set_reminder: tool({
       description:
-        "Schedule a reminder. Use when the user asks you to remind them about something at a future time. For relative times like 'in 30 minutes', use relative_minutes. For absolute times like 'tomorrow at 3pm', pass an ISO 8601 timestamp with timezone offset.",
+        "Schedule a reminder. Use when the user asks you to remind them about something at a future time. For relative times like 'in 30 minutes', use relative_minutes. For absolute times like 'tomorrow at 3pm', pass an ISO 8601 timestamp with timezone offset. Maximum delay is 30 days.",
       inputSchema: z.object({
         when: z
           .string()
@@ -46,9 +46,9 @@ export function buildReminderTools(userId: string) {
           .number()
           .int()
           .min(1)
-          .max(60 * 24 * 365)
+          .max(60 * 24 * 30)
           .optional()
-          .describe("Minutes from now. Use for 'in 30 minutes', 'in 2 hours' (convert to minutes)."),
+          .describe("Minutes from now. Use for 'in 30 minutes', 'in 2 hours' (convert to minutes). Maximum is 30 days (43200 minutes)."),
         message: z.string().min(1).max(500).describe("What to remind the user about, in their voice (e.g. 'call mom')"),
       }),
       execute: async ({ when, relative_minutes, message }) => {
@@ -68,7 +68,7 @@ export function buildReminderTools(userId: string) {
         if (delaySec < 1) {
           return { ok: false, error: `Reminder time is in the past (${new Date(fireAt).toISOString()}).` };
         }
-        if (delaySec > 60 * 60 * 24 * 365) return { ok: false, error: "Max 1 year ahead" };
+        if (delaySec > 60 * 60 * 24 * 30) return { ok: false, error: "Max 30 days ahead" };
 
         const id = crypto.randomUUID();
         const callbackUrl = `${env().APP_BASE_URL}/api/reminders/fire`;

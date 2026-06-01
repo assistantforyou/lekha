@@ -44,7 +44,7 @@ export function buildScheduledEmailTools(userId: string) {
         if (!Number.isFinite(ts)) return { ok: false, error: "Invalid sendAt datetime" };
         const delaySec = Math.floor((ts - Date.now()) / 1000);
         if (delaySec < 30) return { ok: false, error: "sendAt must be at least 30 seconds in the future" };
-        if (delaySec > 60 * 60 * 24 * 365) return { ok: false, error: "Max 1 year ahead" };
+        if (delaySec > 60 * 60 * 24 * 30) return { ok: false, error: "Max 30 days ahead" };
 
         const action: ScheduleEmailAction = {
           kind: "schedule_email",
@@ -113,7 +113,7 @@ export async function executeScheduleEmail(
   if (!Number.isFinite(ts)) throw new Error("Invalid sendAt datetime");
   const delaySec = Math.floor((ts - Date.now()) / 1000);
   if (delaySec < 30) throw new Error("sendAt must be at least 30 seconds in the future");
-  if (delaySec > 60 * 60 * 24 * 365) throw new Error("Max 1 year ahead");
+  if (delaySec > 60 * 60 * 24 * 30) throw new Error("Max 30 days ahead");
 
   const id = crypto.randomUUID();
   const callbackUrl = `${env().APP_BASE_URL}/api/scheduled-email/fire`;
