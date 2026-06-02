@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `59dcca79`
+- Built from commit: `60051a28`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -139,8 +139,8 @@
   app/api/auth/line/start/route.ts → lib/memory/redis.ts
 - `GET()` --calls--> `redis()`  [EXTRACTED]
   app/api/auth/line/callback/route.ts → lib/memory/redis.ts
-- `handleEvent()` --calls--> `appendTurn()`  [EXTRACTED]
-  app/api/line/webhook/route.ts → lib/memory/history.ts
+- `POST()` --calls--> `sendEmail()`  [EXTRACTED]
+  app/api/scheduled-email/fire/route.ts → lib/tools/email.ts
 
 ## Communities (108 total, 7 thin omitted)
 
@@ -305,8 +305,8 @@ Cohesion: 0.06
 Nodes (21): App(), BASE_PRICING, BUILTFOR, CAPABILITIES, CHAT_SCRIPTS, CMD_EVENTS, CMD_OPS, CMD_TASKS (+13 more)
 
 ### Community 48 - "Community 48"
-Cohesion: 0.17
-Nodes (12): 10. `googleapis` package bloats server bundle, 11. No provider-level timeout on Gemini, 4. Redundant `listAccounts` / `listRecentMedia` fetch, 5. History summarization blocks on cache miss, 6. `maxRetries: 3` on `generateText` can burn time on transient failures, 7. Background fact extraction consumes quota every 10 turns, 8. Sequential `appendTurn` ×2, 9. `toolsForUser` re-evaluates env gates on every request (+4 more)
+Cohesion: 0.18
+Nodes (11): 10. `googleapis` package bloats server bundle, 11. No provider-level timeout on Gemini, 1. `generateText` is the single dominant cost (~70–95% of total time), 2. No `replyOrPush` fallback on expired replyToken, 3. Tool execution happens sequentially inside `generateText`, 8. Sequential `appendTurn` ×2, 9. `toolsForUser` re-evaluates env gates on every request, Identified Bottlenecks (+3 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.10
@@ -453,8 +453,8 @@ Cohesion: 0.40
 Nodes (5): 4. Redundant `listAccounts` / `listRecentMedia` fetch, 5. History summarization blocks on cache miss, 6. `maxRetries: 1` on `generateText` — retry burn reduced (R4), 7. Background fact extraction consumes quota every 10 turns, P1 — Significant (adds 100ms–3s)
 
 ### Community 89 - "Community 89"
-Cohesion: 0.50
-Nodes (4): 1. `generateText` is the single dominant cost (~70–95% of total time), 2. No `replyOrPush` fallback on expired replyToken, 3. Tool execution happens sequentially inside `generateText`, P0 — Critical (can cause 60s timeout or silent failure)
+Cohesion: 0.40
+Nodes (5): 4. Redundant `listAccounts` / `listRecentMedia` fetch, 5. History summarization blocks on cache miss, 6. `maxRetries: 3` on `generateText` can burn time on transient failures, 7. Background fact extraction consumes quota every 10 turns, P1 — Significant (adds 100ms–3s)
 
 ### Community 90 - "Community 90"
 Cohesion: 0.20
@@ -525,7 +525,7 @@ Cohesion: 0.50
 Nodes (3): buildWebSearchTool(), TavilyResponse, TavilyResult
 
 ## Knowledge Gaps
-- **708 isolated node(s):** `Ico`, `QR_CONFIGS`, `FEATURES`, `CHAT_SCRIPTS`, `CAPABILITIES` (+703 more)
+- **708 isolated node(s):** `WRITE_SCOPES`, `READ_SCOPES`, `PersonShape`, `FetchedAttachment`, `Headers` (+703 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -533,12 +533,12 @@ Nodes (3): buildWebSearchTool(), TavilyResponse, TavilyResult
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `redis()` connect `Community 6` to `Community 4`, `Community 9`, `Community 14`, `Community 20`, `Community 23`, `Community 45`, `Community 53`, `Community 55`, `Community 56`, `Community 69`, `Community 75`, `Community 76`, `Community 77`, `Community 83`, `Community 84`, `Community 92`, `Community 94`, `Community 96`, `Community 99`, `Community 101`, `Community 102`, `Community 103`, `Community 105`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+  _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **Why does `key()` connect `Community 2` to `Community 101`, `Community 75`, `Community 69`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **Why does `env` connect `Community 83` to `Community 96`, `Community 3`, `Community 99`, `Community 101`, `Community 69`, `Community 102`, `Community 9`, `Community 106`, `Community 75`, `Community 76`, `Community 77`, `Community 14`, `Community 107`, `Community 23`, `Community 56`, `Community 91`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **What connects `Ico`, `QR_CONFIGS`, `FEATURES` to the rest of the system?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **What connects `WRITE_SCOPES`, `READ_SCOPES`, `PersonShape` to the rest of the system?**
   _708 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.10810810810810811 - nodes in this community are weakly interconnected._

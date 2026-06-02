@@ -280,8 +280,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/news.ts": {
-    "mtime": 1780244452.7246077,
-    "ast_hash": "bc8748e786c4040c57c3ceb8633678f6",
+    "mtime": 1780427363.9565616,
+    "ast_hash": "42cd95c9b6472dfb34f117c80fccff14",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/drive.ts": {
@@ -315,8 +315,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/email.ts": {
-    "mtime": 1780227110.4434552,
-    "ast_hash": "55dcbad33e9f3e0f63733fcefe752f3a",
+    "mtime": 1780427378.124964,
+    "ast_hash": "dea489d4184fe8a0793307faaaef6545",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/media-ai.ts": {
@@ -350,8 +350,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/gmail-inbox.ts": {
-    "mtime": 1780333064.8942995,
-    "ast_hash": "19f3bd3d4f7c06a40414807d1cbd7339",
+    "mtime": 1780427358.7602239,
+    "ast_hash": "adc323ce566b5f8883416161c75ad923",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/docs.ts": {
@@ -365,13 +365,13 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/scheduled-email.ts": {
-    "mtime": 1780305755.002501,
-    "ast_hash": "6efe6d8926730f4ba23ae82492c26590",
+    "mtime": 1780427384.3400385,
+    "ast_hash": "1c508370ec7b49e4c6fe47c627a2aaa7",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/memory.ts": {
-    "mtime": 1780425003.498104,
-    "ast_hash": "64af08e02f17060933d4c6d3db7d1d28",
+    "mtime": 1780427351.1792138,
+    "ast_hash": "e069d63a718f61fdd0980aa8048803f3",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/index.ts": {
@@ -385,13 +385,13 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/lists.ts": {
-    "mtime": 1780251542.611469,
-    "ast_hash": "795dea2de3b6890731ec1fc1eb14db4f",
+    "mtime": 1780427346.2783973,
+    "ast_hash": "7e7c079d63ebeec1dbe46eb231d8a70d",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/receipts.ts": {
-    "mtime": 1778941661.5792246,
-    "ast_hash": "0aa2482ac7b5da8972c2f893669c0274",
+    "mtime": 1780427369.3523252,
+    "ast_hash": "b08bc4c7e6dd0548cd117c400335e5d8",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/finance.ts": {
@@ -400,8 +400,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/contacts.ts": {
-    "mtime": 1779760848.3419662,
-    "ast_hash": "ff93d0ef52fa8469d8acc32062602f39",
+    "mtime": 1780427390.639973,
+    "ast_hash": "2e848d16493281b66b42fa5a8843d227",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/tools/tasks.ts": {

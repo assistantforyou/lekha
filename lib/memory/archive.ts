@@ -77,9 +77,11 @@ export async function listArchive(userId: string): Promise<ArchivedSummary[]> {
  * Search this user's archive.
  *
  * - If Upstash Vector is configured: embed the query and do a top-K
- *   similarity search filtered by userId, returning up to 10 hits.
+ *   similarity search filtered by userId. The vector metadata already contains
+ *   the summary, so we return reconstructed ArchivedSummary objects directly
+ *   without loading the full Redis list.
  *   On any failure or zero results, falls through to substring.
- * - Otherwise: substring match against summaries.
+ * - Otherwise: substring match against all summaries (loads from Redis).
  */
 export async function searchArchive(userId: string, query: string): Promise<ArchivedSummary[]> {
   const vec = vector();
@@ -94,14 +96,22 @@ export async function searchArchive(userId: string, query: string): Promise<Arch
           filter: `userId = '${userId.replace(/'/g, "")}'`,
         });
         if (hits && hits.length) {
-          // Pull the full ArchivedSummary from Redis to keep field shape stable.
-          const all = await listArchive(userId);
-          const byId = new Map(all.map((a) => [a.id, a]));
+          // Reconstruct from vector metadata — avoids loading all 200 Redis entries.
           const out: ArchivedSummary[] = [];
           for (const h of hits) {
-            const md = (h.metadata ?? {}) as { archiveId?: string };
-            if (md.archiveId && byId.has(md.archiveId)) {
-              out.push(byId.get(md.archiveId)!);
+            const md = (h.metadata ?? {}) as {
+              archiveId?: string;
+              ts?: number;
+              summary?: string;
+            };
+            if (md.archiveId && md.summary) {
+              out.push({
+                id: md.archiveId,
+                fromTs: md.ts ?? 0,
+                toTs: md.ts ?? 0,
+                summary: md.summary,
+                createdAt: md.ts ?? 0,
+              });
             }
           }
           if (out.length) return out;

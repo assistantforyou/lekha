@@ -5,10 +5,9 @@ import type { ModelMessage } from "ai";
 import { createHash } from "crypto";
 import { span } from "@/lib/timing";
 
-const MAX_TURNS = 20;
+const MAX_TURNS = 35;
 const TOKEN_CAP = 3000;
 const SUMMARY_TARGET_TOKENS = 200;
-const OLDEST_CHUNK = 10;
 
 export type StoredTurn = {
   role: "user" | "assistant";
@@ -18,6 +17,7 @@ export type StoredTurn = {
 
 const key = (userId: string) => `user:${userId}:history`;
 const summaryKey = (userId: string, hash: string) => `history:summary:${userId}:${hash}`;
+const runningSummaryKey = (userId: string) => `history:running_summary:${userId}`;
 
 export async function loadHistory(userId: string): Promise<StoredTurn[]> {
   const end = span("history:load");
@@ -51,54 +51,88 @@ export async function turnCounter(userId: string): Promise<number> {
   return n;
 }
 
-/** Rough token estimate: chars/4. Good enough for triggering the cap. */
+/** Token estimate weighted by script: CJK/Thai ~1.5 chars/token, Latin ~4 chars/token. */
 export function estimateTokens(turns: StoredTurn[]): number {
-  let chars = 0;
-  for (const t of turns) chars += t.content.length + 10; // +role label overhead
-  return Math.ceil(chars / 4);
+  let tokens = 0;
+  for (const t of turns) {
+    const text = t.content;
+    let cjkThai = 0;
+    let latin = 0;
+    for (const ch of text) {
+      const cp = ch.codePointAt(0) ?? 0;
+      // CJK Unified Ideographs, Hangul, Thai, Hiragana, Katakana
+      if (
+        (cp >= 0x4e00 && cp <= 0x9fff) ||
+        (cp >= 0x3400 && cp <= 0x4dbf) ||
+        (cp >= 0xac00 && cp <= 0xd7af) ||
+        (cp >= 0x0e00 && cp <= 0x0e7f) ||
+        (cp >= 0x3040 && cp <= 0x309f) ||
+        (cp >= 0x30a0 && cp <= 0x30ff)
+      ) {
+        cjkThai++;
+      } else {
+        latin++;
+      }
+    }
+    tokens += Math.ceil(cjkThai / 1.5) + Math.ceil(latin / 4) + 3; // +role overhead
+  }
+  return tokens;
+}
+
+function adaptiveRecentCount(totalTurns: number): number {
+  return Math.max(10, Math.ceil(totalTurns * 0.4));
 }
 
 /**
  * Build the message list to feed to the model. If the stored history would
  * exceed the token cap, summarize the oldest chunk to a ~200-token block and
  * prepend it to the recent kept turns. The summary is cached by content hash
- * so we don't regenerate it every turn.
+ * so we don't regenerate it every turn. Summaries are also accumulated into a
+ * running summary key so older context persists across window shifts.
  */
 export async function historyForPrompt(userId: string): Promise<ModelMessage[]> {
   const endOverall = span("history:forPrompt");
   const history = await loadHistory(userId);
   const est = estimateTokens(history);
-  if (est <= TOKEN_CAP || history.length <= OLDEST_CHUNK) {
+  const recentCount = adaptiveRecentCount(history.length);
+
+  if (est <= TOKEN_CAP || history.length <= recentCount) {
     const msgs = history.map(toModelMessage).filter(Boolean) as ModelMessage[];
     endOverall({ cached: "n/a", turns: history.length, estTokens: est });
     return msgs;
   }
-  const oldest = history.slice(0, history.length - OLDEST_CHUNK);
-  const recent = history.slice(history.length - OLDEST_CHUNK);
+
+  const oldest = history.slice(0, history.length - recentCount);
+  const recent = history.slice(history.length - recentCount);
   const hash = hashTurns(oldest);
   const cached = await redis().get<string>(summaryKey(userId, hash));
   let summary = cached ?? null;
+
   if (!summary) {
     const endSum = span("history:summarize");
     summary = await summarizeOldest(oldest);
     endSum({ turns: oldest.length, estTokens: est });
     if (summary) {
-      // Cache for 7 days — older history will get re-summarized after that
-      // window (cheap; only fires when the cap is exceeded).
       await redis()
-        .set(summaryKey(userId, hash), summary, { ex: 60 * 60 * 24 * 7 })
+        .set(summaryKey(userId, hash), summary, { ex: 60 * 60 * 24 * 30 })
+        .catch(() => {});
+      // Append to running summary so older context persists across shifts.
+      const running = await redis().get<string>(runningSummaryKey(userId));
+      const next = running ? `${running}\n${summary}` : summary;
+      await redis()
+        .set(runningSummaryKey(userId), next.slice(-1200), { ex: 60 * 60 * 24 * 90 })
         .catch(() => {});
     }
     endOverall({ cached: false, turns: history.length, estTokens: est });
   } else {
     endOverall({ cached: true, turns: history.length, estTokens: est });
   }
+
   const summaryTurn: ModelMessage = {
     role: "user",
     content: `[Earlier conversation summary]\n${summary ?? "(no summary available)"}`,
   };
-  const ack: ModelMessage = { role: "assistant", content: "Noted." };
-  return [summaryTurn, ack, ...recent.map(toModelMessage).filter(Boolean) as ModelMessage[]];
+  return [summaryTurn, ...recent.map(toModelMessage).filter(Boolean) as ModelMessage[]];
 }
 
 const PLACEHOLDER_REPLIES = new Set(["…", "...", "", " ", "Done."]);

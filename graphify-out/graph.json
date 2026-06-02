@@ -4,481 +4,895 @@
   "graph": {},
   "nodes": [
     {
+      "label": "contacts.ts",
+      "file_type": "code",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L1",
+      "id": "lib_tools_contacts_ts",
+      "community": 104,
+      "norm_label": "contacts.ts"
+    },
+    {
+      "label": "WRITE_SCOPES",
+      "file_type": "code",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L17",
+      "id": "tools_contacts_write_scopes",
+      "community": 104,
+      "norm_label": "write_scopes"
+    },
+    {
+      "label": "READ_SCOPES",
+      "file_type": "code",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L18",
+      "id": "tools_contacts_read_scopes",
+      "community": 104,
+      "norm_label": "read_scopes"
+    },
+    {
+      "label": "buildContactsTools()",
+      "file_type": "code",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L23",
+      "id": "tools_contacts_buildcontactstools",
+      "community": 104,
+      "norm_label": "buildcontactstools()"
+    },
+    {
+      "label": "PersonShape",
+      "file_type": "code",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L98",
+      "id": "tools_contacts_personshape",
+      "community": 104,
+      "norm_label": "personshape"
+    },
+    {
+      "label": "formatPerson()",
+      "file_type": "code",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L104",
+      "id": "tools_contacts_formatperson",
+      "community": 104,
+      "norm_label": "formatperson()"
+    },
+    {
+      "label": "email.ts",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L1",
+      "id": "lib_tools_email_ts",
+      "community": 87,
+      "norm_label": "email.ts"
+    },
+    {
+      "label": "buildEmailTools()",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L14",
+      "id": "tools_email_buildemailtools",
+      "community": 87,
+      "norm_label": "buildemailtools()"
+    },
+    {
+      "label": "sendEmail()",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L119",
+      "id": "tools_email_sendemail",
+      "community": 87,
+      "norm_label": "sendemail()"
+    },
+    {
+      "label": "FetchedAttachment",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L192",
+      "id": "tools_email_fetchedattachment",
+      "community": 87,
+      "norm_label": "fetchedattachment"
+    },
+    {
+      "label": "fetchDriveFile()",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L198",
+      "id": "tools_email_fetchdrivefile",
+      "community": 87,
+      "norm_label": "fetchdrivefile()"
+    },
+    {
+      "label": "buildRawMime()",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L251",
+      "id": "tools_email_buildrawmime",
+      "community": 87,
+      "norm_label": "buildrawmime()"
+    },
+    {
+      "label": "encodeHeader()",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L319",
+      "id": "tools_email_encodeheader",
+      "community": 87,
+      "norm_label": "encodeheader()"
+    },
+    {
+      "label": "escapeMimeHeaderValue()",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L323",
+      "id": "tools_email_escapemimeheadervalue",
+      "community": 87,
+      "norm_label": "escapemimeheadervalue()"
+    },
+    {
+      "label": "chunkBase64()",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L326",
+      "id": "tools_email_chunkbase64",
+      "community": 87,
+      "norm_label": "chunkbase64()"
+    },
+    {
+      "label": "defaultFilename()",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L331",
+      "id": "tools_email_defaultfilename",
+      "community": 87,
+      "norm_label": "defaultfilename()"
+    },
+    {
+      "label": "mimeToExt()",
+      "file_type": "code",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L335",
+      "id": "tools_email_mimetoext",
+      "community": 87,
+      "norm_label": "mimetoext()"
+    },
+    {
+      "label": "gmail-inbox.ts",
+      "file_type": "code",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L1",
+      "id": "lib_tools_gmail_inbox_ts",
+      "community": 4,
+      "norm_label": "gmail-inbox.ts"
+    },
+    {
+      "label": "Headers",
+      "file_type": "code",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L10",
+      "id": "tools_gmail_inbox_headers",
+      "community": 4,
+      "norm_label": "headers"
+    },
+    {
+      "label": "headerMap()",
+      "file_type": "code",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L12",
+      "id": "tools_gmail_inbox_headermap",
+      "community": 4,
+      "norm_label": "headermap()"
+    },
+    {
+      "label": "decodeBody()",
+      "file_type": "code",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L20",
+      "id": "tools_gmail_inbox_decodebody",
+      "community": 4,
+      "norm_label": "decodebody()"
+    },
+    {
+      "label": "buildGmailInboxTools()",
+      "file_type": "code",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L52",
+      "id": "tools_gmail_inbox_buildgmailinboxtools",
+      "community": 4,
+      "norm_label": "buildgmailinboxtools()"
+    },
+    {
+      "label": "extractEmail()",
+      "file_type": "code",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L252",
+      "id": "tools_gmail_inbox_extractemail",
+      "community": 4,
+      "norm_label": "extractemail()"
+    },
+    {
+      "label": "lists.ts",
+      "file_type": "code",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L1",
+      "id": "lib_tools_lists_ts",
+      "community": 105,
+      "norm_label": "lists.ts"
+    },
+    {
+      "label": "normalizeName()",
+      "file_type": "code",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L15",
+      "id": "tools_lists_normalizename",
+      "community": 105,
+      "norm_label": "normalizename()"
+    },
+    {
+      "label": "listKey()",
+      "file_type": "code",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L19",
+      "id": "tools_lists_listkey",
+      "community": 105,
+      "norm_label": "listkey()"
+    },
+    {
+      "label": "namesKey()",
+      "file_type": "code",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L20",
+      "id": "tools_lists_nameskey",
+      "community": 105,
+      "norm_label": "nameskey()"
+    },
+    {
+      "label": "getListItems()",
+      "file_type": "code",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L22",
+      "id": "tools_lists_getlistitems",
+      "community": 105,
+      "norm_label": "getlistitems()"
+    },
+    {
+      "label": "buildListTools()",
+      "file_type": "code",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L26",
+      "id": "tools_lists_buildlisttools",
+      "community": 105,
+      "norm_label": "buildlisttools()"
+    },
+    {
+      "label": "memory.ts",
+      "file_type": "code",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L1",
+      "id": "lib_tools_memory_ts",
+      "community": 9,
+      "norm_label": "memory.ts"
+    },
+    {
+      "label": "buildMemoryTools()",
+      "file_type": "code",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L16",
+      "id": "tools_memory_buildmemorytools",
+      "community": 3,
+      "norm_label": "buildmemorytools()"
+    },
+    {
+      "label": "news.ts",
+      "file_type": "code",
+      "source_file": "lib/tools/news.ts",
+      "source_location": "L1",
+      "id": "lib_tools_news_ts",
+      "community": 106,
+      "norm_label": "news.ts"
+    },
+    {
+      "label": "TavilyNewsResult",
+      "file_type": "code",
+      "source_file": "lib/tools/news.ts",
+      "source_location": "L5",
+      "id": "tools_news_tavilynewsresult",
+      "community": 106,
+      "norm_label": "tavilynewsresult"
+    },
+    {
+      "label": "TavilyNewsResponse",
+      "file_type": "code",
+      "source_file": "lib/tools/news.ts",
+      "source_location": "L12",
+      "id": "tools_news_tavilynewsresponse",
+      "community": 106,
+      "norm_label": "tavilynewsresponse"
+    },
+    {
+      "label": "buildNewsTools()",
+      "file_type": "code",
+      "source_file": "lib/tools/news.ts",
+      "source_location": "L17",
+      "id": "tools_news_buildnewstools",
+      "community": 106,
+      "norm_label": "buildnewstools()"
+    },
+    {
+      "label": "receipts.ts",
+      "file_type": "code",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L1",
+      "id": "lib_tools_receipts_ts",
+      "community": 92,
+      "norm_label": "receipts.ts"
+    },
+    {
+      "label": "randomId()",
+      "file_type": "code",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L15",
+      "id": "tools_receipts_randomid",
+      "community": 92,
+      "norm_label": "randomid()"
+    },
+    {
+      "label": "buildReceiptTools()",
+      "file_type": "code",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L38",
+      "id": "tools_receipts_buildreceipttools",
+      "community": 92,
+      "norm_label": "buildreceipttools()"
+    },
+    {
+      "label": "scheduled-email.ts",
+      "file_type": "code",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L1",
+      "id": "lib_tools_scheduled_email_ts",
+      "community": 83,
+      "norm_label": "scheduled-email.ts"
+    },
+    {
+      "label": "ScheduledEmail",
+      "file_type": "code",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L8",
+      "id": "tools_scheduled_email_scheduledemail",
+      "community": 83,
+      "norm_label": "scheduledemail"
+    },
+    {
+      "label": "qstash()",
+      "file_type": "code",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L23",
+      "id": "tools_scheduled_email_qstash",
+      "community": 83,
+      "norm_label": "qstash()"
+    },
+    {
+      "label": "scheduledKey()",
+      "file_type": "code",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L25",
+      "id": "tools_scheduled_email_scheduledkey",
+      "community": 83,
+      "norm_label": "scheduledkey()"
+    },
+    {
+      "label": "scheduledListKey()",
+      "file_type": "code",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L26",
+      "id": "tools_scheduled_email_scheduledlistkey",
+      "community": 83,
+      "norm_label": "scheduledlistkey()"
+    },
+    {
+      "label": "buildScheduledEmailTools()",
+      "file_type": "code",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L28",
+      "id": "tools_scheduled_email_buildscheduledemailtools",
+      "community": 83,
+      "norm_label": "buildscheduledemailtools()"
+    },
+    {
+      "label": "executeScheduleEmail()",
+      "file_type": "code",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L107",
+      "id": "tools_scheduled_email_executescheduleemail",
+      "community": 83,
+      "norm_label": "executescheduleemail()"
+    },
+    {
+      "label": "consumeScheduledEmail()",
+      "file_type": "code",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L145",
+      "id": "tools_scheduled_email_consumescheduledemail",
+      "community": 83,
+      "norm_label": "consumescheduledemail()"
+    },
+    {
       "label": "route.ts",
       "file_type": "code",
       "source_file": "app/api/auth/line/dashboard-callback/route.ts",
       "source_location": "L1",
-      "id": "app_api_auth_line_dashboard_callback_route_ts",
       "community": 69,
-      "norm_label": "route.ts"
+      "norm_label": "route.ts",
+      "id": "app_api_auth_line_dashboard_callback_route_ts"
     },
     {
       "label": "GET()",
       "file_type": "code",
       "source_file": "app/api/auth/line/dashboard-callback/route.ts",
       "source_location": "L9",
-      "id": "dashboard_callback_route_get",
       "community": 69,
-      "norm_label": "get()"
+      "norm_label": "get()",
+      "id": "dashboard_callback_route_get"
     },
     {
       "label": "route.ts",
       "file_type": "code",
       "source_file": "app/api/line/webhook/route.ts",
       "source_location": "L1",
-      "id": "app_api_line_webhook_route_ts",
       "community": 56,
-      "norm_label": "route.ts"
+      "norm_label": "route.ts",
+      "id": "app_api_line_webhook_route_ts"
     },
     {
       "label": "POST()",
       "file_type": "code",
       "source_file": "app/api/line/webhook/route.ts",
       "source_location": "L29",
-      "id": "webhook_route_post",
       "community": 67,
-      "norm_label": "post()"
+      "norm_label": "post()",
+      "id": "webhook_route_post"
     },
     {
       "label": "handleEvent()",
       "file_type": "code",
       "source_file": "app/api/line/webhook/route.ts",
       "source_location": "L82",
-      "id": "webhook_route_handleevent",
       "community": 56,
-      "norm_label": "handleevent()"
+      "norm_label": "handleevent()",
+      "id": "webhook_route_handleevent"
     },
     {
       "label": "route.ts",
       "file_type": "code",
       "source_file": "app/api/webhooks/stripe/route.ts",
       "source_location": "L1",
-      "id": "app_api_webhooks_stripe_route_ts",
       "community": 56,
-      "norm_label": "route.ts"
+      "norm_label": "route.ts",
+      "id": "app_api_webhooks_stripe_route_ts"
     },
     {
       "label": "POST()",
       "file_type": "code",
       "source_file": "app/api/webhooks/stripe/route.ts",
       "source_location": "L9",
-      "id": "stripe_route_post",
       "community": 56,
-      "norm_label": "post()"
+      "norm_label": "post()",
+      "id": "stripe_route_post"
     },
     {
       "label": "App.jsx",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L1",
-      "id": "marketing_src_app_jsx",
       "community": 11,
-      "norm_label": "app.jsx"
+      "norm_label": "app.jsx",
+      "id": "marketing_src_app_jsx"
     },
     {
       "label": "Ico",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L6",
-      "id": "src_app_ico",
       "community": 11,
-      "norm_label": "ico"
+      "norm_label": "ico",
+      "id": "src_app_ico"
     },
     {
       "label": "LekhaMark()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L27",
-      "id": "src_app_lekhamark",
       "community": 11,
-      "norm_label": "lekhamark()"
+      "norm_label": "lekhamark()",
+      "id": "src_app_lekhamark"
     },
     {
       "label": "Nav()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L35",
-      "id": "src_app_nav",
       "community": 11,
-      "norm_label": "nav()"
+      "norm_label": "nav()",
+      "id": "src_app_nav"
     },
     {
       "label": "QR_CONFIGS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L58",
-      "id": "src_app_qr_configs",
       "community": 11,
-      "norm_label": "qr_configs"
+      "norm_label": "qr_configs",
+      "id": "src_app_qr_configs"
     },
     {
       "label": "QRModal()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L89",
-      "id": "src_app_qrmodal",
       "community": 11,
-      "norm_label": "qrmodal()"
+      "norm_label": "qrmodal()",
+      "id": "src_app_qrmodal"
     },
     {
       "label": "Hero()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L144",
-      "id": "src_app_hero",
       "community": 11,
-      "norm_label": "hero()"
+      "norm_label": "hero()",
+      "id": "src_app_hero"
     },
     {
       "label": "FEATURES",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L249",
-      "id": "src_app_features",
       "community": 11,
-      "norm_label": "features"
+      "norm_label": "features",
+      "id": "src_app_features"
     },
     {
       "label": "ChatBody()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L323",
-      "id": "src_app_chatbody",
       "community": 11,
-      "norm_label": "chatbody()"
+      "norm_label": "chatbody()",
+      "id": "src_app_chatbody"
     },
     {
       "label": "CHAT_SCRIPTS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L522",
-      "id": "src_app_chat_scripts",
       "community": 11,
-      "norm_label": "chat_scripts"
+      "norm_label": "chat_scripts",
+      "id": "src_app_chat_scripts"
     },
     {
       "label": "InlineRich()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L564",
-      "id": "src_app_inlinerich",
       "community": 11,
-      "norm_label": "inlinerich()"
+      "norm_label": "inlinerich()",
+      "id": "src_app_inlinerich"
     },
     {
       "label": "StreamingChat()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L617",
-      "id": "src_app_streamingchat",
       "community": 11,
-      "norm_label": "streamingchat()"
+      "norm_label": "streamingchat()",
+      "id": "src_app_streamingchat"
     },
     {
       "label": "FeatureExplorer()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L715",
-      "id": "src_app_featureexplorer",
       "community": 11,
-      "norm_label": "featureexplorer()"
+      "norm_label": "featureexplorer()",
+      "id": "src_app_featureexplorer"
     },
     {
       "label": "CAPABILITIES",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L775",
-      "id": "src_app_capabilities",
       "community": 11,
-      "norm_label": "capabilities"
+      "norm_label": "capabilities",
+      "id": "src_app_capabilities"
     },
     {
       "label": "STEPS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L790",
-      "id": "src_app_steps",
       "community": 11,
-      "norm_label": "steps"
+      "norm_label": "steps",
+      "id": "src_app_steps"
     },
     {
       "label": "USES",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L797",
-      "id": "src_app_uses",
       "community": 11,
-      "norm_label": "uses"
+      "norm_label": "uses",
+      "id": "src_app_uses"
     },
     {
       "label": "BASE_PRICING",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L805",
-      "id": "src_app_base_pricing",
       "community": 11,
-      "norm_label": "base_pricing"
+      "norm_label": "base_pricing",
+      "id": "src_app_base_pricing"
     },
     {
       "label": "FAQS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L832",
-      "id": "src_app_faqs",
       "community": 11,
-      "norm_label": "faqs"
+      "norm_label": "faqs",
+      "id": "src_app_faqs"
     },
     {
       "label": "FAQ()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L840",
-      "id": "src_app_faq",
       "community": 11,
-      "norm_label": "faq()"
+      "norm_label": "faq()",
+      "id": "src_app_faq"
     },
     {
       "label": "METRICS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L869",
-      "id": "src_app_metrics",
       "community": 11,
-      "norm_label": "metrics"
+      "norm_label": "metrics",
+      "id": "src_app_metrics"
     },
     {
       "label": "MetricsStrip()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L877",
-      "id": "src_app_metricsstrip",
       "community": 11,
-      "norm_label": "metricsstrip()"
+      "norm_label": "metricsstrip()",
+      "id": "src_app_metricsstrip"
     },
     {
       "label": "BUILTFOR",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L923",
-      "id": "src_app_builtfor",
       "community": 11,
-      "norm_label": "builtfor"
+      "norm_label": "builtfor",
+      "id": "src_app_builtfor"
     },
     {
       "label": "BuiltForSection()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L931",
-      "id": "src_app_builtforsection",
       "community": 11,
-      "norm_label": "builtforsection()"
+      "norm_label": "builtforsection()",
+      "id": "src_app_builtforsection"
     },
     {
       "label": "TICKERS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L953",
-      "id": "src_app_tickers",
       "community": 11,
-      "norm_label": "tickers"
+      "norm_label": "tickers",
+      "id": "src_app_tickers"
     },
     {
       "label": "CMD_EVENTS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L968",
-      "id": "src_app_cmd_events",
       "community": 11,
-      "norm_label": "cmd_events"
+      "norm_label": "cmd_events",
+      "id": "src_app_cmd_events"
     },
     {
       "label": "CMD_TASKS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L976",
-      "id": "src_app_cmd_tasks",
       "community": 11,
-      "norm_label": "cmd_tasks"
+      "norm_label": "cmd_tasks",
+      "id": "src_app_cmd_tasks"
     },
     {
       "label": "CMD_OPS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L984",
-      "id": "src_app_cmd_ops",
       "community": 11,
-      "norm_label": "cmd_ops"
+      "norm_label": "cmd_ops",
+      "id": "src_app_cmd_ops"
     },
     {
       "label": "GlobeSection()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L986",
-      "id": "src_app_globesection",
       "community": 11,
-      "norm_label": "globesection()"
+      "norm_label": "globesection()",
+      "id": "src_app_globesection"
     },
     {
       "label": "useReveal()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L1140",
-      "id": "src_app_usereveal",
       "community": 11,
-      "norm_label": "usereveal()"
+      "norm_label": "usereveal()",
+      "id": "src_app_usereveal"
     },
     {
       "label": "About()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L1152",
-      "id": "src_app_about",
       "community": 11,
-      "norm_label": "about()"
+      "norm_label": "about()",
+      "id": "src_app_about"
     },
     {
       "label": "TERMS",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L1180",
-      "id": "src_app_terms",
       "community": 11,
-      "norm_label": "terms"
+      "norm_label": "terms",
+      "id": "src_app_terms"
     },
     {
       "label": "TermsSection()",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L1227",
-      "id": "src_app_termssection",
       "community": 11,
-      "norm_label": "termssection()"
+      "norm_label": "termssection()",
+      "id": "src_app_termssection"
     },
     {
       "label": "PRICE_TABLE",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L1286",
-      "id": "src_app_price_table",
       "community": 11,
-      "norm_label": "price_table"
+      "norm_label": "price_table",
+      "id": "src_app_price_table"
     },
     {
       "label": "CURRENCY_LABEL",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L1290",
-      "id": "src_app_currency_label",
       "community": 11,
-      "norm_label": "currency_label"
+      "norm_label": "currency_label",
+      "id": "src_app_currency_label"
     },
     {
       "label": "[currency, setCurrency]",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L1294",
-      "id": "src_app_currency_setcurrency",
       "community": 11,
-      "norm_label": "[currency, setcurrency]"
+      "norm_label": "[currency, setcurrency]",
+      "id": "src_app_currency_setcurrency"
     },
     {
       "label": "pricing",
       "file_type": "code",
       "source_file": "marketing/src/App.jsx",
       "source_location": "L1296",
-      "id": "src_app_pricing",
       "community": 11,
-      "norm_label": "pricing"
+      "norm_label": "pricing",
+      "id": "src_app_pricing"
     },
     {
       "label": "i18n.jsx",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L1",
-      "id": "marketing_src_i18n_jsx",
       "community": 11,
-      "norm_label": "i18n.jsx"
+      "norm_label": "i18n.jsx",
+      "id": "marketing_src_i18n_jsx"
     },
     {
       "label": "TH",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L4",
-      "id": "src_i18n_th",
       "community": 11,
-      "norm_label": "th"
+      "norm_label": "th",
+      "id": "src_i18n_th"
     },
     {
       "label": "originals",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L293",
-      "id": "src_i18n_originals",
       "community": 11,
-      "norm_label": "originals"
+      "norm_label": "originals",
+      "id": "src_i18n_originals"
     },
     {
       "label": "inNoTranslate()",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L298",
-      "id": "src_i18n_innotranslate",
       "community": 11,
-      "norm_label": "innotranslate()"
+      "norm_label": "innotranslate()",
+      "id": "src_i18n_innotranslate"
     },
     {
       "label": "translateText()",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L307",
-      "id": "src_i18n_translatetext",
       "community": 11,
-      "norm_label": "translatetext()"
+      "norm_label": "translatetext()",
+      "id": "src_i18n_translatetext"
     },
     {
       "label": "walk()",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L325",
-      "id": "src_i18n_walk",
       "community": 11,
-      "norm_label": "walk()"
+      "norm_label": "walk()",
+      "id": "src_i18n_walk"
     },
     {
       "label": "startObserver()",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L341",
-      "id": "src_i18n_startobserver",
       "community": 11,
-      "norm_label": "startobserver()"
+      "norm_label": "startobserver()",
+      "id": "src_i18n_startobserver"
     },
     {
       "label": "setLang()",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L362",
-      "id": "src_i18n_setlang",
       "community": 11,
-      "norm_label": "setlang()"
+      "norm_label": "setlang()",
+      "id": "src_i18n_setlang"
     },
     {
       "label": "init()",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L373",
-      "id": "src_i18n_init",
       "community": 11,
-      "norm_label": "init()"
+      "norm_label": "init()",
+      "id": "src_i18n_init"
     },
     {
       "label": "LangToggle()",
       "file_type": "code",
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L383",
-      "id": "src_i18n_langtoggle",
       "community": 11,
-      "norm_label": "langtoggle()"
+      "norm_label": "langtoggle()",
+      "id": "src_i18n_langtoggle"
     },
     {
       "label": "route.ts",
@@ -1048,60 +1462,6 @@
       "id": "tools_help_buildhelptools"
     },
     {
-      "label": "lists.ts",
-      "file_type": "code",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L1",
-      "community": 105,
-      "norm_label": "lists.ts",
-      "id": "lib_tools_lists_ts"
-    },
-    {
-      "label": "normalizeName()",
-      "file_type": "code",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L15",
-      "community": 105,
-      "norm_label": "normalizename()",
-      "id": "tools_lists_normalizename"
-    },
-    {
-      "label": "listKey()",
-      "file_type": "code",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L19",
-      "community": 105,
-      "norm_label": "listkey()",
-      "id": "tools_lists_listkey"
-    },
-    {
-      "label": "namesKey()",
-      "file_type": "code",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L20",
-      "community": 105,
-      "norm_label": "nameskey()",
-      "id": "tools_lists_nameskey"
-    },
-    {
-      "label": "getListItems()",
-      "file_type": "code",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L22",
-      "community": 105,
-      "norm_label": "getlistitems()",
-      "id": "tools_lists_getlistitems"
-    },
-    {
-      "label": "buildListTools()",
-      "file_type": "code",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L26",
-      "community": 105,
-      "norm_label": "buildlisttools()",
-      "id": "tools_lists_buildlisttools"
-    },
-    {
       "label": "media-ai.ts",
       "file_type": "code",
       "source_file": "lib/tools/media-ai.ts",
@@ -1136,24 +1496,6 @@
       "community": 53,
       "norm_label": "normalizemediatype()",
       "id": "tools_media_ai_normalizemediatype"
-    },
-    {
-      "label": "memory.ts",
-      "file_type": "code",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L1",
-      "community": 9,
-      "norm_label": "memory.ts",
-      "id": "lib_tools_memory_ts"
-    },
-    {
-      "label": "buildMemoryTools()",
-      "file_type": "code",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L16",
-      "community": 3,
-      "norm_label": "buildmemorytools()",
-      "id": "tools_memory_buildmemorytools"
     },
     {
       "label": "settings.ts",
@@ -6521,42 +6863,6 @@
       "id": "tools_web_search_buildwebsearchtool"
     },
     {
-      "label": "news.ts",
-      "file_type": "code",
-      "source_file": "lib/tools/news.ts",
-      "source_location": "L1",
-      "community": 106,
-      "norm_label": "news.ts",
-      "id": "lib_tools_news_ts"
-    },
-    {
-      "label": "TavilyNewsResult",
-      "file_type": "code",
-      "source_file": "lib/tools/news.ts",
-      "source_location": "L5",
-      "community": 106,
-      "norm_label": "tavilynewsresult",
-      "id": "tools_news_tavilynewsresult"
-    },
-    {
-      "label": "TavilyNewsResponse",
-      "file_type": "code",
-      "source_file": "lib/tools/news.ts",
-      "source_location": "L12",
-      "community": 106,
-      "norm_label": "tavilynewsresponse",
-      "id": "tools_news_tavilynewsresponse"
-    },
-    {
-      "label": "buildNewsTools()",
-      "file_type": "code",
-      "source_file": "lib/tools/news.ts",
-      "source_location": "L17",
-      "community": 106,
-      "norm_label": "buildnewstools()",
-      "id": "tools_news_buildnewstools"
-    },
-    {
       "label": "drive.ts",
       "file_type": "code",
       "source_file": "lib/tools/drive.ts",
@@ -6636,105 +6942,6 @@
       "community": 53,
       "norm_label": "buildstagedmediatools()",
       "id": "tools_staged_media_buildstagedmediatools"
-    },
-    {
-      "label": "email.ts",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L1",
-      "community": 87,
-      "norm_label": "email.ts",
-      "id": "lib_tools_email_ts"
-    },
-    {
-      "label": "buildEmailTools()",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L14",
-      "community": 87,
-      "norm_label": "buildemailtools()",
-      "id": "tools_email_buildemailtools"
-    },
-    {
-      "label": "sendEmail()",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L119",
-      "community": 87,
-      "norm_label": "sendemail()",
-      "id": "tools_email_sendemail"
-    },
-    {
-      "label": "FetchedAttachment",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L192",
-      "community": 87,
-      "norm_label": "fetchedattachment",
-      "id": "tools_email_fetchedattachment"
-    },
-    {
-      "label": "fetchDriveFile()",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L198",
-      "community": 87,
-      "norm_label": "fetchdrivefile()",
-      "id": "tools_email_fetchdrivefile"
-    },
-    {
-      "label": "buildRawMime()",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L251",
-      "community": 87,
-      "norm_label": "buildrawmime()",
-      "id": "tools_email_buildrawmime"
-    },
-    {
-      "label": "encodeHeader()",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L319",
-      "community": 87,
-      "norm_label": "encodeheader()",
-      "id": "tools_email_encodeheader"
-    },
-    {
-      "label": "escapeMimeHeaderValue()",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L323",
-      "community": 87,
-      "norm_label": "escapemimeheadervalue()",
-      "id": "tools_email_escapemimeheadervalue"
-    },
-    {
-      "label": "chunkBase64()",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L326",
-      "community": 87,
-      "norm_label": "chunkbase64()",
-      "id": "tools_email_chunkbase64"
-    },
-    {
-      "label": "defaultFilename()",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L331",
-      "community": 87,
-      "norm_label": "defaultfilename()",
-      "id": "tools_email_defaultfilename"
-    },
-    {
-      "label": "mimeToExt()",
-      "file_type": "code",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L335",
-      "community": 87,
-      "norm_label": "mimetoext()",
-      "id": "tools_email_mimetoext"
     },
     {
       "label": "reminders.ts",
@@ -6827,60 +7034,6 @@
       "id": "tools_export_buildexporttools"
     },
     {
-      "label": "gmail-inbox.ts",
-      "file_type": "code",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L1",
-      "community": 4,
-      "norm_label": "gmail-inbox.ts",
-      "id": "lib_tools_gmail_inbox_ts"
-    },
-    {
-      "label": "Headers",
-      "file_type": "code",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L10",
-      "community": 4,
-      "norm_label": "headers",
-      "id": "tools_gmail_inbox_headers"
-    },
-    {
-      "label": "headerMap()",
-      "file_type": "code",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L12",
-      "community": 4,
-      "norm_label": "headermap()",
-      "id": "tools_gmail_inbox_headermap"
-    },
-    {
-      "label": "decodeBody()",
-      "file_type": "code",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L20",
-      "community": 4,
-      "norm_label": "decodebody()",
-      "id": "tools_gmail_inbox_decodebody"
-    },
-    {
-      "label": "buildGmailInboxTools()",
-      "file_type": "code",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L53",
-      "community": 4,
-      "norm_label": "buildgmailinboxtools()",
-      "id": "tools_gmail_inbox_buildgmailinboxtools"
-    },
-    {
-      "label": "extractEmail()",
-      "file_type": "code",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L253",
-      "community": 4,
-      "norm_label": "extractemail()",
-      "id": "tools_gmail_inbox_extractemail"
-    },
-    {
       "label": "docs.ts",
       "file_type": "code",
       "source_file": "lib/tools/docs.ts",
@@ -6897,78 +7050,6 @@
       "community": 3,
       "norm_label": "builddocstools()",
       "id": "tools_docs_builddocstools"
-    },
-    {
-      "label": "scheduled-email.ts",
-      "file_type": "code",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L1",
-      "community": 83,
-      "norm_label": "scheduled-email.ts",
-      "id": "lib_tools_scheduled_email_ts"
-    },
-    {
-      "label": "ScheduledEmail",
-      "file_type": "code",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L8",
-      "community": 83,
-      "norm_label": "scheduledemail",
-      "id": "tools_scheduled_email_scheduledemail"
-    },
-    {
-      "label": "qstash()",
-      "file_type": "code",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L23",
-      "community": 83,
-      "norm_label": "qstash()",
-      "id": "tools_scheduled_email_qstash"
-    },
-    {
-      "label": "scheduledKey()",
-      "file_type": "code",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L25",
-      "community": 83,
-      "norm_label": "scheduledkey()",
-      "id": "tools_scheduled_email_scheduledkey"
-    },
-    {
-      "label": "scheduledListKey()",
-      "file_type": "code",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L26",
-      "community": 83,
-      "norm_label": "scheduledlistkey()",
-      "id": "tools_scheduled_email_scheduledlistkey"
-    },
-    {
-      "label": "buildScheduledEmailTools()",
-      "file_type": "code",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L28",
-      "community": 83,
-      "norm_label": "buildscheduledemailtools()",
-      "id": "tools_scheduled_email_buildscheduledemailtools"
-    },
-    {
-      "label": "executeScheduleEmail()",
-      "file_type": "code",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L107",
-      "community": 83,
-      "norm_label": "executescheduleemail()",
-      "id": "tools_scheduled_email_executescheduleemail"
-    },
-    {
-      "label": "consumeScheduledEmail()",
-      "file_type": "code",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L145",
-      "community": 83,
-      "norm_label": "consumescheduledemail()",
-      "id": "tools_scheduled_email_consumescheduledemail"
     },
     {
       "label": "index.ts",
@@ -7059,87 +7140,6 @@
       "community": 3,
       "norm_label": "buildgoogleaccounttools()",
       "id": "tools_google_accounts_buildgoogleaccounttools"
-    },
-    {
-      "label": "receipts.ts",
-      "file_type": "code",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L1",
-      "community": 92,
-      "norm_label": "receipts.ts",
-      "id": "lib_tools_receipts_ts"
-    },
-    {
-      "label": "randomId()",
-      "file_type": "code",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L15",
-      "community": 92,
-      "norm_label": "randomid()",
-      "id": "tools_receipts_randomid"
-    },
-    {
-      "label": "buildReceiptTools()",
-      "file_type": "code",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L38",
-      "community": 92,
-      "norm_label": "buildreceipttools()",
-      "id": "tools_receipts_buildreceipttools"
-    },
-    {
-      "label": "contacts.ts",
-      "file_type": "code",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L1",
-      "community": 104,
-      "norm_label": "contacts.ts",
-      "id": "lib_tools_contacts_ts"
-    },
-    {
-      "label": "WRITE_SCOPES",
-      "file_type": "code",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L17",
-      "community": 104,
-      "norm_label": "write_scopes",
-      "id": "tools_contacts_write_scopes"
-    },
-    {
-      "label": "READ_SCOPES",
-      "file_type": "code",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L18",
-      "community": 104,
-      "norm_label": "read_scopes",
-      "id": "tools_contacts_read_scopes"
-    },
-    {
-      "label": "buildContactsTools()",
-      "file_type": "code",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L23",
-      "community": 104,
-      "norm_label": "buildcontactstools()",
-      "id": "tools_contacts_buildcontactstools"
-    },
-    {
-      "label": "PersonShape",
-      "file_type": "code",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L98",
-      "community": 104,
-      "norm_label": "personshape",
-      "id": "tools_contacts_personshape"
-    },
-    {
-      "label": "formatPerson()",
-      "file_type": "code",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L104",
-      "community": 104,
-      "norm_label": "formatperson()",
-      "id": "tools_contacts_formatperson"
     },
     {
       "label": "sent-history.ts",
@@ -13059,7 +13059,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L109",
-      "community": 89,
+      "community": 48,
       "norm_label": "p0 \u2014 critical (can cause 60s timeout or silent failure)",
       "id": "distracted_wilbur_8b4651_performance_p0_critical_can_cause_60s_timeout_or_silent_failure"
     },
@@ -13068,7 +13068,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L111",
-      "community": 89,
+      "community": 48,
       "norm_label": "1. `generatetext` is the single dominant cost (~70\u201395% of total time)",
       "id": "distracted_wilbur_8b4651_performance_1_generatetext_is_the_single_dominant_cost_70_95_of_total_time"
     },
@@ -13077,7 +13077,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L119",
-      "community": 89,
+      "community": 48,
       "norm_label": "2. no `replyorpush` fallback on expired replytoken",
       "id": "distracted_wilbur_8b4651_performance_2_no_replyorpush_fallback_on_expired_replytoken"
     },
@@ -13086,7 +13086,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L127",
-      "community": 89,
+      "community": 48,
       "norm_label": "3. tool execution happens sequentially inside `generatetext`",
       "id": "distracted_wilbur_8b4651_performance_3_tool_execution_happens_sequentially_inside_generatetext"
     },
@@ -13095,7 +13095,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L137",
-      "community": 48,
+      "community": 89,
       "norm_label": "p1 \u2014 significant (adds 100ms\u20133s)",
       "id": "distracted_wilbur_8b4651_performance_p1_significant_adds_100ms_3s"
     },
@@ -13104,7 +13104,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L139",
-      "community": 48,
+      "community": 89,
       "norm_label": "4. redundant `listaccounts` / `listrecentmedia` fetch",
       "id": "distracted_wilbur_8b4651_performance_4_redundant_listaccounts_listrecentmedia_fetch"
     },
@@ -13113,7 +13113,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L147",
-      "community": 48,
+      "community": 89,
       "norm_label": "5. history summarization blocks on cache miss",
       "id": "distracted_wilbur_8b4651_performance_5_history_summarization_blocks_on_cache_miss"
     },
@@ -13122,7 +13122,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L155",
-      "community": 48,
+      "community": 89,
       "norm_label": "6. `maxretries: 3` on `generatetext` can burn time on transient failures",
       "id": "distracted_wilbur_8b4651_performance_6_maxretries_3_on_generatetext_can_burn_time_on_transient_failures"
     },
@@ -13131,7 +13131,7 @@
       "file_type": "document",
       "source_file": "PERFORMANCE.md",
       "source_location": "L163",
-      "community": 48,
+      "community": 89,
       "norm_label": "7. background fact extraction consumes quota every 10 turns",
       "id": "distracted_wilbur_8b4651_performance_7_background_fact_extraction_consumes_quota_every_10_turns"
     },
@@ -14284,6 +14284,1563 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_contacts_ts",
+      "target": "tools_with_google_withgoogleclient"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_contacts_ts",
+      "target": "tools_contacts_write_scopes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L18",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_contacts_ts",
+      "target": "tools_contacts_read_scopes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_contacts_ts",
+      "target": "tools_contacts_buildcontactstools"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L98",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_contacts_ts",
+      "target": "tools_contacts_personshape"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L104",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_contacts_ts",
+      "target": "tools_contacts_formatperson"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/contacts.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_contacts_ts",
+      "target": "lib_tools_with_google_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "lib_tools_contacts_ts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "tools_contacts_buildcontactstools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_with_google_withgoogleclient"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_with_google_guardgoogleapicall"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_google_auth_getgoogleclient"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "lib_confirm_appendpending"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "lib_confirm_sendemailaction"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "memory_recent_media_listrecentmedia"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "memory_recent_media_clearrecentmedia"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "line_client_getmessagecontent"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_buildemailtools"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L118",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_sendemail"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L191",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_fetchedattachment"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L197",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_fetchdrivefile"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L250",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_buildrawmime"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L318",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_encodeheader"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L322",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_escapemimeheadervalue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L325",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_chunkbase64"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L330",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_defaultfilename"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L334",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "tools_email_mimetoext"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "lib_tools_with_google_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L8",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "lib_line_client_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/api/scheduled-email/fire/route.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "app_api_scheduled_email_fire_route_ts",
+      "target": "lib_tools_email_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/pending-runner.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_pending_runner_ts",
+      "target": "lib_tools_email_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "lib_tools_google_auth_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "lib_confirm_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_email_ts",
+      "target": "lib_memory_recent_media_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "lib_tools_email_ts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "tools_email_buildemailtools"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L128",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_email_sendemail",
+      "target": "tools_email_fetchdrivefile"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L167",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_email_sendemail",
+      "target": "tools_email_buildrawmime"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L179",
+      "weight": 1.0,
+      "source": "tools_email_sendemail",
+      "target": "tools_with_google_guardgoogleapicall"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/api/scheduled-email/fire/route.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "app_api_scheduled_email_fire_route_ts",
+      "target": "tools_email_sendemail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/api/scheduled-email/fire/route.ts",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "app_api_scheduled_email_fire_route_ts_fire_route_post",
+      "target": "tools_email_sendemail"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/pending-runner.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_pending_runner_ts",
+      "target": "tools_email_sendemail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/pending-runner.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_pending_runner_executeone",
+      "target": "tools_email_sendemail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L122",
+      "weight": 1.0,
+      "source": "tools_email_sendemail",
+      "target": "tools_google_auth_getgoogleclient"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L133",
+      "weight": 1.0,
+      "source": "tools_email_sendemail",
+      "target": "memory_recent_media_listrecentmedia"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L203",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_email_fetchdrivefile",
+      "target": "tools_with_google_withgoogleclient"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L267",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_email_buildrawmime",
+      "target": "tools_email_encodeheader"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L279",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_email_buildrawmime",
+      "target": "tools_email_chunkbase64"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L300",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_email_buildrawmime",
+      "target": "tools_email_escapemimeheadervalue"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/email.ts",
+      "source_location": "L331",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_email_defaultfilename",
+      "target": "tools_email_mimetoext"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "tools_with_google_withgoogleclient"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "lib_confirm_appendpending"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "lib_confirm_sendemailaction"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "tools_gmail_inbox_headers"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "tools_gmail_inbox_headermap"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "tools_gmail_inbox_decodebody"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L52",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "tools_gmail_inbox_buildgmailinboxtools"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L252",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "tools_gmail_inbox_extractemail"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "lib_tools_with_google_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/gmail-inbox.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_gmail_inbox_ts",
+      "target": "lib_confirm_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "lib_tools_gmail_inbox_ts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "tools_gmail_inbox_buildgmailinboxtools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_lists_ts",
+      "target": "memory_redis_redis"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_lists_ts",
+      "target": "tools_lists_normalizename"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_lists_ts",
+      "target": "tools_lists_listkey"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_lists_ts",
+      "target": "tools_lists_nameskey"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_lists_ts",
+      "target": "tools_lists_getlistitems"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L26",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_lists_ts",
+      "target": "tools_lists_buildlisttools"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "lib_tools_lists_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_lists_ts",
+      "target": "lib_memory_redis_ts"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_lists_listkey",
+      "target": "tools_lists_normalizename"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_lists_getlistitems",
+      "target": "tools_lists_listkey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/lists.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_lists_getlistitems",
+      "target": "memory_redis_redis"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "tools_lists_buildlisttools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_facts_appendfact"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_facts_loadfacts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_facts_updatefact"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_facts_removefact"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_facts_clearfacts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_facts_displayorder"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_facts_formatfactline"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_facts_fact_categories"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_facts_factcategory"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_archive_searcharchive"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "memory_archive_listarchive"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L16",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "tools_memory_buildmemorytools"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "lib_memory_facts_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/memory.ts",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_memory_ts",
+      "target": "lib_memory_archive_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "lib_tools_memory_ts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "tools_memory_buildmemorytools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/news.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_news_ts",
+      "target": "lib_env_env"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/news.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_news_ts",
+      "target": "tools_news_tavilynewsresult"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/news.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_news_ts",
+      "target": "tools_news_tavilynewsresponse"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/news.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_news_ts",
+      "target": "tools_news_buildnewstools"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/news.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_news_ts",
+      "target": "lib_env_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "lib_tools_news_ts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "tools_news_buildnewstools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "llm_provider_extractormodel"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "memory_recent_media_listrecentmedia"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "line_client_getmessagecontent"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "memory_receipts_appendreceipt"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "memory_receipts_listreceipts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "memory_receipts_searchreceipts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "memory_receipts_deletereceipt"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "memory_receipts_receipt"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "tools_receipts_randomid"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L38",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "tools_receipts_buildreceipttools"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "lib_line_client_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "lib_tools_receipts_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "lib_llm_provider_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "lib_memory_recent_media_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/receipts.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_receipts_ts",
+      "target": "lib_memory_receipts_ts"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "tools_receipts_buildreceipttools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "memory_redis_redis"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "lib_env_env"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "lib_env_hasqstash"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "lib_confirm_appendpending"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "lib_confirm_scheduleemailaction"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L7",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "tools_scheduled_email_scheduledemail"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "tools_scheduled_email_qstash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "tools_scheduled_email_scheduledkey"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "tools_scheduled_email_scheduledlistkey"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "tools_scheduled_email_buildscheduledemailtools"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L107",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "tools_scheduled_email_executescheduleemail"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L110",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "tools_scheduled_email_consumescheduledemail"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/api/scheduled-email/fire/route.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "app_api_scheduled_email_fire_route_ts",
+      "target": "lib_tools_scheduled_email_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/pending-runner.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_pending_runner_ts",
+      "target": "lib_tools_scheduled_email_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "lib_confirm_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "lib_env_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_scheduled_email_ts",
+      "target": "lib_memory_redis_ts"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "lib_tools_scheduled_email_ts"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L120",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_scheduled_email_executescheduleemail",
+      "target": "tools_scheduled_email_qstash"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_scheduled_email_qstash",
+      "target": "lib_env_env"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L139",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_scheduled_email_executescheduleemail",
+      "target": "tools_scheduled_email_scheduledkey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L111",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_scheduled_email_consumescheduledemail",
+      "target": "tools_scheduled_email_scheduledkey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L140",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_scheduled_email_executescheduleemail",
+      "target": "tools_scheduled_email_scheduledlistkey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L114",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tools_scheduled_email_consumescheduledemail",
+      "target": "tools_scheduled_email_scheduledlistkey"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/tools/index.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_tools_index_ts",
+      "target": "tools_scheduled_email_buildscheduledemailtools"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/pending-runner.ts",
+      "source_location": "L5",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_pending_runner_ts",
+      "target": "tools_scheduled_email_executescheduleemail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "lib/pending-runner.ts",
+      "source_location": "L86",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "lib_pending_runner_executeone",
+      "target": "tools_scheduled_email_executescheduleemail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L111",
+      "weight": 1.0,
+      "source": "tools_scheduled_email_executescheduleemail",
+      "target": "lib_env_hasqstash"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L139",
+      "weight": 1.0,
+      "source": "tools_scheduled_email_executescheduleemail",
+      "target": "memory_redis_redis"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/api/scheduled-email/fire/route.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "app_api_scheduled_email_fire_route_ts",
+      "target": "tools_scheduled_email_consumescheduledemail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/api/scheduled-email/fire/route.ts",
+      "source_location": "L45",
+      "weight": 1.0,
+      "source": "app_api_scheduled_email_fire_route_ts_fire_route_post",
+      "target": "tools_scheduled_email_consumescheduledemail"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "lib/tools/scheduled-email.ts",
+      "source_location": "L111",
+      "weight": 1.0,
+      "source": "tools_scheduled_email_consumescheduledemail",
+      "target": "memory_redis_redis"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "app/api/auth/line/dashboard-callback/route.ts",
       "source_location": "L2",
       "weight": 1.0,
@@ -14572,9 +16129,9 @@
       "source_file": "app/api/line/webhook/route.ts",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_line_webhook_route_ts",
-      "target": "memory_allowlist_isallowed",
-      "confidence_score": 1.0
+      "target": "memory_allowlist_isallowed"
     },
     {
       "relation": "imports",
@@ -14583,9 +16140,9 @@
       "source_file": "app/api/line/webhook/route.ts",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_line_webhook_route_ts",
-      "target": "memory_allowlist_addtoallowlist",
-      "confidence_score": 1.0
+      "target": "memory_allowlist_addtoallowlist"
     },
     {
       "relation": "imports",
@@ -15274,9 +16831,9 @@
       "source_file": "app/api/webhooks/stripe/route.ts",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_webhooks_stripe_route_ts",
-      "target": "line_client_push",
-      "confidence_score": 1.0
+      "target": "line_client_push"
     },
     {
       "relation": "imports",
@@ -15285,9 +16842,9 @@
       "source_file": "app/api/webhooks/stripe/route.ts",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_webhooks_stripe_route_ts",
-      "target": "line_client_text",
-      "confidence_score": 1.0
+      "target": "line_client_text"
     },
     {
       "relation": "imports",
@@ -15296,9 +16853,9 @@
       "source_file": "app/api/webhooks/stripe/route.ts",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "app_api_webhooks_stripe_route_ts",
-      "target": "line_client_getprofile",
-      "confidence_score": 1.0
+      "target": "line_client_getprofile"
     },
     {
       "relation": "contains",
@@ -15361,9 +16918,9 @@
       "source_file": "marketing/src/App.jsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_app_jsx",
-      "target": "marketing_src_i18n_jsx",
-      "confidence_score": 1.0
+      "target": "marketing_src_i18n_jsx"
     },
     {
       "relation": "imports",
@@ -15372,9 +16929,9 @@
       "source_file": "marketing/src/App.jsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_app_jsx",
-      "target": "src_i18n_langtoggle",
-      "confidence_score": 1.0
+      "target": "src_i18n_langtoggle"
     },
     {
       "relation": "contains",
@@ -15743,9 +17300,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_i18n_jsx",
-      "target": "src_i18n_th",
-      "confidence_score": 1.0
+      "target": "src_i18n_th"
     },
     {
       "relation": "contains",
@@ -15753,9 +17310,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L293",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_i18n_jsx",
-      "target": "src_i18n_originals",
-      "confidence_score": 1.0
+      "target": "src_i18n_originals"
     },
     {
       "relation": "contains",
@@ -15763,9 +17320,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L298",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_i18n_jsx",
-      "target": "src_i18n_innotranslate",
-      "confidence_score": 1.0
+      "target": "src_i18n_innotranslate"
     },
     {
       "relation": "contains",
@@ -15773,9 +17330,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L307",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_i18n_jsx",
-      "target": "src_i18n_translatetext",
-      "confidence_score": 1.0
+      "target": "src_i18n_translatetext"
     },
     {
       "relation": "contains",
@@ -15783,9 +17340,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L325",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_i18n_jsx",
-      "target": "src_i18n_walk",
-      "confidence_score": 1.0
+      "target": "src_i18n_walk"
     },
     {
       "relation": "contains",
@@ -15793,9 +17350,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L341",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_i18n_jsx",
-      "target": "src_i18n_startobserver",
-      "confidence_score": 1.0
+      "target": "src_i18n_startobserver"
     },
     {
       "relation": "contains",
@@ -15803,9 +17360,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L362",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_i18n_jsx",
-      "target": "src_i18n_setlang",
-      "confidence_score": 1.0
+      "target": "src_i18n_setlang"
     },
     {
       "relation": "contains",
@@ -15813,9 +17370,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L373",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_i18n_jsx",
-      "target": "src_i18n_init",
-      "confidence_score": 1.0
+      "target": "src_i18n_init"
     },
     {
       "relation": "contains",
@@ -15823,9 +17380,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L383",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "marketing_src_i18n_jsx",
-      "target": "src_i18n_langtoggle",
-      "confidence_score": 1.0
+      "target": "src_i18n_langtoggle"
     },
     {
       "relation": "calls",
@@ -15834,9 +17391,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L327",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_i18n_walk",
-      "target": "src_i18n_innotranslate",
-      "confidence_score": 1.0
+      "target": "src_i18n_innotranslate"
     },
     {
       "relation": "calls",
@@ -15845,9 +17402,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L327",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_i18n_walk",
-      "target": "src_i18n_translatetext",
-      "confidence_score": 1.0
+      "target": "src_i18n_translatetext"
     },
     {
       "relation": "calls",
@@ -15856,9 +17413,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L367",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_i18n_setlang",
-      "target": "src_i18n_walk",
-      "confidence_score": 1.0
+      "target": "src_i18n_walk"
     },
     {
       "relation": "calls",
@@ -15867,9 +17424,9 @@
       "source_file": "marketing/src/i18n.jsx",
       "source_location": "L375",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_i18n_init",
-      "target": "src_i18n_startobserver",
-      "confidence_score": 1.0
+      "target": "src_i18n_startobserver"
     },
     {
       "relation": "imports",
@@ -17317,133 +18874,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_lists_ts",
-      "target": "memory_redis_redis"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_lists_ts",
-      "target": "tools_lists_normalizename"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_lists_ts",
-      "target": "tools_lists_listkey"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_lists_ts",
-      "target": "tools_lists_nameskey"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L22",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_lists_ts",
-      "target": "tools_lists_getlistitems"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L26",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_lists_ts",
-      "target": "tools_lists_buildlisttools"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "lib_tools_lists_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_lists_ts",
-      "target": "lib_memory_redis_ts"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_lists_listkey",
-      "target": "tools_lists_normalizename"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_lists_getlistitems",
-      "target": "tools_lists_listkey"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/lists.ts",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_lists_getlistitems",
-      "target": "memory_redis_redis"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "tools_lists_buildlisttools"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "lib/tools/media-ai.ts",
       "source_location": "L4",
       "weight": 1.0,
@@ -17601,181 +19031,6 @@
       "confidence_score": 1.0,
       "source": "tools_media_ai_runmediaprompt",
       "target": "llm_provider_extractormodel"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_facts_appendfact"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_facts_loadfacts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_facts_updatefact"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_facts_removefact"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_facts_clearfacts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_facts_displayorder"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_facts_formatfactline"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_facts_fact_categories"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_facts_factcategory"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_archive_searcharchive"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "memory_archive_listarchive"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L16",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "tools_memory_buildmemorytools"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "lib_memory_facts_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/memory.ts",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_memory_ts",
-      "target": "lib_memory_archive_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "lib_tools_memory_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "tools_memory_buildmemorytools"
     },
     {
       "relation": "imports",
@@ -22142,44 +23397,11 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "lib_tools_with_google_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "lib_tools_with_google_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "lib/tools/docs.ts",
       "source_location": "L4",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "lib_tools_docs_ts",
-      "target": "lib_tools_with_google_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_contacts_ts",
       "target": "lib_tools_with_google_ts"
     },
     {
@@ -22202,28 +23424,6 @@
       "source_location": "L229",
       "weight": 1.0,
       "source": "tools_calendar_createcalendarevent",
-      "target": "tools_with_google_guardgoogleapicall"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_with_google_guardgoogleapicall"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L179",
-      "weight": 1.0,
-      "source": "tools_email_sendemail",
       "target": "tools_with_google_guardgoogleapicall"
     },
     {
@@ -22329,55 +23529,11 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_with_google_withgoogleclient"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "tools_with_google_withgoogleclient"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "lib/tools/docs.ts",
       "source_location": "L4",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "lib_tools_docs_ts",
-      "target": "tools_with_google_withgoogleclient"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_contacts_ts",
-      "target": "tools_with_google_withgoogleclient"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L203",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_email_fetchdrivefile",
       "target": "tools_with_google_withgoogleclient"
     },
     {
@@ -22800,28 +23956,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "lib_tools_drive_ts",
-      "target": "lib_line_client_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "lib_line_client_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
       "target": "lib_line_client_ts"
     },
     {
@@ -23625,28 +24759,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "lib_tools_drive_ts",
-      "target": "line_client_getmessagecontent"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L8",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "line_client_getmessagecontent"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
       "target": "line_client_getmessagecontent"
     },
     {
@@ -24830,28 +25942,6 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "app/api/scheduled-email/fire/route.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "app_api_scheduled_email_fire_route_ts",
-      "target": "tools_scheduled_email_consumescheduledemail"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/api/scheduled-email/fire/route.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "app_api_scheduled_email_fire_route_ts",
-      "target": "tools_email_sendemail"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/api/scheduled-email/fire/route.ts",
       "source_location": "L8",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -24960,28 +26050,6 @@
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "app/api/scheduled-email/fire/route.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "app_api_scheduled_email_fire_route_ts",
-      "target": "lib_tools_scheduled_email_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/api/scheduled-email/fire/route.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "app_api_scheduled_email_fire_route_ts",
-      "target": "lib_tools_email_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/api/scheduled-email/fire/route.ts",
       "source_location": "L8",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -25042,28 +26110,6 @@
       "weight": 1.0,
       "source": "app_api_scheduled_email_fire_route_ts_fire_route_post",
       "target": "lib_env_hasqstash"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "app/api/scheduled-email/fire/route.ts",
-      "source_location": "L45",
-      "weight": 1.0,
-      "source": "app_api_scheduled_email_fire_route_ts_fire_route_post",
-      "target": "tools_scheduled_email_consumescheduledemail"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "app/api/scheduled-email/fire/route.ts",
-      "source_location": "L49",
-      "weight": 1.0,
-      "source": "app_api_scheduled_email_fire_route_ts_fire_route_post",
-      "target": "tools_email_sendemail"
     },
     {
       "relation": "calls",
@@ -25957,17 +27003,6 @@
       "target": "tools_google_auth_formatreconnectprompt"
     },
     {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/pending-runner.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_pending_runner_ts",
-      "target": "tools_email_sendemail"
-    },
-    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -25988,17 +27023,6 @@
       "confidence_score": 1.0,
       "source": "lib_pending_runner_ts",
       "target": "tools_calendar_createcalendarevent"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/pending-runner.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_pending_runner_ts",
-      "target": "tools_scheduled_email_executescheduleemail"
     },
     {
       "relation": "imports",
@@ -26085,28 +27109,6 @@
       "confidence_score": 1.0,
       "source": "lib_pending_runner_ts",
       "target": "tools_google_auth_buildconnecturl"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/pending-runner.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_pending_runner_ts",
-      "target": "lib_tools_email_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/pending-runner.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_pending_runner_ts",
-      "target": "lib_tools_scheduled_email_ts"
     },
     {
       "relation": "imports_from",
@@ -26212,17 +27214,6 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "lib/pending-runner.ts",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_pending_runner_executeone",
-      "target": "tools_email_sendemail"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/pending-runner.ts",
       "source_location": "L33",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -26239,17 +27230,6 @@
       "confidence_score": 1.0,
       "source": "lib_pending_runner_executeone",
       "target": "tools_google_auth_buildconnecturl"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/pending-runner.ts",
-      "source_location": "L86",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_pending_runner_executeone",
-      "target": "tools_scheduled_email_executescheduleemail"
     },
     {
       "relation": "imports",
@@ -27100,17 +28080,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "lib_tools_google_auth_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "lib/tools/google-auth.ts",
       "source_location": "L2",
       "weight": 1.0,
@@ -27798,28 +28767,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "lib_llm_briefing_ts",
-      "target": "tools_google_auth_getgoogleclient"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_google_auth_getgoogleclient"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L122",
-      "weight": 1.0,
-      "source": "tools_email_sendemail",
       "target": "tools_google_auth_getgoogleclient"
     },
     {
@@ -33003,72 +33950,6 @@
       "target": "lib_confirm_classify"
     },
     {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "lib_confirm_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "lib_confirm_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "lib_confirm_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "lib_confirm_sendemailaction"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "lib_confirm_sendemailaction"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "lib_confirm_scheduleemailaction"
-    },
-    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -33100,39 +33981,6 @@
       "confidence_score": 1.0,
       "source": "lib_confirm_clearpending",
       "target": "lib_confirm_key"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "lib_confirm_appendpending"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "lib_confirm_appendpending"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L6",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "lib_confirm_appendpending"
     },
     {
       "relation": "calls",
@@ -33756,33 +34604,11 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "lib/tools/news.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_news_ts",
-      "target": "lib_env_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "lib/tools/reminders.ts",
       "source_location": "L5",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "lib_tools_reminders_ts",
-      "target": "lib_env_ts"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
       "target": "lib_env_ts"
     },
     {
@@ -33866,33 +34692,11 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "lib/tools/news.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_news_ts",
-      "target": "lib_env_env"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "lib/tools/reminders.ts",
       "source_location": "L5",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "lib_tools_reminders_ts",
-      "target": "lib_env_env"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
       "target": "lib_env_env"
     },
     {
@@ -33959,17 +34763,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "tools_reminders_qstash",
-      "target": "lib_env_env"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_scheduled_email_qstash",
       "target": "lib_env_env"
     },
     {
@@ -34108,17 +34901,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "lib_env_hasqstash"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "lib/tools/index.ts",
       "source_location": "L27",
       "weight": 1.0,
@@ -34146,17 +34928,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "tools_index_envhas",
-      "target": "lib_env_hasqstash"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L111",
-      "weight": 1.0,
-      "source": "tools_scheduled_email_executescheduleemail",
       "target": "lib_env_hasqstash"
     },
     {
@@ -34232,58 +35003,6 @@
       "confidence_score": 1.0,
       "source": "lib_tools_index_ts",
       "target": "tools_web_search_buildwebsearchtool"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/news.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_news_ts",
-      "target": "tools_news_tavilynewsresult"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/news.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_news_ts",
-      "target": "tools_news_tavilynewsresponse"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/news.ts",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_news_ts",
-      "target": "tools_news_buildnewstools"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "lib_tools_news_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L19",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "tools_news_buildnewstools"
     },
     {
       "relation": "imports_from",
@@ -34476,238 +35195,6 @@
       "confidence_score": 1.0,
       "source": "lib_tools_index_ts",
       "target": "tools_staged_media_buildstagedmediatools"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "lib_memory_recent_media_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "memory_recent_media_listrecentmedia"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "memory_recent_media_clearrecentmedia"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_buildemailtools"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L118",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_sendemail"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L191",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_fetchedattachment"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L197",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_fetchdrivefile"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L250",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_buildrawmime"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L318",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_encodeheader"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L322",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_escapemimeheadervalue"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L325",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_chunkbase64"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L330",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_defaultfilename"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L334",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_email_ts",
-      "target": "tools_email_mimetoext"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "lib_tools_email_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "tools_email_buildemailtools"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L128",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_email_sendemail",
-      "target": "tools_email_fetchdrivefile"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L167",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_email_sendemail",
-      "target": "tools_email_buildrawmime"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L133",
-      "weight": 1.0,
-      "source": "tools_email_sendemail",
-      "target": "memory_recent_media_listrecentmedia"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L267",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_email_buildrawmime",
-      "target": "tools_email_encodeheader"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L279",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_email_buildrawmime",
-      "target": "tools_email_chunkbase64"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L300",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_email_buildrawmime",
-      "target": "tools_email_escapemimeheadervalue"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/email.ts",
-      "source_location": "L331",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_email_defaultfilename",
-      "target": "tools_email_mimetoext"
     },
     {
       "relation": "imports_from",
@@ -34979,78 +35466,6 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L10",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "tools_gmail_inbox_headers"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L12",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "tools_gmail_inbox_headermap"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L20",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "tools_gmail_inbox_decodebody"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L52",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "tools_gmail_inbox_buildgmailinboxtools"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/gmail-inbox.ts",
-      "source_location": "L252",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_gmail_inbox_ts",
-      "target": "tools_gmail_inbox_extractemail"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "lib_tools_gmail_inbox_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L13",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "tools_gmail_inbox_buildgmailinboxtools"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
       "source_file": "lib/tools/docs.ts",
       "source_location": "L9",
       "weight": 1.0,
@@ -35079,197 +35494,6 @@
       "confidence_score": 1.0,
       "source": "lib_tools_index_ts",
       "target": "tools_docs_builddocstools"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "lib_memory_redis_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "memory_redis_redis"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "tools_scheduled_email_scheduledemail"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L22",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "tools_scheduled_email_qstash"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "tools_scheduled_email_scheduledkey"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "tools_scheduled_email_scheduledlistkey"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L27",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "tools_scheduled_email_buildscheduledemailtools"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L107",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "tools_scheduled_email_executescheduleemail"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L110",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_scheduled_email_ts",
-      "target": "tools_scheduled_email_consumescheduledemail"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "lib_tools_scheduled_email_ts"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L120",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_scheduled_email_executescheduleemail",
-      "target": "tools_scheduled_email_qstash"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L139",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_scheduled_email_executescheduleemail",
-      "target": "tools_scheduled_email_scheduledkey"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L111",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_scheduled_email_consumescheduledemail",
-      "target": "tools_scheduled_email_scheduledkey"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L140",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_scheduled_email_executescheduleemail",
-      "target": "tools_scheduled_email_scheduledlistkey"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L114",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tools_scheduled_email_consumescheduledemail",
-      "target": "tools_scheduled_email_scheduledlistkey"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "tools_scheduled_email_buildscheduledemailtools"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L139",
-      "weight": 1.0,
-      "source": "tools_scheduled_email_executescheduleemail",
-      "target": "memory_redis_redis"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "lib/tools/scheduled-email.ts",
-      "source_location": "L111",
-      "weight": 1.0,
-      "source": "tools_scheduled_email_consumescheduledemail",
-      "target": "memory_redis_redis"
     },
     {
       "relation": "imports_from",
@@ -35314,50 +35538,6 @@
       "confidence_score": 1.0,
       "source": "lib_tools_index_ts",
       "target": "tools_sent_history_buildsenthistorytools"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "lib_tools_receipts_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "tools_receipts_buildreceipttools"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "lib_tools_contacts_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/index.ts",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_index_ts",
-      "target": "tools_contacts_buildcontactstools"
     },
     {
       "relation": "contains",
@@ -35460,186 +35640,6 @@
       "confidence_score": 1.0,
       "source": "lib_tools_google_accounts_ts",
       "target": "tools_google_accounts_buildgoogleaccounttools"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "lib_llm_provider_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "llm_provider_extractormodel"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "lib_memory_recent_media_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L5",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "memory_recent_media_listrecentmedia"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "lib_memory_receipts_ts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "memory_receipts_appendreceipt"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "memory_receipts_listreceipts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "memory_receipts_searchreceipts"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "memory_receipts_deletereceipt"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L7",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "memory_receipts_receipt"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "tools_receipts_randomid"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/receipts.ts",
-      "source_location": "L38",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_receipts_ts",
-      "target": "tools_receipts_buildreceipttools"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L17",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_contacts_ts",
-      "target": "tools_contacts_write_scopes"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L18",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_contacts_ts",
-      "target": "tools_contacts_read_scopes"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_contacts_ts",
-      "target": "tools_contacts_buildcontactstools"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L98",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_contacts_ts",
-      "target": "tools_contacts_personshape"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "lib/tools/contacts.ts",
-      "source_location": "L104",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "lib_tools_contacts_ts",
-      "target": "tools_contacts_formatperson"
     },
     {
       "relation": "imports_from",
@@ -44853,5 +44853,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "59dcca796c91b4972866e49fb11869c36bc9a631"
+  "built_at_commit": "60051a287e866e34d55a95911cae94f09090bf7f"
 }
