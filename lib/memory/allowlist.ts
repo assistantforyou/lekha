@@ -1,4 +1,5 @@
 import { redis } from "./redis";
+import { registerUser } from "./user-registry";
 
 const ALLOW_KEY = "users:allowed";
 const PENDING_KEY = "users:pending";
@@ -10,6 +11,7 @@ export async function isAllowed(userId: string): Promise<boolean> {
 }
 export async function addToAllowlist(userId: string): Promise<void> {
   await redis().sadd(ALLOW_KEY, userId);
+  await registerUser(userId).catch(() => {});
 }
 export async function removeFromAllowlist(userId: string): Promise<void> {
   await redis().srem(ALLOW_KEY, userId);
@@ -68,6 +70,7 @@ export async function approvePending(userId: string): Promise<boolean> {
   const wasPending = (await redis().srem(PENDING_KEY, userId)) === 1;
   await redis().del(pendingHashKey(userId));
   await redis().sadd(ALLOW_KEY, userId);
+  await registerUser(userId).catch(() => {});
   return wasPending;
 }
 

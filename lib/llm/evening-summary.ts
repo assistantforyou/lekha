@@ -151,12 +151,7 @@ export async function buildEveningSummary(
   userId: string,
   opts: { timezone: string },
 ): Promise<EveningSummaryResult | null> {
-  // Atomic dedup lock — prevents concurrent cron sweeps from double-sending.
   const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone });
-  const lockKey = `evening:${userId}:${todayDateStr}`;
-  const locked = await redis().set(lockKey, 1, { nx: true, ex: 60 * 60 });
-  if (!locked) return null;
-
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
 

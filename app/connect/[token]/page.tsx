@@ -76,7 +76,7 @@ export default async function ConnectPage({
             <li>Sign in with Google</li>
           </ol>
           <p className="mt-3 text-sm text-[#7a756e]">
-            (On some phones it&apos;s a share icon or "Open in Chrome/Safari" instead.)
+            (On some phones it&apos;s a share icon or &quot;Open in Chrome/Safari&quot; instead.)
           </p>
           <a
             href={consentUrl}

@@ -9,3 +9,4 @@ next-env.d.ts
 .DS_Store
 .claude/settings.local.json
 graphify-out/
+for_video/

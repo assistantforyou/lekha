@@ -10,7 +10,30 @@ import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/even
 import { sweepTaskCheckIn, isUserRecentlyActive } from "@/lib/sweep";
 import { listTasks } from "@/lib/memory/tasks";
 import { listAllUsers } from "@/lib/memory/user-registry";
+import { redis } from "@/lib/memory/redis";
 import { verifyQStashSignature, unauthorized, badRequest, notConfigured, isManualBypass } from "@/lib/qstash-verify";
+
+/** Atomically claim a dedup lock for a proactive push. Returns true if we won the race. */
+async function claimPushLock(userId: string, type: string, ttlSec = 300): Promise<boolean> {
+  const key = `pushlock:${userId}:${type}:${new Date().toISOString().slice(0, 10)}`;
+  const r = await redis().set(key, 1, { ex: ttlSec, nx: true });
+  return r !== null;
+}
+
+/** Derive task check-in time from evening summary time (30 min before). */
+function deriveCheckInTime(eveningTime: string): string {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(eveningTime);
+  if (!m) return "20:30";
+  let hh = parseInt(m[1]!, 10);
+  let mm = parseInt(m[2]!, 10);
+  mm -= 30;
+  if (mm < 0) {
+    mm += 60;
+    hh -= 1;
+  }
+  if (hh < 0) hh += 24;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -86,7 +109,8 @@ export async function POST(req: NextRequest) {
         if (
           settings.morningBriefingTime &&
           settings.briefingChannels?.line !== false &&
-          !(await isUserRecentlyActive(userId))
+          !(await isUserRecentlyActive(userId)) &&
+          (await claimPushLock(userId, "morning_briefing"))
         ) {
           const briefing = await buildMorningBriefing(userId, {
             timezone: settings.timezone,
@@ -116,7 +140,8 @@ export async function POST(req: NextRequest) {
         if (
           settings.eveningSummaryEnabled &&
           settings.briefingChannels?.line !== false &&
-          !(await isUserRecentlyActive(userId))
+          !(await isUserRecentlyActive(userId)) &&
+          (await claimPushLock(userId, "evening_summary"))
         ) {
           const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
           if (summary) {
@@ -137,7 +162,8 @@ export async function POST(req: NextRequest) {
         if (
           settings.taskCheckInEnabled &&
           settings.briefingChannels?.line !== false &&
-          !(await isUserRecentlyActive(userId))
+          !(await isUserRecentlyActive(userId)) &&
+          (await claimPushLock(userId, "task_check_in"))
         ) {
           await sweepTaskCheckIn(userId, settings.timezone, { taskCheckIns: 0 });
           await updateSettings(userId, { lastTaskCheckInTs: Date.now() });
@@ -224,7 +250,8 @@ async function runSweepForUser(userId: string): Promise<void> {
       settings.lastMorningBriefingTs,
       settings.timezone,
     ) &&
-    !(await isUserRecentlyActive(userId))
+    !(await isUserRecentlyActive(userId)) &&
+    (await claimPushLock(userId, "morning_briefing"))
   ) {
     try {
       const briefing = await buildMorningBriefing(userId, {
@@ -257,7 +284,8 @@ async function runSweepForUser(userId: string): Promise<void> {
       settings.timezone,
       settings.eveningSummaryTime,
     ) &&
-    !(await isUserRecentlyActive(userId))
+    !(await isUserRecentlyActive(userId)) &&
+    (await claimPushLock(userId, "evening_summary"))
   ) {
     try {
       const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
@@ -272,17 +300,18 @@ async function runSweepForUser(userId: string): Promise<void> {
     }
   }
 
-  // Task check-in
+  // Task check-in — fires 30 min before evening summary (or at explicit override).
+  const checkInTime = settings.taskCheckInTime ?? deriveCheckInTime(settings.eveningSummaryTime ?? "21:00");
   if (
     settings.taskCheckInEnabled &&
-    settings.taskCheckInTime &&
     settings.briefingChannels?.line !== false &&
     shouldFireBriefingNow(
-      settings.taskCheckInTime,
+      checkInTime,
       settings.lastTaskCheckInTs,
       settings.timezone,
     ) &&
-    !(await isUserRecentlyActive(userId))
+    !(await isUserRecentlyActive(userId)) &&
+    (await claimPushLock(userId, "task_check_in"))
   ) {
     try {
       await sweepTaskCheckIn(userId, settings.timezone, { taskCheckIns: 0 });

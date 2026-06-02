@@ -292,7 +292,6 @@ async function main() {
     recentBlock;
 
   // Get all tools and convert to Gemini format
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawTools = toolsForUser(userId) as Record<string, any>;
   const funcDecls: GFunctionDecl[] = Object.entries(rawTools).map(([name, tool]) =>
     toFuncDecl(name, tool),

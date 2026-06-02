@@ -169,39 +169,62 @@ function buildRecommendations(
   const overdue = openTasks.filter((t) => t.dueAt && t.dueAt < now).sort((a, b) => (a.dueAt ?? 0) - (b.dueAt ?? 0));
   const dueToday = openTasks.filter((t) => t.dueAt && t.dueAt >= now && t.dueAt <= endOfToday);
   const noDueDate = openTasks.filter((t) => !t.dueAt);
-  const calToday = todayItems.filter((i) => i.type === "calendar").length;
-  const remindersToday = todayItems.filter((i) => i.type === "reminder").length;
-  const tasksToday = todayItems.filter((i) => i.type === "task").length;
+  const calToday = todayItems.filter((i) => i.type === "calendar");
+  const remindersToday = todayItems.filter((i) => i.type === "reminder");
+  const tasksToday = todayItems.filter((i) => i.type === "task");
 
-  if (overdue.length > 0) {
-    const first = overdue[0]!;
-    recs.push(`Tackle your oldest overdue task first: "${first.title}".`);
+  // ── Overdue ──────────────────────────────────────────────────────────
+  if (overdue.length === 1) {
+    recs.push(`⚠️ "${overdue[0]!.title}" is overdue — tackle it first.`);
+  } else if (overdue.length > 1) {
+    const names = overdue.slice(0, 3).map((t) => `"${t.title}"`).join(", ");
+    const more = overdue.length > 3 ? ` and ${overdue.length - 3} more` : "";
+    recs.push(`⚠️ Overdue: ${names}${more}. Start with the oldest.`);
   }
 
-  if (todayCount > 6) {
-    recs.push("Busy day ahead. Consider blocking 15 min between back-to-back items.");
-  } else if (todayCount === 0 && openTasks.length > 0) {
-    recs.push("Nothing on your agenda today. Knock out a backlogged task.");
+  // ── Due today ────────────────────────────────────────────────────────
+  if (dueToday.length === 1) {
+    recs.push(`📋 "${dueToday[0]!.title}" is due today.`);
+  } else if (dueToday.length === 2) {
+    recs.push(`📋 Due today: "${dueToday[0]!.title}" and "${dueToday[1]!.title}".`);
+  } else if (dueToday.length >= 3) {
+    const names = dueToday.slice(0, 3).map((t) => `"${t.title}"`).join(", ");
+    const more = dueToday.length > 3 ? ` (+${dueToday.length - 3} more)` : "";
+    recs.push(`📋 ${dueToday.length} tasks due today: ${names}${more}. Start with the hardest.`);
   }
 
-  if (tasksToday >= 3 && calToday >= 2) {
-    recs.push("Mix of tasks and meetings today. Batch tasks around your calendar blocks.");
+  // ── Calendar events ──────────────────────────────────────────────────
+  if (calToday.length === 1) {
+    recs.push(`📅 You have "${calToday[0]!.text}" on the calendar today — any prep needed?`);
+  } else if (calToday.length >= 2) {
+    const names = calToday.slice(0, 2).map((i) => `"${i.text}"`).join(" and ");
+    const more = calToday.length > 2 ? ` (+${calToday.length - 2} more)` : "";
+    recs.push(`📅 Busy schedule: ${names}${more}. Block buffer time between meetings.`);
   }
 
-  if (remindersToday >= 3) {
-    recs.push("Several reminders today. Bundle them into a single focused block.");
+  // ── Reminders ────────────────────────────────────────────────────────
+  if (remindersToday.length === 1) {
+    recs.push(`⏰ Reminder: "${remindersToday[0]!.text}".`);
+  } else if (remindersToday.length >= 2) {
+    const names = remindersToday.slice(0, 2).map((i) => `"${i.text}"`).join(" and ");
+    const more = remindersToday.length > 2 ? ` (+${remindersToday.length - 2} more)` : "";
+    recs.push(`⏰ Reminders today: ${names}${more}. Bundle them into one block.`);
   }
 
-  if (dueToday.length > 3) {
-    recs.push(`${dueToday.length} tasks due today. Start with the hardest one.`);
+  // ── No-due-date tasks ────────────────────────────────────────────────
+  if (todayCount === 0 && noDueDate.length === 1) {
+    recs.push(`💡 Clear day — perfect time to knock out "${noDueDate[0]!.title}".`);
+  } else if (todayCount === 0 && noDueDate.length >= 2) {
+    const pick = noDueDate[0]!;
+    recs.push(`💡 Nothing scheduled today. How about "${pick.title}"?`);
+  } else if (todayCount > 0 && noDueDate.length >= 1 && tasksToday.length === 0) {
+    // They have calendar events but no due tasks — suggest a no-due task to fill gaps
+    recs.push(`💡 No due tasks today, but you have "${noDueDate[0]!.title}" open. Good filler between events.`);
   }
 
-  if (calToday > 0 && tasksToday === 0 && overdue.length === 0) {
-    recs.push("Your schedule is full but you have no tasks listed. Add any prep or follow-up items?");
-  }
-
-  if (todayCount < 3 && noDueDate.length > 0) {
-    recs.push(`You have ${noDueDate.length} task${noDueDate.length > 1 ? "s" : ""} without a due date. Consider scheduling them.`);
+  // ── Density-based ────────────────────────────────────────────────────
+  if (todayCount >= 6) {
+    recs.push("🔥 Packed day. Consider deferring non-urgent items.");
   }
 
   return recs;
@@ -426,11 +449,7 @@ export async function buildMorningBriefing(
     day: "numeric",
   });
 
-  const langNote = opts.briefingLanguage && opts.briefingLanguage !== "English"
-    ? `[Language: ${opts.briefingLanguage}]\n`
-    : "";
-
-  const text = `${langNote}Good morning! ☀️ ${dateHeader}\n\n${sections.join("\n\n")}`;
+  const text = `Good morning! ☀️ ${dateHeader}\n\n${sections.join("\n\n")}`;
 
   return { text, news, inbox };
 }

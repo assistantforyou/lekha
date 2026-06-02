@@ -47,7 +47,6 @@ export function calendarEventsFlex(events: CalendarEventRow[]): FlexMessage {
     contents: {
       type: "carousel",
       contents: rows.map((e) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const footerButtons: any[] = [];
         if (e.htmlLink) {
           footerButtons.push({

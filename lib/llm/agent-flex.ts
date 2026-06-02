@@ -143,7 +143,6 @@ export function buildFlexFromToolResults(result: { steps?: StepLike[] }): {
         (toolName === "news_search" || toolName === "search_news") &&
         Array.isArray(value.stories ?? value.results)
       ) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const raw = ((value.stories ?? value.results) as any[]) ?? [];
         const stories = raw
           .map((s) => ({

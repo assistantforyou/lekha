@@ -247,7 +247,7 @@ const Hero = () => {
       <div className="container">
         <div className="trusted" style={{ height: "1px", padding: "24px" }}>
           <div className="trusted-inner">
-            <span className="trusted-label" style={{ textAlign: "center" }}>"OUR PRODUCT HAS BEEN USED AND TRUSTED BY BUSINESS EXECUTIVES, DOCTORS, AND OTHER HIGH PERFORMANCE FIELDS" - LEKHA ADMINS</span>
+            <span className="trusted-label" style={{ textAlign: "center" }}>&quot;OUR PRODUCT HAS BEEN USED AND TRUSTED BY BUSINESS EXECUTIVES, DOCTORS, AND OTHER HIGH PERFORMANCE FIELDS&quot; - LEKHA ADMINS</span>
             <div className="trusted-logos">
               <span></span>
               <span>
@@ -360,7 +360,7 @@ const ChatBody = ({ id }: { id: string }) => {
           <div className="brief-item"><span className="bi-tag">Markets</span><span className="bi-text">SET opens +0.6%. NVDA on your watchlist up 2.1% pre-market.</span></div>
         </div>
       </div>
-      <div className="bubble user">Swap "Markets" for "Design" tomorrow.</div>
+      <div className="bubble user">Swap &quot;Markets&quot; for &quot;Design&quot; tomorrow.</div>
       <div className="bubble bot">Done. Tomorrow’s 7 AM brief: Innovation · Technology · Wellness · Self-care · Design · World.</div>
     </React.Fragment>);
 
@@ -962,7 +962,7 @@ const BuiltForSection = () =>
     <div className="container">
       <div className="section-head reveal">
         <span className="mono-eyebrow">Built for</span>
-        <h2 className="serif-h2">High-performance people<br /><em className="serif-italic" style={{ color: 'var(--ink-dim)' }}>who can't afford to miss a beat.</em></h2>
+        <h2 className="serif-h2">High-performance people<br /><em className="serif-italic" style={{ color: 'var(--ink-dim)' }}>who can&apos;t afford to miss a beat.</em></h2>
       </div>
       <div className="builtfor-grid">
         {BUILTFOR.map((b, i) =>
@@ -1482,7 +1482,7 @@ const App = () => {
                 <div className="brand-mark"><LekhaMark /></div>
                 <span>LEKHA</span>
               </div>
-              <p style={{ color: 'var(--ink-dim)', fontSize: 14, margin: 0, maxWidth: 320 }}>"I have been using Lekha and it has helped me organize my calendars and to-do list very well" -  a Doctor 
+              <p style={{ color: 'var(--ink-dim)', fontSize: 14, margin: 0, maxWidth: 320 }}>&quot;I have been using Lekha and it has helped me organize my calendars and to-do list very well&quot; -  a Doctor 
 
               </p>
             </div>

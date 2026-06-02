@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { env } from "@/lib/env";
 import { addToAllowlist, removeFromAllowlist } from "@/lib/memory/allowlist";
+import { push, text as textMsg } from "@/lib/line/client";
 
 export const runtime = "nodejs";
 
@@ -30,9 +31,23 @@ export async function POST(req: NextRequest) {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const lineUserId = session.metadata?.line_user_id;
+    const customerEmail = session.customer_details?.email;
     if (lineUserId) {
       await addToAllowlist(lineUserId);
       console.log(`[stripe-webhook] granted access to ${lineUserId} (checkout completed)`);
+    }
+    if (customerEmail) {
+      const adminIds = (e.ADMIN_LINE_USER_ID ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      for (const adminId of adminIds) {
+        await push(adminId, [
+          textMsg(
+            `💳 New subscriber: ${customerEmail}\n\nAdd to Google OAuth test users:\nhttps://console.cloud.google.com/apis/credentials/consent`,
+          ),
+        ]).catch(() => {});
+      }
     }
   }
 

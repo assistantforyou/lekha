@@ -110,13 +110,13 @@ export function buildSettingsTools(userId: string) {
 
     enable_task_check_in: tool({
       description:
-        "Turn on the daily end-of-day task check-in. At the configured time (default 21:30) the bot will push a bubble asking which open tasks you finished, with ✓/✗ tap buttons.",
+        "Turn on the daily end-of-day task check-in. Fires 30 minutes before the evening summary by default. The bot will push a bubble asking which open tasks you finished, with ✓/✗ tap buttons.",
       inputSchema: z.object({
         time: z
           .string()
           .regex(/^\d{1,2}:\d{2}$/)
           .optional()
-          .describe("HH:mm 24h in user's timezone. Defaults to 21:30 if omitted."),
+          .describe("Optional override HH:mm 24h. If omitted, check-in time is derived from evening summary time minus 30 minutes."),
       }),
       execute: async ({ time }) => {
         const patch: Parameters<typeof updateSettings>[1] = { taskCheckInEnabled: true };
@@ -136,9 +136,9 @@ export function buildSettingsTools(userId: string) {
     }),
 
     set_task_check_in_time: tool({
-      description: "Change the time of day the task check-in fires (HH:mm 24h, user's timezone).",
+      description: "Override the time of day the task check-in fires (HH:mm 24h, user's timezone). By default check-in is 30 minutes before the evening summary — only call this if the user wants a custom time.",
       inputSchema: z.object({
-        time: z.string().regex(/^\d{1,2}:\d{2}$/, "must be HH:mm format e.g. '21:30'"),
+        time: z.string().regex(/^\d{1,2}:\d{2}$/, "must be HH:mm format e.g. '20:30'"),
       }),
       execute: async ({ time }) => {
         await updateSettings(userId, { taskCheckInTime: time });

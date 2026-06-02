@@ -101,7 +101,6 @@ type ProcessedResult = {
 };
 
 function processResult(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   result: any,
   activeEmail: string | null,
   allCalls: { toolName: string; input: unknown }[],
@@ -272,6 +271,23 @@ function renderDisplayFallback(result: { steps?: { toolResults?: { toolName?: st
           .join("\n");
       }
 
+      // ── Web search ─────────────────────────────────────────────────────
+      if (tr.toolName === "web_search") {
+        const answer = val.answer ? String(val.answer) : null;
+        const results = val.results as Array<Record<string, unknown>> | null;
+        if (answer) return answer;
+        if (results && results.length > 0) {
+          return results
+            .map((r, i) => {
+              const title = String(r.title ?? "Untitled");
+              const snippet = String(r.snippet ?? "").slice(0, 200);
+              return `${i + 1}. ${title}${snippet ? `\n${snippet}` : ""}`;
+            })
+            .join("\n\n");
+        }
+        return "Search completed but no results were found.";
+      }
+
       // ── News search ────────────────────────────────────────────────────
       if ((tr.toolName === "news_search" || tr.toolName === "search_news") && Array.isArray(val.stories)) {
         const stories = val.stories as Array<Record<string, unknown>>;
@@ -363,6 +379,165 @@ function renderDisplayFallback(result: { steps?: { toolResults?: { toolName?: st
         line += ` (rate: ${rate.toFixed(4)})`;
         if (source) line += ` (source: ${source})`;
         return line;
+      }
+
+      // ── Stock history ──────────────────────────────────────────────────
+      if (tr.toolName === "stock_history" && typeof val.lastPrice === "number") {
+        const symbol = String(val.symbol ?? "").toUpperCase();
+        const firstPrice = val.firstPrice as number;
+        const lastPrice = val.lastPrice as number;
+        const highPrice = val.highPrice as number;
+        const lowPrice = val.lowPrice as number;
+        const changePercent = val.changePercent as number;
+        const currency = String(val.currency ?? "USD");
+        const range = String(val.range ?? "");
+        const firstDate = String(val.firstDate ?? "");
+        const lastDate = String(val.lastDate ?? "");
+        let line = `• ${symbol} (${range}): ${lastPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${currency}`;
+        if (typeof changePercent === "number") {
+          const arrow = changePercent >= 0 ? "▲" : "▼";
+          line += ` ${arrow} ${Math.abs(changePercent).toFixed(2)}%`;
+        }
+        line += `\n  Range: ${lowPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })} – ${highPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${currency}`;
+        line += `\n  Period: ${firstDate} → ${lastDate}`;
+        return line;
+      }
+
+      // ── Drive search / list recent ─────────────────────────────────────
+      if ((tr.toolName === "drive_search" || tr.toolName === "drive_list_recent") && Array.isArray(val.files)) {
+        const files = val.files as Array<Record<string, unknown>>;
+        if (files.length === 0) return "No Drive files found.";
+        return files
+          .map((f, i) => {
+            const name = String(f.name ?? "Untitled");
+            const link = f.webViewLink ? ` ${f.webViewLink}` : "";
+            return `${i + 1}. ${name}${link}`;
+          })
+          .join("\n");
+      }
+
+      // ── Drive read text ────────────────────────────────────────────────
+      if (tr.toolName === "drive_read_text" && typeof val.text === "string") {
+        const name = String(val.name ?? "File");
+        const truncated = val.truncated;
+        const text = val.text as string;
+        let out = `📄 ${name}\n\n${text.slice(0, 1800)}`;
+        if (truncated || text.length > 1800) out += "\n\n--- (truncated) ---";
+        return out;
+      }
+
+      // ── Drive get link ─────────────────────────────────────────────────
+      if (tr.toolName === "drive_get_link" && typeof val.link === "string") {
+        const name = String(val.name ?? "File");
+        return `${name}\n${val.link}`;
+      }
+
+      // ── Receipts ───────────────────────────────────────────────────────
+      if ((tr.toolName === "list_receipts" || tr.toolName === "search_receipts") && Array.isArray(val.receipts)) {
+        const receipts = val.receipts as Array<Record<string, unknown>>;
+        if (receipts.length === 0) return String(val.message ?? "No receipts found.");
+        const total = val.total as number | undefined;
+        const count = val.count as number | undefined;
+        const lines = receipts
+          .map((r, i) => {
+            const merchant = String(r.merchant ?? "Unknown");
+            const date = String(r.date ?? "").slice(0, 10);
+            const amount = typeof r.total === "number" ? r.total.toFixed(2) : "?";
+            const currency = String(r.currency ?? "");
+            return `${i + 1}. ${merchant}${date ? ` (${date})` : ""} — ${amount} ${currency}`;
+          })
+          .join("\n");
+        const suffix = total != null ? `\n\nTotal: ${total.toFixed(2)}` : count != null ? `\n\n(${count} found)` : "";
+        return lines + suffix;
+      }
+
+      // ── Memories ───────────────────────────────────────────────────────
+      if (tr.toolName === "list_memories" && Array.isArray(val.facts)) {
+        const facts = val.facts as Array<Record<string, unknown>>;
+        if (facts.length === 0) return "No memories saved yet.";
+        return facts.map((f) => String(f.display ?? f.text ?? "")).join("\n");
+      }
+
+      // ── Archived memory search ─────────────────────────────────────────
+      if (tr.toolName === "search_archived_memory" && Array.isArray(val.results)) {
+        const results = val.results as Array<Record<string, unknown>>;
+        if (results.length === 0) return "No archived memories match that query.";
+        return results
+          .map((r, i) => {
+            const summary = String(r.summary ?? r.text ?? "(no summary)");
+            return `${i + 1}. ${summary.slice(0, 200)}`;
+          })
+          .join("\n\n");
+      }
+
+      // ── Archived memory list ───────────────────────────────────────────
+      if (tr.toolName === "list_archived_memory" && Array.isArray(val.chunks)) {
+        const chunks = val.chunks as Array<Record<string, unknown>>;
+        if (chunks.length === 0) return "No archived memories yet.";
+        return chunks
+          .map((c, i) => {
+            const summary = String(c.summary ?? "(no summary)");
+            const date = c.ts ? new Date(c.ts as number).toISOString().slice(0, 10) : "";
+            return `${i + 1}. ${date ? `[${date}] ` : ""}${summary.slice(0, 200)}`;
+          })
+          .join("\n\n");
+      }
+
+      // ── Sent history ───────────────────────────────────────────────────
+      if (tr.toolName === "sent_history" && Array.isArray(val.entries)) {
+        const entries = val.entries as Array<Record<string, unknown>>;
+        if (entries.length === 0) return "No sent items found in that window.";
+        return entries
+          .map((e, i) => {
+            const kind = String(e.kind ?? "unknown");
+            const detail = e.detail as Record<string, unknown> | null;
+            const ts = e.ts as number | null;
+            const date = ts ? new Date(ts).toISOString().slice(0, 16).replace("T", " ") : "";
+            let line = `${i + 1}. ${kind}${date ? ` — ${date}` : ""}`;
+            if (detail?.subject) line += `\n  Subject: ${detail.subject}`;
+            if (detail?.to && Array.isArray(detail.to)) line += `\n  To: ${(detail.to as string[]).join(", ")}`;
+            return line;
+          })
+          .join("\n");
+      }
+
+      // ── Calendar free time ─────────────────────────────────────────────
+      if (tr.toolName === "calendar_find_free_time" && Array.isArray(val.slots)) {
+        const slots = val.slots as Array<Record<string, unknown>>;
+        if (slots.length === 0) return "No free slots found in that window.";
+        return slots
+          .map((s) => {
+            const start = String(s.startISO ?? "").slice(0, 16).replace("T", " ");
+            const minutes = s.minutes as number;
+            return `• ${start} — ${minutes} min free`;
+          })
+          .join("\n");
+      }
+
+      // ── All lists ──────────────────────────────────────────────────────
+      if (tr.toolName === "show_all_lists" && Array.isArray(val.lists)) {
+        const lists = val.lists as Array<Record<string, unknown>>;
+        if (lists.length === 0) return "No lists yet.";
+        return lists.map((l) => `• ${l.name} (${l.count} items)`).join("\n");
+      }
+
+      // ── Scheduled emails ───────────────────────────────────────────────
+      if (tr.toolName === "list_scheduled_emails" && Array.isArray(val.scheduled)) {
+        const scheduled = val.scheduled as Array<Record<string, unknown>>;
+        if (scheduled.length === 0) return "No scheduled emails.";
+        return scheduled
+          .map((s) => {
+            const subject = String(s.subject ?? "(no subject)");
+            const sendAt = String(s.sendAt ?? "").slice(0, 16).replace("T", " ");
+            const to = Array.isArray(s.to) ? (s.to as string[]).join(", ") : "";
+            return `• ${subject}${sendAt ? ` — ${sendAt}` : ""}${to ? ` → ${to}` : ""}`;
+          })
+          .join("\n");
+      }
+
+      // ── Media AI (OCR / summarize / read) ──────────────────────────────
+      if ((tr.toolName === "ocr_image" || tr.toolName === "summarize_image" || tr.toolName === "read_document" || tr.toolName === "summarize_document") && typeof val.output === "string") {
+        return val.output;
       }
     }
   }
@@ -494,7 +669,6 @@ export async function runAgent(
       totalToolMs: tracker.stepTimes.reduce((a, b) => a + b, 0),
     });
     const endProcess = span("agent:processResult", traceId);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const processed = processResult(result as any, accounts.activeEmail, tracker.successfulCalls, settings?.timezone);
     const text = formatProcessed(processed);
     const draftToolNames = tracker.successfulCalls
@@ -508,7 +682,6 @@ export async function runAgent(
     if (confirmDraft && tracker.successfulCalls.length === 0) {
       console.error("[agent] BUG: confirmDraft=true but successfulCalls is empty — this should never happen");
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any);
     // NEVER suppress text when auth is needed — the connect message is critical.
     const finalText = suppressText && !processed.authNeeded ? "" : text;

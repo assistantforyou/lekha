@@ -26,8 +26,8 @@ export type UserSettings = {
   // ── Dashboard-surfaced feature controls ─────────────────────────────────
   /** Daily end-of-day task check-in: ask "Did you finish X?" for all open tasks. */
   taskCheckInEnabled: boolean;
-  /** Time to fire the check-in (HH:mm 24h, user's timezone). */
-  taskCheckInTime: string;
+  /** Time to fire the check-in (HH:mm 24h, user's timezone). null = derive from eveningSummaryTime - 30 min. */
+  taskCheckInTime: string | null;
   /** Last time the task check-in was sent (ms). Internal — not surfaced in dashboard. */
   lastTaskCheckInTs: number | null;
   // ── Dashboard state (v4) ───────────────────────────────────────────────
@@ -70,7 +70,7 @@ export type UserSettings = {
 };
 
 // Bump this and add a migration entry below every time you change a default value.
-const CURRENT_VERSION = 5;
+const CURRENT_VERSION = 6;
 
 const DEFAULTS: UserSettings = {
   timezone: "Asia/Bangkok",
@@ -85,7 +85,7 @@ const DEFAULTS: UserSettings = {
   eveningSummaryTime: "21:00",
   lastEveningSummaryTs: null,
   taskCheckInEnabled: true,
-  taskCheckInTime: "20:30",
+  taskCheckInTime: null,
   lastTaskCheckInTs: null,
   // dashboard defaults
   briefingTopics: {
@@ -153,7 +153,7 @@ const MIGRATIONS: Array<(s: StoredSettings, configured: Set<string>) => Partial<
     return patch;
   },
 
-  // v2 → v3: enable daily task check-in at 21:30 for all existing users
+  // v2 → v3: enable daily task check-in for all existing users
   (_s, configured) => {
     const patch: Partial<UserSettings> = {};
     if (!configured.has("taskCheckInEnabled")) patch.taskCheckInEnabled = true;
@@ -182,6 +182,13 @@ const MIGRATIONS: Array<(s: StoredSettings, configured: Set<string>) => Partial<
 
   // v4 → v5: (was QStash schedule ids, now deprecated — keep as no-op so version stays stable)
   () => ({}),
+
+  // v5 → v6: derive task check-in time from evening summary (-30 min). Clear explicit time so users get derived behaviour.
+  (_s, configured) => {
+    const patch: Partial<UserSettings> = {};
+    if (!configured.has("taskCheckInTime")) patch.taskCheckInTime = null;
+    return patch;
+  },
 ];
 
 function applyMigrations(stored: StoredSettings): StoredSettings {

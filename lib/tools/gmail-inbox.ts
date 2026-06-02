@@ -23,7 +23,6 @@ function decodeBody(part: {
   mimeType?: string | null;
 }): string {
   // Walk for text/plain first, then text/html.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const stack: any[] = [part];
   let plain = "";
   let html = "";
