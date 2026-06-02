@@ -32,9 +32,9 @@ export function buildScheduledEmailTools(userId: string) {
         "Schedule an email to be sent at a future time. The email is composed now but actually sent later by a background job. Pass an ISO 8601 sendAt timestamp.",
       inputSchema: z.object({
         sendAt: z.string().describe("ISO 8601 datetime when the email should fire"),
-        to: z.array(z.string().email()).min(1).max(50),
-        cc: z.array(z.string().email()).max(50).optional(),
-        bcc: z.array(z.string().email()).max(50).optional(),
+        to: z.array(z.string().email()).min(1).max(100),
+        cc: z.array(z.string().email()).max(100).optional(),
+        bcc: z.array(z.string().email()).max(100).optional(),
         subject: z.string().min(1).max(200),
         body: z.string().min(1).max(20_000),
         fromEmail: z.string().email().optional(),

@@ -56,7 +56,7 @@ export function buildGmailInboxTools(userId: string) {
         "Search the user's Gmail inbox using Gmail query syntax (e.g. 'from:bob is:unread', 'subject:invoice newer_than:7d'). Returns metadata + a short snippet for each hit.",
       inputSchema: z.object({
         query: z.string().min(1).max(300),
-        limit: z.number().int().min(1).max(20).default(10),
+        limit: z.number().int().min(1).max(50).default(10),
         fromEmail: z.string().email().optional(),
       }),
       execute: async ({ query, limit, fromEmail }) => {
@@ -131,7 +131,7 @@ export function buildGmailInboxTools(userId: string) {
       inputSchema: z.object({
         hours: z.number().int().min(1).max(168).default(24),
         unread_only: z.boolean().default(false),
-        limit: z.number().int().min(1).max(30).default(15),
+        limit: z.number().int().min(1).max(50).default(15),
         fromEmail: z.string().email().optional(),
       }),
       execute: async ({ hours, unread_only, limit, fromEmail }) => {

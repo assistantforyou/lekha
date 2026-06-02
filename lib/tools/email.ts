@@ -18,9 +18,9 @@ export function buildEmailTools(userId: string) {
         "Draft an email from the user's Gmail. Does not send — appends to confirm queue. to/cc/bcc are arrays. LINE-staged files: use attach_recent_media (all) or attach_recent_media_indexes (pick). Drive files: use attachments:[{fileId}].",
       inputSchema: z
         .object({
-          to: z.array(z.string().email()).min(1).max(50),
-          cc: z.array(z.string().email()).max(50).optional(),
-          bcc: z.array(z.string().email()).max(50).optional(),
+          to: z.array(z.string().email()).min(1).max(100),
+          cc: z.array(z.string().email()).max(100).optional(),
+          bcc: z.array(z.string().email()).max(100).optional(),
           subject: z.string().min(1).max(200),
           body: z.string().min(1).max(20_000),
           fromEmail: z

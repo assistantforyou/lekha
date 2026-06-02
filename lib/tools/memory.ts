@@ -105,7 +105,7 @@ export function buildMemoryTools(userId: string) {
     search_archived_memory: tool({
       description:
         "Search older conversations beyond the rolling 20-message history. Returns archived chunk summaries (semantic search when Upstash Vector is configured, otherwise substring match). Use when the user references something from days/weeks ago.",
-      inputSchema: z.object({ query: z.string().min(2).max(200) }),
+      inputSchema: z.object({ query: z.string().min(2).max(500) }),
       execute: async ({ query }) => {
         const hits = await searchArchive(userId, query);
         return { results: hits };

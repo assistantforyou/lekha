@@ -9,7 +9,7 @@ import { redis } from "@/lib/memory/redis";
  */
 
 const MAX_NAME = 40;
-const MAX_ITEM = 300;
+const MAX_ITEM = 1000;
 const MAX_ITEMS_PER_LIST = 100;
 
 function normalizeName(name: string): string {

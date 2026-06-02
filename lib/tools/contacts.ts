@@ -61,7 +61,7 @@ export function buildContactsTools(userId: string) {
         phone: z.string().min(3).max(40).optional(),
         relation: z
           .string()
-          .max(80)
+          .max(200)
           .optional()
           .describe("e.g. 'mom', 'brother Bob', 'work — Acme'"),
         fromEmail: z.string().email().optional(),

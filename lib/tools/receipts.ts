@@ -47,7 +47,7 @@ export function buildReceiptTools(userId: string) {
           .min(1)
           .optional()
           .describe("1-indexed staged position. Omit to use most recent image."),
-        notes: z.string().max(200).optional().describe("Optional note to attach (e.g. 'client dinner', 'reimbursable')."),
+        notes: z.string().max(1000).optional().describe("Optional note to attach (e.g. 'client dinner', 'reimbursable')."),
       }),
       execute: async ({ index, notes }) => {
         let staged = await listRecentMedia(userId);
