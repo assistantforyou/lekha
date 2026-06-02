@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { env } from "@/lib/env";
 import { addToAllowlist, removeFromAllowlist } from "@/lib/memory/allowlist";
+import { push, text as textMsg, getProfile } from "@/lib/line/client";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,13 @@ export async function POST(req: NextRequest) {
     if (lineUserId) {
       await addToAllowlist(lineUserId);
       console.log(`[stripe-webhook] granted access to ${lineUserId} (checkout completed)`);
+      const profile = await getProfile(lineUserId);
+      const name = profile?.displayName ? ` ${profile.displayName}` : "";
+      await push(lineUserId, [
+        textMsg(
+          `You're in! 🎉 Welcome to Lekha${name}!\n\nI'm your personal AI assistant. I can set reminders, search the web, check weather and stocks, read photos, and much more.\n\nType "help" to see everything I can do, or "connect google" to link Gmail, Calendar, and Drive.`,
+        ),
+      ]);
     }
   }
 
