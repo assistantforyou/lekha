@@ -14,7 +14,7 @@ import type { StoredTurn } from "@/lib/memory/history";
 import { appendArchive } from "@/lib/memory/archive";
 
 const ExtractedFact = z.object({
-  content: z.string().min(5).max(240),
+  content: z.string().min(5).max(1000),
   category: z.enum(FACT_CATEGORIES as [FactCategory, ...FactCategory[]]),
   confidence: z.enum(["high", "medium", "low"]).optional(),
 });

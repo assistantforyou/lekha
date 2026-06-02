@@ -46,7 +46,7 @@ export type UserFacts = {
 };
 
 const MAX_FACTS = 200;
-const MAX_CONTENT = 240;
+const MAX_CONTENT = 1000;
 
 const key = (userId: string) => `user:${userId}:facts:v2`;
 const legacyKey = (userId: string) => `user:${userId}:facts`;

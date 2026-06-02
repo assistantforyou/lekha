@@ -19,7 +19,7 @@ export function buildMemoryTools(userId: string) {
       description:
         "Save a durable fact about the user that you should recall in future conversations. Use when the user explicitly says 'remember that I…', or when they share something clearly worth retaining (preferences, important relationships, recurring events). Provide a category — pick the best fit.",
       inputSchema: z.object({
-        fact: z.string().min(3).max(240),
+        fact: z.string().min(3).max(1000),
         category: z
           .enum(FACT_CATEGORIES as [FactCategory, ...FactCategory[]])
           .optional()
@@ -55,7 +55,7 @@ export function buildMemoryTools(userId: string) {
       inputSchema: z.object({
         index: z.number().int().min(1).optional(),
         match_text: z.string().optional().describe("Text to search for in existing facts. Finds first match (case-insensitive)."),
-        new_fact: z.string().min(3).max(240),
+        new_fact: z.string().min(3).max(1000),
       }),
       execute: async ({ index, match_text, new_fact }) => {
         let targetIndex = index;
