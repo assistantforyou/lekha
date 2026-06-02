@@ -1942,11 +1942,11 @@ body {
 .cmd-ops-row:nth-child(2) .cmd-ops-dot { animation-delay: 0.4s; background: var(--ok); box-shadow: 0 0 6px rgba(16,185,129,0.5); }
 .cmd-ops-row:nth-child(3) .cmd-ops-dot { animation-delay: 0.8s; background: var(--gold); box-shadow: 0 0 6px rgba(245,185,66,0.5); }
 
-/* ---------- Currency toggle (replaces dev-only TweaksPanel) ---------- */
+/* ---------- Currency toggle ---------- */
 .currency-toggle {
   position: fixed;
   right: 20px;
-  bottom: 20px;
+  bottom: 74px; /* sits above lang-toggle */
   z-index: 90;
   display: inline-flex;
   padding: 4px;
@@ -1976,3 +1976,63 @@ body {
   background: linear-gradient(135deg, #fbbf24, #d97706);
   color: #1a1207;
 }
+
+/* =====================================================
+   LANGUAGE TOGGLE + Thai typography
+   ===================================================== */
+.lang-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 2000;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(7,17,44,0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 10px 28px -10px rgba(0,0,0,0.6);
+}
+.lang-toggle button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--ink-mute);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  line-height: 1;
+}
+.lang-toggle button.lt-on {
+  background: var(--grad-blue);
+  color: #fff;
+  box-shadow: 0 2px 10px -2px rgba(59,130,246,0.6);
+}
+.lang-toggle button:hover:not(.lt-on) { color: var(--ink); }
+
+/* Thai mode — ensure Thai glyphs render with a Thai-capable face */
+body.lang-th {
+  font-family: 'Noto Sans Thai', 'Manrope', sans-serif;
+}
+body.lang-th h1,
+body.lang-th h2,
+body.lang-th h3,
+body.lang-th h4,
+body.lang-th h5,
+body.lang-th .serif,
+body.lang-th .serif-h2,
+body.lang-th .hero h1,
+body.lang-th .metric-value,
+body.lang-th .ops-text h2 {
+  font-family: 'Noto Sans Thai', 'Sora', sans-serif !important;
+  font-weight: 700;
+}
+body.lang-th .serif-italic { font-style: normal !important; }
+body.lang-th .hero h1 { line-height: 1.18; }
+body.lang-th .serif-h2,
+body.lang-th .ops-text h2 { line-height: 1.25; }
