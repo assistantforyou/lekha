@@ -7,7 +7,7 @@ import { env } from "@/lib/env";
 import { redis } from "@/lib/memory/redis";
 import { appendTurn } from "@/lib/memory/history";
 import { getOrCreateProfile } from "@/lib/memory/profile";
-import { registerUser } from "@/lib/memory/user-registry";
+import { registerUser, unregisterUser } from "@/lib/memory/user-registry";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { classify, clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
@@ -133,6 +133,12 @@ async function handleEvent(
   const uid = event.source?.userId;
   if (uid) markUserActive(uid).catch(() => {});
 
+  if (event.type === "unfollow") {
+    const userId = event.source?.userId;
+    if (userId) unregisterUser(userId).catch(() => {});
+    return true;
+  }
+
   if (event.type === "follow") {
     const userId = event.source?.userId;
     if (!userId || !("replyToken" in event)) {
@@ -154,6 +160,8 @@ async function handleEvent(
   }
 
   if (event.type === "postback") {
+    const userId = event.source?.userId;
+    if (userId) registerUser(userId).catch(() => {});
     await handlePostback(event);
     endEvent({ type: "postback" });
     return true;

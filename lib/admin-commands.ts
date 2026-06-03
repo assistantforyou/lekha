@@ -7,6 +7,7 @@ import {
   getPendingInfo,
   approvePending,
   denyPending,
+  isAllowed,
 } from "@/lib/memory/allowlist";
 
 /** LINE user ids are `U` + 32 lowercase hex chars. Tighter than `U\w+`. */
@@ -74,15 +75,18 @@ export async function handleAdminCommand(
   const approveMatch = userText.match(new RegExp(`^/approve\\s+(${LINE_ID_RE.source})$`, "i"));
   if (approveMatch) {
     const target = approveMatch[1]!;
+    const alreadyAllowed = await isAllowed(target);
     const wasPending = await approvePending(target);
     const name = (await getProfile(target).catch(() => null))?.displayName ?? "";
     await replyOrPush(userId, replyToken, [
       textMsg(wasPending ? `✅ Approved ${name ? `${name} ` : ""}${target}. Welcome message sent.` : `⚠️ ${target} was not in the pending queue, but is now allowed.`),
     ]);
-    // Send welcome message to the newly approved user.
-    await replyOrPush(target, "", [
-      textMsg(`Hi${name ? ` ${name}` : ""}! You're all set — welcome to Lekha 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`),
-    ]);
+    // Send welcome message to the newly approved user, unless they were already allowed.
+    if (!alreadyAllowed) {
+      await replyOrPush(target, "", [
+        textMsg(`Hi${name ? ` ${name}` : ""}! You're all set — welcome to Lekha 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`),
+      ]);
+    }
     return true;
   }
 

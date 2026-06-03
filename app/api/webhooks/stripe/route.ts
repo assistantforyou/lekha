@@ -3,6 +3,8 @@ import Stripe from "stripe";
 import { env } from "@/lib/env";
 import { addToAllowlist, removeFromAllowlist } from "@/lib/memory/allowlist";
 import { push, text as textMsg, getProfile } from "@/lib/line/client";
+import { redis } from "@/lib/memory/redis";
+import { unregisterUser } from "@/lib/memory/user-registry";
 
 export const runtime = "nodejs";
 
@@ -26,6 +28,15 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[stripe-webhook] signature verification failed", err);
     return new NextResponse("invalid signature", { status: 400 });
+  }
+
+  const eventId = event.id;
+  if (eventId) {
+    const dedupKey = `stripe_event:${eventId}`;
+    const fresh = await redis().set(dedupKey, 1, { ex: 86400, nx: true });
+    if (fresh === null) {
+      return NextResponse.json({ ok: true, deduped: true });
+    }
   }
 
   if (event.type === "checkout.session.completed") {
@@ -63,6 +74,7 @@ export async function POST(req: NextRequest) {
     const lineUserId = (subscription.metadata as Record<string, string>)?.line_user_id;
     if (lineUserId) {
       await removeFromAllowlist(lineUserId);
+      unregisterUser(lineUserId).catch(() => {});
       console.log(`[stripe-webhook] revoked access for ${lineUserId} (subscription deleted)`);
     }
   }

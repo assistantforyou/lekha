@@ -3,6 +3,7 @@ import { completeOAuth } from "@/lib/tools/google-auth";
 import { push, text as textMsg } from "@/lib/line/client";
 import { clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
+import { isAllowed } from "@/lib/memory/allowlist";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,10 @@ export async function GET(req: NextRequest) {
     );
   }
   const { userId, email } = result;
+
+  if (!(await isAllowed(userId))) {
+    return NextResponse.json({ ok: false, error: "not allowed" }, { status: 403 });
+  }
 
   // If the user was waiting on this exact connection (e.g. to send an email),
   // execute the pending action now and push the result back to LINE.

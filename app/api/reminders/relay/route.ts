@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { hasQStash } from "@/lib/env";
 import { redis } from "@/lib/memory/redis";
+import { isAllowed } from "@/lib/memory/allowlist";
 import { reminderKey, type StoredReminder } from "@/lib/tools/reminders";
 import { verifyQStashSignature, unauthorized, badRequest, notConfigured } from "@/lib/qstash-verify";
 
@@ -35,6 +36,8 @@ export async function POST(req: NextRequest) {
 
   const { userId, id, message, fireAt } = body;
 
+  if (!(await isAllowed(userId))) return NextResponse.json({ ok: true });
+
   const reminder = await redis().get<StoredReminder>(reminderKey(userId, id));
   if (!reminder) {
     // Cancelled or already fired — return 200 so QStash doesn't retry.
@@ -43,11 +46,15 @@ export async function POST(req: NextRequest) {
 
   const remainingSec = Math.floor((fireAt - Date.now()) / 1000);
   if (remainingSec < 1) {
-    // Already past due — fire immediately via the fire route by pushing directly.
+    // Already past due — consume atomically, then push.
+    const consumed = await redis().getdel<StoredReminder>(reminderKey(userId, id));
+    if (!consumed) {
+      return NextResponse.json({ ok: true, skipped: true, reason: "already_fired" });
+    }
+    await redis().srem(`reminder:${userId}:_list`, id);
+
     const { push, text: textMsg } = await import("@/lib/line/client");
     await push(userId, [textMsg(`⏰ Reminder: ${message}`)]);
-    await redis().del(reminderKey(userId, id));
-    await redis().srem(`reminder:${userId}:_list`, id);
     return NextResponse.json({ ok: true, fired: true });
   }
 

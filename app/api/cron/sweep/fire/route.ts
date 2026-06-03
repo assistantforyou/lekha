@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
   switch (type) {
     case "morning_briefing": {
       try {
+        if (!(await isAllowed(userId))) break;
         if (
           settings.morningBriefingTime &&
           settings.briefingChannels?.line !== false &&
@@ -138,6 +139,7 @@ export async function POST(req: NextRequest) {
 
     case "evening_summary": {
       try {
+        if (!(await isAllowed(userId))) break;
         if (
           settings.eveningSummaryEnabled &&
           settings.briefingChannels?.line !== false &&
@@ -160,6 +162,7 @@ export async function POST(req: NextRequest) {
 
     case "task_check_in": {
       try {
+        if (!(await isAllowed(userId))) break;
         if (
           settings.taskCheckInEnabled &&
           settings.briefingChannels?.line !== false &&
@@ -177,6 +180,7 @@ export async function POST(req: NextRequest) {
 
     case "task_deadline": {
       try {
+        if (!(await isAllowed(userId))) break;
         const taskId = parsed.data.taskId;
         const title = parsed.data.title;
         if (!taskId || !title) break;
@@ -185,6 +189,7 @@ export async function POST(req: NextRequest) {
         const tasks = await listTasks(userId, "open");
         const task = tasks.find((t) => t.id === taskId);
         if (!task) break; // completed or deleted
+        if (!(await claimPushLock(userId, "task_deadline"))) break;
         const local = task.dueAt
           ? new Date(task.dueAt).toLocaleTimeString("en-US", {
               timeZone: settings.timezone,
@@ -204,6 +209,7 @@ export async function POST(req: NextRequest) {
 
     case "pre_meeting": {
       try {
+        if (!(await isAllowed(userId))) break;
         const eventId = parsed.data.eventId;
         const lead = parsed.data.lead;
         const eventStartISO = parsed.data.eventStartISO;
@@ -212,6 +218,7 @@ export async function POST(req: NextRequest) {
         if (!(await hasGoogleConnection(userId))) break;
         // Skip if user disabled LINE proactive pushes.
         if (settings.briefingChannels?.line === false) break;
+        if (!(await claimPushLock(userId, "pre_meeting"))) break;
         const startTs = new Date(eventStartISO).getTime();
         const local = new Date(startTs).toLocaleTimeString("en-US", {
           timeZone: settings.timezone,

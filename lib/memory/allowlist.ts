@@ -1,5 +1,5 @@
 import { redis } from "./redis";
-import { registerUser } from "./user-registry";
+import { registerUser, unregisterUser } from "./user-registry";
 
 const ALLOW_KEY = "users:allowed";
 const PENDING_KEY = "users:pending";
@@ -15,6 +15,7 @@ export async function addToAllowlist(userId: string): Promise<void> {
 }
 export async function removeFromAllowlist(userId: string): Promise<void> {
   await redis().srem(ALLOW_KEY, userId);
+  await unregisterUser(userId).catch(() => {});
 }
 export async function listAllowed(): Promise<string[]> {
   return redis().smembers(ALLOW_KEY);

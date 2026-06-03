@@ -17,6 +17,7 @@ import type { ModelMessage } from "ai";
 import { span } from "@/lib/timing";
 import { classify, clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
+import { registerUser } from "@/lib/memory/user-registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { userId, text, imageBase64, imageMediaType, fileBase64, fileName } = parsed.data;
+  registerUser(userId).catch(() => {});
   const traceId = `dev_${userId}_${Date.now().toString(36)}`;
   const endRequest = span("dev:chat", traceId);
 

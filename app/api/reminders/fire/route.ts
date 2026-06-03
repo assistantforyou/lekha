@@ -3,6 +3,7 @@ import { z } from "zod";
 import { hasQStash } from "@/lib/env";
 import { push, text as textMsg } from "@/lib/line/client";
 import { redis } from "@/lib/memory/redis";
+import { isAllowed } from "@/lib/memory/allowlist";
 import { consumeReminder, reminderKey, type StoredReminder } from "@/lib/tools/reminders";
 import { verifyQStashSignature, unauthorized, badRequest, notConfigured } from "@/lib/qstash-verify";
 
@@ -33,15 +34,22 @@ export async function POST(req: NextRequest) {
 
   const { userId, id, message, type = "final" } = body;
 
+  if (!(await isAllowed(userId))) return NextResponse.json({ ok: true });
+
   // Pre-warnings push a heads-up but do NOT consume the reminder — the final fire will.
   if (type === "warning_3h" || type === "warning_1h") {
+    const lockKey = `fired:${id}:${type}`;
+    const locked = await redis().set(lockKey, 1, { ex: 3600, nx: true });
+    if (!locked) {
+      return NextResponse.json({ ok: true, skipped: true });
+    }
     const label = type === "warning_3h" ? "3 hours" : "1 hour";
     await push(userId, [textMsg(`⏰ Heads up — in ${label}: ${message}`)]);
     return NextResponse.json({ ok: true });
   }
 
-  // Final fire: push first, then consume. If push fails, QStash will retry.
-  const reminder = await redis().get<StoredReminder>(reminderKey(userId, id));
+  // Final fire: consume first, then push. If consume fails, QStash will retry.
+  const reminder = await consumeReminder(userId, id);
   if (!reminder) {
     // Already fired or cancelled — return 200 so QStash doesn't retry.
     return NextResponse.json({ ok: true, skipped: true });
@@ -54,6 +62,5 @@ export async function POST(req: NextRequest) {
     return new NextResponse("push failed", { status: 500 });
   }
 
-  await consumeReminder(userId, id);
   return NextResponse.json({ ok: true });
 }
