@@ -6,6 +6,7 @@ import "./marketing.css";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import type { SVGProps } from "react";
 import Link from "next/link";
+import { LangToggle } from "./i18n";
 
 /* ---------- Icons (inline SVGs, single-line strokes) ---------- */
 const Ico = {
@@ -783,7 +784,7 @@ const FeatureExplorer = () => {
               <div className="chat-status"><span className="dot"></span> Online</div>
             </div>
           </div>
-          <div className="chat-body">
+          <div className="chat-body" data-no-translate="true">
             <StreamingChat id={active} key={active} />
           </div>
           <div className="chat-input">
@@ -1095,7 +1096,7 @@ const GlobeSection = () => {
           {/* Ticker tape */}
           <div className="cmd-ticker-row">
             <span className="cmd-ticker-label">MARKETS</span>
-            <div className="cmd-ticker-wrap">
+            <div className="cmd-ticker-wrap" data-no-translate="true">
               <div className="cmd-ticker-track">
                 {[...TICKERS, ...TICKERS].map((t, i) =>
                 <span key={i} className="cmd-tick">
@@ -1333,6 +1334,7 @@ const App = () => {
       <div className="noise"></div>
 
       <Nav />
+      <LangToggle />
       <Hero />
 
       <GlobeSection />
