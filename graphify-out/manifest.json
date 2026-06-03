@@ -50,8 +50,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/oauth/google/callback/route.ts": {
-    "mtime": 1779890872.5979736,
-    "ast_hash": "6190f534dfa5e98a267c5c67147d22ff",
+    "mtime": 1780473595.364997,
+    "ast_hash": "a941db0ea9483de0de7f4d54881bd03c",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/auth/line/start/route.ts": {
@@ -75,13 +75,13 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/line/webhook/route.ts": {
-    "mtime": 1780471646.914018,
-    "ast_hash": "d8990421d147a9be454915cef27592a9",
+    "mtime": 1780473533.3693986,
+    "ast_hash": "cd040c6f59dd10b227369699d4492064",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/dev/chat/route.ts": {
-    "mtime": 1780252489.6342998,
-    "ast_hash": "e0fa56e55e242bed850ca61b8bb19b67",
+    "mtime": 1780473557.3843184,
+    "ast_hash": "097705c715933f99c4443c1c2d86a233",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/scheduled-email/fire/route.ts": {
@@ -90,13 +90,13 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/webhooks/stripe/route.ts": {
-    "mtime": 1780424824.3151963,
-    "ast_hash": "f93cb7867850ada548a2c27de66760b7",
+    "mtime": 1780473631.6631405,
+    "ast_hash": "d173ee05595a8b01202d5675571fb08f",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/reminders/fire/route.ts": {
-    "mtime": 1780222852.3498797,
-    "ast_hash": "761804e99688557abe1451db70d8fc2e",
+    "mtime": 1780473618.7718315,
+    "ast_hash": "7a8fa5ecc21bdf0a0f43eebd8f6f2290",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/cron/sweep/route.ts": {
@@ -105,8 +105,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/cron/sweep/fire/route.ts": {
-    "mtime": 1780471656.7409027,
-    "ast_hash": "71ae5c221bcfcc4440c6380099569b32",
+    "mtime": 1780473546.6929111,
+    "ast_hash": "7db88bbc1cbdfa8490a664141f8cbf2d",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/connect/[token]/page.tsx": {
@@ -240,8 +240,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/admin-commands.ts": {
-    "mtime": 1780406353.7415626,
-    "ast_hash": "9ffa616263ec47586676c5e6d6373194",
+    "mtime": 1780473577.629951,
+    "ast_hash": "aa5957c35c3aa34f47f76bfe8fd8aa83",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/ratelimit.ts": {
@@ -460,8 +460,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/allowlist.ts": {
-    "mtime": 1780406062.3175857,
-    "ast_hash": "79e46f37b8eec9c71c7ef8d67056025f",
+    "mtime": 1780473527.4784079,
+    "ast_hash": "0b5be35a8a25a79093c5e33506a313d6",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/lib/memory/recent-media.ts": {
@@ -1130,8 +1130,8 @@
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/api/reminders/relay/route.ts": {
-    "mtime": 1780314131.6293554,
-    "ast_hash": "78cfeb9599214bdd8da9563cf5fa88ce",
+    "mtime": 1780473636.80993,
+    "ast_hash": "adb018b40401d9cbefeedd8510d39bf0",
     "semantic_hash": ""
   },
   "/Users/jamesperenchio/Desktop/lekha/app/report/page.tsx": {
@@ -4616,6 +4616,1171 @@
   },
   "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/serene-mahavira-8413db/marketing/public/assets/line-qr.png": {
     "mtime": 1780301060.0704052,
+    "ast_hash": "b3b52282dd2994eac860efa02705e594",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/vercel.json": {
+    "mtime": 1780473093.122697,
+    "ast_hash": "def95e5519e9c9509b1cffc4522bba23",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/postcss.config.mjs": {
+    "mtime": 1780473093.0348604,
+    "ast_hash": "239f3ebf717465dc636818a1a619398d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tailwind.config.ts": {
+    "mtime": 1780473093.0975084,
+    "ast_hash": "5037763c0d14fb9fc215b9ec91580749",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/package.json": {
+    "mtime": 1780473093.033188,
+    "ast_hash": "dc2517f23a883cd16a55e9466396140a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tsconfig.json": {
+    "mtime": 1780473093.1221104,
+    "ast_hash": "f92f7860f1c68bb3ac2fe83b2c7c74f0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/eslint.config.js": {
+    "mtime": 1780473092.9189022,
+    "ast_hash": "3801c9c81e5e46a2c96149a94a3fa7c1",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/vitest.config.ts": {
+    "mtime": 1780473093.1228483,
+    "ast_hash": "b9b32772668f07487d03353e4825cf9d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/next.config.ts": {
+    "mtime": 1780473093.0316284,
+    "ast_hash": "56c0c540171ab7f66d3db8b79ad2c588",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/types/heic-convert.d.ts": {
+    "mtime": 1780473093.1223867,
+    "ast_hash": "6c2ff85822659e4bfac582a0db70ce2e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/layout.tsx": {
+    "mtime": 1780473092.6903265,
+    "ast_hash": "3f1ba9f89bb43b99b16c23a51ff4f17b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/page.tsx": {
+    "mtime": 1780473092.6910615,
+    "ast_hash": "cf754895082f57fabac4ef04db84f73e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/signup/page.tsx": {
+    "mtime": 1780473092.6939018,
+    "ast_hash": "9319f3b15fb5eb9be6334e1c5193e33a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/signup/success/page.tsx": {
+    "mtime": 1780473092.6942966,
+    "ast_hash": "89af6602a9f1b6d5e3b7e981177e8d46",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/dashboard/dashboard-client.tsx": {
+    "mtime": 1780473092.6884038,
+    "ast_hash": "6a0f3d572499cb35fc3f41c9e0d0a8a2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/dashboard/page.tsx": {
+    "mtime": 1780473092.6892543,
+    "ast_hash": "6283028c0cd9f1340765650e9e50d919",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/oauth/google/callback/route.ts": {
+    "mtime": 1780473092.6807103,
+    "ast_hash": "6190f534dfa5e98a267c5c67147d22ff",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/auth/line/dashboard-callback/route.ts": {
+    "mtime": 1780473092.668666,
+    "ast_hash": "241dd93f1808603df5ffcee6d6393314",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/auth/line/dashboard-start/route.ts": {
+    "mtime": 1780473092.6691663,
+    "ast_hash": "69af6cf42795fa1a5b0ac396c0e5b9a2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/auth/line/start/route.ts": {
+    "mtime": 1780473092.6694527,
+    "ast_hash": "215f10d3d1ff7c0e1b3e9bf68110fc98",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/auth/line/callback/route.ts": {
+    "mtime": 1780473092.6681857,
+    "ast_hash": "689ff10b801102f38840a3e6e46b10af",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/health/route.ts": {
+    "mtime": 1780473092.6790066,
+    "ast_hash": "15d058cb8b3ec72f818c7fd89a8ffd64",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/dashboard/settings/route.ts": {
+    "mtime": 1780473092.6768146,
+    "ast_hash": "d464202002fd20543a3c27d0cc7978a3",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/dashboard/connect-google/route.ts": {
+    "mtime": 1780473092.6709833,
+    "ast_hash": "144da0e8a5f9e3ce3f4a26b0310ae306",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/dashboard/disconnect-google/route.ts": {
+    "mtime": 1780473092.6722143,
+    "ast_hash": "d9c6562aceeda9a0cae224de6671e4d0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/dashboard/me/route.ts": {
+    "mtime": 1780473092.6731234,
+    "ast_hash": "7ef11d079b9dfe53af3e71ccaf270ec4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/dashboard/facts/route.ts": {
+    "mtime": 1780473092.672643,
+    "ast_hash": "f3f7da3faee5b16e9dfb1958483e744e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/subscribe/route.ts": {
+    "mtime": 1780473092.6864448,
+    "ast_hash": "eb00574ba786cfa544a14bbd16f5fed4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/line/webhook/route.ts": {
+    "mtime": 1780473092.679687,
+    "ast_hash": "d8990421d147a9be454915cef27592a9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/dev/chat/route.ts": {
+    "mtime": 1780473092.6781905,
+    "ast_hash": "e0fa56e55e242bed850ca61b8bb19b67",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/report/user/route.ts": {
+    "mtime": 1780473092.6851826,
+    "ast_hash": "05e9a593fa969279a7a26c992c337d80",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/report/status/route.ts": {
+    "mtime": 1780473092.6840658,
+    "ast_hash": "41819d3642123c7f275ef7eda139967a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/report/marketing/route.ts": {
+    "mtime": 1780473092.6834736,
+    "ast_hash": "55ee5ba696a0244d159967552592919a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/scheduled-email/fire/route.ts": {
+    "mtime": 1780473092.6858037,
+    "ast_hash": "5a4ddd757ba9b71761a92b6ca74d6759",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/webhooks/stripe/route.ts": {
+    "mtime": 1780473092.6870625,
+    "ast_hash": "f93cb7867850ada548a2c27de66760b7",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/reminders/fire/route.ts": {
+    "mtime": 1780473092.681786,
+    "ast_hash": "761804e99688557abe1451db70d8fc2e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/reminders/relay/route.ts": {
+    "mtime": 1780473092.682756,
+    "ast_hash": "78cfeb9599214bdd8da9563cf5fa88ce",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/cron/sweep/route.ts": {
+    "mtime": 1780473092.6704264,
+    "ast_hash": "d5c437cff8ae8e8bd067278a6da196e5",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/api/cron/sweep/fire/route.ts": {
+    "mtime": 1780473092.6700335,
+    "ast_hash": "71ae5c221bcfcc4440c6380099569b32",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/report/page.tsx": {
+    "mtime": 1780473092.6920173,
+    "ast_hash": "b8df4fa6be45876ce687d110a991e696",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/report/tests/page.tsx": {
+    "mtime": 1780473092.6930447,
+    "ast_hash": "200de3878aae3bc56136bef4db73e486",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/report/user/page.tsx": {
+    "mtime": 1780473092.6933823,
+    "ast_hash": "1c1ab02dca557d94f9eeb579027839cf",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/report/status/page.tsx": {
+    "mtime": 1780473092.6926367,
+    "ast_hash": "a788dad5fe499f8cb71f53f067399b65",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/report/marketing/page.tsx": {
+    "mtime": 1780473092.6915424,
+    "ast_hash": "447a891e179ccbc78cdab9ad357d7840",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/connect/[token]/page.tsx": {
+    "mtime": 1780473092.6876786,
+    "ast_hash": "9bdfc439c8ddb788334dfa56ea59f9b6",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tests/briefing-gate.test.ts": {
+    "mtime": 1780473093.1170573,
+    "ast_hash": "371184482ef6641f159d8b487c53bf79",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tests/flex.test.ts": {
+    "mtime": 1780473093.1214693,
+    "ast_hash": "a9a68bb0d7656b4fa916f136cdf27d11",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tests/history.test.ts": {
+    "mtime": 1780473093.1217237,
+    "ast_hash": "bc76040cea6aba56241dc5b757c40e0c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tests/cron.test.ts": {
+    "mtime": 1780473093.1175838,
+    "ast_hash": "4b3d6df3a0ae1d8be5192d2c4966546a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tests/confirm.test.ts": {
+    "mtime": 1780473093.11732,
+    "ast_hash": "18db77e3c7f6b5cf0c6501710e1a043d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tests/verify.test.ts": {
+    "mtime": 1780473093.1218777,
+    "ast_hash": "efb2b30131815c30e0e5bec10d3f3453",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tests/allowlist.test.ts": {
+    "mtime": 1780473093.1139216,
+    "ast_hash": "68d96486012c668f860d1cd27ad26c2f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tests/facts.test.ts": {
+    "mtime": 1780473093.1196647,
+    "ast_hash": "fa28224317f3b7de484a10d3a8598a35",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/tests/crypto.test.ts": {
+    "mtime": 1780473093.1195009,
+    "ast_hash": "ca7fe86c9b7cb09510429a0c466877d7",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/dashboard-app.jsx": {
+    "mtime": 1780473092.700949,
+    "ast_hash": "0c00f76e9844abe833ac6d6130af1398",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/dashboard-sections.jsx": {
+    "mtime": 1780473092.7014692,
+    "ast_hash": "95a94a3d297fd68e1d352a333ea0efe0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/dashboard-core.jsx": {
+    "mtime": 1780473092.7012062,
+    "ast_hash": "d73036886d6f1ccee1cca7cb156f3664",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/tweaks-panel.jsx": {
+    "mtime": 1780473092.7033937,
+    "ast_hash": "7551642a9e3749f69d28086fe1a03b23",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/app.jsx": {
+    "mtime": 1780473092.7094789,
+    "ast_hash": "132cb5333baafbdfe2cee50d5cb16156",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/tweaks-panel.jsx": {
+    "mtime": 1780473092.8255737,
+    "ast_hash": "7551642a9e3749f69d28086fe1a03b23",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/components/ui/button.tsx": {
+    "mtime": 1780473092.699672,
+    "ast_hash": "4d711c29eb08a0342d9cb1ac4317b59e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/components/marketing/tracked-link.tsx": {
+    "mtime": 1780473092.699209,
+    "ast_hash": "6fa2ffeeb4e8ac8862f42e4245ef5b15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/components/marketing/reveal.tsx": {
+    "mtime": 1780473092.6989536,
+    "ast_hash": "5887a4b7943192dc3fdf4b5476a650b4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/dashboard/dashboard-app.jsx": {
+    "mtime": 1780473093.0893471,
+    "ast_hash": "0c00f76e9844abe833ac6d6130af1398",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/dashboard/dashboard-sections.jsx": {
+    "mtime": 1780473093.0896885,
+    "ast_hash": "95a94a3d297fd68e1d352a333ea0efe0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/dashboard/dashboard-core.jsx": {
+    "mtime": 1780473093.0895119,
+    "ast_hash": "d73036886d6f1ccee1cca7cb156f3664",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/dashboard/tweaks-panel.jsx": {
+    "mtime": 1780473093.0901346,
+    "ast_hash": "7551642a9e3749f69d28086fe1a03b23",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/scripts/measure-prompt.ts": {
+    "mtime": 1780473093.0931714,
+    "ast_hash": "9e9bb6925824864a2907238f13ad1e55",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/scripts/test-runtime.ts": {
+    "mtime": 1780473093.0967302,
+    "ast_hash": "105eac6c4a642670bd5c34fc9afaddef",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/scripts/test-runtime.sh": {
+    "mtime": 1780473093.0950615,
+    "ast_hash": "e334d368d8c0b5aecb556872fc408487",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/confirm.ts": {
+    "mtime": 1780473092.9434276,
+    "ast_hash": "fa45cc94d938706262e76fd34e092306",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/proactive-schedules.ts": {
+    "mtime": 1780473092.9573934,
+    "ast_hash": "2c7ba4f5869128269fcc3df90c8e25e0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/qstash-verify.ts": {
+    "mtime": 1780473092.9576573,
+    "ast_hash": "ac53c52647dd238bbd937808a00b04f8",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/errors.ts": {
+    "mtime": 1780473092.9448519,
+    "ast_hash": "178799ae35625a4bb595043524f38062",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/sweep.ts": {
+    "mtime": 1780473092.95848,
+    "ast_hash": "f649ee4aed00ab56625b05d5ea1d6bcb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/gate.ts": {
+    "mtime": 1780473092.9460344,
+    "ast_hash": "95697df2982aaddc20a2fedf30e8bce0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/dashboard-auth.ts": {
+    "mtime": 1780473092.9438803,
+    "ast_hash": "25b399e61e27b487c0000ae047b7897e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/utils.ts": {
+    "mtime": 1780473092.968638,
+    "ast_hash": "618d00bf4537ce84f9ba62c5b215fb30",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/timing.ts": {
+    "mtime": 1780473092.9587052,
+    "ast_hash": "6e935e3d99c5a3636fbe028541300a9c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/pending-runner.ts": {
+    "mtime": 1780473092.957136,
+    "ast_hash": "7ad729bb885ca7c431103023c68bc9d0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/maybe-extract.ts": {
+    "mtime": 1780473092.9528327,
+    "ast_hash": "07f25f3bb4cc4ae8ea818756fbe0ce4f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/news-cache.ts": {
+    "mtime": 1780473092.956882,
+    "ast_hash": "b492f4cfd1a2253b0f77e528e2793b4c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/admin-commands.ts": {
+    "mtime": 1780473092.943123,
+    "ast_hash": "9ffa616263ec47586676c5e6d6373194",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/ratelimit.ts": {
+    "mtime": 1780473092.9579694,
+    "ast_hash": "02e1bbb845d885f9ab13a5789043d0a2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/format.ts": {
+    "mtime": 1780473092.9456213,
+    "ast_hash": "4da85a41136fac2b9589725a869c0bd9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/webhook-postback.ts": {
+    "mtime": 1780473092.9690266,
+    "ast_hash": "c1ba525829d29b5dea6c290ca87b9d42",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/enrich-reply.ts": {
+    "mtime": 1780473092.9442868,
+    "ast_hash": "22f30bc88edc0e2febfe4141aa3c3cd8",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/cron.ts": {
+    "mtime": 1780473092.943679,
+    "ast_hash": "fe41040a10906eda79f5a2810fd6a85d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/shortcuts.ts": {
+    "mtime": 1780473092.9582627,
+    "ast_hash": "e3ac1b623be4baa1cc0cb484a3d55b34",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/env.ts": {
+    "mtime": 1780473092.944535,
+    "ast_hash": "f05df31c25b922aa2d992a7967e54015",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/fetch.ts": {
+    "mtime": 1780473092.9451964,
+    "ast_hash": "2e2087d626602a9b0748ae90db43fd97",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/web-search.ts": {
+    "mtime": 1780473092.9680145,
+    "ast_hash": "bde05e6f90fe4f78d914a1f10ebbc848",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/news.ts": {
+    "mtime": 1780473092.9651494,
+    "ast_hash": "42cd95c9b6472dfb34f117c80fccff14",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/drive.ts": {
+    "mtime": 1780473092.9605608,
+    "ast_hash": "0902e437223286248100d987b2d3ad33",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/with-google.ts": {
+    "mtime": 1780473092.9684262,
+    "ast_hash": "853bf690cc72f8a7ee69fe36c0bedd5c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/help.ts": {
+    "mtime": 1780473092.9630919,
+    "ast_hash": "755875ca09b955fe890a4510fe676874",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/evening-summary.ts": {
+    "mtime": 1780473092.9611683,
+    "ast_hash": "fcf6b43efc97900479cbd52416d4c8b5",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/staged-media.ts": {
+    "mtime": 1780473092.966932,
+    "ast_hash": "eb7ec94e6f072d6011fac8772cac9a9a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/settings.ts": {
+    "mtime": 1780473092.9666984,
+    "ast_hash": "7f634bb4a1d6ea43906b452e0d590b56",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/email.ts": {
+    "mtime": 1780473092.9608445,
+    "ast_hash": "dea489d4184fe8a0793307faaaef6545",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/media-ai.ts": {
+    "mtime": 1780473092.964093,
+    "ast_hash": "f20712472da0857e73f56311dbe1fd59",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/calendar.ts": {
+    "mtime": 1780473092.9591644,
+    "ast_hash": "f37fc22be8c03378cb9b84dd4712fa2f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/reminders.ts": {
+    "mtime": 1780473092.9658983,
+    "ast_hash": "3fcd2d2347f823779cb3d7a6164e881c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/export.ts": {
+    "mtime": 1780473092.9612458,
+    "ast_hash": "cc6121df5d749601ca47450fa4f55a95",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/google-auth.ts": {
+    "mtime": 1780473092.9626434,
+    "ast_hash": "35b33624a2f7b949ade24d490ab9944a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/weather.ts": {
+    "mtime": 1780473092.9675267,
+    "ast_hash": "ae749bebd78f9b559c2994c4d279b68f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/gmail-inbox.ts": {
+    "mtime": 1780473092.961965,
+    "ast_hash": "adc323ce566b5f8883416161c75ad923",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/docs.ts": {
+    "mtime": 1780473092.9600294,
+    "ast_hash": "b196a33667f928ecbcb7c83dd3a37bab",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/morning-briefing.ts": {
+    "mtime": 1780473092.9648793,
+    "ast_hash": "ed9e79a6ad2e7e77a947b04fd9067bc2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/scheduled-email.ts": {
+    "mtime": 1780473092.9662368,
+    "ast_hash": "1c508370ec7b49e4c6fe47c627a2aaa7",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/memory.ts": {
+    "mtime": 1780473092.9645224,
+    "ast_hash": "e069d63a718f61fdd0980aa8048803f3",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/index.ts": {
+    "mtime": 1780473092.9634953,
+    "ast_hash": "b23a37ec3d932cbe910b46f67ae97e9f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/google-accounts.ts": {
+    "mtime": 1780473092.9622924,
+    "ast_hash": "502001fa4728f41ab61d9279e195dfc5",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/lists.ts": {
+    "mtime": 1780473092.9638433,
+    "ast_hash": "7e7c079d63ebeec1dbe46eb231d8a70d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/receipts.ts": {
+    "mtime": 1780473092.9656198,
+    "ast_hash": "b08bc4c7e6dd0548cd117c400335e5d8",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/finance.ts": {
+    "mtime": 1780473092.9615455,
+    "ast_hash": "21ebbc8ab4c86e10c859942161e28f5b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/contacts.ts": {
+    "mtime": 1780473092.9596338,
+    "ast_hash": "2e848d16493281b66b42fa5a8843d227",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/tasks.ts": {
+    "mtime": 1780473092.9672275,
+    "ast_hash": "2069ec77ffbba35973550e73bd3266bf",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/tools/sent-history.ts": {
+    "mtime": 1780473092.9664776,
+    "ast_hash": "730a039391cb35a7424c428c247b1ff1",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/llm/evening-summary.ts": {
+    "mtime": 1780473092.9513326,
+    "ast_hash": "bdf847202a9d477fe425caf95062f88f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/llm/briefing.ts": {
+    "mtime": 1780473092.9510067,
+    "ast_hash": "d00b4214b5ec85551be0177cceb2d7d9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/llm/agent.ts": {
+    "mtime": 1780473092.9507215,
+    "ast_hash": "0d35ae95f0b590fc6c0ba0074df22426",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/llm/render-drafts.ts": {
+    "mtime": 1780473092.9525957,
+    "ast_hash": "e43d6a4ff64c2c931d4a39f040539349",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/llm/action-labels.ts": {
+    "mtime": 1780473092.9499757,
+    "ast_hash": "ef90e9f98adb0bb0ada8a81b1685b01e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/llm/prompts.ts": {
+    "mtime": 1780473092.9518337,
+    "ast_hash": "09665e06b8ccaf8f41e3bf98a4baf0af",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/llm/agent-flex.ts": {
+    "mtime": 1780473092.9502747,
+    "ast_hash": "601158d305a14c3fc3f0232cdc94b250",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/llm/extract-facts.ts": {
+    "mtime": 1780473092.9515653,
+    "ast_hash": "ca89c7f15afbdd3c7c691dfed8a72d83",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/llm/provider.ts": {
+    "mtime": 1780473092.9521616,
+    "ast_hash": "f1e6ac3e128c79524f44b441b95ea41a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/history.ts": {
+    "mtime": 1780473092.9541109,
+    "ast_hash": "997596c882c6d31e3116c98a3d5703af",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/allowlist.ts": {
+    "mtime": 1780473092.9530554,
+    "ast_hash": "79e46f37b8eec9c71c7ef8d67056025f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/recent-media.ts": {
+    "mtime": 1780473092.9550772,
+    "ast_hash": "17ab68b67d9a4920255d5bc45312a761",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/archive.ts": {
+    "mtime": 1780473092.9532895,
+    "ast_hash": "ec10972e1ac796fc25778fc201258698",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/settings.ts": {
+    "mtime": 1780473092.9558008,
+    "ast_hash": "68793c9a1264c733aa779c009fab8e9e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/redis.ts": {
+    "mtime": 1780473092.955301,
+    "ast_hash": "9d648c20bacac2628c2fac916657fbef",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/crypto.ts": {
+    "mtime": 1780473092.9535105,
+    "ast_hash": "aabee03b6b389145a61c71977c02c863",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/sent-log.ts": {
+    "mtime": 1780473092.955552,
+    "ast_hash": "d8d9a11bce730c16247aae240422c7ed",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/profile.ts": {
+    "mtime": 1780473092.9543147,
+    "ast_hash": "ac94aa4cc1b4f20bc6bc7b0a60a1b762",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/receipts.ts": {
+    "mtime": 1780473092.9547405,
+    "ast_hash": "bf0da3e9d71ba2af934be7f2c69735a2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/tasks.ts": {
+    "mtime": 1780473092.9561315,
+    "ast_hash": "2cbccd688dc2ba1d6b0955383e2518c4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/user-registry.ts": {
+    "mtime": 1780473092.956566,
+    "ast_hash": "901aaf15a0d3ee666871d0cc0bd706e8",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/memory/facts.ts": {
+    "mtime": 1780473092.9538176,
+    "ast_hash": "d96de38fccabf33b3c48ab2f52b848cb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/verify.ts": {
+    "mtime": 1780473092.949695,
+    "ast_hash": "fb2c80abd49a5d97a203eed182926f17",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/types.ts": {
+    "mtime": 1780473092.9494638,
+    "ast_hash": "07279db4be5dc2d0ce37eb754d208bb4",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/client.ts": {
+    "mtime": 1780473092.947504,
+    "ast_hash": "0176a2e3d4c49bf572828621e9dd2c52",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/mime.ts": {
+    "mtime": 1780473092.9492464,
+    "ast_hash": "c11381fef2a4b38a8bb4d305a8ae08fc",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/news.ts": {
+    "mtime": 1780473092.9486876,
+    "ast_hash": "5c46cac26b79f85325f9123f19c706c9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/briefing.ts": {
+    "mtime": 1780473092.9478023,
+    "ast_hash": "e37627fdcaf55626d2555f66c6b43c80",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/gmail-results.ts": {
+    "mtime": 1780473092.9483485,
+    "ast_hash": "cc030925300445db2a1ca5c06a4445ab",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/list-items.ts": {
+    "mtime": 1780473092.9485104,
+    "ast_hash": "c14092099d59acad8b19a75b296ad7cf",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/task-list.ts": {
+    "mtime": 1780473092.9489348,
+    "ast_hash": "0fcca261a089fbcda554db8dce0a462a",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/calendar-events.ts": {
+    "mtime": 1780473092.9480436,
+    "ast_hash": "11ce249c0a239df6e2065adf6989db60",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/confirm-cancel.ts": {
+    "mtime": 1780473092.948127,
+    "ast_hash": "2a25bb928a5ef05783c5c8ce28e3948d",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/task-checkin.ts": {
+    "mtime": 1780473092.948859,
+    "ast_hash": "dd855b3f5c267a0c1e152935fb3d859c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/index.ts": {
+    "mtime": 1780473092.9484313,
+    "ast_hash": "6dbdfd12f3d13c3caa737c2b18152410",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/line/flex/signup-gate.ts": {
+    "mtime": 1780473092.9487722,
+    "ast_hash": "c828d39e37c1a81f16b61c8582919d32",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/handlers/other-media.ts": {
+    "mtime": 1780473092.9467762,
+    "ast_hash": "890f7667c6dce4fd64346f3c1c03a35e",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/handlers/image.ts": {
+    "mtime": 1780473092.9464974,
+    "ast_hash": "9e1b1d5416e9db1a72187765ab414e16",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/lib/handlers/text.ts": {
+    "mtime": 1780473092.9471235,
+    "ast_hash": "8880f45a3798529648430329874f74ee",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/vite.config.js": {
+    "mtime": 1780473093.0312643,
+    "ast_hash": "384f7f80dbf0df98b243997376a86ede",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/package.json": {
+    "mtime": 1780473092.9700363,
+    "ast_hash": "4c9001b59f47ae4a3de459a26c559471",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/src/i18n.jsx": {
+    "mtime": 1780473093.029301,
+    "ast_hash": "9f48738d52ca266fc07f03aec1331704",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/src/main.jsx": {
+    "mtime": 1780473093.0305002,
+    "ast_hash": "80c5f02e4af0a4367898c1d215658ca0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/src/App.jsx": {
+    "mtime": 1780473093.0283208,
+    "ast_hash": "0318ec1ae816a8e1c03ccf36ad4c4a94",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/SETUP.md": {
+    "mtime": 1780473092.666973,
+    "ast_hash": "dff46ecae920231d6aceb5cbf1a37724",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/TODO.md": {
+    "mtime": 1780473092.6674187,
+    "ast_hash": "71db11178aeb4fb2d72cd890e2dc6999",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/PERFORMANCE.md": {
+    "mtime": 1780473092.6656277,
+    "ast_hash": "ef072edc1d6998eea0577991ef5177df",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/README.md": {
+    "mtime": 1780473092.6664205,
+    "ast_hash": "4ca6b4657f02278e451f09b0bdd6afb0",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/PLAN.md": {
+    "mtime": 1780473092.6659758,
+    "ast_hash": "d55a7b2d7e9b54134d859a6be7c3e14c",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/AGENTS.md": {
+    "mtime": 1780473092.6652985,
+    "ast_hash": "0274bfaceac891bfb4bcdf879eec8f59",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/CLAUDE.md": {
+    "mtime": 1780473092.6368845,
+    "ast_hash": "f5726dbb85d21e0878a7f192c8318796",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/README.md": {
+    "mtime": 1780473092.7000718,
+    "ast_hash": "41c0dea5e35d1ee0449e8d38cf32f4a9",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/index.html": {
+    "mtime": 1780473092.7021515,
+    "ast_hash": "9306861e3364d0600c9507da9ec001f7",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/README.md": {
+    "mtime": 1780473092.7062736,
+    "ast_hash": "0f32d58cd99552d26435782dc840def5",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/index.html": {
+    "mtime": 1780473092.819904,
+    "ast_hash": "2610974a6bf7b53d4e41b6467aa5877b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/dashboard/index.html": {
+    "mtime": 1780473093.0899906,
+    "ast_hash": "9306861e3364d0600c9507da9ec001f7",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/audit/FINAL_REPORT.md": {
+    "mtime": 1780473092.6983814,
+    "ast_hash": "4ba4cd760112dd594733773e8509e030",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/audit/04-security.md": {
+    "mtime": 1780473092.6971633,
+    "ast_hash": "99120022b342055197d43479059edc53",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/audit/00-inventory.md": {
+    "mtime": 1780473092.6946816,
+    "ast_hash": "ac5bf4088ea0723eb37887e33480fe23",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/audit/03-route-handlers.md": {
+    "mtime": 1780473092.696508,
+    "ast_hash": "e82b0bb7b5b3b771351086315cbe3621",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/audit/05-bugs-and-gaps.md": {
+    "mtime": 1780473092.6976035,
+    "ast_hash": "2c8d718c55efa96257138197d68f7947",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/audit/02-per-tool-verification.md": {
+    "mtime": 1780473092.696099,
+    "ast_hash": "79236d79c16e40b7c41d90b2b701ab64",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/audit/06-test-plan.md": {
+    "mtime": 1780473092.6980968,
+    "ast_hash": "30ff52434f75cd0441b501133fe24408",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/audit/01-claims-vs-reality.md": {
+    "mtime": 1780473092.6953275,
+    "ast_hash": "2fd9ca04eb457fa03534860c690bdf38",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/.github/workflows/ci.yml": {
+    "mtime": 1780473092.6645892,
+    "ast_hash": "71dfcd3bdb18e36649afb60bcfaaf76b",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/index.html": {
+    "mtime": 1780473092.969474,
+    "ast_hash": "b0c17e1f35ce642ef88a564c18918799",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA - Customer Journey Flowchart.pdf": {
+    "mtime": 1780473092.7051032,
+    "ast_hash": "51e7d38a163d2426d54444825b13b787",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/test images/IMG_2816.jpeg": {
+    "mtime": 1780473093.1109304,
+    "ast_hash": "3921a42c8c86942af9368b480cce3238",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/app/icon.svg": {
+    "mtime": 1780473092.6900043,
+    "ast_hash": "48797bc4e501540eecaf040cf62761ce",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/screenshots/03-after-render.png": {
+    "mtime": 1780473092.7030962,
+    "ast_hash": "64c7a54fab517d532d5e5e5f3e8174af",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/screenshots/01-briefing.png": {
+    "mtime": 1780473092.7026687,
+    "ast_hash": "64c7a54fab517d532d5e5e5f3e8174af",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/screenshots/02-debug.png": {
+    "mtime": 1780473092.7028837,
+    "ast_hash": "64c7a54fab517d532d5e5e5f3e8174af",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/ChatGPT Image May 20, 2026, 04_19_13 PM.png": {
+    "mtime": 1780473092.839456,
+    "ast_hash": "16942ed868e038e80a21cfe25acd8bda",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/assisstantforyou_qr.png": {
+    "mtime": 1780473092.9123254,
+    "ast_hash": "b765fa3d51eb9b876444f60b20bf2d55",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/TODO.png": {
+    "mtime": 1780473092.9044857,
+    "ast_hash": "d296df9fa42539de0234d3e49aac70eb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/Screenshot 2569-05-26 at 12.42.33.png": {
+    "mtime": 1780473092.8777912,
+    "ast_hash": "c685e3527d56582a890e9c91cbcb5a6f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/For analysts.png": {
+    "mtime": 1780473092.8515484,
+    "ast_hash": "5cc7c8e7ac724c6718fa3caba9692011",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/ChatGPT Image May 14, 2026, 07_45_31 PM.png": {
+    "mtime": 1780473092.8350284,
+    "ast_hash": "7abb07a3079a23ac09fe4fcd84ebfe08",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/ChatGPT Image May 14, 2026, 07_35_27 PM.png": {
+    "mtime": 1780473092.8268447,
+    "ast_hash": "814441203de7c7f79bd8a4cb7176783f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/draw-eaa08df9-44e3-46ff-91ac-0d9057c1ae64.png": {
+    "mtime": 1780473092.9185348,
+    "ast_hash": "4ac03abf20bb4271c40acc2f474ec561",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/L_gainfriends_2dbarcodes_BW.png": {
+    "mtime": 1780473092.8696063,
+    "ast_hash": "b3b52282dd2994eac860efa02705e594",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/Screenshot 2569-05-26 at 12.44.11.png": {
+    "mtime": 1780473092.8967392,
+    "ast_hash": "61f23f2124d38946bbc8581c845867e2",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/For executives.png": {
+    "mtime": 1780473092.853128,
+    "ast_hash": "1931b50648ff5345b2e40af7757d7930",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/For founders.png": {
+    "mtime": 1780473092.8687103,
+    "ast_hash": "249dcb0b90482f620795bd1f5c7e0b28",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/uploads/ChatGPT Image May 14, 2026, 07_42_09 PM.png": {
+    "mtime": 1780473092.8334064,
+    "ast_hash": "c71f658d97e5ea2b12480683eb5cfe15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/lekha-briefing.png": {
+    "mtime": 1780473092.7308633,
+    "ast_hash": "c71f658d97e5ea2b12480683eb5cfe15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/use-analysts.png": {
+    "mtime": 1780473092.7710073,
+    "ast_hash": "5cc7c8e7ac724c6718fa3caba9692011",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/lekha-instruction.png": {
+    "mtime": 1780473092.748851,
+    "ast_hash": "814441203de7c7f79bd8a4cb7176783f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/use-founders.png": {
+    "mtime": 1780473092.8189292,
+    "ast_hash": "249dcb0b90482f620795bd1f5c7e0b28",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/lekha-hero.png": {
+    "mtime": 1780473092.736224,
+    "ast_hash": "16942ed868e038e80a21cfe25acd8bda",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/lekha-tasks.png": {
+    "mtime": 1780473092.7538006,
+    "ast_hash": "7abb07a3079a23ac09fe4fcd84ebfe08",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/instagram-qr.png": {
+    "mtime": 1780473092.7204525,
+    "ast_hash": "b765fa3d51eb9b876444f60b20bf2d55",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/use-executives.png": {
+    "mtime": 1780473092.801061,
+    "ast_hash": "1931b50648ff5345b2e40af7757d7930",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/use-busy.png": {
+    "mtime": 1780473092.7893836,
+    "ast_hash": "d296df9fa42539de0234d3e49aac70eb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/dashboard/project/uploads/LEKHA-handoff (2)/project/assets/line-qr.png": {
+    "mtime": 1780473092.756593,
+    "ast_hash": "b3b52282dd2994eac860efa02705e594",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/lekha-briefing.png": {
+    "mtime": 1780473093.044921,
+    "ast_hash": "c71f658d97e5ea2b12480683eb5cfe15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/use-analysts.png": {
+    "mtime": 1780473093.0660572,
+    "ast_hash": "5cc7c8e7ac724c6718fa3caba9692011",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/lekha-instruction.png": {
+    "mtime": 1780473093.0520895,
+    "ast_hash": "814441203de7c7f79bd8a4cb7176783f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/use-founders.png": {
+    "mtime": 1780473093.088773,
+    "ast_hash": "249dcb0b90482f620795bd1f5c7e0b28",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/lekha-hero.png": {
+    "mtime": 1780473093.0480216,
+    "ast_hash": "16942ed868e038e80a21cfe25acd8bda",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/lekha-tasks.png": {
+    "mtime": 1780473093.053723,
+    "ast_hash": "7abb07a3079a23ac09fe4fcd84ebfe08",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/instagram-qr.png": {
+    "mtime": 1780473093.0412474,
+    "ast_hash": "b765fa3d51eb9b876444f60b20bf2d55",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/use-executives.png": {
+    "mtime": 1780473093.0776658,
+    "ast_hash": "1931b50648ff5345b2e40af7757d7930",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/use-busy.png": {
+    "mtime": 1780473093.0749333,
+    "ast_hash": "d296df9fa42539de0234d3e49aac70eb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/public/assets/line-qr.png": {
+    "mtime": 1780473093.0575962,
+    "ast_hash": "b3b52282dd2994eac860efa02705e594",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/lekha-briefing.png": {
+    "mtime": 1780473092.9807525,
+    "ast_hash": "c71f658d97e5ea2b12480683eb5cfe15",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/use-analysts.png": {
+    "mtime": 1780473093.0064604,
+    "ast_hash": "5cc7c8e7ac724c6718fa3caba9692011",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/lekha-instruction.png": {
+    "mtime": 1780473092.9870882,
+    "ast_hash": "814441203de7c7f79bd8a4cb7176783f",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/use-founders.png": {
+    "mtime": 1780473093.025737,
+    "ast_hash": "249dcb0b90482f620795bd1f5c7e0b28",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/lekha-hero.png": {
+    "mtime": 1780473092.9858637,
+    "ast_hash": "16942ed868e038e80a21cfe25acd8bda",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/lekha-tasks.png": {
+    "mtime": 1780473092.9922314,
+    "ast_hash": "7abb07a3079a23ac09fe4fcd84ebfe08",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/instagram-qr.png": {
+    "mtime": 1780473092.9780753,
+    "ast_hash": "b765fa3d51eb9b876444f60b20bf2d55",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/use-executives.png": {
+    "mtime": 1780473093.0176065,
+    "ast_hash": "1931b50648ff5345b2e40af7757d7930",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/use-busy.png": {
+    "mtime": 1780473093.0147705,
+    "ast_hash": "d296df9fa42539de0234d3e49aac70eb",
+    "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/.claude/worktrees/laughing-elion-9426c4/marketing/public/assets/line-qr.png": {
+    "mtime": 1780473092.9961946,
     "ast_hash": "b3b52282dd2994eac860efa02705e594",
     "semantic_hash": ""
   }

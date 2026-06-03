@@ -128,8 +128,9 @@ export async function POST(req: NextRequest) {
           if (briefing.inbox && briefing.inbox.length > 0) {
             msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
           }
-          await push(userId, msgs);
-          await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
+          const ok = await push(userId, msgs);
+          if (ok) await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
+          else console.warn("[sweep] morning briefing push failed", userId);
         }
       } catch (err) {
         console.error("[sweep] morning briefing failed", userId, err);
@@ -150,8 +151,9 @@ export async function POST(req: NextRequest) {
           if (summary) {
             const msgs: LineMessage[] = [briefingFlex("evening", summary.text)];
             if (summary.news.length > 0) msgs.push(newsFlex(summary.news, "📰 Evening news"));
-            await push(userId, msgs);
-            await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
+            const ok = await push(userId, msgs);
+            if (ok) await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
+            else console.warn("[sweep] evening summary push failed", userId);
           }
         }
       } catch (err) {
@@ -200,7 +202,8 @@ export async function POST(req: NextRequest) {
         const isToday =
           task.dueAt && task.dueAt < Date.now() + 16 * 60 * 60 * 1000;
         const when = isToday ? `today at ${local}` : "tomorrow";
-        await push(userId, [textMsg(`⏰ Heads up: "${title}" is due ${when}.`)]);
+        const ok = await push(userId, [textMsg(`⏰ Heads up: "${title}" is due ${when}.`)]);
+        if (!ok) console.warn("[sweep] task deadline push failed", userId);
       } catch (err) {
         console.error("[sweep] task deadline failed", userId, err);
       }
@@ -231,9 +234,10 @@ export async function POST(req: NextRequest) {
             : lead >= 60 && lead % 60 === 0
               ? `${lead / 60}h`
               : `${lead}m`;
-        await push(userId, [
+        const ok = await push(userId, [
           textMsg(`🔔 In ~${leadLabel}: upcoming event at ${local}.`),
         ]);
+        if (!ok) console.warn("[sweep] pre-meeting push failed", userId);
       } catch (err) {
         console.error("[sweep] pre-meeting alert failed", userId, err);
       }
@@ -277,8 +281,9 @@ async function runSweepForUser(userId: string): Promise<void> {
       if (briefing.inbox && briefing.inbox.length > 0) {
         msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
       }
-      await push(userId, msgs);
-      await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
+      const ok = await push(userId, msgs);
+      if (ok) await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
+      else console.warn("[sweep] morning briefing push failed", userId);
     } catch (err) {
       console.error("[sweep] morning briefing failed", userId, err);
     }
@@ -301,8 +306,9 @@ async function runSweepForUser(userId: string): Promise<void> {
       if (summary) {
         const msgs: LineMessage[] = [briefingFlex("evening", summary.text)];
         if (summary.news.length > 0) msgs.push(newsFlex(summary.news, "📰 Evening news"));
-        await push(userId, msgs);
-        await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
+        const ok = await push(userId, msgs);
+        if (ok) await updateSettings(userId, { lastEveningSummaryTs: Date.now() });
+        else console.warn("[sweep] evening summary push failed", userId);
       }
     } catch (err) {
       console.error("[sweep] evening summary failed", userId, err);
