@@ -139,6 +139,7 @@ async function handleEvent(
       endEvent({ skipped: "no-user" });
       return false;
     }
+    registerUser(userId).catch(() => {});
     const endProfile = span("webhook:getOrCreateProfile", traceId);
     const profile = await getOrCreateProfile(userId);
     endProfile();

@@ -89,13 +89,15 @@ describe("gmailResultsFlex", () => {
     expect(msg.altText).toMatch(/no results/i);
   });
 
-  it("emits reply + archive postbacks per message", () => {
+  it("emits a header + Open in Gmail uri button per message", () => {
     const msg = gmailResultsFlex([
       { id: "m1", from: "a@b.com", subject: "hi", snippet: "test" },
     ]);
     const json = JSON.stringify(msg.contents);
-    expect(json).toContain('"data":"gmail:reply:m1"');
-    expect(json).toContain('"data":"gmail:archive:m1"');
+    expect(json).toContain("a@b.com");
+    expect(json).toContain("https://mail.google.com/mail/u/0/#all/m1");
+    expect(json).toContain('"label":"Open in Gmail"');
+    expect(json).toContain('"type":"uri"');
   });
 });
 

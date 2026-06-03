@@ -9,7 +9,7 @@ export type GmailRow = {
   date?: string;
 };
 
-/** Render gmail search hits as a Flex carousel (one bubble per email). */
+/** Render gmail search hits as a Flex carousel — one bubble per email with an "Open" URI button. */
 export function gmailResultsFlex(messages: GmailRow[]): FlexMessage {
   const rows = messages.slice(0, 10);
   if (rows.length === 0) {
@@ -26,73 +26,78 @@ export function gmailResultsFlex(messages: GmailRow[]): FlexMessage {
       },
     };
   }
+
   return {
     type: "flex",
     altText: `Inbox: ${rows.map((m) => m.subject).join(" • ").slice(0, 380)}`,
     contents: {
       type: "carousel",
-      contents: rows.map((m) => ({
-        type: "bubble" as const,
-        size: "kilo" as const,
-        body: {
-          type: "box" as const,
-          layout: "vertical" as const,
-          spacing: "sm" as const,
-          contents: [
-            {
-              type: "text" as const,
-              text: m.from.slice(0, 60),
-              size: "xs" as const,
-              color: "#666666",
-              weight: m.unread ? ("bold" as const) : ("regular" as const),
-            },
-            {
-              type: "text" as const,
-              text: m.subject.slice(0, 80),
-              weight: "bold" as const,
-              size: "sm" as const,
-              wrap: true,
-            },
-            {
-              type: "text" as const,
-              text: m.snippet.slice(0, 140),
-              size: "xs" as const,
-              color: "#555555",
-              wrap: true,
-              margin: "sm" as const,
-            },
-          ],
-        },
-        footer: {
-          type: "box" as const,
-          layout: "vertical" as const,
-          spacing: "xs" as const,
-          contents: [
-            {
-              type: "button" as const,
-              style: "primary" as const,
-              height: "sm" as const,
-              action: {
-                type: "postback" as const,
-                label: "Reply",
-                data: `gmail:reply:${m.id}`.slice(0, 300),
-                displayText: `Draft reply to "${m.subject.slice(0, 30)}"`,
+      contents: rows.map((m) => {
+        const headerColor = m.unread ? "#1a5f9a" : "#666666";
+        return {
+          type: "bubble" as const,
+          size: "kilo" as const,
+          header: {
+            type: "box" as const,
+            layout: "vertical" as const,
+            paddingAll: "8px",
+            backgroundColor: headerColor,
+            contents: [
+              {
+                type: "text" as const,
+                text: m.from.slice(0, 60),
+                size: "xxs" as const,
+                color: "#FFFFFF",
+                weight: "bold" as const,
               },
-            },
-            {
-              type: "button" as const,
-              style: "secondary" as const,
-              height: "sm" as const,
-              action: {
-                type: "postback" as const,
-                label: "Archive",
-                data: `gmail:archive:${m.id}`.slice(0, 300),
-                displayText: `Archive "${m.subject.slice(0, 30)}"`,
+            ],
+          },
+          body: {
+            type: "box" as const,
+            layout: "vertical" as const,
+            spacing: "sm" as const,
+            contents: [
+              {
+                type: "text" as const,
+                text: m.subject.slice(0, 80),
+                weight: "bold" as const,
+                size: "sm" as const,
+                wrap: true,
+                color: "#222222",
               },
-            },
-          ],
-        },
-      })),
+              ...(m.snippet
+                ? [
+                    {
+                      type: "text" as const,
+                      text: m.snippet.slice(0, 140),
+                      size: "xs" as const,
+                      color: "#666666",
+                      wrap: true,
+                      margin: "sm" as const,
+                    },
+                  ]
+                : []),
+            ],
+          },
+          footer: {
+            type: "box" as const,
+            layout: "vertical" as const,
+            contents: [
+              {
+                type: "button" as const,
+                style: "primary" as const,
+                height: "sm" as const,
+                color: headerColor,
+                action: {
+                  type: "uri" as const,
+                  label: "Open in Gmail",
+                  uri: `https://mail.google.com/mail/u/0/#all/${m.id}`,
+                },
+              },
+            ],
+          },
+        };
+      }),
     },
   };
 }

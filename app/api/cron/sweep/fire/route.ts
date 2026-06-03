@@ -3,6 +3,7 @@ import { z } from "zod";
 import { hasQStash } from "@/lib/env";
 import { getSettings, updateSettings } from "@/lib/memory/settings";
 import { hasGoogleConnection } from "@/lib/tools/google-auth";
+import { isAllowed } from "@/lib/memory/allowlist";
 import { push, text as textMsg, type LineMessage } from "@/lib/line/client";
 import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
 import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
@@ -239,6 +240,7 @@ export async function POST(req: NextRequest) {
 // ─── Master sweep logic ────────────────────────────────────────────────────
 
 async function runSweepForUser(userId: string): Promise<void> {
+  if (!(await isAllowed(userId))) return;
   const settings = await getSettings(userId);
 
   // Morning briefing
