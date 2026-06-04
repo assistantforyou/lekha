@@ -119,11 +119,15 @@ export async function handleAdminCommand(
       getSettings(target).catch(() => null),
     ]);
     const today = new Date().toISOString().slice(0, 10);
-    const locks = await Promise.all([
-      redis().get(`pushlock:${target}:morning_briefing:${today}`),
-      redis().get(`pushlock:${target}:evening_summary:${today}`),
-      redis().get(`pushlock:${target}:task_check_in:${today}`),
+    const [locks, activeTs] = await Promise.all([
+      Promise.all([
+        redis().get(`pushlock:${target}:morning_briefing:${today}`),
+        redis().get(`pushlock:${target}:evening_summary:${today}`),
+        redis().get(`pushlock:${target}:task_check_in:${today}`),
+      ]),
+      redis().get(`active:${target}`),
     ]);
+    const activeAgo = activeTs ? `${Math.round((Date.now() - Number(activeTs)) / 60000)}m ago` : "never";
     const profile = await getProfile(target).catch(() => null);
     const lines = [
       `📊 Status for ${profile?.displayName ?? target}`,
@@ -140,6 +144,7 @@ export async function handleAdminCommand(
       `Last evening: ${settings?.lastEveningSummaryTs ? new Date(settings.lastEveningSummaryTs).toLocaleString("en-US", { timeZone: settings.timezone }) : "never"}`,
       ``,
       `Locks today: morning=${locks[0] ? "🔒" : "🔓"} evening=${locks[1] ? "🔒" : "🔓"} checkin=${locks[2] ? "🔒" : "🔓"}`,
+      `Last activity: ${activeAgo}`,
     ];
     await replyOrPush(userId, replyToken, [textMsg(lines.join("\n"))]);
     return true;

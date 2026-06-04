@@ -65,8 +65,8 @@ Legend: ✅ good | ⚠️ concern | ❌ bug
 |-------|--------|-------|
 | Signature verified | ✅ | QStash `receiver.verify()` at lines 37-46. |
 | Manual ops bypass | ✅ (by design) | `Authorization: Bearer <OAUTH_STATE_SECRET>` bypass at lines 28-30 allows manual trigger without QStash. Secret is already used for OAuth state — shared-secret reuse is a design choice, not a vulnerability, since scope is limited. |
-| Pre-meeting idempotency | ✅ | `premeet:{userId}:{eventId}:{lead}` with `{ nx: true, ex: 60*60*24*2 }` (2d TTL) at line 172. Each (event × lead) pair fires at most once per 2 days. |
-| Task-warning idempotency | ✅ | `taskwarn:{userId}:{task.id}` with 24h TTL + NX at line 124. One warning per task per day. |
+| Pre-meeting idempotency | ⚠️ | Audit claims `premeet:{userId}:{eventId}:{lead}` key. Actual code uses `claimPushLock()` (`pushlock:{userId}:pre_meeting:{date}` with 5-min TTL) in the fire route. The `proactive:premeet:${userId}:${eventId}` key only stores QStash message IDs for cancellation, not idempotency. |
+| Task-warning idempotency | ⚠️ | Audit claims `taskwarn:{userId}:{task.id}` key. Actual code uses `claimPushLock()` (`pushlock:{userId}:task_deadline:{date}` with 5-min TTL) in the fire route. |
 | Morning briefing dedup | ✅ | `shouldFireBriefingNow` checks `lastFiredTs` with 12h guard (`briefing.ts:188`). Races are possible if two sweeps land within 15 min concurrently, but that's a QStash scheduling edge case and impact is at most one duplicate briefing per day. P3. |
 | Evening summary dedup | ✅ | Same 12h guard (`evening-summary.ts:182`). Same minor race. P3. |
 | `sweepPreMeetingPushes` error handling | ✅ | `getGoogleClient` can throw `GoogleAuthRequired` — caught by per-user try/catch at line 101. Increments `stats.errors`, continues to next user. |

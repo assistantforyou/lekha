@@ -180,7 +180,8 @@ async function handleEvent(
   }
   const message = event.message;
 
-  // Pre-flight in parallel. registerUser creates per-user QStash schedules.
+  // Pre-flight in parallel. registerUser adds user to the sweep registry (users:active set).
+  // NOTE: There are no per-user QStash schedules for briefings. The master sweep iterates all users.
   registerUser(userId).catch(() => {});
   const endPreflight = span("webhook:prelight", traceId);
   const [rl, profile, pending] = await Promise.all([

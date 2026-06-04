@@ -1,14 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasQStash } from "@/lib/env";
 import { verifyQStashSignature, unauthorized, notConfigured, isManualBypass } from "@/lib/qstash-verify";
+import { runSweepForUser } from "@/lib/sweep";
+import { listAllUsers } from "@/lib/memory/user-registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * DEPRECATED: The master cron sweep has been replaced by per-user QStash
- * schedules. Please cancel the old QStash schedule pointing at /api/cron/sweep
- * in your QStash dashboard.
+ * Legacy endpoint: QStash schedules may still point here.
+ * We forward to the actual sweep logic so old schedules keep working.
+ * The claimPushLock() inside runSweepForUser prevents double-pushes
+ * if a newer schedule also hits /api/cron/sweep/fire.
  */
 export async function POST(req: NextRequest) {
   if (!hasQStash()) return notConfigured();
@@ -19,6 +22,15 @@ export async function POST(req: NextRequest) {
     const ok = await verifyQStashSignature(raw, sig, "/api/cron/sweep");
     if (!ok) return unauthorized();
   }
-  console.warn("[sweep] master cron sweep is deprecated — cancel the QStash schedule in dashboard");
-  return NextResponse.json({ ok: true, deprecated: true, note: "Per-user schedules are now used. Cancel this schedule in QStash dashboard." });
+  console.warn("[sweep] LEGACY /api/cron/sweep triggered — forwarding to sweep logic. Consider updating the schedule to /api/cron/sweep/fire");
+
+  const users = await listAllUsers();
+  for (const uid of users) {
+    try {
+      await runSweepForUser(uid);
+    } catch (err) {
+      console.error("[sweep] legacy sweep failed for user", uid, err);
+    }
+  }
+  return NextResponse.json({ ok: true, usersChecked: users.length, note: "legacy endpoint — consider updating schedule to /api/cron/sweep/fire" });
 }

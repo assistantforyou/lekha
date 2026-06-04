@@ -11,6 +11,10 @@ function qstash() {
  * Returns the QStash schedule id (store in Redis if you need to cancel later).
  *
  * NOTE: QStash crons are evaluated in UTC. Convert from user-local TZ before passing.
+ *
+ * DEAD CODE for briefings/summaries: The proactive layer uses a single master sweep
+ * (lib/sweep.ts runSweepForUser) iterated by a QStash schedule every 15 min.
+ * This function is only used by the `set_recurring_reminder` tool in lib/tools/reminders.ts.
  */
 export async function scheduleRecurring(
   pathFromBase: string,
@@ -27,6 +31,10 @@ export async function scheduleRecurring(
   return r.scheduleId;
 }
 
+/**
+ * DEAD CODE for briefings/summaries: see scheduleRecurring comment above.
+ * Cancellation in the codebase uses qstash().messages.delete directly.
+ */
 export async function cancelSchedule(scheduleId: string): Promise<void> {
   try {
     await qstash().schedules.delete(scheduleId);

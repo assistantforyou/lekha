@@ -123,11 +123,13 @@ In the LINE console → Messaging API tab:
 
 ## 11. Proactive cron sweep (LIVE — completed)
 
-The bot's proactive features (morning briefing at 7 AM, pre-meeting reminders at 1d/1h/15m, and 9 PM evening summary) are powered by a QStash schedule that hits `/api/cron/sweep` every 15 minutes.
+The bot's proactive features (morning briefing at 7 AM, pre-meeting reminders at 1d/1h/15m, and 9 PM evening summary) are powered by a **single master QStash schedule** that hits `/api/cron/sweep` every 15 minutes.
+
+**There are no per-user QStash schedules for briefings/summaries.** The master sweep iterates the `users:active` Redis set and evaluates time windows per-user. New users automatically join the sweep when they interact with the bot (via `registerUser`).
 
 **Status: LIVE as of this session.**
 - **Schedule ID:** `scd_7n4QEk86a7ENn6fghPQagcw2TRNS`
-- **Endpoint:** `https://lekha-iota.vercel.app/api/cron/sweep`
+- **Endpoint:** `https://lekha-iota.vercel.app/api/cron/sweep` (legacy endpoint; forwards to `lib/sweep.ts`)
 - **Cron:** Every 15 minutes (`*/15 * * * *`)
 
 To test the sweep manually without waiting for the schedule:
@@ -137,6 +139,8 @@ To test the sweep manually without waiting for the schedule:
 curl -XPOST https://YOUR-VERCEL-URL/api/cron/sweep \
   -H "Authorization: Bearer $OAUTH_STATE_SECRET"
 ```
+
+**Historical note:** An earlier version of the codebase stored per-user QStash schedule IDs in user settings (migration v4→v5, now a no-op). That approach was abandoned in favor of the master sweep. The `lib/cron.ts` `scheduleRecurring` / `cancelSchedule` wrappers are dead code kept for reference but never called for briefings.
 
 ---
 

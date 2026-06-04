@@ -1,4 +1,4 @@
-import { scheduleOneShot, cancelSchedule } from "./cron";
+import { scheduleOneShot } from "./cron";
 import { hasQStash } from "./env";
 import { redis } from "./memory/redis";
 

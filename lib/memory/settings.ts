@@ -180,7 +180,9 @@ const MIGRATIONS: Array<(s: StoredSettings, configured: Set<string>) => Partial<
     return patch;
   },
 
-  // v4 → v5: (was QStash schedule ids, now deprecated — keep as no-op so version stays stable)
+  // v4 → v5: Was per-user QStash schedule IDs for morning/evening briefings.
+  //           Abandoned in favor of a single master sweep (lib/sweep.ts).
+  //           Keep as no-op so version stays stable.
   () => ({}),
 
   // v5 → v6: derive task check-in time from evening summary (-30 min). Clear explicit time so users get derived behaviour.

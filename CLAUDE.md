@@ -162,8 +162,10 @@ Settings use versioning + migration: `CURRENT_VERSION` in `lib/memory/settings.t
 ### 12. Long-term memory via Upstash Vector (with substring fallback)
 Every fact-extraction cycle (every 10 turns) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `text-embedding-004` (768 dims) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries. At 100+ users with growing archives, semantic search materially beats substring on questions like "what did we discuss about that bird-themed project". Reversal of an earlier decision — see PLAN.md.
 
-### 13. Proactive layer via QStash schedule
-`/api/cron/sweep` is hit every 15 min via live QStash schedule (ID `scd_7n4QEk86a7ENn6fghPQagcw2TRNS`). Iterates `users:active` set, decides per-user whether to push (morning briefing window check, pre-meeting lead-time check, evening summary window check). Idempotent per event via `premeet:{userId}:{eventId}` and `evening_summary:{userId}` keys.
+### 13. Proactive layer via master sweep
+A single QStash schedule hits `/api/cron/sweep` every 15 min (legacy endpoint; forwards to `lib/sweep.ts` `runSweepForUser`). Iterates `users:active` set, decides per-user whether to push (morning briefing window check, evening summary window check, task check-in window check). **There are no per-user QStash schedules for briefings/summaries.**
+
+Idempotency is via `claimPushLock()` (`pushlock:{userId}:{type}:{YYYY-MM-DD}` with 5-min TTL), not per-event Redis keys. Pre-meeting alerts and task deadline warnings are scheduled as one-shot QStash messages at event/task creation time — the sweep does NOT scan calendars for upcoming events.
 
 ### 14. Email body is base64-encoded
 For Thai/UTF-8 fidelity. `Content-Transfer-Encoding: base64` on the text body part. Some MTAs corrupt non-ASCII under `7bit`.
