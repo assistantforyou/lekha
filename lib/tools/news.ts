@@ -18,7 +18,7 @@ export function buildNewsTools() {
   return {
     news_search: tool({
       description:
-        "Search recent news headlines for a topic. ONLY call this when the user asks a specific news question like 'what's the latest news on X'. NEVER call this for greetings, casual chat, or proactively.",
+        "Search recent news for a topic. Call this when the user asks about recent news ('what's the latest on X'), OR when they ask explanatory questions about recent events ('why did X happen', 'what caused the market drop', 'why did semiconductors fall'). Never call for greetings, casual chat, or proactively.",
       inputSchema: z.object({
         query: z.string().min(2).max(500),
         days: z.number().int().min(1).max(30).default(2).describe("How many days back to look. Default 2."),
