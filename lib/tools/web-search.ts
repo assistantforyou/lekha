@@ -17,7 +17,7 @@ export function buildWebSearchTool() {
   return {
     web_search: tool({
       description:
-        "Search the web for fresh, factual information. Use for news, current events, prices, schedules, or anything that may have changed recently. Do NOT use for general knowledge you already have.",
+        "Search the web for fresh, factual information. Use whenever a question might benefit from up-to-date sources: current events, recent developments, research, background context, or anything where your training data may be stale.",
       inputSchema: z.object({
         query: z.string().min(2).max(200),
       }),
