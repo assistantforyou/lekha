@@ -67,13 +67,13 @@ export async function POST(req: NextRequest) {
       console.error("[sweep] failed to list users", err);
       return NextResponse.json({ ok: false, error: "failed to list users" }, { status: 500 });
     }
-    for (const uid of users) {
-      try {
-        await runSweepForUser(uid);
-      } catch (err) {
-        console.error("[sweep] master sweep failed for user", uid, err);
-      }
-    }
+    await Promise.allSettled(
+      users.map((uid) =>
+        runSweepForUser(uid).catch((err) =>
+          console.error("[sweep] master sweep failed for user", uid, err),
+        ),
+      ),
+    );
     return NextResponse.json({ ok: true, usersChecked: users.length });
   }
 
