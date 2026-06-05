@@ -25,12 +25,12 @@ export async function POST(req: NextRequest) {
   console.warn("[sweep] LEGACY /api/cron/sweep triggered — forwarding to sweep logic. Consider updating the schedule to /api/cron/sweep/fire");
 
   const users = await listAllUsers();
-  for (const uid of users) {
-    try {
-      await runSweepForUser(uid);
-    } catch (err) {
-      console.error("[sweep] legacy sweep failed for user", uid, err);
-    }
-  }
+  await Promise.allSettled(
+    users.map((uid) =>
+      runSweepForUser(uid).catch((err) =>
+        console.error("[sweep] legacy sweep failed for user", uid, err),
+      ),
+    ),
+  );
   return NextResponse.json({ ok: true, usersChecked: users.length, note: "legacy endpoint — consider updating schedule to /api/cron/sweep/fire" });
 }
