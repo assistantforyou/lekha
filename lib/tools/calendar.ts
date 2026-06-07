@@ -26,6 +26,26 @@ function brief(e: {
   };
 }
 
+function briefWithId(e: {
+  id?: string | null;
+  summary?: string | null;
+  start?: { dateTime?: string | null; date?: string | null } | null;
+  end?: { dateTime?: string | null; date?: string | null } | null;
+  location?: string | null;
+  attendees?: { email?: string | null }[] | null;
+  htmlLink?: string | null;
+}) {
+  return {
+    id: e.id ?? "",
+    summary: e.summary ?? "(no title)",
+    start: e.start?.dateTime ?? e.start?.date ?? "",
+    end: e.end?.dateTime ?? e.end?.date ?? "",
+    location: e.location ?? null,
+    attendees: e.attendees?.map((a) => a.email ?? "").filter(Boolean) ?? [],
+    htmlLink: e.htmlLink ?? null,
+  };
+}
+
 function startOfDay(ts: number): number {
   const d = new Date(ts);
   d.setHours(0, 0, 0, 0);
@@ -36,7 +56,7 @@ export function buildCalendarTools(userId: string) {
   return {
     draft_calendar_event: tool({
       description:
-        "Draft a Google Calendar event on the user's primary calendar. Does NOT create it — stores a draft and the user must reply YES. The system will render the verbatim draft to the user; don't paraphrase.",
+        "Draft a Google Calendar event on the user's primary calendar. Does NOT create it — stores a draft and the user must reply YES. The system will render the verbatim draft to the user; don't paraphrase. Before calling this, use search_calendar_events to check for duplicate events with the same or similar title on that day — if a duplicate exists, tell the user and offer to update it instead.",
       inputSchema: z.object({
         summary: z.string().min(1).max(200).describe("Event title"),
         startISO: z.string().describe("ISO 8601 start datetime"),
@@ -66,6 +86,98 @@ export function buildCalendarTools(userId: string) {
           status: "draft_pending_confirmation" as const,
           draft: { summary, startISO, endISO, description, attendees, location, fromEmail },
         };
+      },
+    }),
+
+    search_calendar_events: tool({
+      description:
+        "Search the user's Google Calendar by keyword/title across any date range. Use before creating an event to check for duplicates (search by title), or when the user references an event by name and you need its ID for update/delete.",
+      inputSchema: z.object({
+        query: z.string().min(1).max(200).describe("Text to search for in event title, description, or location"),
+        startISO: z.string().optional().describe("Search from this date (ISO 8601). Defaults to now."),
+        endISO: z.string().optional().describe("Search until this date (ISO 8601). Defaults to 30 days from now."),
+        maxResults: z.number().int().min(1).max(20).default(10),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ query, startISO, endISO, maxResults, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client }) => {
+          const calendar = google.calendar({ version: "v3", auth: client });
+          const timeMin = startISO ?? new Date().toISOString();
+          const timeMax = endISO ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+          const r = await calendar.events.list({
+            calendarId: "primary",
+            q: query,
+            timeMin,
+            timeMax,
+            singleEvents: true,
+            orderBy: "startTime",
+            maxResults,
+          });
+          return {
+            ok: true as const,
+            events: r.data.items?.map(briefWithId) ?? [],
+          };
+        });
+      },
+    }),
+
+    update_calendar_event: tool({
+      description:
+        "Update an existing Google Calendar event — rename it, change the time, location, description, or attendees. Provide only the fields you want to change. Call search_calendar_events first if you need the event ID. Changes are applied immediately.",
+      inputSchema: z.object({
+        eventId: z.string().min(1).describe("Google Calendar event ID (from search_calendar_events or list_upcoming_events)"),
+        summary: z.string().min(1).max(200).optional().describe("New event title"),
+        startISO: z.string().optional().describe("New start datetime (ISO 8601 with timezone)"),
+        endISO: z.string().optional().describe("New end datetime (ISO 8601 with timezone)"),
+        description: z.string().max(2000).optional().describe("New description (replaces existing)"),
+        location: z.string().max(200).optional().describe("New location"),
+        attendees: z.array(z.string().email()).max(20).optional().describe("Full replacement attendee list (emails)"),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ eventId, summary, startISO, endISO, description, location, attendees, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [CAL_SCOPE], async ({ client }) => {
+          const calendar = google.calendar({ version: "v3", auth: client });
+          const patch: Record<string, unknown> = {};
+          if (summary !== undefined) patch.summary = summary;
+          if (startISO !== undefined) patch.start = { dateTime: startISO };
+          if (endISO !== undefined) patch.end = { dateTime: endISO };
+          if (description !== undefined) patch.description = description;
+          if (location !== undefined) patch.location = location;
+          if (attendees !== undefined) patch.attendees = attendees.map((email) => ({ email }));
+          const r = await calendar.events.patch({
+            calendarId: "primary",
+            eventId,
+            requestBody: patch,
+            sendUpdates: attendees !== undefined ? "all" : "none",
+          });
+          return {
+            ok: true as const,
+            updated: {
+              id: r.data.id ?? eventId,
+              summary: r.data.summary ?? "",
+              start: r.data.start?.dateTime ?? r.data.start?.date ?? "",
+              end: r.data.end?.dateTime ?? r.data.end?.date ?? "",
+              location: r.data.location ?? null,
+              htmlLink: r.data.htmlLink ?? null,
+            },
+          };
+        });
+      },
+    }),
+
+    delete_calendar_event: tool({
+      description:
+        "Permanently delete a Google Calendar event. Call search_calendar_events or list_upcoming_events first to get the event ID. If multiple events match the user's description, list them and ask which one before deleting. Deletion is immediate and cannot be undone.",
+      inputSchema: z.object({
+        eventId: z.string().min(1).describe("The Google Calendar event ID"),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ eventId, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [CAL_SCOPE], async ({ client }) => {
+          const calendar = google.calendar({ version: "v3", auth: client });
+          await calendar.events.delete({ calendarId: "primary", eventId });
+          return { ok: true as const };
+        });
       },
     }),
 
@@ -122,7 +234,7 @@ export function buildCalendarTools(userId: string) {
           });
           return {
             ok: true as const,
-            events: r.data.items?.map(brief) ?? [],
+            events: r.data.items?.map(briefWithId) ?? [],
           };
         });
       },
@@ -146,7 +258,7 @@ export function buildCalendarTools(userId: string) {
           });
           return {
             ok: true as const,
-            events: r.data.items?.map(brief) ?? [],
+            events: r.data.items?.map(briefWithId) ?? [],
           };
         });
       },
@@ -176,7 +288,6 @@ export function buildCalendarTools(userId: string) {
             start: new Date(b.start ?? "").getTime(),
             end: new Date(b.end ?? "").getTime(),
           }));
-          // Walk the window day-by-day, intersect with workday hours, subtract busy ranges.
           const slots: { startISO: string; endISO: string; minutes: number }[] = [];
           const winStart = new Date(startISO).getTime();
           const winEnd = new Date(endISO).getTime();
@@ -243,7 +354,6 @@ export async function createCalendarEvent(
       sendUpdates: args.attendees?.length ? "all" : "none",
     });
     const eventId = r.data.id ?? "";
-    // Schedule pre-meeting alerts for bot-created events.
     if (eventId) {
       const settings = await getSettings(userId);
       if (settings.preMeetingLeads.length > 0) {
