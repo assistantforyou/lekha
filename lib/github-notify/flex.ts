@@ -28,13 +28,6 @@ export function githubEventFlex(card: GithubCard): FlexMessage {
             weight: "bold",
             size: "sm",
           },
-          {
-            type: "text",
-            text: "assistantforyou/lekha",
-            color: "#ffffffbb",
-            size: "xxs",
-            margin: "xs",
-          },
         ],
       },
       body: {
@@ -87,11 +80,12 @@ export function githubEventFlex(card: GithubCard): FlexMessage {
         contents: [
           {
             type: "button",
-            style: "link",
+            style: "primary",
+            color: "#24292F",
             height: "sm",
             action: {
               type: "uri",
-              label: "View on GitHub →",
+              label: "View on GitHub",
               uri: card.url,
             },
           },
