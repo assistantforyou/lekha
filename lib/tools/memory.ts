@@ -17,7 +17,7 @@ export function buildMemoryTools(userId: string) {
   return {
     remember: tool({
       description:
-        "Save a durable fact about the user that you should recall in future conversations. Use when the user explicitly says 'remember that I…', or when they share something clearly worth retaining (preferences, important relationships, recurring events). Provide a category — pick the best fit.",
+        "Save a durable fact about the user that you should recall in future conversations. Use when the user explicitly says 'remember that I…', or when they share something clearly worth retaining (preferences, important relationships, recurring events). Provide a category — pick the best fit. Preserve the user's language — if they wrote in Thai, store the fact in Thai. Do not translate.",
       inputSchema: z.object({
         fact: z.string().min(3).max(1000),
         category: z

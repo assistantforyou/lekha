@@ -38,6 +38,7 @@ Rules:
 - 0 to 10 facts. Each <= 200 chars.
 - Only durable facts (no one-off questions, transient moods, "asked you to forget").
 - Phrase in third person ("User prefers X").
+- Preserve the original language — if the conversation was in Thai, write facts in Thai. Do not translate.
 - If nothing durable, return { "facts": [] }.
 
 Output JSON only.`;
