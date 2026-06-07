@@ -10,11 +10,7 @@
  * They are automatically skipped in CI (where those env vars are absent).
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
-import { config } from "dotenv";
-
-// Load .env.local so tests can be run locally without manually exporting vars.
-config({ path: ".env.local" });
+import { describe, it, expect } from "vitest";
 
 const SECRET = process.env.DEV_CHAT_SECRET;
 const USER_ID = process.env.DEV_LINE_USER_ID;
