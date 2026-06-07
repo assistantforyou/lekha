@@ -1,28 +1,12 @@
 import { env } from "@/lib/env";
 import { getRecipients } from "./recipients";
 
-interface MergePayload {
-  prTitle: string;
-  prNumber: number;
-  author: string;
-  prUrl: string;
-  commits: number;
-}
-
-export async function notifyMerge(payload: MergePayload): Promise<void> {
+export async function broadcast(message: string): Promise<void> {
   const token = env().GITHUB_NOTIFY_CHANNEL_ACCESS_TOKEN;
   if (!token) return;
 
   const recipients = await getRecipients();
   if (recipients.length === 0) return;
-
-  const commitWord = payload.commits === 1 ? "commit" : "commits";
-  const message = [
-    `✅ Merged to main — assistantforyou/lekha`,
-    `PR #${payload.prNumber}: ${payload.prTitle}`,
-    `👤 ${payload.author} · ${payload.commits} ${commitWord}`,
-    payload.prUrl,
-  ].join("\n");
 
   await Promise.all(
     recipients.map((userId) =>
@@ -41,4 +25,17 @@ export async function notifyMerge(payload: MergePayload): Promise<void> {
       }),
     ),
   );
+}
+
+/** Format a duration between two ISO timestamps as "2h 15m", "3d 4h", etc. */
+export function formatSla(openedAt: string, closedAt: string): string {
+  const diffMs = new Date(closedAt).getTime() - new Date(openedAt).getTime();
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  return `${minutes}m`;
 }
