@@ -62,6 +62,11 @@ const Env = z.object({
 
   // Dev/test
   DEV_CHAT_SECRET: z.string().min(16).optional(),
+
+  // GitHub notify bot (separate LINE channel for push/merge notifications)
+  GITHUB_NOTIFY_CHANNEL_SECRET: z.string().optional(),
+  GITHUB_NOTIFY_CHANNEL_ACCESS_TOKEN: z.string().optional(),
+  GITHUB_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export type EnvShape = z.infer<typeof Env>;
