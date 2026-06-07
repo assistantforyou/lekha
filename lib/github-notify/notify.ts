@@ -1,7 +1,8 @@
 import { env } from "@/lib/env";
+import type { LineMessage } from "@/lib/line/client";
 import { getRecipients } from "./recipients";
 
-export async function broadcast(message: string): Promise<void> {
+export async function broadcast(message: LineMessage): Promise<void> {
   const token = env().GITHUB_NOTIFY_CHANNEL_ACCESS_TOKEN;
   if (!token) return;
 
@@ -18,7 +19,7 @@ export async function broadcast(message: string): Promise<void> {
         },
         body: JSON.stringify({
           to: userId,
-          messages: [{ type: "text", text: message }],
+          messages: [message],
         }),
       }).catch((err) => {
         console.warn("[github-notify] push failed for", userId, err);
