@@ -57,41 +57,13 @@ function handlePullRequest(p: Record<string, unknown>): string | null {
     user: { login: string };
   };
 
-  if (action === "opened") {
-    return [
-      `🔀 PR opened — ${REPO}`,
-      `#${pr.number}: ${pr.title}`,
-      `👤 ${pr.user.login}  ·  ${pr.head.ref} → ${pr.base.ref}`,
-      pr.html_url,
-    ].join("\n");
-  }
-
   if (action === "closed" && pr.merged) {
-    const sla = formatSla(pr.created_at, pr.merged_at ?? pr.closed_at ?? new Date().toISOString());
+    const timeTaken = formatSla(pr.created_at, pr.merged_at ?? pr.closed_at ?? new Date().toISOString());
     const toMain = pr.base.ref === "main" ? " to main ✅" : "";
     return [
       `🎉 PR merged${toMain} — ${REPO}`,
       `#${pr.number}: ${pr.title}`,
-      `👤 ${pr.merged_by?.login ?? pr.user.login}  ·  ⏱ ${sla}  ·  📝 ${pr.commits} commit${pr.commits === 1 ? "" : "s"}`,
-      pr.html_url,
-    ].join("\n");
-  }
-
-  if (action === "closed" && !pr.merged) {
-    const sla = formatSla(pr.created_at, pr.closed_at ?? new Date().toISOString());
-    return [
-      `❌ PR closed (unmerged) — ${REPO}`,
-      `#${pr.number}: ${pr.title}`,
-      `👤 ${pr.user.login}  ·  ⏱ open ${sla}`,
-      pr.html_url,
-    ].join("\n");
-  }
-
-  if (action === "reopened") {
-    return [
-      `🔁 PR reopened — ${REPO}`,
-      `#${pr.number}: ${pr.title}`,
-      `👤 ${pr.user.login}`,
+      `👤 ${pr.merged_by?.login ?? pr.user.login}  ·  ⏱ ${timeTaken}  ·  📝 ${pr.commits} commit${pr.commits === 1 ? "" : "s"}`,
       pr.html_url,
     ].join("\n");
   }
@@ -121,11 +93,11 @@ function handleIssue(p: Record<string, unknown>): string | null {
   }
 
   if (action === "closed") {
-    const sla = formatSla(issue.created_at, issue.closed_at ?? new Date().toISOString());
+    const timeTaken = formatSla(issue.created_at, issue.closed_at ?? new Date().toISOString());
     return [
       `✅ Issue closed — ${REPO}`,
       `#${issue.number}: ${issue.title}`,
-      `👤 ${closer}  ·  ⏱ open ${sla}`,
+      `👤 ${closer}  ·  ⏱ ${timeTaken}`,
       issue.html_url,
     ].join("\n");
   }
