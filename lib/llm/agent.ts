@@ -682,7 +682,7 @@ export async function runAgent(
     if (confirmDraft && tracker.successfulCalls.length === 0) {
       console.error("[agent] BUG: confirmDraft=true but successfulCalls is empty — this should never happen");
     }
-    const { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any);
+    const { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any, settings?.timezone);
     // NEVER suppress text when auth is needed — the connect message is critical.
     const finalText = suppressText && !processed.authNeeded ? "" : text;
     const followUps = buildFollowUps(tracker.successfulCalls.map((c) => c.toolName), { confirmDraft, modelText: text });

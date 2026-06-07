@@ -34,7 +34,7 @@ function cleanSnippet(s: string): string {
  * Also returns `suppressText: true` for tools whose Flex IS the full reply
  * (morning briefing, news search) so the caller can omit the model's text blob.
  */
-export function buildFlexFromToolResults(result: { steps?: StepLike[] }): {
+export function buildFlexFromToolResults(result: { steps?: StepLike[] }, timezone?: string): {
   messages: LineMessage[];
   suppressText: boolean;
 } {
@@ -132,7 +132,7 @@ export function buildFlexFromToolResults(result: { steps?: StepLike[] }): {
           htmlLink: (e.htmlLink as string | null) ?? null,
         }));
         if (events.length > 0) {
-          out.push(calendarEventsFlex(events));
+          out.push(calendarEventsFlex(events, timezone));
           seen.add(toolName);
         }
         continue;

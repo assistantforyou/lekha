@@ -9,13 +9,14 @@ export type CalendarEventRow = {
   htmlLink?: string | null;
 };
 
-function fmtTime(iso: string): string {
+function fmtTime(iso: string, tz?: string): string {
   if (!iso) return "";
   // YYYY-MM-DD (all-day) → keep as-is
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString("en-US", {
+    timeZone: tz ?? "UTC",
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -25,7 +26,7 @@ function fmtTime(iso: string): string {
 }
 
 /** Render upcoming calendar events as a Flex carousel. */
-export function calendarEventsFlex(events: CalendarEventRow[]): FlexMessage {
+export function calendarEventsFlex(events: CalendarEventRow[], timezone?: string): FlexMessage {
   const rows = events.slice(0, 10);
   if (rows.length === 0) {
     return {
@@ -43,7 +44,7 @@ export function calendarEventsFlex(events: CalendarEventRow[]): FlexMessage {
   }
   return {
     type: "flex",
-    altText: `Upcoming: ${rows.map((e) => `${e.summary} ${fmtTime(e.start)}`).join(" • ").slice(0, 380)}`,
+    altText: `Upcoming: ${rows.map((e) => `${e.summary} ${fmtTime(e.start, timezone)}`).join(" • ").slice(0, 380)}`,
     contents: {
       type: "carousel",
       contents: rows.map((e) => {
@@ -84,7 +85,7 @@ export function calendarEventsFlex(events: CalendarEventRow[]): FlexMessage {
               },
               {
                 type: "text" as const,
-                text: fmtTime(e.start),
+                text: fmtTime(e.start, timezone),
                 size: "xs" as const,
                 color: "#666666",
                 margin: "sm" as const,
