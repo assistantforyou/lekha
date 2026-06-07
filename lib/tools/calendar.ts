@@ -152,6 +152,21 @@ export function buildCalendarTools(userId: string) {
       },
     }),
 
+    delete_calendar_event: tool({
+      description: "Permanently delete a Google Calendar event by its event ID. Call list_upcoming_events (or calendar_today/calendar_week) first to get the event ID, then call this. Deletion is immediate and cannot be undone — no confirmation required unless the user seems unsure.",
+      inputSchema: z.object({
+        eventId: z.string().min(1).describe("The Google Calendar event ID from list_upcoming_events"),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ eventId, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [CAL_SCOPE], async ({ client }) => {
+          const calendar = google.calendar({ version: "v3", auth: client });
+          await calendar.events.delete({ calendarId: "primary", eventId });
+          return { ok: true as const };
+        });
+      },
+    }),
+
     calendar_find_free_time: tool({
       description: "Find free time slots on the user's calendar within a date range. Use for 'when am I free' / 'find me 1h slots tomorrow' / scheduling negotiations.",
       inputSchema: z.object({
