@@ -1509,10 +1509,9 @@ const App = () => {
             <div>
               <h5>Resources</h5>
               <ul style={{ gap: "4px" }}>
-                <li><Link href="#terms">Terms</Link></li>
-                <li><Link href="#terms"></Link></li>
+                <li><Link href="/terms">Terms of Service</Link></li>
+                <li><Link href="/privacy">Privacy Policy</Link></li>
                 <li><a href="https://lin.ee/NuCuel7" target="_blank" rel="noopener">Help center</a></li>
-                <li><Link href="#start"></Link></li>
               </ul>
             </div>
           </div>
