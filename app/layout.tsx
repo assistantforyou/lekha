@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   openGraph: {
     images: ["/og.png"],
   },
+  verification: {
+    google: "4xqUAcs7B-h68az0S75Va3P9sn6JhK9Ea6tL8wQqdLA",
+  },
 };
 
 export const viewport: Viewport = {
