@@ -11,17 +11,9 @@ function fetchWithTimeout(url: string, init: RequestInit & { timeoutMs?: number 
   return fetch(url, { ...rest, signal: ctrl.signal }).finally(() => clearTimeout(t));
 }
 
-type TextMessage = { type: "text"; text: string };
-
 type QuickReplyItem = {
   type: "action";
   action: { type: "message"; label: string; text: string };
-};
-
-type QuickReplyMessage = {
-  type: "text";
-  text: string;
-  quickReply: { items: QuickReplyItem[] };
 };
 
 // Flex Message envelope. `contents` is the bubble/carousel JSON tree —
@@ -31,18 +23,79 @@ export type FlexMessage = {
   type: "flex";
   altText: string;
   contents: unknown;
+  quickReply?: { items: QuickReplyItem[] };
 };
 
-export type LineMessage = TextMessage | QuickReplyMessage | FlexMessage;
+export type LineMessage = FlexMessage;
+
+/** Build a clean Flex bubble that wraps plain text. */
+function textBubble(body: string): FlexMessage {
+  const t = body.slice(0, 5000).trim() || "…";
+  return {
+    type: "flex",
+    altText: t.slice(0, 400),
+    contents: {
+      type: "bubble",
+      size: "mega",
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        paddingAll: "16px",
+        contents: [
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "md",
+            contents: [
+              {
+                type: "box",
+                layout: "vertical",
+                width: "36px",
+                height: "36px",
+                backgroundColor: "#06C755",
+                cornerRadius: "18px",
+                justifyContent: "center",
+                alignItems: "center",
+                contents: [
+                  { type: "text", text: "L", weight: "bold", size: "md", color: "#FFFFFF" },
+                ],
+              },
+              {
+                type: "box",
+                layout: "vertical",
+                flex: 1,
+                justifyContent: "center",
+                contents: [
+                  { type: "text", text: "Lekha", weight: "bold", size: "sm", color: "#333333" },
+                  { type: "text", text: "เลขา", size: "xs", color: "#888888" },
+                ],
+              },
+            ],
+          },
+          { type: "separator", margin: "md" },
+          {
+            type: "text",
+            text: t,
+            wrap: true,
+            size: "sm",
+            color: "#333333",
+            margin: "md",
+          },
+        ],
+      },
+    },
+  };
+}
 
 /** Attach tap-buttons above the LINE keyboard. Up to 13 buttons, disappear after tapping. */
 export function withQuickReplies(
   replyText: string,
   buttons: { label: string; text: string }[],
-): QuickReplyMessage {
+): LineMessage {
+  const bubble = textBubble(replyText);
   return {
-    type: "text",
-    text: replyText.slice(0, 5000),
+    ...bubble,
     quickReply: {
       items: buttons
         .slice(0, 13)
@@ -161,10 +214,11 @@ export async function getProfile(userId: string): Promise<{ displayName: string 
   return (await r.json()) as { displayName: string };
 }
 
-export function text(s: string): TextMessage {
-  // LINE caps text messages at 5000 chars. Empty text causes API errors.
-  const t = s.slice(0, 5000).trim();
-  return { type: "text", text: t || "…" };
+/**
+ * Wrap plain text in a Flex bubble. Every message Lekha sends is a Flex Message.
+ */
+export function text(s: string): LineMessage {
+  return textBubble(s);
 }
 
 async function safeText(r: Response): Promise<string> {
@@ -176,5 +230,5 @@ async function safeText(r: Response): Promise<string> {
 }
 
 function clamp(n: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, n));
+  return Math.max(lo, Math.min(n, hi));
 }
