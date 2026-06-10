@@ -172,11 +172,25 @@ export async function POST(_req: NextRequest) {
 
   lines.push(`Everything above is live — change it anytime in your dashboard and hit "Test in LINE" again.`);
 
-  const text = lines.join("\n");
+  const fullText = lines.join("\n");
+
+  // Chunk into multiple messages if needed (LINE text cap is 5000 chars)
+  const msgs: import("@/lib/line/client").LineMessage[] = [];
+  const MAX_LEN = 4500;
+  let chunk = "";
+  for (const line of lines) {
+    if (chunk.length + line.length + 1 > MAX_LEN) {
+      msgs.push(textMsg(chunk));
+      chunk = line;
+    } else {
+      chunk = chunk ? chunk + "\n" + line : line;
+    }
+  }
+  if (chunk) msgs.push(textMsg(chunk));
 
   try {
-    await push(userId, [textMsg(text)]);
-    return NextResponse.json({ ok: true });
+    await push(userId, msgs);
+    return NextResponse.json({ ok: true, messagesSent: msgs.length });
   } catch (err) {
     console.error("[dashboard] test-line push failed", userId, err);
     return NextResponse.json({ error: "push_failed" }, { status: 502 });
