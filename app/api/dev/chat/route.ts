@@ -242,7 +242,8 @@ export async function POST(req: NextRequest) {
       await clearPending(userId);
       await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: result, ts: Date.now() });
-      push(userId, [textMsg(result)]).catch(() => {});
+      const msgs: import("@/lib/line/client").LineMessage[] = [textMsg(result)];
+      push(userId, msgs).catch(() => {});
       endRequest({ replyLength: result.length, pendingExecuted: pending.length });
       return NextResponse.json({ reply: result, hints: { confirmDraft: false } });
     }
@@ -251,7 +252,8 @@ export async function POST(req: NextRequest) {
       const msg = `Cancelled ${pending.length === 1 ? "that" : `all ${pending.length}`}.`;
       await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: msg, ts: Date.now() });
-      push(userId, [textMsg(msg)]).catch(() => {});
+      const msgs: import("@/lib/line/client").LineMessage[] = [textMsg(msg)];
+      push(userId, msgs).catch(() => {});
       endRequest({ replyLength: msg.length, pendingCancelled: pending.length });
       return NextResponse.json({ reply: msg, hints: { confirmDraft: false } });
     }
@@ -278,7 +280,10 @@ export async function POST(req: NextRequest) {
   await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
   endAppend();
 
-  push(userId, [textMsg(replyText)]).catch(() => {});
+  const msgs: import("@/lib/line/client").LineMessage[] = [];
+  if (replyText.trim()) msgs.push(textMsg(replyText));
+  if (hints.flexMessages?.length) msgs.push(...hints.flexMessages);
+  if (msgs.length) push(userId, msgs).catch(() => {});
 
   const count = await turnCounter(userId);
   if (count % 10 === 0) {
