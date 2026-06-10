@@ -26,7 +26,7 @@ const briefingTrigger =
 const eveningTrigger =
   /\b(evening summary|evening briefing|evening wrap.?up|nightly summary)\b|^(give me|show me|what'?s|send me)?\s*(my\s*)?(evening|nightly)\s*(summary|briefing|wrap.?up)[\s?!.]*$/i;
 const tasksTrigger =
-  /^(my\s*)?(tasks?|todo|to-do|what\s+do\s+i\s+need\s+to\s+do|remaining\s+tasks?|open\s+tasks?)[\s?!.]*$/i;
+  /\b(my\s*)?(tasks?|todo|to-do|remaining\s+tasks?|open\s+tasks?)\b|what\s+do\s+i\s+need\s+to\s+do/i;
 
 const SHORTCUTS: Shortcut[] = [
   {
