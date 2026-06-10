@@ -84,6 +84,14 @@ export async function POST(req: NextRequest) {
   // Tool settings
   if (raw.toolSettings && typeof raw.toolSettings === "object") {
     patch.toolSettings = raw.toolSettings as Record<string, Record<string, unknown>>;
+
+    // Sync canonical settings that the bot reads independently of toolSettings
+    const ts = raw.toolSettings as Record<string, Record<string, unknown>>;
+    if (ts.reminders && typeof ts.reminders.preempt === "number") {
+      // Dashboard slider is a single value (5-60 min). Map to preMeetingLeads array.
+      const preempt = ts.reminders.preempt as number;
+      patch.preMeetingLeads = [preempt];
+    }
   }
 
   // Memory
