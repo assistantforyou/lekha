@@ -126,14 +126,63 @@ export function buildSystemPrompt(
     if (quietStart && quietEnd) {
       toolInstructions += `\nQuiet hours: ${quietStart}–${quietEnd}. Do not set reminders or schedule anything that would fire during this window unless the user explicitly overrides. `;
     }
+    const skipHolidays = ts.reminders?.skipHolidays as boolean | undefined;
+    if (skipHolidays !== undefined) {
+      toolInstructions += `\nSkip public holidays for reminders: ${skipHolidays}. `;
+    }
+
     const emailTone = ts.email?.tone as string | undefined;
     if (emailTone) {
       toolInstructions += `\nDefault email tone: ${emailTone}. Use this unless the user asks for something different. `;
     }
+    const emailSignoff = ts.email?.signoff as string | undefined;
+    if (emailSignoff) {
+      toolInstructions += `\nDefault email sign-off: ${emailSignoff}. `;
+    }
+    const emailAutosend = ts.email?.autosend as string | undefined;
+    if (emailAutosend) {
+      toolInstructions += `\nEmail send behavior: ${emailAutosend}. `;
+    }
+
     const deepStart = ts.calendar?.deepStart as string | undefined;
     const deepEnd = ts.calendar?.deepEnd as string | undefined;
     if (deepStart && deepEnd) {
       toolInstructions += `\nDeep-work block: ${deepStart}–${deepEnd}. Before scheduling meetings during this window, warn the user and ask for confirmation. `;
+    }
+    const noMeet = ts.calendar?.noMeet as string[] | undefined;
+    if (noMeet?.length) {
+      toolInstructions += `\nNo-meeting days: ${noMeet.join(", ")}. Avoid scheduling meetings on these days unless the user explicitly requests. `;
+    }
+    const prebrief = ts.calendar?.prebrief as boolean | undefined;
+    if (prebrief !== undefined) {
+      toolInstructions += `\nAuto-generate pre-meeting briefs: ${prebrief}. `;
+    }
+
+    const driveScope = ts.drive?.scope as string | undefined;
+    if (driveScope) {
+      toolInstructions += `\nDefault Drive search scope: ${driveScope}. `;
+    }
+    const driveFmt = ts.drive?.fmt as string | undefined;
+    if (driveFmt) {
+      toolInstructions += `\nDrive summary length preference: ${driveFmt}. `;
+    }
+    const driveAutosort = ts.drive?.autosort as boolean | undefined;
+    if (driveAutosort !== undefined) {
+      toolInstructions += `\nAuto-file attachments into Drive: ${driveAutosort}. `;
+    }
+
+    const todoPrio = ts.todo?.prio as string | undefined;
+    if (todoPrio) {
+      toolInstructions += `\nDefault task sort: ${todoPrio}. `;
+    }
+    const todoNudge = ts.todo?.nudge as number | undefined;
+    if (todoNudge !== undefined) {
+      const nudgeLabels = ["Off", "Once daily", "Twice daily", "Hourly", "Every 30 min"];
+      toolInstructions += `\nTask nudge frequency: ${nudgeLabels[todoNudge] ?? "Twice daily"}. `;
+    }
+    const todoFollowup = ts.todo?.followup as boolean | undefined;
+    if (todoFollowup !== undefined) {
+      toolInstructions += `\nAuto-capture follow-ups from meetings: ${todoFollowup}. `;
     }
   }
 
