@@ -171,7 +171,7 @@ export function buildReminderTools(userId: string) {
     }),
 
     list_reminders: tool({
-      description: "List the user's pending reminders.",
+      description: "List the user's pending reminders. MUST be called when the user asks about their reminders — NEVER answer from memory or previous turns.",
       inputSchema: z.object({}),
       execute: async () => {
         const all = await listReminders(userId);

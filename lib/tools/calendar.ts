@@ -182,7 +182,7 @@ export function buildCalendarTools(userId: string) {
     }),
 
     list_upcoming_events: tool({
-      description: "List the next few events on the user's primary calendar.",
+      description: "List the next few events on the user's primary calendar. MUST be called when the user asks about their schedule, calendar, or upcoming events — NEVER answer from memory or previous turns.",
       inputSchema: z.object({
         days: z.number().min(1).max(30).default(7),
         fromEmail: z.string().email().optional(),

@@ -53,7 +53,7 @@ export function buildTaskTools(userId: string) {
     }),
 
     list_tasks: tool({
-      description: "List tasks. Filter 'open' (default), 'done', or 'all'.",
+      description: "List the user's current tasks. MUST be called EVERY time the user asks about their tasks, to-do list, or anything they need to do — NEVER answer from memory or previous turns. Tasks can change between conversations. Filter: 'open' (default), 'done', or 'all'.",
       inputSchema: z.object({
         filter: z.enum(["all", "open", "done"]).default("open"),
       }),
