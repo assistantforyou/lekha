@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { tool } from "ai";
+import { getSettings } from "@/lib/memory/settings";
 import {
   addTask,
   listTasks,
@@ -9,6 +10,30 @@ import {
   updateTask,
   deleteTask,
 } from "@/lib/memory/tasks";
+
+function formatDueText(ts: number, timezone = "Asia/Bangkok"): string {
+  const due = new Date(ts);
+  const now = new Date();
+  const fmt = (d: Date, opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone, ...opts }).format(d);
+
+  const dueDate = fmt(due, { year: "numeric", month: "short", day: "numeric" });
+  const nowDate = fmt(now, { year: "numeric", month: "short", day: "numeric" });
+  if (dueDate === nowDate) return "today";
+
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (fmt(tomorrow, { year: "numeric", month: "short", day: "numeric" }) === dueDate) {
+    return "tomorrow";
+  }
+
+  const currentYear = fmt(now, { year: "numeric" });
+  const dueYear = fmt(due, { year: "numeric" });
+  if (dueYear === currentYear) {
+    return fmt(due, { month: "short", day: "numeric" }).toLowerCase();
+  }
+  return dueDate.toLowerCase();
+}
 
 async function resolveTaskId(
   userId: string,
@@ -53,11 +78,21 @@ export function buildTaskTools(userId: string) {
     }),
 
     list_tasks: tool({
-      description: "List the user's current tasks. MUST be called EVERY time the user asks about their tasks, to-do list, or anything they need to do — NEVER answer from memory or previous turns. Tasks can change between conversations. Filter: 'open' (default), 'done', or 'all'.",
+      description:
+        "List the user's current tasks. MUST be called EVERY time the user asks about their tasks, to-do list, or anything they need to do — NEVER answer from memory or previous turns. Tasks can change between conversations. Filter: 'open' (default), 'done', or 'all'. When presenting due dates in text, use the pre-computed dueText field — NEVER output raw ISO timestamps.",
       inputSchema: z.object({
         filter: z.enum(["all", "open", "done"]).default("open"),
       }),
-      execute: async ({ filter }) => ({ tasks: await listTasks(userId, filter) }),
+      execute: async ({ filter }) => {
+        const settings = await getSettings(userId);
+        const tasks = await listTasks(userId, filter);
+        return {
+          tasks: tasks.map((t) => ({
+            ...t,
+            dueText: t.dueAt ? formatDueText(t.dueAt, settings.timezone) : null,
+          })),
+        };
+      },
     }),
 
     complete_task: tool({

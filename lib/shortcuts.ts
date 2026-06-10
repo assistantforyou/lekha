@@ -87,16 +87,24 @@ const SHORTCUTS: Shortcut[] = [
     name: "my-tasks",
     match: (t) => tasksTrigger.test(t),
     async run({ userId, replyToken, userText }) {
-      const tasks = await listTasks(userId, "open");
+      const [tasks, settings] = await Promise.all([listTasks(userId, "open"), getSettings(userId)]);
       const msgs: LineMessage[] = [];
       if (tasks.length === 0) {
         msgs.push(textMsg("You don't have any open tasks right now. 🎉"));
       } else {
-        msgs.push(taskListFlex(tasks.map((t) => ({ id: t.id, title: t.title, done: Boolean(t.doneAt) }))));
+        msgs.push(
+          taskListFlex(
+            tasks.map((t) => ({ id: t.id, title: t.title, done: Boolean(t.doneAt), dueAt: t.dueAt })),
+            { timezone: settings.timezone },
+          ),
+        );
       }
       await replyOrPush(userId, replyToken, msgs);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
-      const out = tasks.length === 0 ? "No open tasks." : tasks.map((t) => `• ${t.title}`).join("\n");
+      const out =
+        tasks.length === 0
+          ? "No open tasks."
+          : tasks.map((t) => `• ${t.title}${t.dueAt ? ` — due ${new Intl.DateTimeFormat("en-US", { timeZone: settings.timezone, month: "short", day: "numeric" }).format(new Date(t.dueAt))}` : ""}`).join("\n");
       await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
     },
   },

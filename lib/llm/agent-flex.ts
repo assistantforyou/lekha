@@ -82,9 +82,10 @@ export function buildFlexFromToolResults(result: { steps?: StepLike[] }, timezon
           id: String(t.id ?? ""),
           title: String(t.title ?? ""),
           done: Boolean(t.doneAt),
+          dueAt: typeof t.dueAt === "number" ? t.dueAt : undefined,
         }));
         if (tasks.length > 0) {
-          out.push(taskListFlex(tasks));
+          out.push(taskListFlex(tasks, { timezone }));
           seen.add(toolName);
         }
         continue;
