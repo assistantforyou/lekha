@@ -61,7 +61,7 @@ export function buildTaskTools(userId: string) {
     }),
 
     complete_task: tool({
-      description: "Mark a task done by id or title. If title is provided and id is omitted, finds the first open task matching the title.",
+      description: "Mark a task done by id or title. Use this EVERY time the user says 'done', 'finished', 'complete it', or 'mark it done' after seeing tasks. If title is provided and id is omitted, finds the first open task matching the title. NEVER just confirm in text — always call this tool.",
       inputSchema: z.object({ id: z.string().optional(), title: z.string().optional() }),
       execute: async ({ id, title }) => {
         const targetId = await resolveTaskId(userId, id, title);

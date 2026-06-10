@@ -28,7 +28,7 @@ export type FlexMessage = {
 
 export type LineMessage = FlexMessage;
 
-/** Build a clean Flex bubble that wraps plain text. */
+/** Build a clean Flex bubble that wraps plain text. No branded header — the user already knows who they're talking to. */
 function textBubble(body: string): FlexMessage {
   const t = body.slice(0, 5000).trim() || "…";
   return {
@@ -40,47 +40,15 @@ function textBubble(body: string): FlexMessage {
       body: {
         type: "box",
         layout: "vertical",
-        spacing: "md",
+        spacing: "sm",
         paddingAll: "16px",
         contents: [
-          {
-            type: "box",
-            layout: "horizontal",
-            spacing: "md",
-            contents: [
-              {
-                type: "box",
-                layout: "vertical",
-                width: "36px",
-                height: "36px",
-                backgroundColor: "#06C755",
-                cornerRadius: "18px",
-                justifyContent: "center",
-                alignItems: "center",
-                contents: [
-                  { type: "text", text: "L", weight: "bold", size: "md", color: "#FFFFFF" },
-                ],
-              },
-              {
-                type: "box",
-                layout: "vertical",
-                flex: 1,
-                justifyContent: "center",
-                contents: [
-                  { type: "text", text: "Lekha", weight: "bold", size: "sm", color: "#333333" },
-                  { type: "text", text: "เลขา", size: "xs", color: "#888888" },
-                ],
-              },
-            ],
-          },
-          { type: "separator", margin: "md" },
           {
             type: "text",
             text: t,
             wrap: true,
             size: "sm",
             color: "#333333",
-            margin: "md",
           },
         ],
       },

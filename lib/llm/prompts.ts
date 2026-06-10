@@ -7,6 +7,7 @@ Key routing rules (use the tools — don't just say you will, ACTUALLY call them
 - get_morning_briefing — ONLY this tool for morning briefing/daily summary. Output VERBATIM, no reformatting.
 - get_evening_summary — ONLY this tool for evening summary/wrap-up. Output VERBATIM.
 - list_tasks — ALWAYS call this for any question about "my tasks", "what do I need to do", "tasks today/tomorrow", etc. list_tasks is LOCAL — it does not require Google and you MUST NEVER ask about Google accounts before calling it. If the user asks about tasks for today or tomorrow, call list_tasks, then filter the results by dueAt in your reply. If Google calendar is also connected and the user asks about "today/tomorrow", call list_tasks AND list_upcoming_events in parallel in the same step, using the active Google account silently.
+- complete_task — When the user says "done", "finished", "complete it", "mark it done", or taps a "Done" button AFTER you've shown them tasks, ALWAYS call complete_task with the title or id. NEVER just say "Done" in text without calling the tool. If they say "done all" or "clear all my tasks", use complete_all_open_tasks instead.
 - cancel_reminder / delete_reminder — when the user says "cancel", "delete", "remove", or "clear" a reminder, call cancel_reminder with the reminder's id. Call list_reminders first if you don't have the id yet. NEVER say you cannot delete reminders — the cancel_reminder tool exists and works.
 - Calendar CRUD — you have full create/read/update/delete on Google Calendar. NEVER say you cannot edit, rename, move, or delete a calendar event:
   • CREATE: draft_calendar_event (requires user YES). Before calling it, use search_calendar_events to check for a duplicate with the same or similar title that day — if found, tell the user and offer to update_calendar_event instead.
@@ -78,6 +79,17 @@ function sanitizePromptValue(s: string): string {
   return s.replace(/["\\`]/g, "");
 }
 
+import { DEFAULTS } from "@/lib/memory/settings";
+
+function isDefaultToolValue(category: string, key: string, value: unknown): boolean {
+  const def = DEFAULTS.toolSettings[category]?.[key];
+  if (def === undefined) return false;
+  if (Array.isArray(def) && Array.isArray(value)) {
+    return def.length === value.length && def.every((v, i) => v === (value as unknown[])[i]);
+  }
+  return def === value;
+}
+
 export function buildSystemPrompt(
   facts: string,
   profile: { displayName: string },
@@ -117,72 +129,58 @@ export function buildSystemPrompt(
     personaInstructions += `Match the user's writing style and voice in your replies. `;
   }
 
-  // Tool settings that affect model behavior
+  // Tool settings that affect model behavior — only inject non-defaults to save tokens.
   const ts = settings?.toolSettings;
   let toolInstructions = "";
   if (ts) {
     const quietStart = ts.reminders?.quietStart as string | undefined;
     const quietEnd = ts.reminders?.quietEnd as string | undefined;
-    if (quietStart && quietEnd) {
+    if (quietStart && quietEnd && !isDefaultToolValue("reminders", "quietStart", quietStart)) {
       toolInstructions += `\nQuiet hours: ${quietStart}–${quietEnd}. Do not set reminders or schedule anything that would fire during this window unless the user explicitly overrides. `;
     }
     const skipHolidays = ts.reminders?.skipHolidays as boolean | undefined;
-    if (skipHolidays !== undefined) {
+    if (skipHolidays !== undefined && !isDefaultToolValue("reminders", "skipHolidays", skipHolidays)) {
       toolInstructions += `\nSkip public holidays for reminders: ${skipHolidays}. `;
     }
 
     const emailTone = ts.email?.tone as string | undefined;
-    if (emailTone) {
+    if (emailTone && !isDefaultToolValue("email", "tone", emailTone)) {
       toolInstructions += `\nDefault email tone: ${emailTone}. Use this unless the user asks for something different. `;
     }
     const emailSignoff = ts.email?.signoff as string | undefined;
-    if (emailSignoff) {
+    if (emailSignoff && !isDefaultToolValue("email", "signoff", emailSignoff)) {
       toolInstructions += `\nDefault email sign-off: ${emailSignoff}. `;
     }
     const emailAutosend = ts.email?.autosend as string | undefined;
-    if (emailAutosend) {
+    if (emailAutosend && !isDefaultToolValue("email", "autosend", emailAutosend)) {
       toolInstructions += `\nEmail send behavior: ${emailAutosend}. `;
     }
 
     const deepStart = ts.calendar?.deepStart as string | undefined;
     const deepEnd = ts.calendar?.deepEnd as string | undefined;
-    if (deepStart && deepEnd) {
+    if (deepStart && deepEnd && !isDefaultToolValue("calendar", "deepStart", deepStart)) {
       toolInstructions += `\nDeep-work block: ${deepStart}–${deepEnd}. Before scheduling meetings during this window, warn the user and ask for confirmation. `;
     }
     const noMeet = ts.calendar?.noMeet as string[] | undefined;
-    if (noMeet?.length) {
+    if (noMeet?.length && !isDefaultToolValue("calendar", "noMeet", noMeet)) {
       toolInstructions += `\nNo-meeting days: ${noMeet.join(", ")}. Avoid scheduling meetings on these days unless the user explicitly requests. `;
     }
     const prebrief = ts.calendar?.prebrief as boolean | undefined;
-    if (prebrief !== undefined) {
+    if (prebrief !== undefined && !isDefaultToolValue("calendar", "prebrief", prebrief)) {
       toolInstructions += `\nAuto-generate pre-meeting briefs: ${prebrief}. `;
     }
 
     const driveScope = ts.drive?.scope as string | undefined;
-    if (driveScope) {
+    if (driveScope && !isDefaultToolValue("drive", "scope", driveScope)) {
       toolInstructions += `\nDefault Drive search scope: ${driveScope}. `;
     }
     const driveFmt = ts.drive?.fmt as string | undefined;
-    if (driveFmt) {
+    if (driveFmt && !isDefaultToolValue("drive", "fmt", driveFmt)) {
       toolInstructions += `\nDrive summary length preference: ${driveFmt}. `;
     }
     const driveAutosort = ts.drive?.autosort as boolean | undefined;
-    if (driveAutosort !== undefined) {
+    if (driveAutosort !== undefined && !isDefaultToolValue("drive", "autosort", driveAutosort)) {
       toolInstructions += `\nAuto-file attachments into Drive: ${driveAutosort}. `;
-    }
-
-    const todoPrio = ts.todo?.prio as string | undefined;
-    if (todoPrio) {
-      toolInstructions += `\nDefault task sort: ${todoPrio}. `;
-    }
-    const todoNudge = ts.todo?.nudge as number | undefined;
-    if (todoNudge !== undefined) {
-      const nudgeLabels = ["Off", "Once daily", "Twice daily", "Hourly", "Every 30 min"];
-      toolInstructions += `\nTask nudge frequency: ${nudgeLabels[todoNudge] ?? "Twice daily"}. `;
-    }
-    const todoFollowup = ts.todo?.followup as boolean | undefined;
-    if (todoFollowup !== undefined) {
-      toolInstructions += `\nAuto-capture follow-ups from meetings: ${todoFollowup}. `;
     }
   }
 
