@@ -1147,6 +1147,38 @@ const PreviewCol = ({ state }: { state: State }) => {
 };
 
 /* ============== APP ============== */
+const TestLineButton = ({ userId }: { userId: string }) => {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const onClick = async () => {
+    if (sending) return;
+    setSending(true);
+    setSent(false);
+    try {
+      const res = await fetch("/api/dashboard/test-line", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        setSent(true);
+        setTimeout(() => setSent(false), 3000);
+      } else {
+        alert("Failed to send test message. Check console.");
+      }
+    } catch (err) {
+      console.error("[dashboard] test-line failed", err);
+      alert("Network error — could not send test message.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <button className="btn btn-primary" onClick={onClick} disabled={sending}>
+      {sending ? "Sending…" : sent ? "Sent ✓" : "Test in LINE →"}
+    </button>
+  );
+};
+
 const TWEAK_DEFAULTS = {
   accent: "blue",
   panelDensity: "comfortable",
@@ -1320,7 +1352,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
                 syncToBackend(def);
               }
             }}>Reset to defaults</button>
-            <button className="btn btn-primary" onClick={() => alert("Open LINE and chat with LEKHA to test your changes!")}>Test in LINE →</button>
+            <TestLineButton userId={userId} />
           </div>
         </main>
 
