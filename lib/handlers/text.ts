@@ -68,9 +68,15 @@ export async function respondToText(
       })
     : historyMsgs;
 
+  // For task queries, prepend a strong freshness instruction to the user message
+  // so the model cannot rely on stale summaries or history.
+  const finalUserContent = isTaskQuery && typeof userContent === "string"
+    ? `${userContent} [ALWAYS call list_tasks — NEVER answer from memory or history]`
+    : userContent;
+
   const messages: ModelMessage[] = [
     ...sanitizedHistory,
-    { role: "user", content: userContent },
+    { role: "user", content: finalUserContent },
   ];
 
   // R1: Pass pre-loaded accounts and staged to avoid double-fetch in runAgent
