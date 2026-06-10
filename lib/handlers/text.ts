@@ -56,8 +56,20 @@ export async function respondToText(
     userContent = userText;
   }
 
+  // If the user is asking about tasks, strip stale assistant task-list replies
+  // from history so the model is forced to call list_tasks for fresh data.
+  const isTaskQuery = /\b(my tasks|tasks?|todo|to do|what do i need to do|remaining tasks|open tasks)\b/i.test(userText);
+  const sanitizedHistory = isTaskQuery
+    ? historyMsgs.filter((m) => {
+        if (m.role !== "assistant") return true;
+        const text = typeof m.content === "string" ? m.content : "";
+        // Heuristic: assistant message that looks like a task list reply
+        return !(/\b(open tasks?|remaining tasks?|here are your tasks|your tasks)\b/i.test(text) && /[•\-]\s+\w/.test(text));
+      })
+    : historyMsgs;
+
   const messages: ModelMessage[] = [
-    ...historyMsgs,
+    ...sanitizedHistory,
     { role: "user", content: userContent },
   ];
 
