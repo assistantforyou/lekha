@@ -25,8 +25,21 @@ const briefingTrigger =
   /\b(morning briefing|daily briefing|daily summary|morning brief)\b|^(give me|show me|what'?s|send me|can you give me|can you show me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary|brief)[\s?!.]*$/i;
 const eveningTrigger =
   /\b(evening summary|evening briefing|evening wrap.?up|nightly summary)\b|^(give me|show me|what'?s|send me)?\s*(my\s*)?(evening|nightly)\s*(summary|briefing|wrap.?up)[\s?!.]*$/i;
-const tasksTrigger =
-  /\b(my\s*)?(tasks?|todo|to-do|remaining\s+tasks?|open\s+tasks?)\b|what\s+do\s+i\s+need\s+to\s+do/i;
+function isTaskQuery(t: string): boolean {
+  const lower = t.toLowerCase().trim();
+  // Reject clear add/create/delete/update intents so "add the following task" goes to the agent.
+  if (/\b(add|create|new|set|make|write|save|delete|remove|cancel|update|edit|change)\b/.test(lower)) {
+    return false;
+  }
+  return (
+    /^\s*(my\s+)?(tasks?|todo|to-dos?)(\s+(list|please|now|today|tomorrow))?\s*[?.!]*$/i.test(lower) ||
+    /\bwhat\s+(are\s+my|do\s+i\s+have)\s+(tasks?|todo)\b/i.test(lower) ||
+    /\bwhat\s+tasks?\s+(do\s+i\s+have|left|remain)\b/i.test(lower) ||
+    /\bshow\s+(me\s+)?my\s+(tasks?|todo)\b/i.test(lower) ||
+    /\bmy\s+(remaining|open|pending|current)\s+(tasks?|todo)\b/i.test(lower) ||
+    /\bwhat\s+do\s+i\s+need\s+to\s+do\b/i.test(lower)
+  );
+}
 
 const SHORTCUTS: Shortcut[] = [
   {
@@ -85,7 +98,7 @@ const SHORTCUTS: Shortcut[] = [
   },
   {
     name: "my-tasks",
-    match: (t) => tasksTrigger.test(t),
+    match: (t) => isTaskQuery(t),
     async run({ userId, replyToken, userText }) {
       const [tasks, settings] = await Promise.all([listTasks(userId, "open"), getSettings(userId)]);
       const msgs: LineMessage[] = [];

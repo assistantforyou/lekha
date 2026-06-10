@@ -58,7 +58,7 @@ export function buildTaskTools(userId: string) {
   return {
     add_task: tool({
       description:
-        "Add a task (a persistent open work item). Use for things the user wants to track until done — distinct from reminders, which fire and disappear. Optional dueAt for soft deadlines.",
+        "Add a single task (a persistent open work item). Use for one-off items the user wants to track until done — distinct from reminders, which fire and disappear. Optional dueAt for soft deadlines. If the user gives a numbered or bulleted list with 2+ items, use add_tasks (plural) instead.",
       inputSchema: z.object({
         title: z.string().min(2).max(200),
         notes: z.string().max(2000).optional(),
@@ -74,6 +74,40 @@ export function buildTaskTools(userId: string) {
         }
         const t = await addTask(userId, { title, notes, dueAt: dueAtTs });
         return { ok: true, task: t };
+      },
+    }),
+
+    add_tasks: tool({
+      description:
+        "Add multiple tasks at once from a numbered or bulleted list. Use when the user says something like 'add these tasks: 1) X 2) Y 3) Z' or lists several to-dos in one message. Each item becomes its own task.",
+      inputSchema: z.object({
+        items: z
+          .array(
+            z.object({
+              title: z.string().min(2).max(200),
+              notes: z.string().max(2000).optional(),
+              dueAt: z.string().optional().describe("ISO 8601 deadline for this item. Optional."),
+            }),
+          )
+          .min(2)
+          .max(20),
+      }),
+      execute: async ({ items }) => {
+        const created: Awaited<ReturnType<typeof addTask>>[] = [];
+        const errors: string[] = [];
+        for (const item of items) {
+          let dueAtTs: number | undefined;
+          if (item.dueAt) {
+            if (!Number.isFinite(new Date(item.dueAt).getTime())) {
+              errors.push(`Invalid dueAt for "${item.title}"`);
+              continue;
+            }
+            dueAtTs = new Date(item.dueAt).getTime();
+          }
+          const t = await addTask(userId, { title: item.title, notes: item.notes, dueAt: dueAtTs });
+          created.push(t);
+        }
+        return { ok: true, createdCount: created.length, created, errors: errors.length ? errors : undefined };
       },
     }),
 
