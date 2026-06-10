@@ -5,7 +5,8 @@ import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
 import { getSettings } from "@/lib/memory/settings";
 import { appendTurn } from "@/lib/memory/history";
-import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
+import { briefingFlex, newsFlex, gmailResultsFlex, taskListFlex } from "@/lib/line/flex";
+import { listTasks } from "@/lib/memory/tasks";
 
 type Ctx = {
   userId: string;
@@ -24,6 +25,8 @@ const briefingTrigger =
   /\b(morning briefing|daily briefing|daily summary|morning brief)\b|^(give me|show me|what'?s|send me|can you give me|can you show me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary|brief)[\s?!.]*$/i;
 const eveningTrigger =
   /\b(evening summary|evening briefing|evening wrap.?up|nightly summary)\b|^(give me|show me|what'?s|send me)?\s*(my\s*)?(evening|nightly)\s*(summary|briefing|wrap.?up)[\s?!.]*$/i;
+const tasksTrigger =
+  /^(my\s*)?(tasks?|todo|to-do|what\s+do\s+i\s+need\s+to\s+do|remaining\s+tasks?|open\s+tasks?)[\s?!.]*$/i;
 
 const SHORTCUTS: Shortcut[] = [
   {
@@ -77,6 +80,23 @@ const SHORTCUTS: Shortcut[] = [
       const out = summary?.text ?? "Nothing to show in your evening summary right now.";
       await replyOrPush(userId, replyToken, [briefingFlex("evening", out)]);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
+      await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
+    },
+  },
+  {
+    name: "my-tasks",
+    match: (t) => tasksTrigger.test(t),
+    async run({ userId, replyToken, userText }) {
+      const tasks = await listTasks(userId, "open");
+      const msgs: LineMessage[] = [];
+      if (tasks.length === 0) {
+        msgs.push(textMsg("You don't have any open tasks right now. 🎉"));
+      } else {
+        msgs.push(taskListFlex(tasks.map((t) => ({ id: t.id, title: t.title, done: Boolean(t.doneAt) }))));
+      }
+      await replyOrPush(userId, replyToken, msgs);
+      await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
+      const out = tasks.length === 0 ? "No open tasks." : tasks.map((t) => `• ${t.title}`).join("\n");
       await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
     },
   },
