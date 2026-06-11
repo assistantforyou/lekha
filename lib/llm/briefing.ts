@@ -72,7 +72,13 @@ type AgendaItem = {
   type: "calendar" | "reminder" | "task";
   text: string;
   isAllDay: boolean;
+  overdue?: boolean;
 };
+
+// Sentinel day-key for overdue tasks so they render as a group at the top of the
+// agenda instead of being silently dropped (their real due-day is in the past,
+// which the today+future display window never shows).
+const OVERDUE_KEY = "__overdue__";
 
 function toDayKey(ts: number, tz: string): string {
   return new Date(ts).toLocaleDateString("en-CA", { timeZone: tz });
@@ -80,6 +86,14 @@ function toDayKey(ts: number, tz: string): string {
 
 function formatAgendaItem(item: AgendaItem, tz: string): string {
   const icon = item.type === "calendar" ? "📅" : item.type === "reminder" ? "⏰" : "📋";
+  if (item.overdue) {
+    const dateStr = new Date(item.ts).toLocaleDateString("en-US", {
+      timeZone: tz,
+      month: "short",
+      day: "numeric",
+    });
+    return `• ${icon} ⚠️ ${item.text} (was due ${dateStr})`;
+  }
   if (item.isAllDay) {
     return `• ${icon} ${item.text}`;
   }
@@ -126,10 +140,12 @@ function buildAgenda(
 
   for (const t of tasks) {
     if (!t.dueAt) continue;
-    const day = toDayKey(t.dueAt, tz);
-    const items = map.get(day) ?? [];
     const overdue = t.dueAt < now;
-    items.push({ ts: t.dueAt, type: "task", text: overdue ? `⚠️ ${t.title}` : t.title, isAllDay: false });
+    // Overdue tasks bucket under OVERDUE_KEY so they surface at the top of the
+    // agenda rather than under a past day that never gets displayed.
+    const day = overdue ? OVERDUE_KEY : toDayKey(t.dueAt, tz);
+    const items = map.get(day) ?? [];
+    items.push({ ts: t.dueAt, type: "task", text: t.title, isAllDay: false, overdue });
     map.set(day, items);
   }
 
@@ -145,6 +161,7 @@ function buildAgenda(
 }
 
 function dayLabel(dayKey: string, tz: string, todayDateStr: string): string {
+  if (dayKey === OVERDUE_KEY) return "⚠️ Overdue";
   if (dayKey === todayDateStr) return "Today";
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -379,9 +396,11 @@ export async function buildMorningBriefing(
   const sortedDays = Array.from(agenda.keys()).sort();
 
   const daysToShow: string[] = [];
+  if (agenda.has(OVERDUE_KEY)) daysToShow.push(OVERDUE_KEY);
   if (agenda.has(todayDateStr)) daysToShow.push(todayDateStr);
   const maxDays = length === "Headlines" ? 1 : length === "Full" ? 7 : 4;
   for (const day of sortedDays) {
+    if (day === OVERDUE_KEY) continue;
     if (day > todayDateStr && daysToShow.length < maxDays) {
       daysToShow.push(day);
     }
