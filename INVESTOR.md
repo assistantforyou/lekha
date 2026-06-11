@@ -1,143 +1,108 @@
-# Lekha (เลขา) — Business Overview
+# Lekha (เลขา)
 
-> A personal AI secretary that lives in your LINE chat. Private. Subscription-based. Live in production.
-
----
-
-## What it is
-
-Lekha is a private AI assistant built for LINE, the dominant messaging app in Thailand, Japan, Taiwan, and Indonesia. Users message it like a friend — it remembers everything, handles tasks proactively, and connects to the tools they already use.
-
-The name "Lekha" (เลขา) is Thai for "secretary." The bot's personality is warm, professional, and quietly competent — a lady secretary who gets things done without needing to be asked twice.
-
-## What it does
-
-### Reactive (user asks, bot delivers)
-
-| User says | Bot does |
-|---|---|
-| "Remind me in 30 min to call mom" | Schedules reminder with 3h and 1h pre-warnings |
-| "Email Bob the PDF I just sent" | Looks up contacts, drafts email with real attachment, waits for YES |
-| "What's on my calendar today?" | Reads Google Calendar, lists events in local time |
-| "Schedule lunch with Ana tomorrow at noon" | Checks for conflicts, drafts event, creates on YES |
-| "Remember I prefer espresso" | Stores as durable fact, referenced in future replies |
-| "Read this receipt" | OCR → merchant, date, total, items, category |
-| "Summarize this PDF" | Full text extraction + bullet summary |
-| "What's NVDA at?" | Real-time stock price with source citation |
-| "Search the web for Bangkok weather tomorrow" | Tavily search → answer with source |
-
-### Proactive (bot pushes without being asked)
-
-- **Morning briefing** (user-configured time): weather, today's calendar, open tasks, unread Gmail, news — pushed to LINE
-- **Evening summary** (9 PM): what got done, what's left, tomorrow's prep, news
-- **Task check-in** (30 min before evening): open tasks as a tap-to-act Flex carousel
-- **Pre-meeting alerts** (1 day / 1 hour / 15 min before): heads-up with event time
-- **Task deadline warnings** (24h before): "Heads up: X is due tomorrow"
-- **Scheduled emails**: user says "send this Monday at 9 AM" → fires exactly then
-
-### Integrations
-
-Full Google Workspace suite via OAuth:
-- Gmail (search, read, summarize, draft replies, send with attachments)
-- Calendar (list, create, update, delete, find free time)
-- Drive (search, upload, read text)
-- Contacts (search, save new contacts)
-- Docs & Slides (create, edit)
-
-**Multi-account support:** Users can connect multiple Gmail accounts (work + personal) and switch between them.
-
-## Business model
-
-- **Subscription via Stripe:** ฿599/month or ฿5,990/year (save 17%)
-- **7-day free trial** on signup
-- **Allowlist-gated:** Private bot — only subscribed users + admin-approved accounts get access
-- Self-serve signup through LINE → Stripe Checkout → immediate access
-
-## Unit economics
-
-| Cost | Amount |
-|---|---|
-| Vercel hosting | Free tier (no cost) |
-| Upstash Redis / Vector / QStash | Free tier (no cost) |
-| Gemini API (Google Cloud) | ~2 THB/day (~60 THB/month) |
-| Tavily | Free tier (no cost) |
-| LINE Messaging API | Free tier (no cost) |
-| **Total operating cost** | **~60 THB/month (~$1.70 USD)** |
-
-## Architecture
-
-| Layer | Technology |
-|---|---|
-| Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
-| AI | Google Gemini 2.5 Flash Lite + Flash (extraction) via `@ai-sdk/google` |
-| Memory | Upstash Redis (per-user keys, TTL-managed) |
-| Long-term memory | Upstash Vector (768d embeddings, cosine similarity) + compressed archive chunks |
-| Scheduling | Upstash QStash (one-shots for reminders, recurring cron for master sweep) |
-| Web search | Tavily |
-| Payments | Stripe subscriptions + webhooks |
-| Language | TypeScript, strict mode, Zod-validated |
-
-## What makes it hard to copy
-
-1. **LINE-native complexity:** HMAC-SHA256 signature verification, Flex Message templates, postback routing, media staging, 300-char postback data limits, 5,000-char message limits — all handled.
-
-2. **Agentic tool use:** The LLM decides which tools to call, in what order, with what arguments. A single user request can trigger 3–5 parallel tool calls (e.g., search contacts + draft email + attach file + set reminder).
-
-3. **Multi-account Google OAuth:** Token encryption at rest (AES-256-GCM), scope checking, refresh token handling, automatic re-auth on scope changes. Most integrations handle one account; Lekha handles many.
-
-4. **Three-tier memory:**
-   - Rolling 20-turn conversation history
-   - Structured facts (200 max, LRU-capped, categorized)
-   - Archive chunks with semantic search (vector embeddings + substring fallback)
-
-5. **Proactive orchestration:** Timezone-aware cron conversion, per-user scheduling windows, atomic deduplication locks, push-failure safety nets.
-
-## Current state
-
-- **Live:** Production deployment at `https://lekha-iota.vercel.app`
-- **Stripe:** Checkout, subscription webhooks, cancellation handling all wired
-- **Google OAuth:** Full pipeline with multi-account support
-- **LINE:** Official Account active, webhook verified
-- **Admin tooling:** `/status`, `/force-briefing`, `/allow`, `/users` commands for production diagnostics
-
-## Market & growth
-
-- **Channel:** Organic social media only (no paid ads)
-- **Target:** Busy professionals, executives, entrepreneurs in Thailand who value time and privacy
-- **Platform:** LINE (94M users in Thailand, 200M+ across Asia)
-
-## Team
-
-- **James Perenchio** — Product & engineering
-- **Panupol Thepyasuwan** — Business & operations
-
-## Roadmap (realistic next steps)
-
-1. **Voice mode** — Hands-free interaction via LINE voice messages (Gemini multimodal already handles audio)
-2. **WhatsApp port** — Same bot, different platform (large overlap in tooling)
-3. **Team/enterprise tier** — Shared calendars, delegated tasks, admin dashboard
-4. **Notion / Slack integrations** — Expand beyond Google Workspace
-5. **iOS/Android app** — Direct app experience for users who want it
-6. **Local language optimization** — Thai-first prompting, then Japanese and Indonesian
-
-## What's included in a sale
-
-- Full source code (Next.js + TypeScript, well-documented)
-- Vercel project + production deployment
-- Upstash Redis / Vector / QStash infrastructure
-- Stripe account with live subscription flow
-- LINE Official Account + channel credentials
-- Domain (`lekha-iota.vercel.app` — or migrate to custom domain)
-- Google Cloud project with enabled APIs
-- Existing user base + subscription revenue
-
-## Historical note on architecture
-
-An early version stored per-user QStash schedule IDs in user settings (for individual briefing schedules). This was abandoned in favor of a single master sweep that iterates all users every 15 minutes. The migration is preserved as a no-op to maintain settings version stability.
-
-**Why the master sweep won:** Per-user schedules require create-on-register / delete-on-unregister logic that is brittle and leaves orphaned schedules when cancellation fails. The master sweep is simpler, has no orphaned-schedule problem, and is fine for a private bot with a small user base. The tradeoff is O(n) processing time and less precise per-user timing.
+> The personal assistant we wished we had.
 
 ---
 
-**Contact:** James Perenchio · Panupol Thepyasuwan
-**Production:** `https://lekha-iota.vercel.app`
+## Why this exists
+
+We were tired of apps that don't talk to each other. LINE for messaging. Gmail for email. Google Calendar for scheduling. A separate app for tasks. Another for reminders. Nothing connects them. Nothing remembers what matters to you.
+
+So we built Lekha — a single AI secretary that lives inside LINE, knows your preferences, connects your tools, and handles the boring stuff before you have to think about it.
+
+She speaks Thai like a local (ค่ะ and all). She remembers you prefer espresso. She warns you about meetings before they happen. She reads the receipts you photograph. She drafts emails from your own Gmail with real attachments.
+
+Most chatbots wait for you to message them. Lekha **pushes** — morning briefings, evening summaries, task check-ins, meeting alerts. She initiates.
+
+---
+
+## What Lekha does
+
+### Your day, handled
+
+- **Morning briefing** — Wakes you up with weather, today's calendar, open tasks, unread Gmail, and news. All in one message.
+- **Evening summary** — Wraps up what you got done, what's left, tomorrow's prep, and a quick news read.
+- **Task check-in** — Nudges you about open tasks before you wind down.
+- **Pre-meeting alerts** — Warns you 1 day, 1 hour, and 15 minutes before calendar events.
+
+### Your tools, connected
+
+- **Gmail** — Search, read, summarize unread, draft replies, send emails with attachments from LINE or Drive.
+- **Calendar** — Check today's schedule, create events, find free time, reschedule, delete.
+- **Drive** — Search files, upload from LINE, read document text.
+- **Contacts** — Search people, save new contacts.
+- **Docs & Slides** — Create and edit Google Docs and Slides.
+
+**Multi-account support** — Work Gmail + personal Gmail, both connected. Switch anytime.
+
+### Your memory, preserved
+
+- **Facts** — "Remember I prefer espresso" → stored forever, referenced automatically.
+- **History** — Rolling 20-turn conversation memory.
+- **Archive** — Long-term compressed chunks with semantic search. Ask "what did we discuss about that bird project?" and she finds it.
+
+### Your tasks and reminders
+
+- **Tasks** — Persistent open work items with due dates. Complete them via text or tap-to-act buttons.
+- **Reminders** — One-shot or recurring. 3-hour and 1-hour warnings before they fire.
+- **Scheduled emails** — "Send this Monday at 9 AM" → sends exactly then.
+
+### Your documents, understood
+
+- **Receipts** — Photograph a receipt, she extracts merchant, date, total, items, category.
+- **PDFs** — Summarize or extract text from any document.
+- **Photos** — OCR on images, describe what's in them.
+- **Voice memos** — Transcribe audio to text.
+
+### Your world, searched
+
+- **Web search** — Real-time search via Tavily, with source citations.
+- **News** — Current events for briefings or on-demand queries.
+- **Stocks, crypto, FX** — Live prices with sources.
+- **Weather** — Local forecast, rain chance, highs and lows.
+
+---
+
+## How she works
+
+Lekha is built on **Gemini 2.5 Flash Lite** through the Vercel AI SDK. She decides which tools to call, in what order, with what arguments — sometimes 3–5 parallel calls in a single turn.
+
+She runs serverless on **Vercel Functions**, stores memory in **Upstash Redis**, schedules proactive pushes via **Upstash QStash**, and searches long-term memory with **Upstash Vector** (768-dimensional embeddings).
+
+Her tokens are **encrypted at rest** (AES-256-GCM). Her OAuth tokens are tied to your account, isolated from everyone else. She's private by default — allowlist-gated, not open to the public.
+
+---
+
+## What's next
+
+### Soon
+- **Voice mode** — Send voice messages, get voice-like replies. Hands-free Lekha.
+- **Thai optimization** — Better Thai parsing, more natural ค่ะ usage, local date/time formatting.
+- **Dashboard** — Web settings page for users who prefer clicking to typing.
+
+### Next
+- **WhatsApp** — Same Lekha, different platform. Large parts of the stack transfer directly.
+- **iOS/Android app** — Direct app for users who want it outside messaging platforms.
+- **Team tier** — Shared calendars, delegated tasks, admin controls for small teams.
+
+### Later
+- **Notion & Slack** — Expand beyond Google Workspace.
+- **Local LLM option** — Privacy-first users can run smaller models locally.
+- **Agent marketplace** — Custom tools users can build and share.
+
+---
+
+## Who built this
+
+**James Perenchio** — Product & engineering  
+**Panupol Thepyasuwan** — Business & operations
+
+We own this bot. We run it. We use it every day. We built it because we needed it.
+
+---
+
+## Try it
+
+Add the LINE Official Account and say "hi."
+
+Production: `https://lekha-iota.vercel.app`
