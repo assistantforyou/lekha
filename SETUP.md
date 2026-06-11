@@ -25,7 +25,7 @@ Save both for step 8.
 3. Same tab: **disable** "Auto-reply messages" and "Greeting messages".
 4. Webhook URL — leave empty for now; we'll fill after deploy (step 9).
 
-Channel secret: `185cd47094c024f97b846e7d73b4d16f` (already known).
+Channel secret: saved in `LINE_CHANNEL_SECRET` env var.
 
 ---
 
