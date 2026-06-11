@@ -1,6 +1,6 @@
-# Lekha (เลขา)
+# Lekha (เลขา) — Business Overview
 
-> A personal AI secretary that lives in your LINE chat.
+> A personal AI secretary that lives in your LINE chat. Private. Subscription-based. Live in production.
 
 ---
 
@@ -53,6 +53,17 @@ Full Google Workspace suite via OAuth:
 - **Allowlist-gated:** Private bot — only subscribed users + admin-approved accounts get access
 - Self-serve signup through LINE → Stripe Checkout → immediate access
 
+## Unit economics
+
+| Cost | Amount |
+|---|---|
+| Vercel hosting | Free tier (no cost) |
+| Upstash Redis / Vector / QStash | Free tier (no cost) |
+| Gemini API (Google Cloud) | ~2 THB/day (~60 THB/month) |
+| Tavily | Free tier (no cost) |
+| LINE Messaging API | Free tier (no cost) |
+| **Total operating cost** | **~60 THB/month (~$1.70 USD)** |
+
 ## Architecture
 
 | Layer | Technology |
@@ -89,7 +100,38 @@ Full Google Workspace suite via OAuth:
 - **LINE:** Official Account active, webhook verified
 - **Admin tooling:** `/status`, `/force-briefing`, `/allow`, `/users` commands for production diagnostics
 
-## Historical note on architecture evolution
+## Market & growth
+
+- **Channel:** Organic social media only (no paid ads)
+- **Target:** Busy professionals, executives, entrepreneurs in Thailand who value time and privacy
+- **Platform:** LINE (94M users in Thailand, 200M+ across Asia)
+
+## Team
+
+- **James Perenchio** — Product & engineering
+- **Panupol Thepyasuwan** — Business & operations
+
+## Roadmap (realistic next steps)
+
+1. **Voice mode** — Hands-free interaction via LINE voice messages (Gemini multimodal already handles audio)
+2. **WhatsApp port** — Same bot, different platform (large overlap in tooling)
+3. **Team/enterprise tier** — Shared calendars, delegated tasks, admin dashboard
+4. **Notion / Slack integrations** — Expand beyond Google Workspace
+5. **iOS/Android app** — Direct app experience for users who want it
+6. **Local language optimization** — Thai-first prompting, then Japanese and Indonesian
+
+## What's included in a sale
+
+- Full source code (Next.js + TypeScript, well-documented)
+- Vercel project + production deployment
+- Upstash Redis / Vector / QStash infrastructure
+- Stripe account with live subscription flow
+- LINE Official Account + channel credentials
+- Domain (`lekha-iota.vercel.app` — or migrate to custom domain)
+- Google Cloud project with enabled APIs
+- Existing user base + subscription revenue
+
+## Historical note on architecture
 
 An early version stored per-user QStash schedule IDs in user settings (for individual briefing schedules). This was abandoned in favor of a single master sweep that iterates all users every 15 minutes. The migration is preserved as a no-op to maintain settings version stability.
 
