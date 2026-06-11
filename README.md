@@ -346,16 +346,23 @@ A single `draft_email` can have Drive files **and** staged LINE files **and** an
 
 ## Proactive layer
 
-The bot doesn't only react — it initiates. Powered by a single QStash schedule that POSTs `/api/cron/sweep` every 15 minutes:
+The bot doesn't only react — it initiates. Powered by a single QStash schedule that POSTs `/api/cron/sweep` every 15 minutes. The sweep iterates the `users:active` Redis set and evaluates each user independently:
 
 - **Daily morning briefing**: per-user enable via `enable_morning_briefing`. At the user's chosen local time, the sweep builds a digest from today's calendar + open tasks + (optional) unread Gmail, lightly polished by Gemini, pushed to LINE.
-- **Pre-meeting alerts**: per-user enable via `enable_pre_meeting_alerts`. The sweep checks each user's calendar for events starting within their lead-window and pushes a heads-up. Idempotent per event (`premeet:{userId}:{eventId}` keys, 6h TTL).
-- **Scheduled emails**: separate QStash one-shot per email. When fired, sends and pushes confirmation to LINE.
-- **Recurring reminders**: separate QStash schedule per reminder. Cron is computed from user's local-time HH:mm via `localTimeToUtcCron`.
+- **Evening summary**: per-user enable via `enable_evening_summary`. At 9 PM local time, the sweep pushes a wrap-up of leftover tasks + tomorrow's calendar + news.
+- **Task check-in**: per-user enable via `enable_task_check_in`. At 20:30 local time (30 min before evening summary), the sweep pushes open tasks as a Flex carousel.
 
-User registration: every webhook event calls `registerUser(userId)` so the sweep can enumerate. No global state needed beyond the `users:active` set.
+**There are no per-user QStash schedules for briefings/summaries.** The master sweep is the only mechanism. New users are automatically included when they interact with the bot (`registerUser` adds them to `users:active`).
 
-Setup: see SETUP.md step 11. One QStash schedule with cron `*/15 * * * *` pointing at `/api/cron/sweep`. Without it the rest of the bot still works — you just don't get morning briefings or pre-meeting alerts.
+**Idempotency:** Each push type uses `claimPushLock()` (`pushlock:{userId}:{type}:{YYYY-MM-DD}` with 5-min TTL) to prevent double-pushes on QStash retry.
+
+**Pre-meeting alerts** are NOT sweep-based. They are event-driven one-shot QStash messages scheduled at the moment a calendar event is created. The sweep does NOT scan calendars.
+
+**Scheduled emails**: separate QStash one-shot per email. When fired, sends and pushes confirmation to LINE.
+
+**Recurring reminders**: separate QStash schedule per reminder. Cron is computed from user's local-time HH:mm via `localTimeToUtcCron`.
+
+Setup: see SETUP.md step 11. One QStash schedule with cron `*/15 * * * *` pointing at `/api/cron/sweep`. Without it the rest of the bot still works — you just don't get proactive pushes.
 
 ## Confirmation gate
 
@@ -378,8 +385,13 @@ Powered by [Upstash QStash](https://upstash.com/docs/qstash):
 
 1. `set_reminder({when: ISO, message})` → publishes a delayed HTTP POST to `/api/reminders/fire`.
 2. Stored in Redis with `qstashId` so user can `cancel_reminder`.
-3. At fire time, QStash POSTs (with HMAC signature) → fire route verifies → sends a LINE push: `⏰ Reminder: <message>`.
-4. Reminder is removed from Redis after firing.
+3. Reminder is removed from Redis after firing.
+
+**Warning pings:** If the reminder is more than 3 hours away, the bot automatically schedules a 3-hour warning (`⏰ Heads up — in 3 hours: <message>`) and a 1-hour warning. These do NOT consume the reminder — the final fire does.
+
+**Long-term reminders (> 7 days):** Uses a relay chain (`/api/reminders/relay`) to work around QStash's max delay limit.
+
+**Recurring reminders:** Uses `qstash().schedules.create` with a UTC cron expression. Cancelled via `cancel_reminder`.
 
 No cron polling. No in-memory timers (which would die with serverless cold starts). Up to a year ahead.
 
