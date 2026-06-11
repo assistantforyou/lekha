@@ -238,6 +238,15 @@ export function buildReminderTools(userId: string) {
         const parts = cronTime.split(" ");
         const cronUtc = `${parts[0]} ${parts[1]} * * ${dayPart}`;
 
+        // Dedup: if an identical recurring reminder (same message + cron) already
+        // exists, reuse it instead of stacking another QStash schedule. Stacked
+        // duplicates all fire at the same minute → a flood of identical pushes.
+        const existing = await listReminders(userId);
+        const dup = existing.find((r) => r.cron === cronUtc && r.message === message);
+        if (dup) {
+          return { ok: true, id: dup.id, cron: cronUtc, days, deduped: true };
+        }
+
         const id = crypto.randomUUID();
         const callbackUrl = `${env().APP_BASE_URL}/api/reminders/fire`;
         try {
