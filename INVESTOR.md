@@ -58,7 +58,7 @@ Full Google Workspace suite via OAuth:
 | Layer | Technology |
 |---|---|
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
-| AI | Google Gemini 2.5 Flash Lite via Vercel AI SDK v6 |
+| AI | Google Gemini 2.5 Flash Lite + Flash (extraction) via `@ai-sdk/google` |
 | Memory | Upstash Redis (per-user keys, TTL-managed) |
 | Long-term memory | Upstash Vector (768d embeddings, cosine similarity) + compressed archive chunks |
 | Scheduling | Upstash QStash (one-shots for reminders, recurring cron for master sweep) |
@@ -93,7 +93,9 @@ Full Google Workspace suite via OAuth:
 
 An early version stored per-user QStash schedule IDs in user settings (for individual briefing schedules). This was abandoned in favor of a single master sweep that iterates all users every 15 minutes. The migration is preserved as a no-op to maintain settings version stability.
 
+**Why the master sweep won:** Per-user schedules require create-on-register / delete-on-unregister logic that is brittle and leaves orphaned schedules when cancellation fails. The master sweep is simpler, has no orphaned-schedule problem, and is fine for a private bot with a small user base. The tradeoff is O(n) processing time and less precise per-user timing.
+
 ---
 
-**Contact:** James Perenchio
+**Contact:** James Perenchio · Panupol Thepyasuwan
 **Production:** `https://lekha-iota.vercel.app`
