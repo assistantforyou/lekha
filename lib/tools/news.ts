@@ -18,12 +18,13 @@ export function buildNewsTools() {
   return {
     news_search: tool({
       description:
-        "Search recent news articles for a topic. Use for breaking news, current events, recent market or industry developments, or anything that happened in the last few days. Do not call for greetings or casual chat.",
+        "Search recent news articles for a topic. Use for breaking news, current events, recent market or industry developments, or anything that happened in the last few days. Do not call for greetings or casual chat. Pass count when the user requests a specific number of results (e.g. 'top 10 news').",
       inputSchema: z.object({
         query: z.string().min(2).max(500),
         days: z.number().int().min(1).max(30).default(2).describe("How many days back to look. Default 2."),
+        count: z.number().int().min(1).max(10).default(5).describe("Number of stories to return. Default 5. Pass up to 10 when user asks for more."),
       }),
-      execute: async ({ query, days }) => {
+      execute: async ({ query, days, count }) => {
         const apiKey = env().TAVILY_API_KEY;
         if (!apiKey) return { ok: false, error: "News search not configured (Tavily key missing)" };
         const ctrl = new AbortController();
@@ -36,7 +37,7 @@ export function buildNewsTools() {
             body: JSON.stringify({
               api_key: apiKey,
               query,
-              max_results: 5,
+              max_results: count,
               include_answer: true,
               search_depth: "basic",
               topic: "news",

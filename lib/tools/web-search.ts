@@ -17,11 +17,12 @@ export function buildWebSearchTool() {
   return {
     web_search: tool({
       description:
-        "Search the web for fresh, factual information. Use whenever a question might benefit from up-to-date sources: current events, recent developments, research, background context, or anything where your training data may be stale.",
+        "Search the web for fresh, factual information. Use whenever a question might benefit from up-to-date sources: current events, recent developments, research, background context, or anything where your training data may be stale. Pass count when the user requests a specific number of results (e.g. 'top 10').",
       inputSchema: z.object({
         query: z.string().min(2).max(200),
+        count: z.number().int().min(1).max(10).default(5).describe("Number of results to return. Default 5. Pass up to 10 when user asks for more."),
       }),
-      execute: async ({ query }) => {
+      execute: async ({ query, count }) => {
         const apiKey = env().TAVILY_API_KEY;
         if (!apiKey) return { ok: false, error: "Web search not configured" };
         const ctrl = new AbortController();
@@ -34,7 +35,7 @@ export function buildWebSearchTool() {
             body: JSON.stringify({
               api_key: apiKey,
               query,
-              max_results: 3,
+              max_results: count,
               include_answer: true,
               search_depth: "basic",
             }),
