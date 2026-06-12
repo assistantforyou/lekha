@@ -214,6 +214,35 @@ describe.skipIf(!hasCredentials)("Lekha chat integration", { timeout: 90_000 }, 
       expect(lower).toMatch(/medic/i);
       expect(lower).toMatch(/mom|call/i);
     });
+
+    it("does not send news for a vague 'test' message", async () => {
+      const reply = await chat("test");
+      const lower = reply.toLowerCase();
+      expect(lower).not.toMatch(/news|stocks|market|investors|reuters|cnbc/i);
+      expect(reply.length).toBeLessThan(300);
+    });
+
+    it("does not send news for an emoji request", async () => {
+      const reply = await chat("Show me the unicorn emoji");
+      const lower = reply.toLowerCase();
+      expect(lower).not.toMatch(/news|stocks|market|investors|reuters|cnbc/i);
+      // Should contain a unicorn emoji or a short conversational reply
+      expect(reply.includes("🦄") || reply.length < 200).toBe(true);
+    });
+
+    it("does not send news when user complains about articles", async () => {
+      const reply = await chat("STOP SENDING ME ARTICLES BRO");
+      const lower = reply.toLowerCase();
+      expect(lower).not.toMatch(/news|stocks|market|investors|reuters|cnbc/i);
+      expect(reply.length).toBeLessThan(300);
+    });
+
+    it("handles 'add a task' by asking for the task, not listing tasks", async () => {
+      const reply = await chat("add a task");
+      const lower = reply.toLowerCase();
+      expect(lower).not.toMatch(/you don't have any tasks|no open tasks|no tasks/i);
+      expect(reply.length).toBeGreaterThan(5);
+    });
   });
 
   // ── Hard real-world conversations ──────────────────────────────────────────

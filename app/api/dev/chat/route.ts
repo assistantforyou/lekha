@@ -7,8 +7,12 @@ import { loadFacts } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
 import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
 import { runAgent } from "@/lib/llm/agent";
+import { generateCasualReply } from "@/lib/llm/casual-reply";
 import { generateText } from "ai";
 import { chatModel, extractorModel, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
+import { classifyIntent } from "@/lib/intent";
+import { toolsForUser } from "@/lib/tools";
+import { listAccounts } from "@/lib/tools/google-auth";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { factsToPromptBlock } from "@/lib/memory/facts";
 import { getSettings } from "@/lib/memory/settings";
@@ -261,10 +265,11 @@ export async function POST(req: NextRequest) {
   }
 
   const endPreload = span("dev:preload", traceId);
-  const [historyMsgs, facts, profile] = await Promise.all([
+  const [historyMsgs, facts, profile, settings] = await Promise.all([
     historyForPrompt(userId),
     loadFacts(userId),
     getOrCreateProfile(userId),
+    getSettings(userId),
   ]);
   endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
 
@@ -273,7 +278,27 @@ export async function POST(req: NextRequest) {
     { role: "user", content: text },
   ];
 
-  const { text: replyText, hints } = await runAgent(userId, profile, facts, messages, traceId);
+  const intentResult = await classifyIntent(text);
+  let replyText: string;
+  let hints: Awaited<ReturnType<typeof runAgent>>["hints"];
+
+  if (intentResult.primary === "casual") {
+    replyText = await generateCasualReply(text);
+    hints = { confirmDraft: false, pickAccount: false, needsGoogleConnect: false };
+  } else {
+    const accounts = await listAccounts(userId);
+    const userHasGoogle = accounts.accounts.length > 0;
+    const intent =
+      intentResult.isMulti || intentResult.confidence === "low" ? undefined : intentResult.primary;
+    const tools = await toolsForUser(userId, {
+      userHasGoogle,
+      disabledCategories: settings.disabledCategories,
+      intent,
+    });
+    const result = await runAgent(userId, profile, facts, messages, traceId, { tools });
+    replyText = result.text;
+    hints = result.hints;
+  }
 
   const endAppend = span("dev:appendTurns", traceId);
   await appendTurn(userId, { role: "user", content: text, ts: Date.now() });

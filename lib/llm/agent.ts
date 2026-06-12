@@ -9,6 +9,7 @@ import { getSettings } from "@/lib/memory/settings";
 import { toolsForUser } from "@/lib/tools";
 import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
+import type { ToolSet } from "ai";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapCause, unwrapAuthRequired } from "@/lib/errors";
 import type { LineMessage } from "@/lib/line/client";
 import { buildFlexFromToolResults, buildFollowUps } from "@/lib/llm/agent-flex";
@@ -597,6 +598,7 @@ export async function runAgent(
   opts?: {
     accounts?: Awaited<ReturnType<typeof listAccounts>>;
     staged?: Awaited<ReturnType<typeof listRecentMedia>>;
+    tools?: ToolSet;
   },
 ): Promise<AgentResult> {
   const endAgent = span("agent:runAgent", traceId);
@@ -644,7 +646,12 @@ export async function runAgent(
     const tracker = createStepTracker(traceId);
 
     const endTools = span("agent:toolsForUser", traceId);
-    const tools = await toolsForUser(userId, { userHasGoogle, disabledCategories: settings.disabledCategories });
+    const tools =
+      opts?.tools ??
+      (await toolsForUser(userId, {
+        userHasGoogle,
+        disabledCategories: settings.disabledCategories,
+      }));
     endTools({ toolCount: Object.keys(tools).length });
 
     const endGenerate = span("agent:generateText", traceId);
@@ -682,7 +689,10 @@ export async function runAgent(
     if (confirmDraft && tracker.successfulCalls.length === 0) {
       console.error("[agent] BUG: confirmDraft=true but successfulCalls is empty — this should never happen");
     }
-    const { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any, settings?.timezone);
+    const lastUserText = getLastUserText(messages);
+    const { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any, settings?.timezone, {
+      userText: lastUserText,
+    });
     // NEVER suppress text when auth is needed — the connect message is critical.
     const finalText = suppressText && !processed.authNeeded ? "" : text;
     const followUps = buildFollowUps(tracker.successfulCalls.map((c) => c.toolName), { confirmDraft, modelText: text });
@@ -716,6 +726,27 @@ export async function runAgent(
       },
     };
   }
+}
+
+function getLastUserText(messages: ModelMessage[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m?.role !== "user") continue;
+    if (typeof m.content === "string") return m.content;
+    if (Array.isArray(m.content)) {
+      return m.content
+        .filter((part): part is { type: "text"; text: string } =>
+          typeof part === "object" &&
+          part !== null &&
+          (part as { type?: string }).type === "text" &&
+          typeof (part as { text?: unknown }).text === "string"
+        )
+        .map((part) => part.text)
+        .filter(Boolean)
+        .join(" ");
+    }
+  }
+  return "";
 }
 
 async function handleAgentError(err: unknown, userId: string, traceId?: string): Promise<string> {

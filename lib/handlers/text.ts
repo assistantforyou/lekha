@@ -1,10 +1,14 @@
 import { type ModelMessage } from "ai";
 import { replyOrPush, showLoading, getMessageContent } from "@/lib/line/client";
 import { runAgent } from "@/lib/llm/agent";
+import { generateCasualReply } from "@/lib/llm/casual-reply";
 import { appendTurn, historyForPrompt } from "@/lib/memory/history";
 import { loadFacts } from "@/lib/memory/facts";
 import { listRecentMedia } from "@/lib/memory/recent-media";
+import { getSettings } from "@/lib/memory/settings";
 import { listAccounts } from "@/lib/tools/google-auth";
+import { toolsForUser } from "@/lib/tools";
+import { classifyIntent } from "@/lib/intent";
 import { enrichReply } from "../enrich-reply";
 import { span, timed } from "@/lib/timing";
 
@@ -32,10 +36,11 @@ export async function respondToText(
     : Promise.resolve(null);
 
   const endPreload = span("text:preload", traceId);
-  const [historyMsgs, facts, accounts, imageData] = await Promise.all([
+  const [historyMsgs, facts, accounts, settings, imageData] = await Promise.all([
     historyForPrompt(userId),
     loadFacts(userId),
     listAccounts(userId),
+    getSettings(userId),
     imagePromise,
   ]);
   endPreload({
@@ -46,15 +51,7 @@ export async function respondToText(
     bundledImage: imageData ? freshImage?.messageId : null,
   });
 
-  let userContent: ModelMessage["content"];
-  if (imageData) {
-    userContent = [
-      { type: "image", image: imageData.bytes, mediaType: imageData.contentType },
-      { type: "text", text: userText },
-    ];
-  } else {
-    userContent = userText;
-  }
+  const intentResult = await classifyIntent(userText, { hasImage: Boolean(imageData) });
 
   // If the user is asking about tasks, strip stale assistant task-list replies
   // from history so the model is forced to call list_tasks for fresh data.
@@ -68,6 +65,16 @@ export async function respondToText(
       })
     : historyMsgs;
 
+  let userContent: ModelMessage["content"];
+  if (imageData) {
+    userContent = [
+      { type: "image", image: imageData.bytes, mediaType: imageData.contentType },
+      { type: "text", text: userText },
+    ];
+  } else {
+    userContent = userText;
+  }
+
   // For task queries, prepend a strong freshness instruction to the user message
   // so the model cannot rely on stale summaries or history.
   const finalUserContent = isTaskQuery && typeof userContent === "string"
@@ -79,11 +86,31 @@ export async function respondToText(
     { role: "user", content: finalUserContent },
   ];
 
-  // R1: Pass pre-loaded accounts and staged to avoid double-fetch in runAgent
-  const { text: replyText, hints } = await runAgent(userId, profile, facts, messages, traceId, {
-    accounts,
-    staged,
-  });
+  let replyText: string;
+  let hints: Awaited<ReturnType<typeof runAgent>>["hints"];
+
+  if (intentResult.primary === "casual") {
+    replyText = await generateCasualReply(userText);
+    hints = { confirmDraft: false, pickAccount: false, needsGoogleConnect: false };
+  } else {
+    const userHasGoogle = accounts.accounts.length > 0;
+    const intent =
+      intentResult.isMulti || intentResult.confidence === "low" ? undefined : intentResult.primary;
+    const tools = await toolsForUser(userId, {
+      userHasGoogle,
+      disabledCategories: settings.disabledCategories,
+      intent,
+    });
+
+    // R1: Pass pre-loaded accounts, staged, and filtered tools to avoid double-fetch in runAgent
+    const result = await runAgent(userId, profile, facts, messages, traceId, {
+      accounts,
+      staged,
+      tools,
+    });
+    replyText = result.text;
+    hints = result.hints;
+  }
 
   const endReply = span("text:reply", traceId);
   // R2: Fallback to push if replyToken expired (slow requests)

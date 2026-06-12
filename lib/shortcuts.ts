@@ -25,7 +25,7 @@ const briefingTrigger =
   /\b(morning briefing|daily briefing|daily summary|morning brief)\b|^(give me|show me|what'?s|send me|can you give me|can you show me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary|brief)[\s?!.]*$/i;
 const eveningTrigger =
   /\b(evening summary|evening briefing|evening wrap.?up|nightly summary)\b|^(give me|show me|what'?s|send me)?\s*(my\s*)?(evening|nightly)\s*(summary|briefing|wrap.?up)[\s?!.]*$/i;
-function isTaskQuery(t: string): boolean {
+export function isTaskQuery(t: string): boolean {
   const lower = t.toLowerCase().trim();
   // Reject clear add/create/delete/update intents so "add the following task" goes to the agent.
   if (/\b(add|create|new|set|make|write|save|delete|remove|cancel|update|edit|change)\b/.test(lower)) {

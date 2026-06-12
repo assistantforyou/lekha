@@ -14,6 +14,13 @@ type StepLike = {
   toolResults?: { toolName?: string; output?: unknown }[];
 };
 
+function looksLikeNewsRequest(text: string): boolean {
+  const lower = text.toLowerCase();
+  return /\b(news|headlines?|breaking|latest\s+news|current events|what'?s happening|top\s+\d+\s+news|finance news|stock news|market news|world news|today'?s news|news today)\b/i.test(
+    lower,
+  );
+}
+
 /** Strip markdown / extraction artifacts from a Tavily content snippet. */
 function cleanSnippet(s: string): string {
   return s
@@ -34,13 +41,18 @@ function cleanSnippet(s: string): string {
  * Also returns `suppressText: true` for tools whose Flex IS the full reply
  * (morning briefing, news search) so the caller can omit the model's text blob.
  */
-export function buildFlexFromToolResults(result: { steps?: StepLike[] }, timezone?: string): {
+export function buildFlexFromToolResults(
+  result: { steps?: StepLike[] },
+  timezone?: string,
+  opts?: { userText?: string },
+): {
   messages: LineMessage[];
   suppressText: boolean;
 } {
   const out: LineMessage[] = [];
   const seen = new Set<string>();
   let suppressText = false;
+  const userText = opts?.userText ?? "";
 
   for (const step of result.steps ?? []) {
     for (const tr of step.toolResults ?? []) {
@@ -144,6 +156,15 @@ export function buildFlexFromToolResults(result: { steps?: StepLike[] }, timezon
         (toolName === "news_search" || toolName === "search_news") &&
         Array.isArray(value.stories ?? value.results)
       ) {
+        // Guard against the model hallucinating a news query from stale history.
+        // Only render the news carousel when the user actually asked for news.
+        if (userText && !looksLikeNewsRequest(userText)) {
+          console.warn("[agent-flex] news_search called for non-news request; suppressing carousel", {
+            userText: userText.slice(0, 100),
+          });
+          seen.add(toolName);
+          continue;
+        }
         const raw = ((value.stories ?? value.results) as any[]) ?? [];
         const stories = raw
           .map((s) => ({
