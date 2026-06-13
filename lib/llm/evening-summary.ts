@@ -289,7 +289,7 @@ export function shouldFireEveningSummaryNow(
   lastFiredTs: number | null,
   timezone: string,
   eveningTime?: string | null,
-  windowMinutes = 15,
+  windowMinutes = 30,
 ): boolean {
   const timeStr = eveningTime ?? "21:00";
   const m = /^(\d{1,2}):(\d{2})$/.exec(timeStr);

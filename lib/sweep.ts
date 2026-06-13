@@ -73,6 +73,16 @@ export function deriveCheckInTime(eveningTime: string): string {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
+function localTimeStr(timezone: string): string {
+  const now = new Date();
+  return now.toLocaleTimeString("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 /** Master sweep for a single user — morning briefing, evening summary, task check-in. */
 export async function runSweepForUser(userId: string): Promise<void> {
   if (!(await isAllowed(userId))) {
@@ -95,7 +105,8 @@ export async function runSweepForUser(userId: string): Promise<void> {
   console.log(
     `[sweep] ${userId.slice(0, 12)}… morning=` +
       `${morningShouldFire ? "FIRE" : "skip"} ` +
-      `(time=${morningTimeOk} channel=${morningChannelOk} window=${morningWindowOk} active=${morningActiveOk} lock=${morningLockOk})`,
+      `(time=${morningTimeOk} channel=${morningChannelOk} window=${morningWindowOk} active=${morningActiveOk} lock=${morningLockOk} ` +
+      `local=${localTimeStr(settings.timezone)} target=${settings.morningBriefingTime})`,
   );
   if (morningShouldFire) {
     try {
@@ -135,7 +146,8 @@ export async function runSweepForUser(userId: string): Promise<void> {
   console.log(
     `[sweep] ${userId.slice(0, 12)}… evening=` +
       `${eveningShouldFire ? "FIRE" : "skip"} ` +
-      `(enabled=${eveningTimeOk} channel=${eveningChannelOk} window=${eveningWindowOk} active=${eveningActiveOk} lock=${eveningLockOk})`,
+      `(enabled=${eveningTimeOk} channel=${eveningChannelOk} window=${eveningWindowOk} active=${eveningActiveOk} lock=${eveningLockOk} ` +
+      `local=${localTimeStr(settings.timezone)} target=${settings.eveningSummaryTime})`,
   );
   if (eveningShouldFire) {
     try {
@@ -167,7 +179,8 @@ export async function runSweepForUser(userId: string): Promise<void> {
   console.log(
     `[sweep] ${userId.slice(0, 12)}… checkin=` +
       `${checkinShouldFire ? "FIRE" : "skip"} ` +
-      `(enabled=${checkinEnabledOk} channel=${checkinChannelOk} window=${checkinWindowOk} active=${checkinActiveOk} lock=${checkinLockOk})`,
+      `(enabled=${checkinEnabledOk} channel=${checkinChannelOk} window=${checkinWindowOk} active=${checkinActiveOk} lock=${checkinLockOk} ` +
+      `local=${localTimeStr(settings.timezone)} target=${checkInTime})`,
   );
   if (checkinShouldFire) {
     try {
