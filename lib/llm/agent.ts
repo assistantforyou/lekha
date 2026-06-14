@@ -2,9 +2,10 @@ import { performance } from "perf_hooks";
 import { generateText, stepCountIs, type ModelMessage } from "ai";
 import { chatModel, AGENT_TIMEOUT_MS, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
 import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
-import { factsToPromptBlock, type loadFacts } from "@/lib/memory/facts";
+import { factsToPromptBlock, loadFacts, displayOrder, formatFactLine } from "@/lib/memory/facts";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { listRecentMedia } from "@/lib/memory/recent-media";
+import { listTasks } from "@/lib/memory/tasks";
 import { getSettings } from "@/lib/memory/settings";
 import { toolsForUser } from "@/lib/tools";
 import { renderDraftsBlock } from "@/lib/llm/render-drafts";
@@ -718,8 +719,20 @@ export async function runAgent(
       userText: lastUserText,
     });
     // NEVER suppress text when auth is needed — the connect message is critical.
-    const finalText = suppressText && !processed.authNeeded ? "" : text;
-    const followUps = buildFollowUps(tracker.successfulCalls.map((c) => c.toolName), { confirmDraft, modelText: text });
+    let finalText = suppressText && !processed.authNeeded ? "" : text;
+    let extraToolCalls = tracker.allCalls;
+    if (finalText === "I didn't catch that — could you rephrase?") {
+      if (opts?.intent === "memory" && looksLikeMemoryRecall(lastUserText)) {
+        const fb = await fallbackListMemories(userId, profile.displayName);
+        finalText = fb.text;
+        extraToolCalls = fb.toolCalls;
+      } else if (opts?.intent === "task" && looksLikeTaskList(lastUserText)) {
+        const fb = await fallbackListTasks(userId, profile.displayName, settings?.timezone);
+        finalText = fb.text;
+        extraToolCalls = fb.toolCalls;
+      }
+    }
+    const followUps = buildFollowUps(extraToolCalls.map((c) => c.toolName), { confirmDraft, modelText: finalText });
     endProcess({ confirmDraft, flexCount: flexMessages?.length ?? 0 });
     const hints: AgentHints = {
       confirmDraft,
@@ -736,8 +749,8 @@ export async function runAgent(
       flexMessages,
       followUps,
     };
-    endAgent({ success: true, steps: result.steps.length, toolCalls: tracker.allCalls.length, replyLength: finalText.length });
-    return { text: finalText, hints, toolCalls: tracker.allCalls };
+    endAgent({ success: true, steps: result.steps.length, toolCalls: extraToolCalls.length, replyLength: finalText.length });
+    return { text: finalText, hints, toolCalls: extraToolCalls };
   } catch (err) {
     const errText = await handleAgentError(err, userId, traceId);
     endAgent({ error: err instanceof Error ? err.message : String(err) });
@@ -751,6 +764,66 @@ export async function runAgent(
       toolCalls: [],
     };
   }
+}
+
+const MEMORY_RECALL_TRIGGERS = [
+  /\bwhat\s+do\s+you\s+remember\b/i,
+  /\bwhat\s+do\s+you\s+know\s+about\s+me\b/i,
+  /\bwhat\s+have\s+you\s+remembered\b/i,
+  /\b(list|show|tell)\s+me\s+what\s+you\s+remember\b/i,
+  /\b(my\s+memories|my\s+remembered\s+facts)\b/i,
+];
+
+function looksLikeMemoryRecall(text: string): boolean {
+  return MEMORY_RECALL_TRIGGERS.some((r) => r.test(text));
+}
+
+function looksLikeTaskList(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  // Thai task-list phrases
+  if (/มีงาน|งานที่ต้องทำ|รายการงาน|งานเหลือ|งานของ(ฉัน|ผม|ดิฉัน)|แสดงงาน/.test(text)) return true;
+  // English task-list phrases (broader than isTaskQuery)
+  if (/\b(my\s+)?(tasks?|todo|to-dos?)(\s+(list|please|now|today|tomorrow))?\b/.test(lower)) return true;
+  if (/\bwhat\s+(are\s+my|do\s+i\s+have)\s+(tasks?|todo)\b/.test(lower)) return true;
+  if (/\bwhat\s+tasks?\s+(do\s+i\s+have|left|remain|overdue)\b/.test(lower)) return true;
+  if (/\bshow\s+(me\s+)?my\s+(tasks?|todo)\b/.test(lower)) return true;
+  if (/\banything\s+left\s+to\s+do\b/.test(lower)) return true;
+  if (/\bwhat\s+do\s+i\s+need\s+to\s+do\b/.test(lower)) return true;
+  if (/\boverdue\s+(tasks?|todo)\b/.test(lower)) return true;
+  return false;
+}
+
+async function fallbackListMemories(userId: string, displayName: string): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+  const f = await loadFacts(userId);
+  const ordered = displayOrder(f.facts);
+  if (ordered.length === 0) {
+    return {
+      text: `I don't have any remembered facts for you yet, ${displayName}.`,
+      toolCalls: [{ toolName: "list_memories", input: {} }],
+    };
+  }
+  const now = Date.now();
+  const lines = ordered.map((fact, i) => formatFactLine(fact, i + 1, now));
+  return {
+    text: `${displayName}, here's what I remember:\n${lines.join("\n")}`,
+    toolCalls: [{ toolName: "list_memories", input: {} }],
+  };
+}
+
+async function fallbackListTasks(userId: string, displayName: string, timezone = "Asia/Bangkok"): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+  const tasks = await listTasks(userId, "open");
+  if (tasks.length === 0) {
+    return {
+      text: `You don't have any open tasks right now, ${displayName}. 🎉`,
+      toolCalls: [{ toolName: "list_tasks", input: { filter: "open" } }],
+    };
+  }
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: timezone, month: "short", day: "numeric" });
+  const lines = tasks.map((t) => `• ${t.title}${t.dueAt ? ` — due ${fmt.format(new Date(t.dueAt))}` : ""}`);
+  return {
+    text: `${displayName}, here are your open tasks:\n${lines.join("\n")}`,
+    toolCalls: [{ toolName: "list_tasks", input: { filter: "open" } }],
+  };
 }
 
 function getLastUserText(messages: ModelMessage[]): string {
