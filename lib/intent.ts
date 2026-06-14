@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { generateObject } from "ai";
-import { chatModel } from "@/lib/llm/provider";
+import { classifierModel } from "@/lib/llm/provider";
 import { withTimeout, AgentTimeoutError } from "@/lib/timing";
 
 export const INTENTS = [
@@ -208,7 +208,7 @@ export async function classifyIntent(
   try {
     const result = await withTimeout(
       generateObject({
-        model: chatModel(),
+        model: classifierModel(),
         schema: IntentSchema,
         system: CLASSIFICATION_PROMPT,
         prompt: `User: ${userText}${opts?.hasImage || opts?.hasFile || opts?.hasStagedMedia ? "\n[User also sent a file/image that is staged for analysis]" : ""}`,
