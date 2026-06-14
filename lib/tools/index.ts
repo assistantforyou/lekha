@@ -26,11 +26,12 @@ import { buildContactsTools } from "./contacts";
 import { listAccounts } from "./google-auth";
 import { hasGoogleOAuth, hasQStash, env } from "@/lib/env";
 import type { ToolSet } from "ai";
+import type { Intent } from "@/lib/intent";
 
 type Need = "google_oauth_env" | "google_user_connected" | "qstash" | "tavily";
 
 // R5: In-memory cache for tool sets (functions can't serialize to Redis).
-// Cache key = userId + google-connected flag + disabled categories hash. TTL = 5 min.
+// Cache key = userId + google-connected flag + disabled categories hash + intent. TTL = 5 min.
 const toolCache = new Map<string, { tools: ToolSet; ts: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -44,6 +45,7 @@ type Entry = {
   build: Builder;
   needs?: Need[];
   category?: string;
+  intents?: Intent[];
 };
 
 /**
@@ -53,36 +55,40 @@ type Entry = {
  *
  * Categories: tasks, reminders, calendar, email, drive — used by the dashboard
  * to let users disable whole surfaces.
+ *
+ * intents: which classifier intents include this tool. `fallback` and `multi`
+ * include everything so the model can disambiguate; high-confidence single
+ * intents get a focused subset to reduce blanking.
  */
 const REGISTRY: Entry[] = [
-  { build: () => buildHelpTools() },
-  { build: (u) => buildMorningBriefingTool(u) },
-  { build: (u) => buildEveningSummaryTool(u) },
-  { build: () => buildFinanceTools() },
-  { build: () => buildWeatherTools() },
-  { build: () => buildNewsTools(), needs: ["tavily"] },
-  { build: (u) => buildSettingsTools(u) },
-  { build: (u) => buildMemoryTools(u) },
-  { build: (u) => buildTaskTools(u), category: "tasks" },
-  { build: (u) => buildExportTools(u) },
-  { build: (u) => buildSentHistoryTools(u) },
-  { build: (u) => buildMediaAiTools(u) },
-  { build: (u) => buildReceiptTools(u) },
-  { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders" },
-  { build: () => buildWebSearchTool(), needs: ["tavily"] },
+  { build: () => buildHelpTools(), intents: ["help", "fallback", "multi"] },
+  { build: (u) => buildMorningBriefingTool(u), intents: ["briefing", "fallback", "multi"] },
+  { build: (u) => buildEveningSummaryTool(u), intents: ["briefing", "fallback", "multi"] },
+  { build: () => buildFinanceTools(), intents: ["finance", "fallback", "multi"] },
+  { build: () => buildWeatherTools(), intents: ["weather", "fallback", "multi"] },
+  { build: () => buildNewsTools(), needs: ["tavily"], intents: ["news", "fallback", "multi"] },
+  { build: (u) => buildSettingsTools(u), intents: ["settings", "fallback", "multi"] },
+  { build: (u) => buildMemoryTools(u), intents: ["memory", "fallback", "multi"] },
+  { build: (u) => buildTaskTools(u), category: "tasks", intents: ["task", "fallback", "multi"] },
+  { build: (u) => buildExportTools(u), intents: ["fallback", "multi"] },
+  { build: (u) => buildSentHistoryTools(u), intents: ["email", "fallback", "multi"] },
+  { build: (u) => buildMediaAiTools(u), intents: ["media", "fallback", "multi"] },
+  { build: (u) => buildReceiptTools(u), intents: ["receipts", "fallback", "multi"] },
+  { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders", intents: ["reminder", "fallback", "multi"] },
+  { build: () => buildWebSearchTool(), needs: ["tavily"], intents: ["search", "fallback", "multi"] },
   // Connect/list/switch — registered as soon as Google OAuth env is configured,
   // even before this user has linked an account, so the model can offer to link.
-  { build: (u) => buildGoogleAccountTools(u), needs: ["google_oauth_env"] },
+  { build: (u) => buildGoogleAccountTools(u), needs: ["google_oauth_env"], intents: ["connect", "email", "calendar", "drive", "contacts", "fallback", "multi"] },
   // Per-user Google surface — gated on whether THIS user has linked an account.
-  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email" },
-  { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar" },
-  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive" },
-  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email" },
-  { build: (u) => buildDocsTools(u), needs: ["google_user_connected"], category: "drive" },
-  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email" },
-  { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email" },
-  { build: (u) => buildStagedMediaTools(u) },
-  { build: (u) => buildListTools(u) },
+  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email", intents: ["email", "fallback", "multi"] },
+  { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar", intents: ["calendar", "fallback", "multi"] },
+  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive", intents: ["drive", "fallback", "multi"] },
+  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email", intents: ["email", "fallback", "multi"] },
+  { build: (u) => buildDocsTools(u), needs: ["google_user_connected"], category: "drive", intents: ["drive", "fallback", "multi"] },
+  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email", intents: ["contacts", "fallback", "multi"] },
+  { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email", intents: ["email", "fallback", "multi"] },
+  { build: (u) => buildStagedMediaTools(u), intents: ["media", "email", "fallback", "multi"] },
+  { build: (u) => buildListTools(u), intents: ["lists", "fallback", "multi"] },
 ];
 
 function envHas(need: Need, _userHasGoogle: boolean): boolean {
@@ -104,27 +110,28 @@ function buildTools(
   userId: string,
   userHasGoogle: boolean,
   disabled: string[],
+  intent?: Intent,
 ): ToolSet {
   const out: Record<string, unknown> = {};
   for (const entry of REGISTRY) {
     const ok = (entry.needs ?? []).every((n) => envHas(n, userHasGoogle));
     if (!ok) continue;
     if (entry.category && disabled.includes(entry.category)) continue;
+    if (intent && entry.intents && !entry.intents.includes(intent)) continue;
     Object.assign(out, entry.build(userId));
   }
   return out as ToolSet;
 }
 
 /**
- * Returns the full tool registry bound to a single user. Tools that depend on
+ * Returns the tool registry bound to a single user. Tools that depend on
  * unconfigured services or on an unconnected Google account are omitted
- * (CLAUDE.md decision #18). Saves ~2K tokens per request for users without OAuth.
- *
- * R5: Cached per-user for 5 minutes to avoid rebuilding the registry on every request.
+ * (CLAUDE.md decision #18). An optional intent narrows the registry to reduce
+ * model confusion. Cached per-user for 5 minutes.
  */
 export async function toolsForUser(
   userId: string,
-  opts?: { userHasGoogle?: boolean; disabledCategories?: string[] },
+  opts?: { userHasGoogle?: boolean; disabledCategories?: string[]; intent?: Intent },
 ): Promise<ToolSet> {
   const userHasGoogle =
     opts?.userHasGoogle !== undefined
@@ -134,15 +141,18 @@ export async function toolsForUser(
         : false;
 
   const disabled = opts?.disabledCategories ?? [];
+  const intent = opts?.intent;
   const disabledKey = disabled.sort().join(",");
-  // v3: static full tool registry (no per-intent filtering) for better caching + reliability.
-  const cacheKey = `v3:${userId}:${disabledKey}`;
+  const intentKey = intent ?? "all";
+  // v4: optional per-intent filtering. fallback/multi see everything;
+  // high-confidence single intents get a focused subset.
+  const cacheKey = `v4:${userId}:${disabledKey}:${intentKey}`;
   const cached = toolCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.tools;
   }
 
-  const tools = buildTools(userId, userHasGoogle, disabled);
+  const tools = buildTools(userId, userHasGoogle, disabled, intent);
   toolCache.set(cacheKey, { tools, ts: Date.now() });
   return tools;
 }

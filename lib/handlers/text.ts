@@ -2,12 +2,14 @@ import { type ModelMessage } from "ai";
 import { replyOrPush, showLoading, getMessageContent } from "@/lib/line/client";
 import { runAgent } from "@/lib/llm/agent";
 import { appendTurn, historyForPrompt } from "@/lib/memory/history";
+import { classifyIntent } from "@/lib/intent";
 import { loadFacts } from "@/lib/memory/facts";
 import { listRecentMedia } from "@/lib/memory/recent-media";
 import { getSettings } from "@/lib/memory/settings";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { toolsForUser } from "@/lib/tools";
 import { enrichReply } from "../enrich-reply";
+import type { Intent } from "@/lib/intent";
 import { span, timed } from "@/lib/timing";
 
 export async function respondToText(
@@ -49,8 +51,7 @@ export async function respondToText(
     bundledImage: imageData ? freshImage?.messageId : null,
   });
 
-  // With full Flash + static tool registry, the agent routes itself. No intent
-  // classifier, no history sanitization, no freshness injection needed.
+  const intentResult = await classifyIntent(userText, { hasImage: Boolean(imageData) });
 
   let userContent: ModelMessage["content"];
   if (imageData) {
@@ -71,9 +72,12 @@ export async function respondToText(
   let hints: Awaited<ReturnType<typeof runAgent>>["hints"];
 
   const userHasGoogle = accounts.accounts.length > 0;
+  const intent: Intent | undefined =
+    intentResult.isMulti || intentResult.confidence === "low" ? undefined : intentResult.primary;
   const tools = await toolsForUser(userId, {
     userHasGoogle,
     disabledCategories: settings.disabledCategories,
+    intent,
   });
 
   // R1: Pass pre-loaded accounts, staged, and full tool registry to avoid double-fetch in runAgent

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { generateObject } from "ai";
-import { extractorModel } from "@/lib/llm/provider";
+import { classifierModel } from "@/lib/llm/provider";
 import { withTimeout, AgentTimeoutError } from "@/lib/timing";
 
 export const INTENTS = [
@@ -179,7 +179,7 @@ export async function classifyIntent(
   try {
     const result = await withTimeout(
       generateObject({
-        model: extractorModel(),
+        model: classifierModel(),
         schema: IntentSchema,
         system: CLASSIFICATION_PROMPT,
         prompt: `User: ${userText}${opts?.hasImage ? "\n[User also sent an image]" : ""}`,
