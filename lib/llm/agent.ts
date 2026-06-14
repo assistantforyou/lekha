@@ -18,6 +18,7 @@ import { buildFlexFromToolResults, buildFollowUps } from "@/lib/llm/agent-flex";
 import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
 import { stripMarkdown } from "@/lib/format";
 import { ACTION_LABELS } from "@/lib/llm/action-labels";
+import { buildMediaAiTools } from "@/lib/tools/media-ai";
 
 export function extractToolValue(output: unknown): unknown {
   if (output && typeof output === "object") {
@@ -735,6 +736,10 @@ export async function runAgent(
         const fb = await fallbackListTasks(userId, profile.displayName, settings?.timezone);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
+      } else if (opts?.intent === "media" && opts?.hasStagedMedia) {
+        const fb = await fallbackSummarizeDocument(userId, profile.displayName);
+        finalText = fb.text;
+        extraToolCalls = fb.toolCalls;
       }
     }
     const followUps = buildFollowUps(extraToolCalls.map((c) => c.toolName), { confirmDraft, modelText: finalText });
@@ -813,6 +818,21 @@ async function fallbackListMemories(userId: string, displayName: string): Promis
     text: `${displayName}, here's what I remember:\n${lines.join("\n")}`,
     toolCalls: [{ toolName: "list_memories", input: {} }],
   };
+}
+
+async function fallbackSummarizeDocument(userId: string, displayName: string): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+  try {
+    const tools = buildMediaAiTools(userId);
+    const result = await tools.summarize_document!.execute!({} as unknown as { index?: number }, { toolCallId: "fallback", messages: [] });
+    const val = extractToolValue(result) as Record<string, unknown> | null;
+    if (val && typeof val === "object" && val.ok === false && typeof val.error === "string") {
+      return { text: val.error, toolCalls: [{ toolName: "summarize_document", input: {} }] };
+    }
+    const output = val && typeof val === "object" && typeof val.output === "string" ? val.output : String(result);
+    return { text: `${displayName}, here's what I found in the document:\n\n${output}`, toolCalls: [{ toolName: "summarize_document", input: {} }] };
+  } catch (err) {
+    return { text: `I couldn't read that document, ${displayName}. Try sending it again.`, toolCalls: [{ toolName: "summarize_document", input: {} }] };
+  }
 }
 
 async function fallbackListTasks(userId: string, displayName: string, timezone = "Asia/Bangkok"): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
