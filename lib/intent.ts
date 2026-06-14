@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { generateObject } from "ai";
-import { classifierModel } from "@/lib/llm/provider";
+import { chatModel } from "@/lib/llm/provider";
 import { withTimeout, AgentTimeoutError } from "@/lib/timing";
 
 export const INTENTS = [
@@ -59,7 +59,7 @@ const CASUAL_TRIGGERS = [
 
 const INTENT_KEYWORDS: Partial<Record<Intent, RegExp[]>> = {
   help: [/\b(help|what can you do|capabilities|what do you do)\b/i],
-  task: [/\b(add\s+a?\s*task|create\s+a?\s*task|new\s+task|my\s+tasks?|list\s+my\s+tasks?|what\s+tasks?|complete.*task|done.*task|delete.*task)\b/i],
+  task: [/\b(add\s+a?\s*task|create\s+a?\s*task|new\s+task|my\s+tasks?|list\s+my\s+tasks?|what\s+tasks?|complete.*task|done.*task|delete.*task|everything\s+i\s+need\s+to\s+do|anything\s+left\s+to\s+do|overdue|open\s+tasks?)\b/i],
   reminder: [/\b(remind\s+me|set\s+a?\s*reminder|what\s+reminders|cancel.*reminder|delete.*reminder)\b/i],
   news: [/\b(news|headlines?|breaking|top\s+\d+\s+news|latest\s+news|current events|what'?s happening|finance news|stock news|market news|world news|today'?s news|news today)\b/i],
   weather: [/\b(weather|forecast|temperature|rain|sunny)\b/i],
@@ -71,7 +71,7 @@ const INTENT_KEYWORDS: Partial<Record<Intent, RegExp[]>> = {
   memory: [/\b(remember|memories|what\s+do\s+you\s+remember|forget|search\s+memory|archived memory)\b/i],
   lists: [/\b(list|grocery|packing|shopping|to-do list|todo list)\b/i],
   receipts: [/\b(receipt|scan\s+receipt|list\s+receipts|expenses?)\b/i],
-  settings: [/\b(timezone|language|location|task check-in)\b/i],
+  settings: [/\b(set\s+my\s+timezone|change\s+my\s+timezone|set\s+timezone|timezone|language|location|task check-in)\b/i],
   briefing: [/\b(morning briefing|daily briefing|evening summary|evening briefing|daily summary)\b/i],
   connect: [/\b(connect\s+google|link\s+google|google\s+account)\b/i],
   media: [/\b(read\s+this|summarize\s+this|analyze\s+this|ocr|what\s+does\s+this\s+say|what'?s\s+this|what\s+is\s+this)\b/i],
@@ -96,8 +96,12 @@ export function fastClassify(userText: string, hasImage?: boolean): IntentResult
   }
 
   const matched: Intent[] = [];
+  const isDefinitionQuery = /\b(what\s+is\s+\w+|what\s+does\s+\w+\s+mean|definition\s+of|explain\s+\w+)\b/i.test(text);
   for (const [intent, regexes] of Object.entries(INTENT_KEYWORDS)) {
     if (regexes?.some((re) => re.test(text))) {
+      // "what is finance" matches the news keyword "finance news" loosely;
+      // definition queries are research, not current-events/news.
+      if (intent === "news" && isDefinitionQuery) continue;
       matched.push(intent as Intent);
     }
   }
@@ -179,7 +183,7 @@ export async function classifyIntent(
   try {
     const result = await withTimeout(
       generateObject({
-        model: classifierModel(),
+        model: chatModel(),
         schema: IntentSchema,
         system: CLASSIFICATION_PROMPT,
         prompt: `User: ${userText}${opts?.hasImage ? "\n[User also sent an image]" : ""}`,
