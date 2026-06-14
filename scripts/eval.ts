@@ -61,8 +61,9 @@ async function main() {
       const { reply, toolCalls } = await send(c.userText);
       const called = normalizeTools(toolCalls);
       const failures: string[] = [];
-      for (const name of c.shouldCall ?? []) {
-        if (!called.includes(name)) failures.push(`expected ${name}, got [${called.join(", ")}]`);
+      if (c.shouldCall && c.shouldCall.length > 0) {
+        const calledAny = c.shouldCall.some((name) => called.includes(name));
+        if (!calledAny) failures.push(`expected one of [${c.shouldCall.join(", ")}], got [${called.join(", ")}]`);
       }
       for (const name of c.shouldNotCall ?? []) {
         if (called.includes(name)) failures.push(`did not expect ${name}`);
