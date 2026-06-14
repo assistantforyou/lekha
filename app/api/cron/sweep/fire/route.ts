@@ -3,12 +3,12 @@ import { z } from "zod";
 import { hasQStash } from "@/lib/env";
 import { getSettings, updateSettings } from "@/lib/memory/settings";
 import { hasGoogleConnection } from "@/lib/tools/google-auth";
-import { isAllowed } from "@/lib/memory/allowlist";
+
 import { push, text as textMsg, type LineMessage } from "@/lib/line/client";
 import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
 import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
 import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
-import { sweepTaskCheckIn, isUserRecentlyActive, claimPushLock, runSweepForUser } from "@/lib/sweep";
+import { sweepTaskCheckIn, isUserRecentlyActive, claimPushLock, runSweepForUser, isAllowedForProactive } from "@/lib/sweep";
 import { listTasks } from "@/lib/memory/tasks";
 import { listAllUsers } from "@/lib/memory/user-registry";
 import { verifyQStashSignature, unauthorized, badRequest, notConfigured, isManualBypass } from "@/lib/qstash-verify";
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
   switch (type) {
     case "morning_briefing": {
       try {
-        if (!(await isAllowed(userId))) break;
+        if (!(await isAllowedForProactive(userId))) break;
         if (
           settings.morningBriefingTime &&
           settings.briefingChannels?.line !== false &&
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
 
     case "evening_summary": {
       try {
-        if (!(await isAllowed(userId))) break;
+        if (!(await isAllowedForProactive(userId))) break;
         if (
           settings.eveningSummaryEnabled &&
           settings.briefingChannels?.line !== false &&
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
 
     case "task_check_in": {
       try {
-        if (!(await isAllowed(userId))) break;
+        if (!(await isAllowedForProactive(userId))) break;
         if (
           settings.taskCheckInEnabled &&
           settings.briefingChannels?.line !== false &&
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
 
     case "task_deadline": {
       try {
-        if (!(await isAllowed(userId))) break;
+        if (!(await isAllowedForProactive(userId))) break;
         const taskId = parsed.data.taskId;
         const title = parsed.data.title;
         if (!taskId || !title) break;
@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
 
     case "pre_meeting": {
       try {
-        if (!(await isAllowed(userId))) break;
+        if (!(await isAllowedForProactive(userId))) break;
         const eventId = parsed.data.eventId;
         const lead = parsed.data.lead;
         const eventStartISO = parsed.data.eventStartISO;

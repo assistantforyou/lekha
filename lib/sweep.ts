@@ -85,9 +85,14 @@ function localTimeStr(timezone: string): string {
 }
 
 /** Master sweep for a single user — morning briefing, evening summary, task check-in. */
-export async function runSweepForUser(userId: string): Promise<void> {
+/** True if the user should receive proactive pushes: admins always, others only if allowlisted. */
+export async function isAllowedForProactive(userId: string): Promise<boolean> {
   const gate = buildGate();
-  if (!gate.isAdmin(userId) && !(await isAllowed(userId))) {
+  return gate.isAdmin(userId) || (await isAllowed(userId));
+}
+
+export async function runSweepForUser(userId: string): Promise<void> {
+  if (!(await isAllowedForProactive(userId))) {
     console.log(`[sweep] ${userId.slice(0, 12)}… skipped — not allowed`);
     return;
   }
