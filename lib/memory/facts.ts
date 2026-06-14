@@ -47,20 +47,35 @@ export type UserFacts = {
 
 const MAX_FACTS = 200;
 const MAX_CONTENT = 1000;
+const PROMPT_FACTS_MAX = 30; // Most recent facts only; keeps prompt size bounded.
+const FACTS_CACHE_TTL_MS = 30_000;
 
 const key = (userId: string) => `user:${userId}:facts:v2`;
 const legacyKey = (userId: string) => `user:${userId}:facts`;
+
+const factsCache = new Map<string, { facts: UserFacts; ts: number }>();
+
+function invalidateFactsCache(userId: string) {
+  factsCache.delete(userId);
+}
 
 function isCategory(s: unknown): s is FactCategory {
   return typeof s === "string" && (FACT_CATEGORIES as string[]).includes(s);
 }
 
 export async function loadFacts(userId: string): Promise<UserFacts> {
+  const cached = factsCache.get(userId);
+  if (cached && Date.now() - cached.ts < FACTS_CACHE_TTL_MS) {
+    return cached.facts;
+  }
   const v = await redis().get<UserFacts>(key(userId));
-  if (v && Array.isArray(v.facts)) return v;
-  // Lazy wipe of legacy text-blob key — fresh start on new schema.
-  await redis().del(legacyKey(userId)).catch(() => {});
-  return { facts: [], updatedAt: 0 };
+  const facts = v && Array.isArray(v.facts) ? v : { facts: [], updatedAt: 0 };
+  if (!v) {
+    // Lazy wipe of legacy text-blob key — fresh start on new schema.
+    await redis().del(legacyKey(userId)).catch(() => {});
+  }
+  factsCache.set(userId, { facts, ts: Date.now() });
+  return facts;
 }
 
 export async function saveFacts(userId: string, facts: UserFacts): Promise<void> {
@@ -75,6 +90,7 @@ export async function saveFacts(userId: string, facts: UserFacts): Promise<void>
       .slice(0, MAX_FACTS);
   }
   await redis().set(key(userId), { facts: list, updatedAt: facts.updatedAt });
+  invalidateFactsCache(userId);
 }
 
 function newFact(content: string, category: FactCategory = "other", opts?: Partial<Fact>): Fact {
@@ -115,6 +131,7 @@ export async function appendFact(
   }
   facts.updatedAt = Date.now();
   await saveFacts(userId, facts);
+  invalidateFactsCache(userId);
 }
 
 /** Update a fact at a 1-indexed position (display order: newest first). */
@@ -148,6 +165,7 @@ export async function clearFacts(userId: string): Promise<number> {
   const facts = await loadFacts(userId);
   const n = facts.facts.length;
   await saveFacts(userId, { facts: [], updatedAt: Date.now() });
+  invalidateFactsCache(userId);
   return n;
 }
 
@@ -164,7 +182,9 @@ export function displayOrder(facts: Fact[]): Fact[] {
 export function factsToPromptBlock(facts: UserFacts): string {
   if (!facts.facts.length) return "";
   const byCat = new Map<FactCategory, Fact[]>();
-  for (const f of displayOrder(facts.facts)) {
+  // Only inject the most recently updated facts into the prompt.
+  const recent = displayOrder(facts.facts).slice(0, PROMPT_FACTS_MAX);
+  for (const f of recent) {
     if (!byCat.has(f.category)) byCat.set(f.category, []);
     byCat.get(f.category)!.push(f);
   }
@@ -202,4 +222,9 @@ export function _internalNewFact(
   opts?: Partial<Fact>,
 ): Fact {
   return newFact(content, category, opts);
+}
+
+/** Test hook: clear the in-memory facts cache. */
+export function _resetFactsCache() {
+  factsCache.clear();
 }

@@ -4,6 +4,11 @@ import { span } from "@/lib/timing";
 const API = "https://api.line.me/v2/bot";
 const DATA_API = "https://api-data.line.me/v2/bot";
 
+// LINE message content is immutable; cache fetches for a short window to avoid
+// re-downloading the same image/PDF when multiple tools use it in one turn.
+const contentCache = new Map<string, { promise: Promise<{ bytes: Uint8Array; contentType: string }>; ts: number }>();
+const CONTENT_CACHE_TTL_MS = 2 * 60 * 1000;
+
 function fetchWithTimeout(url: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
   const { timeoutMs = 15000, ...rest } = init;
   const ctrl = new AbortController();
@@ -152,23 +157,34 @@ export async function getMessageContent(messageId: string): Promise<{
   bytes: Uint8Array;
   contentType: string;
 }> {
-  const end = span("line:getMessageContent");
-  const r = await fetchWithTimeout(`${DATA_API}/message/${messageId}/content`, {
-    headers: { Authorization: `Bearer ${env().LINE_CHANNEL_ACCESS_TOKEN}` },
-  });
-  if (!r.ok) {
-    end({ ok: false, status: r.status });
-    throw new Error(`getMessageContent ${r.status}`);
+  const now = Date.now();
+  const cached = contentCache.get(messageId);
+  if (cached && now - cached.ts < CONTENT_CACHE_TTL_MS) {
+    return cached.promise;
   }
-  const ct = r.headers.get("content-type") ?? "application/octet-stream";
-  const cl = r.headers.get("content-length");
-  if (cl && Number(cl) > MAX_MEDIA_BYTES) {
-    end({ ok: false, tooLarge: true, sizeBytes: Number(cl) });
-    throw new Error(`File too large (${(Number(cl) / 1024 / 1024).toFixed(1)} MB). Max ${MAX_MEDIA_BYTES / 1024 / 1024} MB.`);
-  }
-  const buf = new Uint8Array(await r.arrayBuffer());
-  end({ ok: true, sizeBytes: buf.byteLength, contentType: ct });
-  return { bytes: buf, contentType: ct };
+
+  const promise = (async () => {
+    const end = span("line:getMessageContent");
+    const r = await fetchWithTimeout(`${DATA_API}/message/${messageId}/content`, {
+      headers: { Authorization: `Bearer ${env().LINE_CHANNEL_ACCESS_TOKEN}` },
+    });
+    if (!r.ok) {
+      end({ ok: false, status: r.status });
+      throw new Error(`getMessageContent ${r.status}`);
+    }
+    const ct = r.headers.get("content-type") ?? "application/octet-stream";
+    const cl = r.headers.get("content-length");
+    if (cl && Number(cl) > MAX_MEDIA_BYTES) {
+      end({ ok: false, tooLarge: true, sizeBytes: Number(cl) });
+      throw new Error(`File too large (${(Number(cl) / 1024 / 1024).toFixed(1)} MB). Max ${MAX_MEDIA_BYTES / 1024 / 1024} MB.`);
+    }
+    const buf = new Uint8Array(await r.arrayBuffer());
+    end({ ok: true, sizeBytes: buf.byteLength, contentType: ct });
+    return { bytes: buf, contentType: ct };
+  })();
+
+  contentCache.set(messageId, { promise, ts: now });
+  return promise;
 }
 
 /**

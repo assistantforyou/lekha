@@ -43,6 +43,14 @@ const legacyTokensKey = (userId: string) => `google:tokens:${userId}`; // pre-mu
 const stateKey = (nonce: string) => `oauth:state:${nonce}`;
 const connectLinkKey = (sigB64u: string) => `oauth:connect_link:${sigB64u}`;
 
+// In-memory cache for account list — accounts change rarely, but are read 2–3x per turn.
+const accountsCache = new Map<string, { blob: AccountsBlob; ts: number }>();
+const ACCOUNTS_CACHE_TTL_MS = 30_000;
+
+function invalidateAccountsCache(userId: string) {
+  accountsCache.delete(userId);
+}
+
 export function oauth2Client() {
   const e = env();
   if (!hasGoogleOAuth()) throw new Error("Google OAuth env vars not set");
@@ -152,12 +160,21 @@ export async function completeOAuth(
   };
   await redis().set(tokensKey(stored.userId, email), encrypt(JSON.stringify(toStore)));
   await addAccount(stored.userId, email, /*activate*/ true);
+  invalidateAccountsCache(stored.userId);
   return { userId: stored.userId, email };
 }
 
 async function loadAccounts(userId: string): Promise<AccountsBlob> {
+  const cached = accountsCache.get(userId);
+  if (cached && Date.now() - cached.ts < ACCOUNTS_CACHE_TTL_MS) {
+    return cached.blob;
+  }
+
   const blob = await redis().get<AccountsBlob>(accountsKey(userId));
-  if (blob && blob.accounts) return blob;
+  if (blob && blob.accounts) {
+    accountsCache.set(userId, { blob, ts: Date.now() });
+    return blob;
+  }
 
   // Legacy migration: if there are tokens at the old key, treat them as the
   // primary account once we discover the email.
@@ -190,6 +207,7 @@ async function loadAccounts(userId: string): Promise<AccountsBlob> {
 
 async function saveAccounts(userId: string, blob: AccountsBlob): Promise<void> {
   await redis().set(accountsKey(userId), blob);
+  invalidateAccountsCache(userId);
 }
 
 async function addAccount(userId: string, email: string, activate: boolean): Promise<void> {

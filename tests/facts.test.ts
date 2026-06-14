@@ -25,10 +25,14 @@ import {
   clearFacts,
   factsToPromptBlock,
   displayOrder,
+  _resetFactsCache,
 } from "@/lib/memory/facts";
 
 describe("structured facts", () => {
-  beforeEach(() => reset());
+  beforeEach(() => {
+    reset();
+    _resetFactsCache();
+  });
 
   it("starts empty", async () => {
     const f = await loadFacts("U1");

@@ -624,8 +624,8 @@ export async function runAgent(
           .map((a) => `${a.email}${a.email === accounts.activeEmail ? " (active)" : ""}`)
           .join(", ")}.`
       : "";
-    // Only mention staged items from the last 5 minutes to keep the prompt tight.
-    const freshStaged = staged.filter((m) => Date.now() - m.ts < 5 * 60_000);
+    // Only mention staged items from the last 10 minutes to keep the prompt tight.
+    const freshStaged = staged.filter((m) => Date.now() - m.ts < 10 * 60_000);
     const recentBlock = freshStaged.length
       ? `\n\nStaged LINE media (1-indexed, oldest first). The user may be referring to one of these:\n${freshStaged
           .map((m, i) => {
