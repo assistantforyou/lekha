@@ -1,4 +1,5 @@
 import { EVAL_CASES } from "../tests/eval/cases";
+import { redis } from "../lib/memory/redis";
 
 const URL = process.env.EVAL_URL || "https://lekha-iota.vercel.app/api/dev/chat";
 const SECRET = process.env.DEV_CHAT_SECRET;
@@ -33,6 +34,16 @@ function normalizeTools(toolCalls?: { toolName: string; input: unknown }[]) {
   return (toolCalls ?? []).map((c) => c.toolName);
 }
 
+async function resetHistory(userId: string) {
+  const r = redis();
+  const keys = [
+    `user:${userId}:history`,
+    `user:${userId}:history:counter`,
+    `history:running_summary:${userId}`,
+  ];
+  for (const key of keys) await r.del(key);
+}
+
 async function main() {
   const results: {
     name: string;
@@ -46,6 +57,7 @@ async function main() {
 
   for (const c of EVAL_CASES) {
     try {
+      await resetHistory(EVAL_USER);
       const { reply, toolCalls } = await send(c.userText);
       const called = normalizeTools(toolCalls);
       const failures: string[] = [];

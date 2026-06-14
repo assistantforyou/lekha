@@ -288,7 +288,7 @@ export async function POST(req: NextRequest) {
     disabledCategories: settings.disabledCategories,
     intent,
   });
-  const result = await runAgent(userId, profile, facts, messages, traceId, { tools });
+  const result = await runAgent(userId, profile, facts, messages, traceId, { tools, intent });
   const replyText = result.text;
   const hints = result.hints;
 

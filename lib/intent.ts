@@ -55,11 +55,13 @@ const CASUAL_TRIGGERS = [
   /^\s*stop\s+(sending|it|that)/i,
   /\b(unicorn\s+emoji|show me.*emoji|send me.*emoji)\b/i,
   /^\s*\.\.\.\s*$/,
+  /^\s*calculate\s+[-+\d\s\*\/\(\)\.\,]+$/i,
+  /^\s*(สวัสดี|หวัดดี|ดีค่ะ|ดีครับ|hi|hello)\s*$/i,
 ];
 
 const INTENT_KEYWORDS: Partial<Record<Intent, RegExp[]>> = {
   help: [/\b(help|what can you do|capabilities|what do you do)\b/i],
-  task: [/\b(add\s+a?\s*task|create\s+a?\s*task|new\s+task|my\s+tasks?|list\s+my\s+tasks?|what\s+tasks?|complete.*task|done.*task|delete.*task|everything\s+i\s+need\s+to\s+do|anything\s+left\s+to\s+do|overdue|open\s+tasks?)\b/i],
+  task: [/\b(add\s+a?\s*task|create\s+a?\s*task|new\s+task|my\s+tasks?|list\s+my\s+tasks?|what\s+tasks?|complete.*task|done.*task|delete.*task|everything\s+i\s+need\s+to\s+do|anything\s+left\s+to\s+do|overdue|open\s+tasks?)\b/i, /\bi\s+need\s+to\s+\w+/i],
   reminder: [/\b(remind\s+me|set\s+a?\s*reminder|what\s+reminders|cancel.*reminder|delete.*reminder)\b/i],
   news: [/\b(news|headlines?|breaking|top\s+\d+\s+news|latest\s+news|current events|what'?s happening|finance news|stock news|market news|world news|today'?s news|news today)\b/i],
   weather: [/\b(weather|forecast|temperature|rain|sunny)\b/i],
@@ -151,10 +153,11 @@ Available intents:
 
 Rules:
 1. If the message is clearly about current events/latest developments, choose "news" not "search".
-2. If the message contains two or more distinct tasks, choose "multi".
-3. If the message is just conversational, choose "casual".
-4. If the user sent an image and the text is short or ambiguous, choose "media".
-5. Be conservative with "multi"; only use it when there are genuinely separate requests.
+2. Definition/research questions like "what is X" or "what does X mean" are "search", never "news".
+3. If the message contains two or more distinct tasks, choose "multi".
+4. If the message is just conversational, choose "casual".
+5. If the user sent an image and the text is short or ambiguous, choose "media".
+6. Be conservative with "multi"; only use it when there are genuinely separate requests.
 
 Examples:
 - "test" → casual
@@ -163,13 +166,21 @@ Examples:
 - "what's the latest on Tesla?" → news
 - "search for the top 10 news in finance" → news
 - "why did semiconductors drop last night" → search
+- "what is finance" → search
+- "what does semiconductor mean" → search
 - "email John and check the weather" → multi
 - "remind me to call mom and add buy milk to my tasks" → multi
 - "add a task" → task
 - "what tasks do I have" → task
+- "show me everything I need to do" → task
+- "anything left to do?" → task
+- "what tasks are overdue" → task
+- "มีงานอะไรเหลือบ้าง" → task
+- "อากาศกรุงเทพเป็นยังไง" → weather
+- "add eggs to grocery list" → lists
 `;
 
-const CLASSIFY_TIMEOUT_MS = 3_000;
+const CLASSIFY_TIMEOUT_MS = 7_000;
 
 export async function classifyIntent(
   userText: string,

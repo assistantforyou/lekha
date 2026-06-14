@@ -11,6 +11,7 @@ import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import type { ToolSet } from "ai";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapCause, unwrapAuthRequired } from "@/lib/errors";
+import type { Intent } from "@/lib/intent";
 import type { LineMessage } from "@/lib/line/client";
 import { buildFlexFromToolResults, buildFollowUps } from "@/lib/llm/agent-flex";
 import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
@@ -601,6 +602,7 @@ export async function runAgent(
     accounts?: Awaited<ReturnType<typeof listAccounts>>;
     staged?: Awaited<ReturnType<typeof listRecentMedia>>;
     tools?: ToolSet;
+    intent?: Intent;
   },
 ): Promise<AgentResult> {
   const endAgent = span("agent:runAgent", traceId);
@@ -634,16 +636,19 @@ export async function runAgent(
           })
           .join("\n")}\nUse \`attach_recent_media: true\` to attach all of them, or \`attach_recent_media_indexes: [n,…]\` to pick specific ones.`
       : "";
+    const tz = settings.timezone ?? "Asia/Bangkok";
+    const suppressFactsIntents = new Set<Intent>(["task", "memory", "lists", "reminder"]);
+    const factsBlock = opts?.intent && suppressFactsIntents.has(opts.intent)
+      ? ""
+      : factsToPromptBlock(facts);
     const system =
-      buildSystemPrompt(factsToPromptBlock(facts), profile, settings) +
+      buildSystemPrompt(factsBlock, profile, settings) +
+      "\n\n" +
+      buildTimeContext(tz) +
       accountsBlock +
       recentBlock;
 
-    const tz = settings.timezone ?? "Asia/Bangkok";
-    const timePrefix: ModelMessage[] = [
-      { role: "user" as const, content: buildTimeContext(tz) },
-      { role: "assistant" as const, content: "Noted." },
-    ];
+    const timePrefix: ModelMessage[] = [];
 
     const tracker = createStepTracker(traceId);
 
@@ -663,7 +668,7 @@ export async function runAgent(
         system,
         messages: [...timePrefix, ...messages],
         tools,
-        temperature: 0.4,
+        temperature: 0.6,
         stopWhen: stepCountIs(8),
         maxRetries: 1,
         onStepFinish: (step) => tracker.record(step as Parameters<ReturnType<typeof createStepTracker>["record"]>[0]),

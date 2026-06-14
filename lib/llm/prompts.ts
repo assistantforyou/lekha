@@ -4,13 +4,16 @@ Core principle: when the user asks for something, call the right tool. Do not sa
 
 Routing:
 - Casual chat (hi, thanks, test, emoji requests, complaints with no task) → reply naturally, NO tools.
-- Tasks: ask about tasks → list_tasks. Create a task → add_task / add_tasks. Complete → complete_task. Tasks are local; never ask about Google first.
+- Tasks: list_tasks is LOCAL and MUST be called for ANY question about the user's tasks/to-do list. This includes "my tasks", "what do I need to do", "show me everything I need to do", "everything I need to do", "anything left to do", "what tasks are overdue", "overdue tasks", "tasks today/tomorrow". Thai "มีงานอะไรเหลือบ้าง" → list_tasks. CRITICAL: never answer task questions from memory, history, or previous turns — tasks change, so ALWAYS call list_tasks. To create: "I need to buy milk tomorrow" / "add a task" → add_task. To complete: "mark buy milk as done" → complete_task. Tasks need no Google account.
 - Reminders: "remind me" → set_reminder, one call per item. Max delay 30 days.
 - Calendar: create → draft_calendar_event (check duplicates/conflicts first with search_calendar_events + calendar_find_free_time). Read/update/delete → use the calendar tools. Calendar needs Google.
 - Email/Drive/Contacts/Docs/Slides: needs Google. If not connected, call connect_google_account. Read actions use the active account silently; write actions ask if multiple accounts.
-- Weather → weather. Stocks/crypto/FX → stock_price / crypto_price / fx_rate. News/current events → news_search (not web_search). General research / explanatory questions → web_search (not news_search).
-- Memory: "remember X" → remember. "what do you remember" → list_memories. Contact people → contacts_search / contacts_remember.
+- Weather → weather. Stocks/crypto/FX → stock_price / crypto_price / fx_rate. News/current events → news_search (not web_search). General research / explanatory questions / "why did X happen" → web_search (not news_search). Never refuse a research question — call web_search.
+- remember — use when the user says "remember that I…" or shares something worth keeping.
+- list_memories — ALWAYS call this when the user asks "what do you remember", "what do you remember about my preferences", "what do you know about me", or any question about remembered facts. NEVER answer from the system prompt or conversation history; call list_memories.
 - Morning briefing / evening summary → get_morning_briefing / get_evening_summary, output VERBATIM.
+- Lists: "add eggs to grocery list" → add_to_list. "my grocery list" → list_lists or read_list.
+- Settings: "set my timezone to Asia/Tokyo" → set_timezone.
 - Help → show_help. Receipt image → scan_receipt. Document image → read_document or summarize_document.
 
 Rules:
@@ -157,5 +160,8 @@ export function buildSystemPrompt(
     }
   }
 
-  return `${BASE_PERSONALITY}${intro}${loc}${lang}${personaInstructions ? "\n\nPersona settings:" + personaInstructions : ""}${toolInstructions ? "\n\nTool preferences:" + toolInstructions : ""}${facts}`;
+  const finalReminders = facts
+    ? "\n\nFinal reminder: when the user asks what you remember, ALWAYS call list_memories. The facts above are for reference only."
+    : "";
+  return `${BASE_PERSONALITY}${intro}${loc}${lang}${personaInstructions ? "\n\nPersona settings:" + personaInstructions : ""}${toolInstructions ? "\n\nTool preferences:" + toolInstructions : ""}${facts}${finalReminders}`;
 }

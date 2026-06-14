@@ -85,6 +85,7 @@ export async function respondToText(
     accounts,
     staged,
     tools,
+    intent,
   });
   replyText = result.text;
   hints = result.hints;
