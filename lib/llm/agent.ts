@@ -19,6 +19,7 @@ import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
 import { stripMarkdown } from "@/lib/format";
 import { ACTION_LABELS } from "@/lib/llm/action-labels";
 import { buildMediaAiTools } from "@/lib/tools/media-ai";
+import { buildWeatherTools } from "@/lib/tools/weather";
 
 export function extractToolValue(output: unknown): unknown {
   if (output && typeof output === "object") {
@@ -728,15 +729,21 @@ export async function runAgent(
     let finalText = suppressText && !processed.authNeeded ? "" : text;
     let extraToolCalls = tracker.allCalls;
     if (finalText === "I didn't catch that — could you rephrase?") {
-      if (opts?.intent === "memory" && looksLikeMemoryRecall(lastUserText)) {
+      // Deterministic fallbacks: if the model blanks on an unambiguous query,
+      // execute the canonical tool ourselves rather than returning a useless reply.
+      if (looksLikeMemoryRecall(lastUserText)) {
         const fb = await fallbackListMemories(userId, profile.displayName);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
-      } else if (opts?.intent === "task" && looksLikeTaskList(lastUserText)) {
+      } else if (looksLikeTaskList(lastUserText)) {
         const fb = await fallbackListTasks(userId, profile.displayName, settings?.timezone);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
-      } else if (opts?.intent === "media" && opts?.hasStagedMedia) {
+      } else if (looksLikeWeather(lastUserText)) {
+        const fb = await fallbackWeather(lastUserText, settings?.timezone);
+        finalText = fb.text;
+        extraToolCalls = fb.toolCalls;
+      } else if (opts?.hasStagedMedia && looksLikeMediaQuery(lastUserText)) {
         const fb = await fallbackSummarizeDocument(userId, profile.displayName);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
@@ -797,6 +804,7 @@ function looksLikeTaskList(text: string): boolean {
   if (/\bwhat\s+(are\s+my|do\s+i\s+have)\s+(tasks?|todo)\b/.test(lower)) return true;
   if (/\bwhat\s+tasks?\s+(do\s+i\s+have|left|remain|overdue)\b/.test(lower)) return true;
   if (/\bshow\s+(me\s+)?my\s+(tasks?|todo)\b/.test(lower)) return true;
+  if (/\b(show|list|everything|anything)\s+.*\b(i\s+need\s+to\s+do|left\s+to\s+do|to\s+do)\b/.test(lower)) return true;
   if (/\banything\s+left\s+to\s+do\b/.test(lower)) return true;
   if (/\bwhat\s+do\s+i\s+need\s+to\s+do\b/.test(lower)) return true;
   if (/\boverdue\s+(tasks?|todo)\b/.test(lower)) return true;
@@ -818,6 +826,27 @@ async function fallbackListMemories(userId: string, displayName: string): Promis
     text: `${displayName}, here's what I remember:\n${lines.join("\n")}`,
     toolCalls: [{ toolName: "list_memories", input: {} }],
   };
+}
+
+function looksLikeWeather(text: string): boolean {
+  return /\b(weather|forecast|temperature|temp)\b/i.test(text);
+}
+
+function looksLikeMediaQuery(text: string): boolean {
+  return /\b(read|summarize|analyze|ocr|tell\s+me\s+about|what('s|s|\s+is)|extract)\s+(this|that|it|the\s+(file|pdf|doc|document|image|photo|picture))\b/i.test(text);
+}
+
+async function fallbackWeather(query: string, timezone = "Asia/Bangkok"): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+  const locationMatch = query.match(/\b(?:in|at|for)\s+(.{2,80}?)\s*(?:\?|$)/i);
+  const location = locationMatch?.[1]?.trim() ?? "Bangkok";
+  const tools = buildWeatherTools();
+  try {
+    const result = await tools.weather.execute!({ location }, { toolCallId: "fallback", messages: [] });
+    const display = renderDisplayFallback({ steps: [{ toolResults: [{ toolName: "weather", output: result }] }] });
+    return { text: display ?? "Weather lookup completed.", toolCalls: [{ toolName: "weather", input: { location } }] };
+  } catch (err) {
+    return { text: `I couldn't get the weather for ${location} right now.`, toolCalls: [{ toolName: "weather", input: { location } }] };
+  }
 }
 
 async function fallbackSummarizeDocument(userId: string, displayName: string): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
