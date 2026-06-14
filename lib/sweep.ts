@@ -4,6 +4,7 @@ import { listTasks } from "@/lib/memory/tasks";
 import { taskCheckinFlex } from "@/lib/line/flex";
 import { getSettings, updateSettings } from "@/lib/memory/settings";
 import { isAllowed } from "@/lib/memory/allowlist";
+import { buildGate } from "@/lib/gate";
 import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
 import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
 import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
@@ -85,7 +86,8 @@ function localTimeStr(timezone: string): string {
 
 /** Master sweep for a single user — morning briefing, evening summary, task check-in. */
 export async function runSweepForUser(userId: string): Promise<void> {
-  if (!(await isAllowed(userId))) {
+  const gate = buildGate();
+  if (!gate.isAdmin(userId) && !(await isAllowed(userId))) {
     console.log(`[sweep] ${userId.slice(0, 12)}… skipped — not allowed`);
     return;
   }
