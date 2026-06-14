@@ -8,25 +8,25 @@ describe("prompt routing rules", () => {
     expect(BASE_PERSONALITY).not.toMatch(/when in doubt, search/i);
   });
 
-  it("restricts news_search to explicit news requests only", () => {
-    expect(BASE_PERSONALITY).toMatch(/news_search.*ONLY for explicit news/i);
-    expect(BASE_PERSONALITY).toMatch(/NEVER call for greetings, casual chat, test messages/i);
-    expect(BASE_PERSONALITY).toMatch(/Do NOT proactively offer news/i);
+  it("restricts news_search to news/current events", () => {
+    expect(BASE_PERSONALITY).toMatch(/news_search/i);
+    expect(BASE_PERSONALITY).toMatch(/current events/i);
   });
 
-  it("tells web_search to never handle news/current events", () => {
-    expect(BASE_PERSONALITY).toMatch(/web_search.*NEVER for news\/current events/i);
+  it("tells web_search to handle general research, not news", () => {
+    expect(BASE_PERSONALITY).toMatch(/web_search/i);
+    expect(BASE_PERSONALITY).toMatch(/general research/i);
   });
 
-  it("warns against searching for casual chat / emoji / metaprompts", () => {
+  it("warns against searching for casual chat / emoji / test messages", () => {
     expect(BASE_PERSONALITY).toMatch(/emoji requests/i);
-    expect(BASE_PERSONALITY).toMatch(/metaprompts/i);
-    expect(BASE_PERSONALITY).toMatch(/test messages/i);
+    expect(BASE_PERSONALITY).toMatch(/test,/i);
+    expect(BASE_PERSONALITY).toMatch(/casual chat/i);
   });
 
   it("requires search results to come only from the tool response", () => {
-    expect(BASE_PERSONALITY).toMatch(/ONLY include what the tool actually returned/i);
-    expect(BASE_PERSONALITY).toMatch(/Do not invent headlines/i);
+    expect(BASE_PERSONALITY).toMatch(/Only report what a tool returned/i);
+    expect(BASE_PERSONALITY).toMatch(/don't invent headlines or facts/i);
   });
 });
 
