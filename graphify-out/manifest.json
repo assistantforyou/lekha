@@ -8648,5 +8648,10 @@
     "mtime": 1781373422.1402013,
     "ast_hash": "b3b52282dd2994eac860efa02705e594",
     "semantic_hash": ""
+  },
+  "/Users/jamesperenchio/Desktop/lekha/scripts/trigger-sweep.ts": {
+    "mtime": 1781448705.039333,
+    "ast_hash": "522db727a27e15f5fdfeaefd4e74c9dc",
+    "semantic_hash": ""
   }
 }
