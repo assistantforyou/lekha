@@ -24,9 +24,16 @@ export async function respondToText(
 
   // R7: Load staged first so we can kick off image download in parallel with other preloads
   const staged = await listRecentMedia(userId);
+  const hasFile = staged.some((m) => m.kind === "file");
+  const hasStagedMedia = staged.length > 0;
+  // Only preload a fresh image if the user is likely referring to it.
   const freshImage = staged.find((m) => m.kind === "image" && Date.now() - m.ts < 30_000);
+  const imageLooksReferenced = freshImage
+    ? /\b(this|that|it|the\s+(image|photo|picture|screenshot))\b/i.test(userText) ||
+      /\b(what'?s|what\s+is|describe|ocr|read|summarize|analyze|see)\b/i.test(userText)
+    : false;
 
-  const imagePromise = freshImage
+  const imagePromise = freshImage && imageLooksReferenced
     ? timed(
         "text:getMessageContent",
         traceId,
@@ -49,9 +56,14 @@ export async function respondToText(
     staged: staged.length,
     accounts: accounts.accounts.length,
     bundledImage: imageData ? freshImage?.messageId : null,
+    imagePreloaded: imageLooksReferenced,
   });
 
-  const intentResult = await classifyIntent(userText, { hasImage: Boolean(imageData) });
+  const intentResult = await classifyIntent(userText, {
+    hasImage: Boolean(imageData),
+    hasFile,
+    hasStagedMedia,
+  });
 
   let userContent: ModelMessage["content"];
   if (imageData) {
@@ -78,6 +90,7 @@ export async function respondToText(
     userHasGoogle,
     disabledCategories: settings.disabledCategories,
     intent,
+    hasStagedMedia,
   });
 
   // R1: Pass pre-loaded accounts, staged, and full tool registry to avoid double-fetch in runAgent
@@ -86,6 +99,7 @@ export async function respondToText(
     staged,
     tools,
     intent,
+    hasStagedMedia,
   });
   replyText = result.text;
   hints = result.hints;

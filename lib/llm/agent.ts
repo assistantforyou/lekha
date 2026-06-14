@@ -604,6 +604,7 @@ export async function runAgent(
     staged?: Awaited<ReturnType<typeof listRecentMedia>>;
     tools?: ToolSet;
     intent?: Intent;
+    hasStagedMedia?: boolean;
   },
 ): Promise<AgentResult> {
   const endAgent = span("agent:runAgent", traceId);
@@ -621,8 +622,10 @@ export async function runAgent(
           .map((a) => `${a.email}${a.email === accounts.activeEmail ? " (active)" : ""}`)
           .join(", ")}.`
       : "";
-    const recentBlock = staged.length
-      ? `\n\nLINE files staged for attachment (1-indexed, oldest first):\n${staged
+    // Only mention staged items from the last 5 minutes to keep the prompt tight.
+    const freshStaged = staged.filter((m) => Date.now() - m.ts < 5 * 60_000);
+    const recentBlock = freshStaged.length
+      ? `\n\nStaged LINE media (1-indexed, oldest first). The user may be referring to one of these:\n${freshStaged
           .map((m, i) => {
             const ago = Math.round((Date.now() - m.ts) / 60_000);
             const parts = [
@@ -635,10 +638,10 @@ export async function runAgent(
             ];
             return parts.filter(Boolean).join(" ");
           })
-          .join("\n")}\nUse \`attach_recent_media: true\` to attach all of them, or \`attach_recent_media_indexes: [n,…]\` to pick specific ones.`
+          .join("\n")}\nIf the user asks about an image, call \`ocr_image\` or \`summarize_image\` with the index. If they ask about a PDF/document, call \`summarize_document\` or \`read_document\`. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
       : "";
     const tz = settings.timezone ?? "Asia/Bangkok";
-    const suppressFactsIntents = new Set<Intent>(["task", "memory", "lists", "reminder"]);
+    const suppressFactsIntents = new Set<Intent>(["task", "memory", "lists", "reminder", "media"]);
     const factsBlock = opts?.intent && suppressFactsIntents.has(opts.intent)
       ? ""
       : factsToPromptBlock(facts);
@@ -659,6 +662,8 @@ export async function runAgent(
       (await toolsForUser(userId, {
         userHasGoogle,
         disabledCategories: settings.disabledCategories,
+        intent: opts?.intent,
+        hasStagedMedia: opts?.hasStagedMedia,
       }));
     endTools({ toolCount: Object.keys(tools).length });
 

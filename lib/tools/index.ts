@@ -46,6 +46,9 @@ type Entry = {
   needs?: Need[];
   category?: string;
   intents?: Intent[];
+  /** Always register this tool when the user has staged LINE media, even if the
+   *  classifier picked a different intent. Used for image/PDF/receipt tools. */
+  alwaysWithStagedMedia?: boolean;
 };
 
 /**
@@ -72,8 +75,8 @@ const REGISTRY: Entry[] = [
   { build: (u) => buildTaskTools(u), category: "tasks", intents: ["task", "fallback", "multi"] },
   { build: (u) => buildExportTools(u), intents: ["fallback", "multi"] },
   { build: (u) => buildSentHistoryTools(u), intents: ["email", "fallback", "multi"] },
-  { build: (u) => buildMediaAiTools(u), intents: ["media", "fallback", "multi"] },
-  { build: (u) => buildReceiptTools(u), intents: ["receipts", "fallback", "multi"] },
+  { build: (u) => buildMediaAiTools(u), intents: ["media", "fallback", "multi"], alwaysWithStagedMedia: true },
+  { build: (u) => buildReceiptTools(u), intents: ["receipts", "fallback", "multi"], alwaysWithStagedMedia: true },
   { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders", intents: ["reminder", "fallback", "multi"] },
   { build: () => buildWebSearchTool(), needs: ["tavily"], intents: ["search", "fallback", "multi"] },
   // Connect/list/switch — registered as soon as Google OAuth env is configured,
@@ -111,13 +114,14 @@ function buildTools(
   userHasGoogle: boolean,
   disabled: string[],
   intent?: Intent,
+  hasStagedMedia?: boolean,
 ): ToolSet {
   const out: Record<string, unknown> = {};
   for (const entry of REGISTRY) {
     const ok = (entry.needs ?? []).every((n) => envHas(n, userHasGoogle));
     if (!ok) continue;
     if (entry.category && disabled.includes(entry.category)) continue;
-    if (intent && entry.intents && !entry.intents.includes(intent)) continue;
+    if (intent && entry.intents && !entry.intents.includes(intent) && !(hasStagedMedia && entry.alwaysWithStagedMedia)) continue;
     Object.assign(out, entry.build(userId));
   }
   return out as ToolSet;
@@ -131,7 +135,7 @@ function buildTools(
  */
 export async function toolsForUser(
   userId: string,
-  opts?: { userHasGoogle?: boolean; disabledCategories?: string[]; intent?: Intent },
+  opts?: { userHasGoogle?: boolean; disabledCategories?: string[]; intent?: Intent; hasStagedMedia?: boolean },
 ): Promise<ToolSet> {
   const userHasGoogle =
     opts?.userHasGoogle !== undefined
@@ -142,17 +146,20 @@ export async function toolsForUser(
 
   const disabled = opts?.disabledCategories ?? [];
   const intent = opts?.intent;
+  const hasStagedMedia = opts?.hasStagedMedia;
   const disabledKey = disabled.sort().join(",");
   const intentKey = intent ?? "all";
+  const stagedKey = hasStagedMedia ? "staged" : "nostaged";
   // v4: optional per-intent filtering. fallback/multi see everything;
   // high-confidence single intents get a focused subset.
-  const cacheKey = `v4:${userId}:${disabledKey}:${intentKey}`;
+  // When staged media exists, media/receipt tools are also included.
+  const cacheKey = `v4:${userId}:${disabledKey}:${intentKey}:${stagedKey}`;
   const cached = toolCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.tools;
   }
 
-  const tools = buildTools(userId, userHasGoogle, disabled, intent);
+  const tools = buildTools(userId, userHasGoogle, disabled, intent, hasStagedMedia);
   toolCache.set(cacheKey, { tools, ts: Date.now() });
   return tools;
 }

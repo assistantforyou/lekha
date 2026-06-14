@@ -38,4 +38,10 @@ export const EVAL_CASES: EvalCase[] = [
   { name: "not news", userText: "what is finance", shouldNotCall: ["news_search"], notes: "definition, not current events" },
   { name: "task complete", userText: "mark buy milk as done", shouldCall: ["complete_task"], notes: "complete task" },
   { name: "overdue", userText: "what tasks are overdue", shouldCall: ["list_tasks"], notes: "overdue task query" },
+
+  // Media / staged files (dev chat endpoint can't actually stage files, so these
+  // verify the classifier + tool registry don't block media tools when the prompt
+  // references a staged file).
+  { name: "summarize this PDF", userText: "summarize this PDF", shouldCall: ["summarize_document"], notes: "PDF summary request" },
+  { name: "tell me about this file", userText: "what can you tell me about this", shouldCall: ["summarize_document", "summarize_image", "ocr_image"], shouldNotCall: ["web_search"], notes: "ambiguous reference to staged file" },
 ];

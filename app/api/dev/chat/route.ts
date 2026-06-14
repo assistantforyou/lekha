@@ -278,7 +278,10 @@ export async function POST(req: NextRequest) {
     { role: "user", content: text },
   ];
 
-  const intentResult = await classifyIntent(text);
+  const staged = await listRecentMedia(userId);
+  const hasStagedMedia = staged.length > 0;
+  const hasFile = staged.some((m) => m.kind === "file");
+  const intentResult = await classifyIntent(text, { hasStagedMedia, hasFile });
   const accounts = await listAccounts(userId);
   const userHasGoogle = accounts.accounts.length > 0;
   const intent: Intent | undefined =
@@ -287,8 +290,9 @@ export async function POST(req: NextRequest) {
     userHasGoogle,
     disabledCategories: settings.disabledCategories,
     intent,
+    hasStagedMedia,
   });
-  const result = await runAgent(userId, profile, facts, messages, traceId, { tools, intent });
+  const result = await runAgent(userId, profile, facts, messages, traceId, { tools, intent, hasStagedMedia });
   const replyText = result.text;
   const hints = result.hints;
 

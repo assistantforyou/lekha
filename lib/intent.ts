@@ -76,15 +76,27 @@ const INTENT_KEYWORDS: Partial<Record<Intent, RegExp[]>> = {
   settings: [/\b(set\s+my\s+timezone|change\s+my\s+timezone|set\s+timezone|timezone|language|location|task check-in)\b/i],
   briefing: [/\b(morning briefing|daily briefing|evening summary|evening briefing|daily summary)\b/i],
   connect: [/\b(connect\s+google|link\s+google|google\s+account)\b/i],
-  media: [/\b(read\s+this|summarize\s+this|analyze\s+this|ocr|what\s+does\s+this\s+say|what'?s\s+this|what\s+is\s+this)\b/i],
+  media: [
+    /\b(read\s+this|summarize\s+this|analyze\s+this|ocr|what\s+does\s+this\s+say|what'?s\s+this|what\s+is\s+this|tell\s+me\s+about\s+this)\b/i,
+    /\b(tell\s+me\s+about\s+(it|that|the\s+(file|pdf|doc|document|image|photo|picture)))\b/i,
+    /\b(what('s|s|\s+is)\s+(this|that|it|in\s+(the\s+)?(file|pdf|doc|document|image|photo|picture)))\b/i,
+  ],
 };
 
-export function fastClassify(userText: string, hasImage?: boolean): IntentResult | null {
+export function fastClassify(userText: string, opts?: { hasImage?: boolean; hasFile?: boolean; hasStagedMedia?: boolean }): IntentResult | null {
   const text = userText.trim();
+  const hasStaged = opts?.hasImage || opts?.hasFile || opts?.hasStagedMedia;
+  const refersToStaged = /\b(this|that|it|the\s+(file|pdf|doc|document|image|photo|picture|video))\b/i.test(text);
+
   if (!text) {
-    return hasImage
+    return hasStaged
       ? { primary: "media", isMulti: false, confidence: "high" }
       : { primary: "casual", isMulti: false, confidence: "high" };
+  }
+
+  // Fast-path: user is clearly asking about a file/image they just sent.
+  if (hasStaged && refersToStaged) {
+    return { primary: "media", isMulti: false, confidence: "high" };
   }
 
   for (const re of CASUAL_TRIGGERS) {
@@ -156,7 +168,7 @@ Rules:
 2. Definition/research questions like "what is X" or "what does X mean" are "search", never "news".
 3. If the message contains two or more distinct tasks, choose "multi".
 4. If the message is just conversational, choose "casual".
-5. If the user sent an image and the text is short or ambiguous, choose "media".
+5. If the user sent an image, file, PDF, or document and the text is short, ambiguous, or refers to "this"/"that"/"it"/"the file"/"the PDF", choose "media".
 6. Be conservative with "multi"; only use it when there are genuinely separate requests.
 
 Examples:
@@ -178,15 +190,17 @@ Examples:
 - "มีงานอะไรเหลือบ้าง" → task
 - "อากาศกรุงเทพเป็นยังไง" → weather
 - "add eggs to grocery list" → lists
+- "what can you tell me about this" (with a staged file) → media
+- "summarize this PDF" → media
 `;
 
 const CLASSIFY_TIMEOUT_MS = 7_000;
 
 export async function classifyIntent(
   userText: string,
-  opts?: { hasImage?: boolean },
+  opts?: { hasImage?: boolean; hasFile?: boolean; hasStagedMedia?: boolean },
 ): Promise<IntentResult> {
-  const fast = fastClassify(userText, opts?.hasImage);
+  const fast = fastClassify(userText, opts);
   if (fast && fast.confidence === "high") {
     return fast;
   }
@@ -197,7 +211,7 @@ export async function classifyIntent(
         model: chatModel(),
         schema: IntentSchema,
         system: CLASSIFICATION_PROMPT,
-        prompt: `User: ${userText}${opts?.hasImage ? "\n[User also sent an image]" : ""}`,
+        prompt: `User: ${userText}${opts?.hasImage || opts?.hasFile || opts?.hasStagedMedia ? "\n[User also sent a file/image that is staged for analysis]" : ""}`,
       }),
       CLASSIFY_TIMEOUT_MS,
     );
