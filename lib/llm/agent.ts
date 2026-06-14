@@ -930,6 +930,10 @@ async function handleAgentError(err: unknown, userId: string, traceId?: string):
     console.warn("[agent] service unavailable", { msg: msg.slice(0, 200), traceId });
     return "Temporarily unavailable — please try again in a moment.";
   }
+  if (/spending cap|RESOURCE_EXHAUSTED|exceeded its monthly|rate limit|429/i.test(msg)) {
+    console.warn("[agent] LLM quota exhausted", { msg: msg.slice(0, 200), traceId });
+    return "I'm out of LLM quota for the moment (monthly spending cap hit). Please check the Gemini project spend cap, or try again later.";
+  }
   console.error("[agent] unhandled", err, { traceId });
   return `Something went wrong. Try again in a moment.`;
 }
