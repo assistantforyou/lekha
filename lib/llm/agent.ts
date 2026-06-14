@@ -587,6 +587,8 @@ export type AgentHints = {
 export type AgentResult = {
   text: string;
   hints: AgentHints;
+  /** Tool calls made during the turn (for eval/debug). */
+  toolCalls?: { toolName: string; input: unknown }[];
 };
 
 export async function runAgent(
@@ -669,11 +671,28 @@ export async function runAgent(
       }),
       AGENT_TIMEOUT_MS,
     );
+    const usage = result.usage as { promptTokens?: number; completionTokens?: number; totalTokens?: number } | undefined;
+    const cached = (result as { experimental_providerMetadata?: { google?: { cachedContentTokenCount?: number } } }).experimental_providerMetadata?.google?.cachedContentTokenCount;
+    const costUsd =
+      ((usage?.promptTokens ?? 0) * 0.3) / 1_000_000 +
+      ((cached ?? 0) * 0.075) / 1_000_000 +
+      ((usage?.completionTokens ?? 0) * 2.5) / 1_000_000;
+    console.log("[agent] usage", {
+      traceId,
+      promptTokens: usage?.promptTokens ?? 0,
+      completionTokens: usage?.completionTokens ?? 0,
+      cachedTokens: cached ?? 0,
+      costUsd: Math.round(costUsd * 10000) / 10000,
+    });
     endGenerate({
       steps: result.steps.length,
       toolCalls: tracker.allCalls.length,
       stepTimes: tracker.stepTimes,
       totalToolMs: tracker.stepTimes.reduce((a, b) => a + b, 0),
+      promptTokens: usage?.promptTokens ?? 0,
+      completionTokens: usage?.completionTokens ?? 0,
+      cachedTokens: cached ?? 0,
+      costUsd,
     });
     const endProcess = span("agent:processResult", traceId);
     const processed = processResult(result as any, accounts.activeEmail, tracker.successfulCalls, settings?.timezone);
@@ -713,7 +732,7 @@ export async function runAgent(
       followUps,
     };
     endAgent({ success: true, steps: result.steps.length, toolCalls: tracker.allCalls.length, replyLength: finalText.length });
-    return { text: finalText, hints };
+    return { text: finalText, hints, toolCalls: tracker.allCalls };
   } catch (err) {
     const errText = await handleAgentError(err, userId, traceId);
     endAgent({ error: err instanceof Error ? err.message : String(err) });
@@ -724,6 +743,7 @@ export async function runAgent(
         pickAccount: false,
         needsGoogleConnect: unwrapAuthRequired(err) !== undefined,
       },
+      toolCalls: [],
     };
   }
 }

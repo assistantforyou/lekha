@@ -10,12 +10,14 @@ function googleClient() {
   return createGoogleGenerativeAI({ apiKey });
 }
 
-/** Main chat model — Gemini 2.5 Flash Lite (full Flash silently drops tool calls). */
+/** Main chat model — Gemini 2.5 Flash. Full Flash is required for reliable
+ *  agentic tool use; Flash Lite caused blank/panicked replies. */
 export function chatModel() {
-  return googleClient()("gemini-2.5-flash-lite");
+  return googleClient()("gemini-2.5-flash");
 }
 
-/** Background extraction model — Flash for better PDF/image quality. */
+/** Background extraction / summarization model. Kept as a separate export so
+ *  background work can be retuned independently of the agent. */
 export function extractorModel() {
   return googleClient()("gemini-2.5-flash");
 }
@@ -26,10 +28,10 @@ export function embeddingModel() {
 }
 
 /**
- * Default agent call timeout. PERFORMANCE.md R3 — 20s fail-fast. Most healthy
- * requests finish in 1–3s; 20s catches real hangs without burning function time.
+ * Default agent call timeout. Full Flash reasons a bit longer than Flash Lite;
+ * 30s gives multi-step turns room without burning function time on real hangs.
  */
-export const AGENT_TIMEOUT_MS = 20_000;
+export const AGENT_TIMEOUT_MS = 30_000;
 
 /**
  * Shared Gemini provider options. Safety thresholds use BLOCK_NONE (not OFF —

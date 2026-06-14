@@ -8,7 +8,7 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated), per-u
 |---|---|
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
 | Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
-| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash Lite, paid tier — no fallback) |
+| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash, paid tier — no fallback) |
 | Embeddings | Gemini `text-embedding-004` (768 dims) |
 | Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
 | Vector search | Upstash Vector — archive semantic search (substring fallback when unset) |
@@ -177,8 +177,8 @@ The bot is private by default. Every event hits the gate before any other logic.
 
 **Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome message), `/deny <id>` (remove from pending). Anyone can `/myid` to get their own LINE userId.
 
-### 16. Single LLM provider — Gemini 2.5 Flash Lite (paid), 60s timeout
-`runAgent` calls Gemini directly with the full tool registry. No cascade, no fallback. Paid tier RPM (1,000+) absorbs the agentic turn burst that the free tier couldn't, and Flash Lite paid pricing ($0.10/M in, $0.40/M out) is materially cheaper per token than any third-party fallback we evaluated. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. The 60s call timeout gives healthy agentic turns room to breathe under occasional Gemini latency spikes while still surfacing real hangs to the user. Vercel Fluid Compute affords the budget. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
+### 16. Single LLM provider — Gemini 2.5 Flash (paid), 30s timeout
+`runAgent` calls Gemini directly with the full tool registry. No cascade, no fallback. We moved off Flash Lite because it blanked/panicked on agentic tool use; full Flash handles the same workload reliably. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 30s, giving multi-step turns room without burning function time on real hangs. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
 
 ### 18. Conditional tool registry (per-user OAuth gating)
 `toolsForUser(userId)` is async and gates Google-dependent tools (email, calendar, drive, gmail-inbox, docs, scheduled-email, contacts) on whether THIS user has actually connected a Google account (`listAccounts(userId).accounts.length > 0`). Saves ~2K tokens per request for users without OAuth. The connect-account tools remain registered even without a connection so the model can guide the user through linking. The system prompt stays static (preserves Gemini implicit caching).
@@ -240,7 +240,7 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 - **LINE doesn't bundle a caption with media.** Recent-media staging spans messages within 30-min TTL.
 - **`Content-Transfer-Encoding: 7bit` is invalid for UTF-8 bodies** (Thai, emoji). Use base64.
 - **OAuth state nonce + connect-link token must be atomically consumed** (GETDEL) — non-atomic GET+DEL has a replay window.
-- **Gemini timeout at 20s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`) — PERFORMANCE.md R3. Fail-fast for real hangs. Most healthy requests finish in 1–3s; 20s catches overloaded/hung requests without burning function time. Image-only `generateText` calls use the same constant.
+- **Gemini timeout at 30s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`). Full Flash reasons a bit longer than Flash Lite; 30s gives multi-step turns room while still fail-fast-ing real hangs. Image-only `generateText` calls use the same constant.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
 - **Upstash Vector index must be dim 768, cosine** to match Gemini `text-embedding-004`. Mismatch surfaces as silent upsert failures.

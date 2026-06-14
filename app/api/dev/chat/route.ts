@@ -7,10 +7,8 @@ import { loadFacts } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
 import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
 import { runAgent } from "@/lib/llm/agent";
-import { generateCasualReply } from "@/lib/llm/casual-reply";
 import { generateText } from "ai";
 import { chatModel, extractorModel, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
-import { classifyIntent } from "@/lib/intent";
 import { toolsForUser } from "@/lib/tools";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
@@ -278,27 +276,15 @@ export async function POST(req: NextRequest) {
     { role: "user", content: text },
   ];
 
-  const intentResult = await classifyIntent(text);
-  let replyText: string;
-  let hints: Awaited<ReturnType<typeof runAgent>>["hints"];
-
-  if (intentResult.primary === "casual") {
-    replyText = await generateCasualReply(text);
-    hints = { confirmDraft: false, pickAccount: false, needsGoogleConnect: false };
-  } else {
-    const accounts = await listAccounts(userId);
-    const userHasGoogle = accounts.accounts.length > 0;
-    const intent =
-      intentResult.isMulti || intentResult.confidence === "low" ? undefined : intentResult.primary;
-    const tools = await toolsForUser(userId, {
-      userHasGoogle,
-      disabledCategories: settings.disabledCategories,
-      intent,
-    });
-    const result = await runAgent(userId, profile, facts, messages, traceId, { tools });
-    replyText = result.text;
-    hints = result.hints;
-  }
+  const accounts = await listAccounts(userId);
+  const userHasGoogle = accounts.accounts.length > 0;
+  const tools = await toolsForUser(userId, {
+    userHasGoogle,
+    disabledCategories: settings.disabledCategories,
+  });
+  const result = await runAgent(userId, profile, facts, messages, traceId, { tools });
+  const replyText = result.text;
+  const hints = result.hints;
 
   const endAppend = span("dev:appendTurns", traceId);
   await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
@@ -316,6 +302,6 @@ export async function POST(req: NextRequest) {
     extractAndMergeFacts(userId, freshHistory).catch(() => {});
   }
 
-  endRequest({ replyLength: replyText.length });
-  return NextResponse.json({ reply: replyText, hints });
+  endRequest({ replyLength: replyText.length, toolCalls: result.toolCalls?.length ?? 0 });
+  return NextResponse.json({ reply: replyText, hints, toolCalls: result.toolCalls ?? [] });
 }

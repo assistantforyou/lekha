@@ -8,7 +8,7 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated with se
 |---|---|
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
 | Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
-| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash Lite primary, Flash for extraction) |
+| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash for agent + extraction) |
 | Embeddings | Gemini `text-embedding-004` (768 dims) |
 | Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
 | Vector search | Upstash Vector — archive semantic search (substring fallback when unset) |
@@ -195,14 +195,14 @@ The bot is private by default. Every event hits the gate before any other logic.
 
 **Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome), `/deny <id>` (remove from pending). Anyone can `/myid` to get their own LINE userId.
 
-### 16. Single LLM provider — Gemini 2.5 Flash Lite (paid), 60s timeout
-No cascade, no fallback. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 20s — fail-fast for real hangs without burning function time. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
+### 16. Single LLM provider — Gemini 2.5 Flash (paid), 30s timeout
+No cascade, no fallback. We use full Flash (not Flash Lite) for agentic tool use because Flash Lite blanked/panicked under the full tool registry. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 30s — fail-fast for real hangs without burning function time. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
 
 ### 17. Orchestrator-level error relay enforcement
 After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
 
-### 18. Conditional tool registry (per-user OAuth gating)
-`toolsForUser(userId)` is async and gates Google-dependent tools on whether THIS user has actually connected a Google account. Saves ~2K tokens per request for users without OAuth. The connect-account tools remain registered even without a connection so the model can guide the user through linking. The system prompt stays static (preserves Gemini implicit caching). Cached per-user for 5 minutes.
+### 18. Static full tool registry (per-user OAuth gating)
+`toolsForUser(userId)` returns the full static tool registry, gated only on env/user prerequisites (OAuth connected, service configured). We removed per-intent tool filtering because it varied the tool prefix and hurt Gemini implicit caching; full Flash can handle the full registry reliably. The system prompt stays static (preserves caching). Cached per-user for 5 minutes.
 
 ### 19. Structured facts (categorized, LRU-capped) + token-bounded history
 Facts are stored at `user:{userId}:facts:v2` as JSON with shape `{ facts: Fact[], updatedAt }`. Each `Fact` has `id`, `category` (preferences|people|habits|deadlines|context|health|work|other), `content`, `createdAt`, `updatedAt`, optional `confidence`. Cap at 200 facts/user with LRU eviction by `updatedAt`.
@@ -260,7 +260,7 @@ Idempotency relies on the existing `seen:{webhookEventId}` dedup.
 - **LINE doesn't bundle a caption with media.** Recent-media staging spans messages within 30-min TTL.
 - **`Content-Transfer-Encoding: 7bit` is invalid for UTF-8 bodies** (Thai, emoji). Use base64.
 - **OAuth state nonce + connect-link token must be atomically consumed** (GETDEL) — non-atomic GET+DEL has a replay window.
-- **Gemini timeout at 20s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`) — fail-fast for real hangs. Most healthy requests finish in 1–3s.
+- **Gemini timeout at 30s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`) — fail-fast for real hangs. Most healthy requests finish in 1–3s.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
 - **Upstash Vector index must be dim 768, cosine** to match Gemini `text-embedding-004`. Mismatch surfaces as silent upsert failures.
