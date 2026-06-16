@@ -107,7 +107,9 @@ export async function runSweepForUser(userId: string): Promise<void> {
     settings.timezone,
   );
   const morningActiveOk = !(await isUserRecentlyActive(userId));
-  const morningLockOk = await claimPushLock(userId, "morning_briefing");
+  const morningLockOk = morningTimeOk && morningChannelOk && morningWindowOk && morningActiveOk
+    ? await claimPushLock(userId, "morning_briefing")
+    : false;
   const morningShouldFire = morningTimeOk && morningChannelOk && morningWindowOk && morningActiveOk && morningLockOk;
   console.log(
     `[sweep] ${userId.slice(0, 12)}… morning=` +
@@ -148,7 +150,9 @@ export async function runSweepForUser(userId: string): Promise<void> {
     settings.eveningSummaryTime,
   );
   const eveningActiveOk = !(await isUserRecentlyActive(userId));
-  const eveningLockOk = await claimPushLock(userId, "evening_summary");
+  const eveningLockOk = eveningTimeOk && eveningChannelOk && eveningWindowOk && eveningActiveOk
+    ? await claimPushLock(userId, "evening_summary")
+    : false;
   const eveningShouldFire = eveningTimeOk && eveningChannelOk && eveningWindowOk && eveningActiveOk && eveningLockOk;
   console.log(
     `[sweep] ${userId.slice(0, 12)}… evening=` +
@@ -181,7 +185,9 @@ export async function runSweepForUser(userId: string): Promise<void> {
     settings.timezone,
   );
   const checkinActiveOk = !(await isUserRecentlyActive(userId));
-  const checkinLockOk = await claimPushLock(userId, "task_check_in");
+  const checkinLockOk = checkinEnabledOk && checkinChannelOk && checkinWindowOk && checkinActiveOk
+    ? await claimPushLock(userId, "task_check_in")
+    : false;
   const checkinShouldFire = checkinEnabledOk && checkinChannelOk && checkinWindowOk && checkinActiveOk && checkinLockOk;
   console.log(
     `[sweep] ${userId.slice(0, 12)}… checkin=` +

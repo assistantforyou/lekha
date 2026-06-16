@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
         if (
           settings.morningBriefingTime &&
           settings.briefingChannels?.line !== false &&
+          shouldFireBriefingNow(settings.morningBriefingTime, settings.lastMorningBriefingTs, settings.timezone) &&
           !(await isUserRecentlyActive(userId)) &&
           (await claimPushLock(userId, "morning_briefing"))
         ) {
