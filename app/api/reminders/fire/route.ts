@@ -53,11 +53,10 @@ export async function POST(req: NextRequest) {
     if (!live) {
       return NextResponse.json({ ok: true, skipped: true });
     }
-    try {
-      await push(userId, [textMsg(`⏰ Reminder: ${message}`)]);
-    } catch (err) {
-      console.error("[reminder] recurring push failed", userId, err);
-      // Release the per-day lock so QStash's retry can actually re-deliver.
+    const pushed = await push(userId, [textMsg(`⏰ Reminder: ${message}`)]);
+    if (!pushed) {
+      console.error("[reminder] recurring push failed", userId, id);
+      // Release per-day lock so QStash retry can re-deliver.
       await redis().del(lockKey);
       return new NextResponse("push failed", { status: 500 });
     }
@@ -72,21 +71,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true });
     }
     const label = type === "warning_3h" ? "3 hours" : "1 hour";
-    await push(userId, [textMsg(`⏰ Heads up — in ${label}: ${message}`)]);
+    const pushed = await push(userId, [textMsg(`⏰ Heads up — in ${label}: ${message}`)]);
+    if (!pushed) {
+      console.error("[reminder] warning push failed", userId, id, type);
+      // Release lock so QStash retry can re-deliver.
+      await redis().del(lockKey);
+      return new NextResponse("push failed", { status: 500 });
+    }
     return NextResponse.json({ ok: true });
   }
 
-  // Final fire: consume first, then push. If consume fails, QStash will retry.
+  // Final fire: consume first (idempotency gate), then push.
+  // push() never throws — it returns false on LINE API failure. Check the
+  // return value and restore the reminder key so QStash can retry on failure.
   const reminder = await consumeReminder(userId, id);
   if (!reminder) {
     // Already fired or cancelled — return 200 so QStash doesn't retry.
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  try {
-    await push(userId, [textMsg(`⏰ Reminder: ${message}`)]);
-  } catch (err) {
-    console.error("[reminder] push failed", userId, err);
+  const pushed = await push(userId, [textMsg(`⏰ Reminder: ${message}`)]);
+  if (!pushed) {
+    console.error("[reminder] push failed, restoring for retry", userId, id);
+    // Restore the reminder so the next QStash retry attempt can consume it again.
+    await redis().set(reminderKey(userId, id), reminder, { ex: 300 });
     return new NextResponse("push failed", { status: 500 });
   }
 
