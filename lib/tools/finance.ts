@@ -193,27 +193,64 @@ export function buildFinanceTools() {
         const fl = f.toLowerCase();
         const tl = t2.toLowerCase();
         const t0 = Date.now();
+        let rate: number | null = null;
+        let source = "";
+        let asOf: string | null = null;
+
         try {
-          // Primary: fawazahmed0 CDN — aggregated market rates, closer to real-time
-          let rate: number | null = null;
-          let source = "fawazahmed0.com";
+          // Primary: exchangerate-api.com — reliable daily market rates
           try {
-            const data = await fetchJSON<Record<string, Record<string, number>>>(
-              `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${fl}.json`,
+            const data = await fetchJSON<{
+              base?: string;
+              date?: string;
+              rates?: Record<string, number>;
+            }>(
+              `https://api.exchangerate-api.com/v4/latest/${encodeURIComponent(f)}`,
+              { timeoutMs: 4000 },
             );
-            rate = data[fl]?.[tl] ?? null;
+            if (data.base?.toUpperCase() === f && data.rates?.[t2] != null) {
+              rate = data.rates[t2];
+              source = "exchangerate-api.com";
+              asOf = data.date ? `${data.date}T00:00:00Z` : null;
+            }
           } catch {
-            // CDN failed — fall back to Frankfurter (ECB daily)
+            // Fall through to Frankfurter
           }
-          if (!rate) {
-            source = "Frankfurter";
-            const data = await fetchJSON<{ rates?: Record<string, number> }>(
-              `https://api.frankfurter.app/latest?from=${f}&to=${t2}`,
-            );
-            rate = data.rates?.[t2] ?? null;
+
+          // Fallback 1: Frankfurter (ECB daily)
+          if (rate == null) {
+            try {
+              const data = await fetchJSON<{ rates?: Record<string, number> }>(
+                `https://api.frankfurter.app/latest?from=${encodeURIComponent(f)}&to=${encodeURIComponent(t2)}`,
+                { timeoutMs: 4000 },
+              );
+              if (data.rates?.[t2] != null) {
+                rate = data.rates[t2];
+                source = "Frankfurter (ECB)";
+              }
+            } catch {
+              // Fall through to fawazahmed0
+            }
           }
+
+          // Fallback 2: fawazahmed0 aggregated feed
+          if (rate == null) {
+            try {
+              const data = await fetchJSON<Record<string, Record<string, number>>>(
+                `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${fl}.json`,
+                { timeoutMs: 4000 },
+              );
+              if (data[fl]?.[tl] != null) {
+                rate = data[fl]![tl];
+                source = "fawazahmed0.com";
+              }
+            } catch {
+              // All sources failed
+            }
+          }
+
           console.log("[fx_rate]", { from: f, to: t2, rate, ms: Date.now() - t0, source });
-          if (!rate) return { ok: false, error: `No rate available for ${f}→${t2}` };
+          if (rate == null) return { ok: false, error: `No rate available for ${f}→${t2}` };
           return {
             ok: true,
             from: f,
@@ -222,6 +259,7 @@ export function buildFinanceTools() {
             amount,
             converted: rate * amount,
             source,
+            asOf,
           };
         } catch (err) {
           return { ok: false, error: err instanceof Error ? err.message : "Lookup failed" };

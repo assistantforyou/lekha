@@ -1,18 +1,7 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { env } from "@/lib/env";
-
-type TavilyNewsResult = {
-  title: string;
-  url: string;
-  content: string;
-  published_date?: string;
-};
-
-type TavilyNewsResponse = {
-  answer?: string;
-  results?: TavilyNewsResult[];
-};
+import { fetchCachedNewsSearch } from "@/lib/search-cache";
 
 export function buildNewsTools() {
   return {
@@ -27,46 +16,14 @@ export function buildNewsTools() {
       execute: async ({ query, days, count }) => {
         const apiKey = env().TAVILY_API_KEY;
         if (!apiKey) return { ok: false, error: "News search not configured (Tavily key missing)" };
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 6000);
         const t0 = Date.now();
-        try {
-          const r = await fetch("https://api.tavily.com/search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              api_key: apiKey,
-              query,
-              max_results: count,
-              include_answer: true,
-              search_depth: "basic",
-              topic: "news",
-              days,
-            }),
-            signal: ctrl.signal,
-          });
-          console.log("[news_search]", { query, ms: Date.now() - t0, status: r.status });
-          if (!r.ok) return { ok: false, error: `News search failed: HTTP ${r.status}` };
-          const data = (await r.json()) as TavilyNewsResponse;
-          return {
-            ok: true,
-            summary: data.answer ?? null,
-            stories:
-              data.results?.map((s) => ({
-                title: s.title,
-                url: s.url,
-                snippet: s.content.slice(0, 300),
-                published: s.published_date ?? null,
-              })) ?? [],
-          };
-        } catch (err) {
-          if ((err as { name?: string })?.name === "AbortError") {
-            return { ok: false, error: "News search timed out after 6s." };
-          }
-          return { ok: false, error: `News search failed: ${err instanceof Error ? err.message : String(err)}` };
-        } finally {
-          clearTimeout(t);
-        }
+        const data = await fetchCachedNewsSearch(query, apiKey, days, count);
+        console.log("[news_search]", { query, ms: Date.now() - t0, stories: data.stories.length });
+        return {
+          ok: true,
+          summary: data.summary,
+          stories: data.stories,
+        };
       },
     }),
   };

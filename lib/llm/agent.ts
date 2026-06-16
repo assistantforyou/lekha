@@ -380,9 +380,16 @@ function renderDisplayFallback(result: { steps?: { toolResults?: { toolName?: st
         const amount = val.amount as number;
         const converted = val.converted as number;
         const source = String(val.source ?? "");
+        const asOf = val.asOf ? String(val.asOf) : "";
         let line = `• ${amount} ${from} = ${converted.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${to}`;
-        line += ` (rate: ${rate.toFixed(4)})`;
-        if (source) line += ` (source: ${source})`;
+        if (asOf) {
+          const shortAsOf = asOf.includes("T") ? asOf.slice(0, 10) : asOf;
+          line += ` (rate: ${rate.toFixed(4)} ${from}/${to}, as of ${shortAsOf}${source ? `, source: ${source}` : ""})`;
+        } else if (source) {
+          line += ` (rate: ${rate.toFixed(4)} ${from}/${to}, source: ${source})`;
+        } else {
+          line += ` (rate: ${rate.toFixed(4)} ${from}/${to})`;
+        }
         return line;
       }
 

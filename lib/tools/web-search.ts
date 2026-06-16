@@ -1,17 +1,7 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { env } from "@/lib/env";
-
-type TavilyResult = {
-  title: string;
-  url: string;
-  content: string;
-};
-
-type TavilyResponse = {
-  answer?: string;
-  results?: TavilyResult[];
-};
+import { fetchCachedWebSearch } from "@/lib/search-cache";
 
 export function buildWebSearchTool() {
   return {
@@ -25,44 +15,17 @@ export function buildWebSearchTool() {
       execute: async ({ query, count }) => {
         const apiKey = env().TAVILY_API_KEY;
         if (!apiKey) return { ok: false, error: "Web search not configured" };
-        const ctrl = new AbortController();
-        const timeout = setTimeout(() => ctrl.abort(), 6000);
         const t0 = Date.now();
-        try {
-          const r = await fetch("https://api.tavily.com/search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              api_key: apiKey,
-              query,
-              max_results: count,
-              include_answer: true,
-              search_depth: "basic",
-            }),
-            signal: ctrl.signal,
-          });
-          console.log("[web_search] tavily", { query, ms: Date.now() - t0, status: r.status });
-          if (!r.ok) return { ok: false, error: `Search failed: ${r.status}` };
-          const data = (await r.json()) as TavilyResponse;
-          return {
-            ok: true,
-            answer: data.answer ?? null,
-            results:
-              data.results?.map((res) => ({
-                title: res.title,
-                url: res.url,
-                snippet: res.content.slice(0, 400),
-              })) ?? [],
-          };
-        } catch (err) {
-          if ((err as { name?: string })?.name === "AbortError") {
-            console.warn("[web_search] timeout after 6s", { query });
-            return { ok: false, error: "Search timed out after 6s — Tavily was slow or unreachable." };
-          }
-          return { ok: false, error: `Search failed: ${err instanceof Error ? err.message : String(err)}` };
-        } finally {
-          clearTimeout(timeout);
+        const data = await fetchCachedWebSearch(query, apiKey, count);
+        console.log("[web_search] tavily", { query, ms: Date.now() - t0, results: data.results.length });
+        if (!data.results.length && !data.answer) {
+          return { ok: false, error: "Search completed but no results were found." };
         }
+        return {
+          ok: true,
+          answer: data.answer,
+          results: data.results,
+        };
       },
     }),
   };

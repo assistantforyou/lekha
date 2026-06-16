@@ -388,7 +388,7 @@ export default function PrivacyPage() {
               <li>We do not train AI models on your personal conversations or Google data.</li>
               <li>Google OAuth tokens are encrypted at rest using AES-256-GCM.</li>
               <li>You can export, correct, or delete all your data at any time — in-app or by emailing us.</li>
-              <li>We comply with Thailand's PDPA and respect GDPR rights for EEA users.</li>
+              <li>We comply with Thailand&apos;s PDPA and respect GDPR rights for EEA users.</li>
             </ul>
           </div>
 
