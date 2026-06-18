@@ -9,6 +9,7 @@ import {
   reopenTask,
   updateTask,
   deleteTask,
+  type Task,
 } from "@/lib/memory/tasks";
 
 function formatDueText(ts: number, timezone = "Asia/Bangkok"): string {
@@ -58,7 +59,7 @@ export function buildTaskTools(userId: string) {
   return {
     add_task: tool({
       description:
-        "Add a single task (a persistent open work item). Use for one-off items the user wants to track until done — distinct from reminders, which fire and disappear. Optional dueAt for soft deadlines. If the user gives a numbered or bulleted list with 2+ items, use add_tasks (plural) instead.",
+        "Add a single task (a persistent open work item). Use for one-off items the user wants to track until done — distinct from reminders, which fire and disappear. Optional dueAt for soft deadlines. If the user gives a numbered or bulleted list with 2+ items, use add_tasks (plural) instead. Adding a task whose title matches an existing OPEN task is a no-op — the result returns deduped:true and the existing task; tell the user it's already on their list rather than claiming you added a new one.",
       inputSchema: z.object({
         title: z.string().min(2).max(200),
         notes: z.string().max(2000).optional(),
@@ -72,14 +73,14 @@ export function buildTaskTools(userId: string) {
           }
           dueAtTs = new Date(dueAt).getTime();
         }
-        const t = await addTask(userId, { title, notes, dueAt: dueAtTs });
-        return { ok: true, task: t };
+        const { task: t, deduped } = await addTask(userId, { title, notes, dueAt: dueAtTs });
+        return { ok: true, task: t, deduped };
       },
     }),
 
     add_tasks: tool({
       description:
-        "Add multiple tasks at once from a numbered or bulleted list. Use when the user says something like 'add these tasks: 1) X 2) Y 3) Z' or lists several to-dos in one message. Each item becomes its own task.",
+        "Add multiple tasks at once from a numbered or bulleted list. Use when the user says something like 'add these tasks: 1) X 2) Y 3) Z' or lists several to-dos in one message. Each item becomes its own task. Items matching an existing OPEN task (or an earlier item in the same batch) are skipped and returned in skippedDuplicates — mention any skips to the user instead of claiming they were all added.",
       inputSchema: z.object({
         items: z
           .array(
@@ -93,7 +94,8 @@ export function buildTaskTools(userId: string) {
           .max(20),
       }),
       execute: async ({ items }) => {
-        const created: Awaited<ReturnType<typeof addTask>>[] = [];
+        const created: Task[] = [];
+        const skipped: string[] = [];
         const errors: string[] = [];
         for (const item of items) {
           let dueAtTs: number | undefined;
@@ -104,10 +106,21 @@ export function buildTaskTools(userId: string) {
             }
             dueAtTs = new Date(item.dueAt).getTime();
           }
-          const t = await addTask(userId, { title: item.title, notes: item.notes, dueAt: dueAtTs });
-          created.push(t);
+          const { task: t, deduped } = await addTask(userId, {
+            title: item.title,
+            notes: item.notes,
+            dueAt: dueAtTs,
+          });
+          if (deduped) skipped.push(t.title);
+          else created.push(t);
         }
-        return { ok: true, createdCount: created.length, created, errors: errors.length ? errors : undefined };
+        return {
+          ok: true,
+          createdCount: created.length,
+          created,
+          skippedDuplicates: skipped.length ? skipped : undefined,
+          errors: errors.length ? errors : undefined,
+        };
       },
     }),
 

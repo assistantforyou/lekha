@@ -16,7 +16,21 @@ export type Task = {
 
 const listKey = (userId: string) => `user:${userId}:tasks`;
 
-export async function addTask(userId: string, t: Omit<Task, "id" | "createdAt">): Promise<Task> {
+function normalizeTitle(title: string): string {
+  return title.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export async function addTask(
+  userId: string,
+  t: Omit<Task, "id" | "createdAt">,
+): Promise<{ task: Task; deduped: boolean }> {
+  // Dedup: if an open task with the same title already exists, return it
+  // instead of creating a duplicate. Done tasks don't block re-adding.
+  const open = await listTasks(userId, "open");
+  const norm = normalizeTitle(t.title);
+  const existing = open.find((x) => normalizeTitle(x.title) === norm);
+  if (existing) return { task: existing, deduped: true };
+
   const task: Task = { id: crypto.randomUUID(), createdAt: Date.now(), ...t };
   if (task.dueAt && task.dueAt > Date.now()) {
     task.qstashDeadlineWarnId = await scheduleTaskDeadlineWarning(
@@ -27,7 +41,7 @@ export async function addTask(userId: string, t: Omit<Task, "id" | "createdAt">)
     );
   }
   await redis().rpush(listKey(userId), JSON.stringify(task));
-  return task;
+  return { task, deduped: false };
 }
 
 export async function listTasks(
