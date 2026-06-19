@@ -10,10 +10,28 @@ function googleClient() {
   return createGoogleGenerativeAI({ apiKey });
 }
 
+export function hasFreeKey(): boolean {
+  return Boolean(env().GEMINI_API_KEY_FREE);
+}
+
+export function hasPaidKey(): boolean {
+  const e = env();
+  return Boolean(e.GEMINI_API_KEY ?? e.AI_GATEWAY_API_KEY);
+}
+
+export function chatModelForTier(tier: "free" | "paid") {
+  const e = env();
+  const apiKey = tier === "free"
+    ? e.GEMINI_API_KEY_FREE
+    : (e.GEMINI_API_KEY ?? e.AI_GATEWAY_API_KEY);
+  if (!apiKey) throw new Error(`No ${tier} Gemini API key configured`);
+  return createGoogleGenerativeAI({ apiKey })("gemini-2.5-flash");
+}
+
 /** Main chat model — Gemini 2.5 Flash. Full Flash is required for reliable
  *  agentic tool use; Flash Lite caused blank/panicked replies. */
 export function chatModel() {
-  return googleClient()("gemini-2.5-flash");
+  return chatModelForTier(hasFreeKey() ? "free" : "paid");
 }
 
 /** Background extraction / summarization model. Kept as a separate export so

@@ -205,6 +205,11 @@ export function text(s: string): LineMessage {
   return textBubble(s);
 }
 
+/** Build a raw Flex Message from a pre-built bubble/carousel contents object. */
+export function flex(altText: string, contents: unknown): FlexMessage {
+  return { type: "flex", altText: altText.slice(0, 400), contents };
+}
+
 async function safeText(r: Response): Promise<string> {
   try {
     return await r.text();

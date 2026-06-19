@@ -1,6 +1,7 @@
 import { performance } from "perf_hooks";
 import { generateText, stepCountIs, type ModelMessage } from "ai";
-import { chatModel, AGENT_TIMEOUT_MS, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
+import { chatModelForTier, hasFreeKey, hasPaidKey, AGENT_TIMEOUT_MS, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
+import { isTierDown, markTierDown } from "@/lib/llm/health";
 import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
 import { factsToPromptBlock, loadFacts, displayOrder, formatFactLine } from "@/lib/memory/facts";
 import { listAccounts } from "@/lib/tools/google-auth";
@@ -677,20 +678,59 @@ export async function runAgent(
     endTools({ toolCount: Object.keys(tools).length });
 
     const endGenerate = span("agent:generateText", traceId);
-    const result = await withTimeout(
-      generateText({
-        model: chatModel(),
-        system,
-        messages: [...timePrefix, ...messages],
-        tools,
-        temperature: 0.6,
-        stopWhen: stepCountIs(8),
-        maxRetries: 1,
-        onStepFinish: (step) => tracker.record(step as Parameters<ReturnType<typeof createStepTracker>["record"]>[0]),
-        providerOptions: GEMINI_PROVIDER_OPTIONS,
-      }),
-      AGENT_TIMEOUT_MS,
-    );
+
+    // Build ordered tier list: free first (separate GCP project, no billing),
+    // paid as fallback. Skip a tier if its key is absent or recently marked down.
+    const [freeDown, paidDown] = await Promise.all([
+      hasFreeKey() ? isTierDown("free") : Promise.resolve(true),
+      hasPaidKey() ? isTierDown("paid") : Promise.resolve(true),
+    ]);
+    const tiersToTry: ("free" | "paid")[] = [];
+    if (hasFreeKey() && !freeDown) tiersToTry.push("free");
+    if (hasPaidKey() && !paidDown) tiersToTry.push("paid");
+    if (tiersToTry.length === 0) tiersToTry.push(hasFreeKey() ? "free" : "paid");
+
+    let geminiRanToolCalls = false;
+    let lastTierErr: unknown = null;
+    let result: Awaited<ReturnType<typeof generateText>> | undefined;
+
+    for (let i = 0; i < tiersToTry.length; i++) {
+      const tier = tiersToTry[i]!;
+      try {
+        result = await withTimeout(
+          generateText({
+            model: chatModelForTier(tier),
+            system,
+            messages: [...timePrefix, ...messages],
+            tools,
+            temperature: 0.6,
+            stopWhen: stepCountIs(8),
+            maxRetries: 1,
+            onStepFinish: (step) => {
+              if (step.toolCalls.length > 0) geminiRanToolCalls = true;
+              tracker.record(step as Parameters<ReturnType<typeof createStepTracker>["record"]>[0]);
+            },
+            providerOptions: GEMINI_PROVIDER_OPTIONS,
+          }),
+          AGENT_TIMEOUT_MS,
+        );
+        if (tiersToTry.length > 1 && i > 0) console.log("[tier] switched to", tier, { ms: Date.now() });
+        break;
+      } catch (err) {
+        const isTimeout = err instanceof AgentTimeoutError;
+        const isQuota = /spending cap|RESOURCE_EXHAUSTED|exceeded its monthly|rate limit|429/i.test(
+          err instanceof Error ? err.message : String(err),
+        );
+        if (!isQuota && !isTimeout) throw err;
+        if (isTimeout && geminiRanToolCalls) throw err;
+        await markTierDown(tier, 60).catch(() => {});
+        lastTierErr = err;
+        const nextTier = tiersToTry[i + 1];
+        console.warn(`[tier] ${tier}→${nextTier ?? "none"} (${isTimeout ? "timeout" : "quota"})`, { ms: Date.now() });
+      }
+    }
+
+    if (!result) throw lastTierErr ?? new Error("All Gemini tiers exhausted — try again shortly");
     const usage = result.usage as { promptTokens?: number; completionTokens?: number; totalTokens?: number } | undefined;
     const cached = (result as { experimental_providerMetadata?: { google?: { cachedContentTokenCount?: number } } }).experimental_providerMetadata?.google?.cachedContentTokenCount;
     const costUsd =

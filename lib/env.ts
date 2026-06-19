@@ -8,6 +8,9 @@ const Env = z.object({
   // LLM
   GEMINI_API_KEY: z.string().optional(),
   AI_GATEWAY_API_KEY: z.string().optional(), // legacy fallback
+  // Free-tier Gemini key (from a GCP project with no billing account attached).
+  // When set, the bot tries this key first and falls back to GEMINI_API_KEY on quota.
+  GEMINI_API_KEY_FREE: z.string().optional(),
 
   // Google OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
