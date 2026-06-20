@@ -13,7 +13,6 @@ import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import type { ToolSet } from "ai";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapCause, unwrapAuthRequired } from "@/lib/errors";
-import type { Intent } from "@/lib/intent";
 import type { LineMessage } from "@/lib/line/client";
 import { buildFlexFromToolResults, buildFollowUps } from "@/lib/llm/agent-flex";
 import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
@@ -615,7 +614,6 @@ export async function runAgent(
     accounts?: Awaited<ReturnType<typeof listAccounts>>;
     staged?: Awaited<ReturnType<typeof listRecentMedia>>;
     tools?: ToolSet;
-    intent?: Intent;
     hasStagedMedia?: boolean;
   },
 ): Promise<AgentResult> {
@@ -653,10 +651,7 @@ export async function runAgent(
           .join("\n")}\nIf the user asks about an image, call \`ocr_image\` or \`summarize_image\` with the index. If they ask about a PDF/document, call \`summarize_document\` or \`read_document\`. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
       : "";
     const tz = settings.timezone ?? "Asia/Bangkok";
-    const suppressFactsIntents = new Set<Intent>(["task", "memory", "lists", "reminder", "media"]);
-    const factsBlock = opts?.intent && suppressFactsIntents.has(opts.intent)
-      ? ""
-      : factsToPromptBlock(facts);
+    const factsBlock = factsToPromptBlock(facts);
     const system = buildSystemPrompt(factsBlock, profile, settings);
 
     // Volatile per-request context goes into a synthetic first message pair so
@@ -677,7 +672,6 @@ export async function runAgent(
       (await toolsForUser(userId, {
         userHasGoogle,
         disabledCategories: settings.disabledCategories,
-        intent: opts?.intent,
         hasStagedMedia: opts?.hasStagedMedia,
       }));
     endTools({ toolCount: Object.keys(tools).length });

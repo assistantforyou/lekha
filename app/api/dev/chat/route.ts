@@ -7,8 +7,6 @@ import { loadFacts } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
 import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
 import { runAgent } from "@/lib/llm/agent";
-import { classifyIntent } from "@/lib/intent";
-import type { Intent } from "@/lib/intent";
 import { generateText } from "ai";
 import { chatModel, extractorModel, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
 import { toolsForUser } from "@/lib/tools";
@@ -280,19 +278,14 @@ export async function POST(req: NextRequest) {
 
   const staged = await listRecentMedia(userId);
   const hasStagedMedia = staged.length > 0;
-  const hasFile = staged.some((m) => m.kind === "file");
-  const intentResult = await classifyIntent(text, { hasStagedMedia, hasFile });
   const accounts = await listAccounts(userId);
   const userHasGoogle = accounts.accounts.length > 0;
-  const intent: Intent | undefined =
-    intentResult.isMulti || intentResult.confidence === "low" ? undefined : intentResult.primary;
   const tools = await toolsForUser(userId, {
     userHasGoogle,
     disabledCategories: settings.disabledCategories,
-    intent,
     hasStagedMedia,
   });
-  const result = await runAgent(userId, profile, facts, messages, traceId, { tools, intent, hasStagedMedia });
+  const result = await runAgent(userId, profile, facts, messages, traceId, { tools, hasStagedMedia });
   const replyText = result.text;
   const hints = result.hints;
 
