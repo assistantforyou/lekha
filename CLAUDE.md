@@ -54,6 +54,7 @@ lib/
 ├── confirm.ts                         # pending action queue (atomic RPUSH)
 ├── pending-runner.ts                  # executePendingAll — runs queue on YES, logs sends
 ├── cron.ts                            # QStash schedule helpers + local→UTC cron conversion
+├── fast-classify.ts                   # zero-latency regex intent hint → toolsForUser narrowing (decision #21)
 ├── utils.ts                           # shared utilities (cn, etc.)
 ├── line/{verify,client,types,mime}.ts # HMAC, REST client, zod schemas, file-mime helpers
 ├── webhook/                           # webhook orchestration split from app/api/line/webhook/route.ts
@@ -86,33 +87,34 @@ lib/
 │   ├── user-registry.ts               # set of all known userIds for cron sweep
 │   └── allowlist.ts                   # private access control — Redis set `users:allowed`
 └── tools/
-    ├── index.ts                       # toolsForUser(userId) — async, declarative registry, env + per-user OAuth gated
+    ├── index.ts                       # toolsForUser(userId) — async, declarative registry, env + OAuth + hint gated (decision #21)
     ├── help.ts                        # show_help text dump
-    ├── settings.ts                    # set_timezone/location/language/morning_briefing/pre_meeting + enable/disable_evening_summary
+    ├── settings.ts                    # 12 tools: get_my_settings + set_timezone/location/language + enable/disable_* prefs
     ├── morning-briefing.ts            # get_morning_briefing tool (calls lib/llm/briefing.ts)
     ├── evening-summary.ts             # get_evening_summary tool (calls lib/llm/evening-summary.ts)
     ├── memory.ts                      # remember/list/update/forget/clear + archive search
-    ├── tasks.ts                       # CRUD on tasks
+    ├── tasks.ts                       # 8 CRUD tools on tasks
     ├── reminders.ts                   # set/list/cancel/set_recurring (one-shot via publish, recurring via schedule)
-    ├── web-search.ts                  # Tavily
+    ├── web-search.ts                  # Tavily — universal tool, always registered
     ├── contacts.ts                    # contacts_search via Google People API
     ├── google-auth.ts                 # multi-account OAuth, encrypted tokens, scope check, atomic state
     ├── google-accounts.ts             # list/connect/switch/disconnect Google accounts
     ├── with-google.ts                 # auth/api-disabled/quota error → structured marker
-    ├── email.ts                       # draft_email + sendEmail (multi-recip, Drive + LINE attach, Gmail threading)
+    ├── email.ts                       # draft_email (multi-recip, Drive + LINE attach, Gmail threading)
     ├── gmail-inbox.ts                 # gmail_search/read/summarize_recent + draft_gmail_reply
     ├── scheduled-email.ts             # schedule_email/list/cancel — QStash-deferred sends
-    ├── calendar.ts                    # draft + create + list_upcoming
+    ├── calendar.ts                    # 8 tools: draft/search/update/delete/list_upcoming/today/week/find_free_time
     ├── drive.ts                       # search/list_recent/get_link/read_text/upload_recent_media
-    ├── media-ai.ts                    # transcribe/summarize_audio + ocr/summarize_image + summarize_document
-    ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt — Gemini extraction
+    ├── media-ai.ts                    # ocr/summarize_image + summarize/read_document — staged-media only
+    ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt — staged-media only
     ├── sent-history.ts                # query the audit log
     ├── export.ts                      # JSON dump of all user data
     ├── weather.ts                     # weather — wttr.in primary, Open-Meteo fallback (both keyless)
     ├── finance.ts                     # fx rates, stock quotes, crypto prices — keyless, ~3s timeout
     ├── news.ts                        # news search via Tavily
-    ├── lists.ts                       # named lists (grocery, packing, custom) — 7 CRUD tools, Redis-backed
-    ├── docs.ts                        # Google Docs create/edit + Slides create with structured slides
+    ├── lists.ts                       # named lists (grocery, packing, custom) — 8 CRUD tools, Redis-backed
+    ├── render-flex.ts                 # render_flex — model-generated LINE Flex cards
+    ├── places.ts                      # suggest_places — structured place cards with Google Maps buttons
     └── staged-media.ts                # list / clear LINE media staged for attach/upload
 tests/
 ├── briefing-gate.test.ts              # shouldFireBriefingNow logic
@@ -160,7 +162,7 @@ Timezone, location, language, connected Google accounts, staged media — all li
 Settings use versioning + migration: `CURRENT_VERSION` in `lib/memory/settings.ts` defines the schema. When a new schema is deployed, `applyMigrations()` runs on read and writes back once, never overriding explicit user choices tracked in `userConfigured` array.
 
 ### 12. Long-term memory via Upstash Vector (with substring fallback)
-Every fact-extraction cycle (every 10 turns) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `text-embedding-004` (768 dims) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries. At 100+ users with growing archives, semantic search materially beats substring on questions like "what did we discuss about that bird-themed project". Reversal of an earlier decision — see PLAN.md.
+Every fact-extraction cycle (every 10 turns) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `text-embedding-004` (768 dims) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries. At 100+ users with growing archives, semantic search materially beats substring on questions like "what did we discuss about that bird-themed project".
 
 ### 13. Proactive layer via master sweep
 A single QStash schedule hits `/api/cron/sweep` every 15 min (legacy endpoint; forwards to `lib/sweep.ts` `runSweepForUser`). Iterates `users:active` set, decides per-user whether to push (morning briefing window check, evening summary window check, task check-in window check). **There are no per-user QStash schedules for briefings/summaries.**
@@ -180,8 +182,8 @@ The bot is private by default. Every event hits the gate before any other logic.
 ### 16. Single LLM provider — Gemini 2.5 Flash (paid), 30s timeout
 `runAgent` calls Gemini directly with the full tool registry. No cascade, no fallback. We moved off Flash Lite because it blanked/panicked on agentic tool use; full Flash handles the same workload reliably. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 30s, giving multi-step turns room without burning function time on real hangs. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
 
-### 18. Conditional tool registry (per-user OAuth gating)
-`toolsForUser(userId)` is async and gates Google-dependent tools (email, calendar, drive, gmail-inbox, docs, scheduled-email, contacts) on whether THIS user has actually connected a Google account (`listAccounts(userId).accounts.length > 0`). Saves ~2K tokens per request for users without OAuth. The connect-account tools remain registered even without a connection so the model can guide the user through linking. The system prompt stays static (preserves Gemini implicit caching).
+### 18. Conditional tool registry (per-user OAuth gating + intent narrowing)
+`toolsForUser(userId)` is async and gates Google-dependent tools (email, calendar, drive, gmail-inbox, scheduled-email, contacts) on whether THIS user has actually connected a Google account (`listAccounts(userId).accounts.length > 0`). Non-Google users get ~20 tools instead of ~82. The connect-account tools remain registered for all users so the model can guide linking. See decision #21 for per-request narrowing on top of this.
 
 ### 19. Structured facts (categorized, LRU-capped) + token-bounded history
 Facts are stored at `user:{userId}:facts:v2` as a JSON value with shape `{ facts: Fact[], updatedAt }`. Each `Fact` has `id`, `category` (preferences|people|habits|deadlines|context|health|work|other), `content`, `createdAt`, `updatedAt`, optional `confidence`. Cap at 200 facts/user with LRU eviction by `updatedAt`. `factsToPromptBlock` groups by category for prompt scanability. Extractor (`lib/llm/extract-facts.ts`) emits structured output via `generateObject` with category + confidence per fact.
@@ -196,6 +198,19 @@ Postback `data` is parsed by verb prefix (`verb:arg:arg…`, capped at 300 chars
 - `task:done:<id>` / `task:reopen:<id>` → `completeTask` / `reopenTask`
 
 Future verbs (`draft:send:<idx>`, `reminder:cancel:<id>`) wire into the same branch. Idempotency relies on the existing `seen:{webhookEventId}` dedup. Per-template snapshot tests in `tests/flex.test.ts`.
+
+### 21. Regex intent hint — zero-latency tool narrowing
+`lib/fast-classify.ts` runs instant regex matching on every user message before `toolsForUser`. It returns a single intent string (`"reminder"`, `"weather"`, `"task"`, etc.) for high-confidence single-topic queries, or `undefined` for anything ambiguous, multi-topic, or casual.
+
+`toolsForUser` accepts an optional `hint` and filters the registry: entries tagged with `hints: [...]` are only built when the hint matches; entries with no `hints` field are **universal** (always included). `web_search` is universal so any wrong narrowing always has a search fallback.
+
+**Tool counts (Google-connected user, no staged media):**
+- `hint="reminder"` → ~12 tools | `hint="weather"` → ~8 | `hint="task"` → ~12
+- `hint="email"` → ~20 | `hint=undefined` → ~82 (all tools)
+
+**Failure mode is always safe**: `undefined` → all tools. The classifier never causes a tool to be missing — it only narrows when certain.
+
+**Do not re-add an LLM-based intent classifier.** The previous implementation caused hard failures when the LLM mis-classified a query (wrong label → wrong tool set → blank response). The regex approach with safe fallback is strictly more reliable.
 
 ### 17. Orchestrator-level error relay enforcement
 After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
@@ -212,7 +227,7 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 
 1. Create `lib/tools/your-tool.ts`. Export `buildYourTools(userId)` returning `tool({ description, inputSchema, execute })` records.
 2. Wrap any Google call in `withGoogleClient(userId, fromEmail, [scopes], async ({client}) => …)`.
-3. Register in `lib/tools/index.ts` (env-gated if needed).
+3. Register in `lib/tools/index.ts` (env-gated if needed). Add `hints: [...]` to limit when it's included — omit for universal tools. If you add a new intent, also add a pattern to `lib/fast-classify.ts`.
 4. If it produces something the user must approve, write through `appendPending` and add a renderer in `lib/llm/render-drafts.ts`.
 5. Update `lib/llm/prompts.ts` so the model knows about it.
 
@@ -226,6 +241,7 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 
 ## Gotchas (lessons learned the hard way)
 
+- **82 tools causes Gemini to blank on focused queries** — sending the full registry for a simple "remind me to X" causes the model to return empty text with no tool calls. `fast-classify.ts` narrows the registry to ~10–20 tools for clear single-intent queries. Do NOT remove this; do NOT replace it with an LLM classifier (been there — wrong labels silently break tool access).
 - **AI SDK v6 swallows tool exceptions** — must use structured returns for control flow.
 - **Parallel tool calls in one step race** — atomic Redis ops mandatory.
 - **Gemini paid tier** — billing must be enabled on the Google Cloud project tied to `GEMINI_API_KEY`. Free tier RPM (10–30) is too low for agentic turns; paid tier (1,000+ RPM) absorbs the burst.
