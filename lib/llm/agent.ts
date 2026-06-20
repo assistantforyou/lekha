@@ -21,6 +21,8 @@ import { stripMarkdown } from "@/lib/format";
 import { ACTION_LABELS } from "@/lib/llm/action-labels";
 import { buildMediaAiTools } from "@/lib/tools/media-ai";
 import { buildWeatherTools } from "@/lib/tools/weather";
+import { buildNewsTools } from "@/lib/tools/news";
+import { HELP_TEXT } from "@/lib/tools/help";
 
 export function extractToolValue(output: unknown): unknown {
   if (output && typeof output === "object") {
@@ -797,6 +799,13 @@ export async function runAgent(
         const fb = await fallbackSummarizeDocument(userId, profile.displayName);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
+      } else if (looksLikeNewsQuery(lastUserText)) {
+        const fb = await fallbackNewsSearch(lastUserText);
+        finalText = fb.text;
+        extraToolCalls = fb.toolCalls;
+      } else if (looksLikeHelpQuery(lastUserText)) {
+        finalText = HELP_TEXT;
+        extraToolCalls = [{ toolName: "show_help", input: {} }];
       }
     }
     const followUps = buildFollowUps(extraToolCalls.map((c) => c.toolName), { confirmDraft, modelText: finalText });
@@ -886,6 +895,15 @@ function looksLikeMediaQuery(text: string): boolean {
   return /\b(read|summarize|analyze|ocr|tell\s+me\s+about|what('s|s|\s+is)|extract)\s+(this|that|it|the\s+(file|pdf|doc|document|image|photo|picture))\b/i.test(text);
 }
 
+function looksLikeNewsQuery(text: string): boolean {
+  return /\b(news|headlines?|breaking|latest\s+news|current events|what'?s happening|top\s+news|news\s+today|today'?s\s+news)\b/i.test(text);
+}
+
+function looksLikeHelpQuery(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  return /^\/?(help|start)$/.test(lower) || /\bwhat\s+can\s+you\s+do\b/i.test(lower) || /\bwhat\s+are\s+your\s+(feature|capabilities|function)/i.test(lower);
+}
+
 async function fallbackWeather(query: string, timezone = "Asia/Bangkok"): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
   const locationMatch = query.match(/\b(?:in|at|for)\s+(.{2,80}?)\s*(?:\?|$)/i);
   const location = locationMatch?.[1]?.trim() ?? "Bangkok";
@@ -896,6 +914,22 @@ async function fallbackWeather(query: string, timezone = "Asia/Bangkok"): Promis
     return { text: display ?? "Weather lookup completed.", toolCalls: [{ toolName: "weather", input: { location } }] };
   } catch (err) {
     return { text: `I couldn't get the weather for ${location} right now.`, toolCalls: [{ toolName: "weather", input: { location } }] };
+  }
+}
+
+async function fallbackNewsSearch(query: string): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+  const topicMatch = query.match(/\b(?:news\s+(?:on|about)|about|on)\s+(.{2,80}?)\s*(?:\?|$)/i);
+  const topic = (topicMatch?.[1]?.trim() ?? query.replace(/\b(latest|news|today|on|about|the)\b/gi, "").trim()) || "top news";
+  try {
+    const tools = buildNewsTools();
+    const result = await tools.news_search.execute!({ query: topic, days: 2, count: 5 }, { toolCallId: "fallback", messages: [] });
+    const val = extractToolValue(result) as Record<string, unknown> | null;
+    const stories = Array.isArray(val?.stories) ? val.stories as Array<{ title: string; url: string; snippet?: string }> : [];
+    if (stories.length === 0) return { text: `No news found for "${topic}" right now.`, toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
+    const lines = stories.slice(0, 5).map((s, i) => `${i + 1}. ${s.title}`);
+    return { text: `Here's the latest on "${topic}":\n${lines.join("\n")}`, toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
+  } catch {
+    return { text: `I couldn't fetch news right now. Try again shortly.`, toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
   }
 }
 
