@@ -8,6 +8,7 @@ import {
   newsFlex,
   briefingFlex,
 } from "@/lib/line/flex";
+import { buildPlacesFlex, type PlaceItem } from "@/lib/line/places-flex";
 import { extractToolValue } from "@/lib/llm/agent";
 
 type StepLike = {
@@ -160,6 +161,21 @@ export function buildFlexFromToolResults(
         }));
         if (events.length > 0) {
           out.push(calendarEventsFlex(events, timezone));
+          seen.add(toolName);
+        }
+        continue;
+      }
+
+      // ── Place recommendations ─────────────────────────────────────────
+      if (toolName === "suggest_places" && value.ok === true && Array.isArray(value.items)) {
+        const items = (value.items as Array<Record<string, unknown>>).map<PlaceItem>((p) => ({
+          name: String(p.name ?? ""),
+          note: String(p.note ?? ""),
+          mapsQuery: String(p.mapsQuery ?? ""),
+        }));
+        const title = String(value.title ?? "Places");
+        if (items.length > 0) {
+          out.push(buildPlacesFlex(title, items));
           seen.add(toolName);
         }
         continue;

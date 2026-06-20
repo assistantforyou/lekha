@@ -20,6 +20,7 @@ import { buildNewsTools } from "./news";
 import { buildListTools } from "./lists";
 import { buildDocsTools } from "./docs";
 import { buildRenderFlexTool } from "./render-flex";
+import { buildPlacesTools } from "./places";
 import { buildMorningBriefingTool } from "./morning-briefing";
 import { buildEveningSummaryTool } from "./evening-summary";
 import { buildReceiptTools } from "./receipts";
@@ -69,6 +70,7 @@ const REGISTRY: Entry[] = [
   { build: (u) => buildMorningBriefingTool(u), intents: ["briefing", "fallback", "multi"] },
   { build: (u) => buildEveningSummaryTool(u), intents: ["briefing", "fallback", "multi"] },
   { build: () => buildRenderFlexTool(), intents: ["weather", "finance", "news", "search", "fallback", "multi"] },
+  { build: () => buildPlacesTools(), intents: ["search", "fallback", "multi"] },
   { build: () => buildFinanceTools(), intents: ["finance", "fallback", "multi"] },
   { build: () => buildWeatherTools(), intents: ["weather", "fallback", "multi"] },
   { build: () => buildNewsTools(), needs: ["tavily"], intents: ["news", "fallback", "multi"] },
