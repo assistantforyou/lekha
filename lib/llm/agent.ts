@@ -721,7 +721,7 @@ export async function runAgent(
         break;
       } catch (err) {
         const isTimeout = err instanceof AgentTimeoutError;
-        const isQuota = /spending cap|RESOURCE_EXHAUSTED|exceeded its monthly|rate limit|429/i.test(
+        const isQuota = /spending cap|RESOURCE_EXHAUSTED|exceeded.*quota|quota exceeded|exceeded its monthly|rate.?limit|429/i.test(
           err instanceof Error ? err.message : String(err),
         );
         if (!isQuota && !isTimeout) throw err;
