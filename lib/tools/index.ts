@@ -68,6 +68,8 @@ const REGISTRY: Entry[] = [
   { build: (u) => buildSettingsTools(u) },
   { build: (u) => buildGoogleAccountTools(u), needs: ["google_oauth_env"] },
   { build: (u) => buildStagedMediaTools(u) },
+  // web_search is universal so any wrong narrowing still has a search fallback.
+  { build: () => buildWebSearchTool(), needs: ["tavily"] },
   // ── Intent-gated ─────────────────────────────────────────────────────
   { build: (u) => buildMorningBriefingTool(u), hints: ["briefing"] },
   { build: (u) => buildEveningSummaryTool(u),   hints: ["briefing"] },
@@ -82,7 +84,6 @@ const REGISTRY: Entry[] = [
   { build: (u) => buildMediaAiTools(u),  alwaysWithStagedMedia: true, hints: ["media", "receipts"] },
   { build: (u) => buildReceiptTools(u),  alwaysWithStagedMedia: true, hints: ["media", "receipts"] },
   { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders", hints: ["reminder", "calendar"] },
-  { build: () => buildWebSearchTool(), needs: ["tavily"], hints: ["search", "news"] },
   // Feature tools: only for users who have actually connected Google.
   { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email", hints: ["email"] },
   { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar", hints: ["calendar", "task", "reminder"] },
