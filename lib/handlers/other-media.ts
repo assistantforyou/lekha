@@ -8,6 +8,7 @@ import {
   isArchive,
   isReadableDoc,
 } from "@/lib/line/mime";
+import { prereadDoc } from "@/lib/llm/preread-doc";
 
 export async function respondToOtherMedia(
   replyToken: string,
@@ -57,12 +58,17 @@ export async function respondToOtherMedia(
     })
     .catch(() => {});
 
-  // Just ack + stage. Auto-summarizing here caused 3-minute hangs and duplicate
-  // responses when the user immediately follows up.
+  const isDoc = isReadableDoc(contentType, fileName);
+
+  // For readable docs: kick off background pre-read so the first question answers instantly.
+  if (isDoc) {
+    prereadDoc(userId, messageId, fileName, env().LINE_CHANNEL_ACCESS_TOKEN).catch(() => {});
+  }
+
   const ack = isArchive(contentType, fileName)
     ? `Got your zip file${fileName ? ` (${fileName})` : ""} — I can attach it to emails but I can't open or extract the contents.`
-    : isReadableDoc(contentType, fileName)
-    ? `Got your document${fileName ? ` (${fileName})` : ""} — what would you like to know about it?`
+    : isDoc
+    ? `Got your document${fileName ? ` (${fileName})` : ""} — reading it now. What would you like to know?`
     : kind === "audio"
     ? `Got your voice memo — want me to transcribe or summarize it?`
     : `Got your ${kind}${fileName ? ` (${fileName})` : ""} — it's ready. What would you like to do with it?`;

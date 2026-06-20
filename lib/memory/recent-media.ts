@@ -36,6 +36,11 @@ export async function listRecentMedia(userId: string): Promise<RecentMedia[]> {
   return raw.map((r) => (typeof r === "string" ? (JSON.parse(r) as RecentMedia) : r));
 }
 
+/** Refresh TTL so an active document conversation keeps the media staged. */
+export async function touchRecentMedia(userId: string): Promise<void> {
+  await redis().expire(key(userId), TTL_SEC);
+}
+
 export async function clearRecentMedia(userId: string): Promise<void> {
   await redis().del(key(userId));
 }
