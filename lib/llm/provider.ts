@@ -34,10 +34,10 @@ export function chatModel() {
   return chatModelForTier(hasFreeKey() ? "free" : "paid");
 }
 
-/** Background extraction / summarization model. Kept as a separate export so
- *  background work can be retuned independently of the agent. */
+/** Background extraction / summarization model. Flash-Lite is sufficient for
+ *  generateObject (structured output, no tool use) and costs ~6× less on output. */
 export function extractorModel() {
-  return googleClient()("gemini-2.5-flash");
+  return googleClient()("gemini-2.5-flash-lite");
 }
 
 /** Lightweight intent classifier. Tool-free classification can run on Flash Lite

@@ -655,14 +655,17 @@ export async function runAgent(
     const factsBlock = opts?.intent && suppressFactsIntents.has(opts.intent)
       ? ""
       : factsToPromptBlock(facts);
-    const system =
-      buildSystemPrompt(factsBlock, profile, settings) +
-      "\n\n" +
-      buildTimeContext(tz) +
-      accountsBlock +
-      recentBlock;
+    const system = buildSystemPrompt(factsBlock, profile, settings);
 
-    const timePrefix: ModelMessage[] = [];
+    // Volatile per-request context goes into a synthetic first message pair so
+    // the system prompt stays stable and Gemini's implicit prefix cache can hit.
+    const contextParts = [buildTimeContext(tz), accountsBlock, recentBlock].filter(Boolean).join("\n");
+    const timePrefix: ModelMessage[] = contextParts
+      ? [
+          { role: "user", content: [{ type: "text", text: contextParts }] },
+          { role: "assistant", content: [{ type: "text", text: "Got it." }] },
+        ]
+      : [];
 
     const tracker = createStepTracker(traceId);
 
