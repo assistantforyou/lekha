@@ -18,6 +18,7 @@ export async function respondToOtherMedia(
   fileName: string | undefined,
   fileSize: number | undefined,
   durationMs: number | undefined,
+  mode: "normal" | "stage_only" = "normal",
 ): Promise<void> {
   // Stage immediately with guessed type so a concurrent text follow-up can find
   // this media without a race. The HEAD probe below refines the type but must
@@ -64,6 +65,9 @@ export async function respondToOtherMedia(
   if (isDoc) {
     prereadDoc(userId, messageId, fileName, env().LINE_CHANNEL_ACCESS_TOKEN).catch(() => {});
   }
+
+  // stage_only: media+text arrived in same batch — text handler runs the agent.
+  if (mode === "stage_only") return;
 
   const ack = isArchive(contentType, fileName)
     ? `Got your zip file${fileName ? ` (${fileName})` : ""} — I can attach it to emails but I can't open or extract the contents.`

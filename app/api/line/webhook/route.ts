@@ -48,19 +48,19 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
       if (!event) continue;
-      // Image immediately followed by text → stage only; text handler picks up
-      // the staged image and responds to both together.
+      // Media immediately followed by text in the same batch → stage only;
+      // the text handler runs the agent with the staged media in context.
       const nextEvent = events[i + 1];
       const nextIsText =
         nextEvent?.type === "message" &&
         "message" in nextEvent &&
         nextEvent.message.type === "text";
-      const thisIsImage =
+      const thisIsMedia =
         event.type === "message" &&
         "message" in event &&
-        event.message.type === "image";
+        ["image", "video", "audio", "file"].includes(event.message.type);
       try {
-        const replied = await handleEvent(event, gate, thisIsImage && nextIsText ? "stage_only" : "normal");
+        const replied = await handleEvent(event, gate, thisIsMedia && nextIsText ? "stage_only" : "normal");
         if (!replied) {
           console.warn("[webhook] event produced no reply", { type: event.type, userId: event.source?.userId });
         }
@@ -267,8 +267,10 @@ async function handleEvent(
       "fileName" in message && typeof message.fileName === "string" ? message.fileName : undefined,
       "fileSize" in message && typeof message.fileSize === "number" ? message.fileSize : undefined,
       "duration" in message && typeof message.duration === "number" ? message.duration : undefined,
+      mode,
     );
-    endEvent({ type: message.type });
+    if (mode !== "stage_only") maybeExtractFacts(userId).catch(() => {});
+    endEvent({ type: mode === "stage_only" ? `${message.type}-stage` : message.type });
     return true;
   }
 
