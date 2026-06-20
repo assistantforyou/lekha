@@ -6,48 +6,77 @@ export type PlaceItem = {
   mapsQuery: string;
 };
 
-export function buildPlacesFlex(title: string, items: PlaceItem[]): FlexMessage {
+export type PlacesFlexOpts = {
+  headerColor?: string;
+  introText?: string;
+  closingText?: string;
+};
+
+export function buildPlacesFlex(
+  title: string,
+  items: PlaceItem[],
+  opts?: PlacesFlexOpts,
+): FlexMessage {
+  const headerColor = opts?.headerColor ?? "#1a1a2e";
   const bodyContents: unknown[] = [];
+
+  if (opts?.introText) {
+    bodyContents.push({
+      type: "text",
+      text: opts.introText,
+      size: "sm",
+      color: "#444444",
+      wrap: true,
+      margin: "sm",
+    });
+    bodyContents.push({ type: "separator", color: "#dddddd", margin: "md" });
+  }
 
   items.forEach((item, i) => {
     bodyContents.push({
       type: "box",
-      layout: "horizontal",
-      paddingTop: "10px",
-      paddingBottom: "10px",
-      alignItems: "center",
+      layout: "vertical",
+      paddingTop: i === 0 && !opts?.introText ? "4px" : "10px",
+      paddingBottom: "4px",
       contents: [
         {
           type: "box",
-          layout: "vertical",
-          flex: 6,
+          layout: "horizontal",
+          alignItems: "flex-start",
           contents: [
             {
-              type: "text",
-              text: item.name,
-              weight: "bold",
-              size: "sm",
-              color: "#111111",
-              wrap: true,
-            },
-            {
-              type: "text",
-              text: item.note,
-              size: "xs",
-              color: "#666666",
-              wrap: true,
-              margin: "xs",
+              type: "box",
+              layout: "vertical",
+              flex: 1,
+              contents: [
+                {
+                  type: "text",
+                  text: item.name,
+                  weight: "bold",
+                  size: "sm",
+                  color: "#111111",
+                  wrap: true,
+                },
+                {
+                  type: "text",
+                  text: item.note,
+                  size: "xs",
+                  color: "#666666",
+                  wrap: true,
+                  margin: "xs",
+                },
+              ],
             },
           ],
         },
         {
           type: "button",
-          flex: 2,
           style: "link",
           height: "sm",
+          margin: "xs",
           action: {
             type: "uri",
-            label: "📍 Map",
+            label: "📍 Open in Maps",
             uri: `https://maps.google.com/?q=${encodeURIComponent(item.mapsQuery)}`,
           },
         },
@@ -55,9 +84,21 @@ export function buildPlacesFlex(title: string, items: PlaceItem[]): FlexMessage 
     });
 
     if (i < items.length - 1) {
-      bodyContents.push({ type: "separator", color: "#eeeeee" });
+      bodyContents.push({ type: "separator", color: "#eeeeee", margin: "sm" });
     }
   });
+
+  if (opts?.closingText) {
+    bodyContents.push({ type: "separator", color: "#dddddd", margin: "md" });
+    bodyContents.push({
+      type: "text",
+      text: opts.closingText,
+      size: "sm",
+      color: "#555555",
+      wrap: true,
+      margin: "sm",
+    });
+  }
 
   return flex(title, {
     type: "bubble",
@@ -65,7 +106,7 @@ export function buildPlacesFlex(title: string, items: PlaceItem[]): FlexMessage 
     header: {
       type: "box",
       layout: "vertical",
-      backgroundColor: "#1a1a2e",
+      backgroundColor: headerColor,
       paddingAll: "16px",
       contents: [
         {
@@ -81,9 +122,9 @@ export function buildPlacesFlex(title: string, items: PlaceItem[]): FlexMessage 
     body: {
       type: "box",
       layout: "vertical",
-      paddingStart: "14px",
-      paddingEnd: "4px",
-      paddingTop: "4px",
+      paddingStart: "16px",
+      paddingEnd: "16px",
+      paddingTop: "8px",
       paddingBottom: "8px",
       contents: bodyContents,
     },

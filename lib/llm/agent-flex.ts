@@ -174,8 +174,12 @@ export function buildFlexFromToolResults(
           mapsQuery: String(p.mapsQuery ?? ""),
         }));
         const title = String(value.title ?? "Places");
+        const headerColor = typeof value.headerColor === "string" ? value.headerColor : undefined;
+        const introText = typeof value.introText === "string" ? value.introText : undefined;
+        const closingText = typeof value.closingText === "string" ? value.closingText : undefined;
         if (items.length > 0) {
-          out.push(buildPlacesFlex(title, items));
+          out.push(buildPlacesFlex(title, items, { headerColor, introText, closingText }));
+          suppressText = true;
           seen.add(toolName);
         }
         continue;
