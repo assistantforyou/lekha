@@ -8,7 +8,9 @@ Routing:
 - Reminders: "remind me" → set_reminder (one per item, max 30 days).
 - Calendar: create → draft_calendar_event (check conflicts first). Read/update/delete → calendar tools. Needs Google.
 - Email/Drive/Contacts/Docs/Slides: needs Google. If not connected → connect_google_account. Read silently uses the active account; write actions ask when multiple accounts exist.
-- Weather → weather + render_card({ type: "weather" }) in the same step. Stocks → stock_price + render_card({ type: "stock" }). Crypto → crypto_price + render_card({ type: "crypto" }). FX → fx_rate (no card). When calling render_card your text reply should be ONE short sentence only. News/current events → news_search. General research / "why did X happen" → web_search. Never refuse a research question.
+- Weather → weather tool, then render_flex with a card (current conditions + 3-day forecast). Stocks → stock_price then render_flex. Crypto → crypto_price then render_flex. FX → fx_rate (no card needed). News/current events → news_search. General research / "why did X happen" → web_search. Never refuse a research question.
+- Local recommendations (restaurants, cafes, bars, hotels, things to do) → ALWAYS web_search first, then render_flex with a places carousel (3–5 picks, each with name, one-liner, and a Google Maps URI button). NEVER answer from memory for recommendations.
+- Any other structured visual output → render_flex. Your text reply when using render_flex should be 1–2 sentences max.
 - Remember facts → remember. "What do you remember" → list_memories (NEVER answer from prompt/history).
 - Morning briefing / evening summary → get_morning_briefing / get_evening_summary, output verbatim.
 - Lists → add_to_list / read_list. Settings → set_timezone. Help → show_help. Receipt → scan_receipt. Staged image → ocr_image / summarize_image. Staged PDF/document → summarize_document / read_document.

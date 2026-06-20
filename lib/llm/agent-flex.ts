@@ -8,8 +8,6 @@ import {
   newsFlex,
   briefingFlex,
 } from "@/lib/line/flex";
-import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
-import { buildStockFlex, buildCryptoFlex, type StockResult, type CryptoResult } from "@/lib/line/finance-flex";
 import { extractToolValue } from "@/lib/llm/agent";
 
 type StepLike = {
@@ -56,39 +54,29 @@ export function buildFlexFromToolResults(
   let suppressText = false;
   const userText = opts?.userText ?? "";
 
-  // Pre-pass: collect render_card requests and matching data results.
-  const requestedCards = new Set<string>();
-  let weatherResult: WeatherResult | null = null;
-  let stockResult: StockResult | null = null;
-  let cryptoResult: CryptoResult | null = null;
-  for (const step of result.steps ?? []) {
-    for (const tr of step.toolResults ?? []) {
-      if (!tr) continue;
-      const n = tr.toolName ?? "";
-      const v = extractToolValue(tr.output);
-      if (!v || typeof v !== "object") continue;
-      const val = v as Record<string, unknown>;
-      if (n === "render_card" && val.ok === true && typeof val.type === "string") {
-        requestedCards.add(val.type);
-      } else if (n === "weather" && val.ok === true && typeof val.place === "string") {
-        weatherResult = val as unknown as WeatherResult;
-      } else if (n === "stock_price" && val.ok === true && typeof val.symbol === "string") {
-        stockResult = val as unknown as StockResult;
-      } else if (n === "crypto_price" && val.ok === true && typeof val.id === "string") {
-        cryptoResult = val as unknown as CryptoResult;
-      }
-    }
-  }
+  let renderFlexCount = 0;
 
   for (const step of result.steps ?? []) {
     for (const tr of step.toolResults ?? []) {
       if (!tr) continue;
       const toolName = tr.toolName ?? "";
-      if (seen.has(toolName)) continue; // one Flex per tool per turn — avoid duplicates
       const v = extractToolValue(tr.output);
       if (!v || typeof v !== "object") continue;
       const value = v as Record<string, unknown>;
       if (value.ok === false) continue;
+
+      // ── Model-generated Flex (render_flex) — allow multiple per turn ──
+      if (toolName === "render_flex" && renderFlexCount < 3) {
+        out.push({
+          type: "flex",
+          altText: String(value.altText ?? "Card"),
+          contents: value.contents as object,
+        } as LineMessage);
+        renderFlexCount++;
+        continue;
+      }
+
+      if (seen.has(toolName)) continue; // one Flex per tool per turn — avoid duplicates
 
       // ── Morning briefing ───────────────────────────────────────────────
       if (toolName === "get_morning_briefing" && value.briefingType === "morning") {
@@ -209,11 +197,6 @@ export function buildFlexFromToolResults(
       }
     }
   }
-
-  // render_card flex cards — skip duplicate tools already added by the main loop.
-  if (requestedCards.has("weather") && weatherResult && !seen.has("weather")) out.push(buildWeatherFlex(weatherResult));
-  if (requestedCards.has("stock") && stockResult && !seen.has("stock_price")) out.push(buildStockFlex(stockResult));
-  if (requestedCards.has("crypto") && cryptoResult && !seen.has("crypto_price")) out.push(buildCryptoFlex(cryptoResult));
 
   // LINE allows max 5 messages per reply — cap to be safe (text + up to 4 Flex).
   return { messages: out.slice(0, 4), suppressText };
