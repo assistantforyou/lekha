@@ -18,7 +18,6 @@ import { buildFinanceTools } from "./finance";
 import { buildWeatherTools } from "./weather";
 import { buildNewsTools } from "./news";
 import { buildListTools } from "./lists";
-import { buildDocsTools } from "./docs";
 import { buildRenderFlexTool } from "./render-flex";
 import { buildPlacesTools } from "./places";
 import { buildMorningBriefingTool } from "./morning-briefing";
@@ -28,12 +27,10 @@ import { buildContactsTools } from "./contacts";
 import { listAccounts } from "./google-auth";
 import { hasGoogleOAuth, hasQStash, env } from "@/lib/env";
 import type { ToolSet } from "ai";
-import type { Intent } from "@/lib/intent";
 
 type Need = "google_oauth_env" | "google_user_connected" | "qstash" | "tavily";
 
-// R5: In-memory cache for tool sets (functions can't serialize to Redis).
-// Cache key = userId + google-connected flag + disabled categories hash + intent. TTL = 5 min.
+// In-memory cache per user × google-state × disabled-categories × staged-media. TTL = 5 min.
 const toolCache = new Map<string, { tools: ToolSet; ts: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -47,65 +44,56 @@ type Entry = {
   build: Builder;
   needs?: Need[];
   category?: string;
-  intents?: Intent[];
-  /** Always register this tool when the user has staged LINE media, even if the
-   *  classifier picked a different intent. Used for image/PDF/receipt tools. */
+  /** Only register when the user has staged LINE media (image/audio/file). */
   alwaysWithStagedMedia?: boolean;
 };
 
 /**
- * Declarative tool registry. Add or remove a tool by editing one row.
- * Each entry lists the env/user prerequisites; the dispatcher omits any tool
- * whose prerequisites aren't satisfied.
- *
- * Categories: tasks, reminders, calendar, email, drive — used by the dashboard
- * to let users disable whole surfaces.
- *
- * intents: which classifier intents include this tool. `fallback` and `multi`
- * include everything so the model can disambiguate; high-confidence single
- * intents get a focused subset to reduce blanking.
+ * Declarative tool registry. Add a tool by adding one row.
+ * needs: env/user prerequisites — omits the tool if unmet.
+ * category: user-disableable surface (tasks, reminders, calendar, email, drive).
+ * alwaysWithStagedMedia: include even when hasStagedMedia is false.
  */
 const REGISTRY: Entry[] = [
-  { build: () => buildHelpTools(), intents: ["help", "fallback", "multi"] },
-  { build: (u) => buildMorningBriefingTool(u), intents: ["briefing", "fallback", "multi"] },
-  { build: (u) => buildEveningSummaryTool(u), intents: ["briefing", "fallback", "multi"] },
-  { build: () => buildRenderFlexTool(), intents: ["weather", "finance", "news", "search", "fallback", "multi"] },
-  { build: () => buildPlacesTools(), intents: ["search", "fallback", "multi"] },
-  { build: () => buildFinanceTools(), intents: ["finance", "fallback", "multi"] },
-  { build: () => buildWeatherTools(), intents: ["weather", "fallback", "multi"] },
-  { build: () => buildNewsTools(), needs: ["tavily"], intents: ["news", "fallback", "multi"] },
-  { build: (u) => buildSettingsTools(u), intents: ["settings", "fallback", "multi"] },
-  { build: (u) => buildMemoryTools(u), intents: ["memory", "fallback", "multi"] },
-  { build: (u) => buildTaskTools(u), category: "tasks", intents: ["task", "fallback", "multi"] },
-  { build: (u) => buildExportTools(u), intents: ["fallback", "multi"] },
-  { build: (u) => buildSentHistoryTools(u), intents: ["email", "fallback", "multi"] },
-  { build: (u) => buildMediaAiTools(u), intents: ["media", "fallback", "multi"], alwaysWithStagedMedia: true },
-  { build: (u) => buildReceiptTools(u), intents: ["receipts", "fallback", "multi"], alwaysWithStagedMedia: true },
-  { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders", intents: ["reminder", "fallback", "multi"] },
-  { build: () => buildWebSearchTool(), needs: ["tavily"], intents: ["search", "fallback", "multi"] },
-  // Connect/list/switch — registered as soon as Google OAuth env is configured,
-  // even before this user has linked an account, so the model can offer to link.
-  { build: (u) => buildGoogleAccountTools(u), needs: ["google_oauth_env"], intents: ["connect", "email", "calendar", "drive", "contacts", "fallback", "multi"] },
-  // Per-user Google surface — gated on whether THIS user has linked an account.
-  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email", intents: ["email", "fallback", "multi"] },
-  { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar", intents: ["calendar", "fallback", "multi"] },
-  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive", intents: ["drive", "fallback", "multi"] },
-  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email", intents: ["email", "fallback", "multi"] },
-  { build: (u) => buildDocsTools(u), needs: ["google_user_connected"], category: "drive", intents: ["drive", "fallback", "multi"] },
-  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email", intents: ["contacts", "fallback", "multi"] },
-  { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email", intents: ["email", "fallback", "multi"] },
-  { build: (u) => buildStagedMediaTools(u), intents: ["media", "email", "fallback", "multi"] },
-  { build: (u) => buildListTools(u), intents: ["lists", "fallback", "multi"] },
+  { build: () => buildHelpTools() },
+  { build: (u) => buildMorningBriefingTool(u) },
+  { build: (u) => buildEveningSummaryTool(u) },
+  { build: () => buildRenderFlexTool() },
+  { build: () => buildPlacesTools() },
+  { build: () => buildFinanceTools() },
+  { build: () => buildWeatherTools() },
+  { build: () => buildNewsTools(), needs: ["tavily"] },
+  { build: (u) => buildSettingsTools(u) },
+  { build: (u) => buildMemoryTools(u) },
+  { build: (u) => buildTaskTools(u), category: "tasks" },
+  { build: (u) => buildExportTools(u) },
+  { build: (u) => buildSentHistoryTools(u) },
+  { build: (u) => buildMediaAiTools(u), alwaysWithStagedMedia: true },
+  { build: (u) => buildReceiptTools(u), alwaysWithStagedMedia: true },
+  { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders" },
+  { build: () => buildWebSearchTool(), needs: ["tavily"] },
+  // Account tools: available to everyone with OAuth configured, so the model can guide linking.
+  { build: (u) => buildGoogleAccountTools(u), needs: ["google_oauth_env"] },
+  // Feature tools: only for users who have actually connected Google.
+  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email" },
+  { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar" },
+  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive" },
+  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email" },
+  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email" },
+  { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email" },
+  { build: (u) => buildStagedMediaTools(u) },
+  { build: (u) => buildListTools(u) },
 ];
 
-function envHas(need: Need, _userHasGoogle: boolean): boolean {
+function envHas(need: Need, userHasGoogle: boolean): boolean {
   switch (need) {
     case "google_oauth_env":
       return hasGoogleOAuth();
     case "google_user_connected":
-      // Always register Google-dependent tools so the model can offer connect links.
-      // Tools handle missing auth at runtime via withGoogleClient → { need_google_auth }.
-      return true;
+      // Gate on actual connection — saves ~15K tokens of schema for non-Google users.
+      // buildGoogleAccountTools is gated on google_oauth_env (not this) so connect/list/switch
+      // remain available to all users regardless.
+      return userHasGoogle;
     case "qstash":
       return hasQStash();
     case "tavily":
@@ -117,7 +105,6 @@ function buildTools(
   userId: string,
   userHasGoogle: boolean,
   disabled: string[],
-  intent?: Intent,
   hasStagedMedia?: boolean,
 ): ToolSet {
   const out: Record<string, unknown> = {};
@@ -125,21 +112,20 @@ function buildTools(
     const ok = (entry.needs ?? []).every((n) => envHas(n, userHasGoogle));
     if (!ok) continue;
     if (entry.category && disabled.includes(entry.category)) continue;
-    if (intent && entry.intents && !entry.intents.includes(intent) && !(hasStagedMedia && entry.alwaysWithStagedMedia)) continue;
+    if (!hasStagedMedia && entry.alwaysWithStagedMedia) continue;
     Object.assign(out, entry.build(userId));
   }
   return out as ToolSet;
 }
 
 /**
- * Returns the tool registry bound to a single user. Tools that depend on
- * unconfigured services or on an unconnected Google account are omitted
- * (CLAUDE.md decision #18). An optional intent narrows the registry to reduce
- * model confusion. Cached per-user for 5 minutes.
+ * Returns the tool registry bound to a single user. Google-dependent tools
+ * are omitted for users who haven't connected an account (decision #18).
+ * Cached 5 min per user + google state.
  */
 export async function toolsForUser(
   userId: string,
-  opts?: { userHasGoogle?: boolean; disabledCategories?: string[]; intent?: Intent; hasStagedMedia?: boolean },
+  opts?: { userHasGoogle?: boolean; disabledCategories?: string[]; hasStagedMedia?: boolean },
 ): Promise<ToolSet> {
   const userHasGoogle =
     opts?.userHasGoogle !== undefined
@@ -149,21 +135,18 @@ export async function toolsForUser(
         : false;
 
   const disabled = opts?.disabledCategories ?? [];
-  const intent = opts?.intent;
   const hasStagedMedia = opts?.hasStagedMedia;
   const disabledKey = disabled.sort().join(",");
-  const intentKey = intent ?? "all";
+  const googleKey = userHasGoogle ? "g1" : "g0";
   const stagedKey = hasStagedMedia ? "staged" : "nostaged";
-  // v4: optional per-intent filtering. fallback/multi see everything;
-  // high-confidence single intents get a focused subset.
-  // When staged media exists, media/receipt tools are also included.
-  const cacheKey = `v4:${userId}:${disabledKey}:${intentKey}:${stagedKey}`;
+  // v5: google gating restored; docs/slides removed.
+  const cacheKey = `v5:${userId}:${disabledKey}:${googleKey}:${stagedKey}`;
   const cached = toolCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.tools;
   }
 
-  const tools = buildTools(userId, userHasGoogle, disabled, intent, hasStagedMedia);
+  const tools = buildTools(userId, userHasGoogle, disabled, hasStagedMedia);
   toolCache.set(cacheKey, { tools, ts: Date.now() });
   return tools;
 }
