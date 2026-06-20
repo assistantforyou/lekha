@@ -18,23 +18,10 @@ export async function respondToOtherMedia(
   fileSize: number | undefined,
   durationMs: number | undefined,
 ): Promise<void> {
-  // Best-effort content-type probe (HEAD-equivalent via tiny Range request).
-  let contentType = guessMimeFromFilename(fileName) ?? defaultMimeForKind(kind);
-  try {
-    const head = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${env().LINE_CHANNEL_ACCESS_TOKEN}`,
-        Range: "bytes=0-0",
-      },
-    });
-    const ct = head.headers.get("content-type");
-    await head.body?.cancel().catch(() => {});
-    if (ct) contentType = ct;
-  } catch {
-    // best effort
-  }
-
+  // Stage immediately with guessed type so a concurrent text follow-up can find
+  // this media without a race. The HEAD probe below refines the type but must
+  // not block staging — it arrives too late if the user texts right away.
+  const contentType = guessMimeFromFilename(fileName) ?? defaultMimeForKind(kind);
   await appendRecentMedia(userId, {
     kind,
     messageId,
@@ -44,6 +31,31 @@ export async function respondToOtherMedia(
     durationMs,
     ts: Date.now(),
   });
+
+  // Best-effort content-type refinement — fire-and-forget, non-blocking.
+  fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${env().LINE_CHANNEL_ACCESS_TOKEN}`,
+      Range: "bytes=0-0",
+    },
+  })
+    .then(async (head) => {
+      const ct = head.headers.get("content-type");
+      await head.body?.cancel().catch(() => {});
+      if (ct && ct !== contentType) {
+        await appendRecentMedia(userId, {
+          kind,
+          messageId,
+          contentType: ct,
+          fileName,
+          sizeBytes: fileSize,
+          durationMs,
+          ts: Date.now(),
+        });
+      }
+    })
+    .catch(() => {});
 
   // Just ack + stage. Auto-summarizing here caused 3-minute hangs and duplicate
   // responses when the user immediately follows up.
