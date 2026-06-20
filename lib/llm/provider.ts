@@ -40,12 +40,6 @@ export function extractorModel() {
   return googleClient()("gemini-2.5-flash-lite");
 }
 
-/** Lightweight intent classifier. Tool-free classification can run on Flash Lite
- *  because it only emits a small JSON object, not agentic tool use. */
-export function classifierModel() {
-  return googleClient()("gemini-2.5-flash-lite");
-}
-
 /** Embedding model — text-embedding-004, 768 dims. */
 export function embeddingModel() {
   return googleClient().textEmbeddingModel("text-embedding-004");
