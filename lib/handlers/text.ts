@@ -85,7 +85,9 @@ export async function respondToText(
 
   const userHasGoogle = accounts.accounts.length > 0;
   const intent: Intent | undefined =
-    intentResult.isMulti || intentResult.confidence === "low" ? undefined : intentResult.primary;
+    intentResult.isMulti || intentResult.confidence === "low" || intentResult.primary === "casual"
+      ? undefined
+      : intentResult.primary;
   const tools = await toolsForUser(userId, {
     userHasGoogle,
     disabledCategories: settings.disabledCategories,
