@@ -7,6 +7,7 @@ import { listRecentMedia } from "@/lib/memory/recent-media";
 import { getSettings } from "@/lib/memory/settings";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { toolsForUser } from "@/lib/tools";
+import { fastClassify } from "@/lib/fast-classify";
 import { enrichReply } from "../enrich-reply";
 import { span, timed } from "@/lib/timing";
 
@@ -71,10 +72,12 @@ export async function respondToText(
   ];
 
   const userHasGoogle = accounts.accounts.length > 0;
+  const hint = fastClassify(userText, { hasStagedMedia });
   const tools = await toolsForUser(userId, {
     userHasGoogle,
     disabledCategories: settings.disabledCategories,
     hasStagedMedia,
+    hint,
   });
 
   const result = await runAgent(userId, profile, facts, messages, traceId, {

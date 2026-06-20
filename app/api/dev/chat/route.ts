@@ -10,6 +10,7 @@ import { runAgent } from "@/lib/llm/agent";
 import { generateText } from "ai";
 import { chatModel, extractorModel, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
 import { toolsForUser } from "@/lib/tools";
+import { fastClassify } from "@/lib/fast-classify";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
 import { factsToPromptBlock } from "@/lib/memory/facts";
@@ -280,10 +281,12 @@ export async function POST(req: NextRequest) {
   const hasStagedMedia = staged.length > 0;
   const accounts = await listAccounts(userId);
   const userHasGoogle = accounts.accounts.length > 0;
+  const hint = fastClassify(text, { hasStagedMedia });
   const tools = await toolsForUser(userId, {
     userHasGoogle,
     disabledCategories: settings.disabledCategories,
     hasStagedMedia,
+    hint,
   });
   const result = await runAgent(userId, profile, facts, messages, traceId, { tools, hasStagedMedia });
   const replyText = result.text;

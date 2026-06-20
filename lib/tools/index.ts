@@ -46,6 +46,12 @@ type Entry = {
   category?: string;
   /** Only register when the user has staged LINE media (image/audio/file). */
   alwaysWithStagedMedia?: boolean;
+  /**
+   * fastClassify intents that include this tool.
+   * Entries without hints are universal — always included regardless of intent.
+   * When a hint is active, only universal entries + matching-hint entries are built.
+   */
+  hints?: string[];
 };
 
 /**
@@ -53,36 +59,38 @@ type Entry = {
  * needs: env/user prerequisites — omits the tool if unmet.
  * category: user-disableable surface (tasks, reminders, calendar, email, drive).
  * alwaysWithStagedMedia: include even when hasStagedMedia is false.
+ * hints: fastClassify intent strings; omit for universal tools.
  */
 const REGISTRY: Entry[] = [
+  // ── Universal (no hints = always included) ───────────────────────────
   { build: () => buildHelpTools() },
-  { build: (u) => buildMorningBriefingTool(u) },
-  { build: (u) => buildEveningSummaryTool(u) },
   { build: () => buildRenderFlexTool() },
-  { build: () => buildPlacesTools() },
-  { build: () => buildFinanceTools() },
-  { build: () => buildWeatherTools() },
-  { build: () => buildNewsTools(), needs: ["tavily"] },
   { build: (u) => buildSettingsTools(u) },
-  { build: (u) => buildMemoryTools(u) },
-  { build: (u) => buildTaskTools(u), category: "tasks" },
-  { build: (u) => buildExportTools(u) },
-  { build: (u) => buildSentHistoryTools(u) },
-  { build: (u) => buildMediaAiTools(u), alwaysWithStagedMedia: true },
-  { build: (u) => buildReceiptTools(u), alwaysWithStagedMedia: true },
-  { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders" },
-  { build: () => buildWebSearchTool(), needs: ["tavily"] },
-  // Account tools: available to everyone with OAuth configured, so the model can guide linking.
   { build: (u) => buildGoogleAccountTools(u), needs: ["google_oauth_env"] },
-  // Feature tools: only for users who have actually connected Google.
-  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email" },
-  { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar" },
-  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive" },
-  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email" },
-  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email" },
-  { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email" },
   { build: (u) => buildStagedMediaTools(u) },
-  { build: (u) => buildListTools(u) },
+  // ── Intent-gated ─────────────────────────────────────────────────────
+  { build: (u) => buildMorningBriefingTool(u), hints: ["briefing"] },
+  { build: (u) => buildEveningSummaryTool(u),   hints: ["briefing"] },
+  { build: () => buildPlacesTools(),             hints: ["search"] },
+  { build: () => buildFinanceTools(),            hints: ["finance"] },
+  { build: () => buildWeatherTools(),            hints: ["weather"] },
+  { build: () => buildNewsTools(), needs: ["tavily"], hints: ["news", "search"] },
+  { build: (u) => buildMemoryTools(u),           hints: ["memory", "search"] },
+  { build: (u) => buildTaskTools(u), category: "tasks", hints: ["task", "calendar"] },
+  { build: (u) => buildExportTools(u),           hints: ["memory"] },
+  { build: (u) => buildSentHistoryTools(u),      hints: ["email", "search"] },
+  { build: (u) => buildMediaAiTools(u),  alwaysWithStagedMedia: true, hints: ["media", "receipts"] },
+  { build: (u) => buildReceiptTools(u),  alwaysWithStagedMedia: true, hints: ["media", "receipts"] },
+  { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders", hints: ["reminder", "calendar"] },
+  { build: () => buildWebSearchTool(), needs: ["tavily"], hints: ["search", "news"] },
+  // Feature tools: only for users who have actually connected Google.
+  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email", hints: ["email"] },
+  { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar", hints: ["calendar", "task", "reminder"] },
+  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive", hints: ["email", "search"] },
+  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email", hints: ["email"] },
+  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email", hints: ["email", "calendar"] },
+  { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email", hints: ["email"] },
+  { build: (u) => buildListTools(u), hints: ["lists"] },
 ];
 
 function envHas(need: Need, userHasGoogle: boolean): boolean {
@@ -106,6 +114,7 @@ function buildTools(
   userHasGoogle: boolean,
   disabled: string[],
   hasStagedMedia?: boolean,
+  hint?: string,
 ): ToolSet {
   const out: Record<string, unknown> = {};
   for (const entry of REGISTRY) {
@@ -113,6 +122,9 @@ function buildTools(
     if (!ok) continue;
     if (entry.category && disabled.includes(entry.category)) continue;
     if (!hasStagedMedia && entry.alwaysWithStagedMedia) continue;
+    // Narrow tool set when a hint is active: skip entries that don't match the hint.
+    // Entries with no hints field are universal and always included.
+    if (hint && entry.hints && !entry.hints.includes(hint)) continue;
     Object.assign(out, entry.build(userId));
   }
   return out as ToolSet;
@@ -125,7 +137,7 @@ function buildTools(
  */
 export async function toolsForUser(
   userId: string,
-  opts?: { userHasGoogle?: boolean; disabledCategories?: string[]; hasStagedMedia?: boolean },
+  opts?: { userHasGoogle?: boolean; disabledCategories?: string[]; hasStagedMedia?: boolean; hint?: string },
 ): Promise<ToolSet> {
   const userHasGoogle =
     opts?.userHasGoogle !== undefined
@@ -136,17 +148,19 @@ export async function toolsForUser(
 
   const disabled = opts?.disabledCategories ?? [];
   const hasStagedMedia = opts?.hasStagedMedia;
+  const hint = opts?.hint;
   const disabledKey = disabled.sort().join(",");
   const googleKey = userHasGoogle ? "g1" : "g0";
   const stagedKey = hasStagedMedia ? "staged" : "nostaged";
-  // v5: google gating restored; docs/slides removed.
-  const cacheKey = `v5:${userId}:${disabledKey}:${googleKey}:${stagedKey}`;
+  const hintKey = hint ?? "all";
+  // v6: hint-based narrowing via fastClassify.
+  const cacheKey = `v6:${userId}:${disabledKey}:${googleKey}:${stagedKey}:${hintKey}`;
   const cached = toolCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.tools;
   }
 
-  const tools = buildTools(userId, userHasGoogle, disabled, hasStagedMedia);
+  const tools = buildTools(userId, userHasGoogle, disabled, hasStagedMedia, hint);
   toolCache.set(cacheKey, { tools, ts: Date.now() });
   return tools;
 }
