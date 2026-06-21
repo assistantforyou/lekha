@@ -131,4 +131,22 @@ describe("structured facts", () => {
     // The oldest (f0) should NOT survive.
     expect(contents).not.toContain("f0");
   });
+
+  it("factsToPromptBlock respects limit param", async () => {
+    // Add 10 facts with distinct timestamps so order is deterministic.
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r) => setTimeout(r, 2));
+      await appendFact("U1", `fact${i}`, { category: "other" });
+    }
+    const f = await loadFacts("U1");
+    // Default: all 10 visible (under PROMPT_FACTS_MAX=30).
+    const full = factsToPromptBlock(f);
+    expect(full.split("- fact").length - 1).toBe(10);
+    // With limit=3: only the 3 most-recently-updated appear.
+    const narrow = factsToPromptBlock(f, 3);
+    expect(narrow.split("- fact").length - 1).toBe(3);
+    // The narrowed block should contain the newest facts (highest index).
+    expect(narrow).toContain("fact9");
+    expect(narrow).not.toContain("fact0");
+  });
 });

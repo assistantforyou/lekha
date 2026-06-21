@@ -51,8 +51,13 @@ export async function extractAndMergeFacts(userId: string, recent: StoredTurn[])
     .join("\n");
 
   const existing = await loadFacts(userId);
-  const existingBlock = existing.facts.length
-    ? `\n\nFacts already known (do NOT repeat):\n${existing.facts.map((f) => `- [${f.category}] ${f.content}`).join("\n")}`
+  // Send only the 50 most-recently-updated facts as "already known" context.
+  // Sending all 200 at max capacity wastes ~4k tokens of extractor budget.
+  const knownSample = [...existing.facts]
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 50);
+  const existingBlock = knownSample.length
+    ? `\n\nFacts already known (do NOT repeat):\n${knownSample.map((f) => `- [${f.category}] ${f.content}`).join("\n")}`
     : "";
 
   let result;

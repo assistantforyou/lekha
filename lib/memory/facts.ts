@@ -178,12 +178,14 @@ export function displayOrder(facts: Fact[]): Fact[] {
  * Render facts for the system prompt: group by category, newest-first within
  * category. Keeps the prompt scannable for the model and stable for caching
  * (categories shown in a fixed order).
+ *
+ * `limit` caps how many of the most-recently-updated facts are injected.
+ * Lower limits (8–15) are appropriate for stateless or narrowly-scoped queries.
  */
-export function factsToPromptBlock(facts: UserFacts): string {
+export function factsToPromptBlock(facts: UserFacts, limit = PROMPT_FACTS_MAX): string {
   if (!facts.facts.length) return "";
   const byCat = new Map<FactCategory, Fact[]>();
-  // Only inject the most recently updated facts into the prompt.
-  const recent = displayOrder(facts.facts).slice(0, PROMPT_FACTS_MAX);
+  const recent = displayOrder(facts.facts).slice(0, limit);
   for (const f of recent) {
     if (!byCat.has(f.category)) byCat.set(f.category, []);
     byCat.get(f.category)!.push(f);

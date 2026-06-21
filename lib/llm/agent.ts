@@ -23,6 +23,42 @@ import { buildWeatherTools } from "@/lib/tools/weather";
 import { buildNewsTools } from "@/lib/tools/news";
 import { HELP_TEXT } from "@/lib/tools/help";
 
+/**
+ * Map a fastClassify hint to a facts-injection limit.
+ * Stateless queries (weather, finance, news) need almost no user facts;
+ * memory/email/calendar queries benefit from fuller context.
+ * undefined hint (ambiguous/multi-topic) gets a moderate default.
+ */
+function factLimitForHint(hint: string | undefined): number {
+  if (!hint) return 20;
+  switch (hint) {
+    // Stateless lookups — only inject location/context facts (top 5)
+    case "weather":
+    case "finance":
+    case "news":
+      return 5;
+    // Tool-focused queries — moderate context
+    case "reminder":
+    case "task":
+    case "lists":
+    case "settings":
+    case "media":
+    case "receipts":
+      return 12;
+    // Relational queries — need people, context, preferences
+    case "email":
+    case "calendar":
+    case "search":
+      return 20;
+    // Memory queries — full context (user asked about what we remember)
+    case "memory":
+    case "briefing":
+      return 30;
+    default:
+      return 20;
+  }
+}
+
 export function extractToolValue(output: unknown): unknown {
   if (output && typeof output === "object") {
     const o = output as { type?: string; value?: unknown };
@@ -615,6 +651,10 @@ export async function runAgent(
     staged?: Awaited<ReturnType<typeof listRecentMedia>>;
     tools?: ToolSet;
     hasStagedMedia?: boolean;
+    /** Pass pre-loaded settings to avoid a duplicate getSettings call. */
+    settings?: Awaited<ReturnType<typeof getSettings>>;
+    /** fastClassify hint — used to narrow the facts injected into the prompt. */
+    hint?: string;
   },
 ): Promise<AgentResult> {
   const endAgent = span("agent:runAgent", traceId);
@@ -623,7 +663,7 @@ export async function runAgent(
     const [accounts, staged, settings] = await Promise.all([
       opts?.accounts ? Promise.resolve(opts.accounts) : listAccounts(userId),
       opts?.staged ? Promise.resolve(opts.staged) : listRecentMedia(userId),
-      getSettings(userId),
+      opts?.settings ? Promise.resolve(opts.settings) : getSettings(userId),
     ]);
     const userHasGoogle = accounts.accounts.length > 0;
     tick("agent:preload-done", traceId, { accounts: accounts.accounts.length, staged: staged.length });
@@ -651,7 +691,7 @@ export async function runAgent(
           .join("\n")}\nIf the user asks about an image, call \`ocr_image\` or \`summarize_image\` with the index. If they ask about a PDF/document, call \`summarize_document\` or \`read_document\`. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
       : "";
     const tz = settings.timezone ?? "Asia/Bangkok";
-    const factsBlock = factsToPromptBlock(facts);
+    const factsBlock = factsToPromptBlock(facts, factLimitForHint(opts?.hint));
     const system = buildSystemPrompt(factsBlock, profile, settings);
 
     // Volatile per-request context goes into a synthetic first message pair so

@@ -35,9 +35,13 @@ export function chatModel() {
 }
 
 /** Background extraction / summarization model. Flash-Lite is sufficient for
- *  generateObject (structured output, no tool use) and costs ~6× less on output. */
+ *  generateObject (structured output, no tool use) and costs ~6× less on output.
+ *  Prefers the free key so background tasks don't burn paid quota. */
 export function extractorModel() {
-  return googleClient()("gemini-2.5-flash-lite");
+  const e = env();
+  const freeKey = e.GEMINI_API_KEY_FREE;
+  const client = freeKey ? createGoogleGenerativeAI({ apiKey: freeKey }) : googleClient();
+  return client("gemini-2.5-flash-lite");
 }
 
 /** Embedding model — text-embedding-004, 768 dims. */

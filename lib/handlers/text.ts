@@ -39,14 +39,24 @@ export async function respondToText(
       ).catch(() => null)
     : Promise.resolve(null);
 
+  const hint = fastClassify(userText, { hasStagedMedia });
+
   const endPreload = span("text:preload", traceId);
-  const [historyMsgs, facts, accounts, settings, imageData] = await Promise.all([
+  const [rawHistoryMsgs, facts, accounts, settings, imageData] = await Promise.all([
     historyForPrompt(userId),
     loadFacts(userId),
     listAccounts(userId),
     getSettings(userId),
     imagePromise,
   ]);
+
+  // Stateless lookups don't benefit from a long history window — skip everything
+  // except the last 5 pairs to keep the prompt lean.
+  const STATELESS_HINTS = new Set(["weather", "finance", "news"]);
+  const historyMsgs = hint && STATELESS_HINTS.has(hint)
+    ? rawHistoryMsgs.slice(-10)
+    : rawHistoryMsgs;
+
   endPreload({
     historyTurns: historyMsgs.length,
     facts: facts.facts.length,
@@ -54,6 +64,7 @@ export async function respondToText(
     accounts: accounts.accounts.length,
     bundledImage: imageData ? freshImage?.messageId : null,
     imagePreloaded: imageLooksReferenced,
+    hint: hint ?? "none",
   });
 
   let userContent: ModelMessage["content"];
@@ -72,7 +83,6 @@ export async function respondToText(
   ];
 
   const userHasGoogle = accounts.accounts.length > 0;
-  const hint = fastClassify(userText, { hasStagedMedia });
   const tools = await toolsForUser(userId, {
     userHasGoogle,
     disabledCategories: settings.disabledCategories,
@@ -85,6 +95,8 @@ export async function respondToText(
     staged,
     tools,
     hasStagedMedia,
+    settings,
+    hint,
   });
   const { text: replyText, hints } = result;
 
