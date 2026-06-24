@@ -105,6 +105,13 @@ export async function POST(req: NextRequest) {
   }
 
   const { userId, text, imageBase64, imageMediaType, fileBase64, fileName } = parsed.data;
+
+  // Restrict to the single known dev userId — prevents impersonating arbitrary users
+  // if DEV_CHAT_SECRET is ever compromised.
+  const allowedUserId = process.env.DEV_LINE_USER_ID;
+  if (allowedUserId && userId !== allowedUserId) {
+    return NextResponse.json({ error: "userId not permitted" }, { status: 403 });
+  }
   registerUser(userId).catch(() => {});
   const traceId = `dev_${userId}_${Date.now().toString(36)}`;
   const endRequest = span("dev:chat", traceId);
@@ -160,7 +167,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ reply: replyText, hints: { confirmDraft: false } });
     } catch (err) {
       endImage({ error: err instanceof Error ? err.message : String(err) });
-      return NextResponse.json({ error: "Image processing failed", detail: String(err) }, { status: 500 });
+      return NextResponse.json({ error: "Image processing failed" }, { status: 500 });
     }
   }
 
@@ -169,6 +176,10 @@ export async function POST(req: NextRequest) {
     const endFile = span("dev:file", traceId);
     try {
       const bytes = Uint8Array.from(Buffer.from(fileBase64, "base64"));
+      if (bytes.byteLength > 20 * 1024 * 1024) {
+        endFile({ error: "file too large" });
+        return NextResponse.json({ error: "File exceeds 20 MB limit" }, { status: 413 });
+      }
       const lowerName = (fileName || "document.pdf").toLowerCase();
       const isPptx = lowerName.endsWith(".pptx");
       const contentType = isPptx
@@ -231,7 +242,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ reply: replyText, hints: { confirmDraft: false } });
     } catch (err) {
       endFile({ error: err instanceof Error ? err.message : String(err) });
-      return NextResponse.json({ error: "File processing failed", detail: String(err) }, { status: 500 });
+      return NextResponse.json({ error: "File processing failed" }, { status: 500 });
     }
   }
 

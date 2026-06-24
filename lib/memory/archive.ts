@@ -86,6 +86,12 @@ export async function listArchive(userId: string): Promise<ArchivedSummary[]> {
 export async function searchArchive(userId: string, query: string): Promise<ArchivedSummary[]> {
   const vec = vector();
   if (vec) {
+    // Validate userId format before interpolating into the filter string.
+    // LINE userIds are always U[a-f0-9]{32}; anything else is a bug or injection attempt.
+    if (!/^U[a-f0-9]{32}$/i.test(userId)) {
+      console.warn("[archive] invalid userId format, skipping vector search", userId);
+      return searchArchiveFallback(userId, query);
+    }
     const qv = await embedText(query);
     if (qv) {
       try {
@@ -93,7 +99,7 @@ export async function searchArchive(userId: string, query: string): Promise<Arch
           vector: qv,
           topK: 10,
           includeMetadata: true,
-          filter: `userId = '${userId.replace(/'/g, "")}'`,
+          filter: `userId = '${userId}'`,
         });
         if (hits && hits.length) {
           // Reconstruct from vector metadata — avoids loading all 200 Redis entries.
@@ -121,7 +127,10 @@ export async function searchArchive(userId: string, query: string): Promise<Arch
       }
     }
   }
-  // Substring fallback.
+  return searchArchiveFallback(userId, query);
+}
+
+async function searchArchiveFallback(userId: string, query: string): Promise<ArchivedSummary[]> {
   const all = await listArchive(userId);
   const q = query.toLowerCase();
   return all.filter((a) => a.summary.toLowerCase().includes(q));

@@ -1,4 +1,4 @@
-import { replyOrPush, text as textMsg } from "@/lib/line/client";
+import { replyOrPush, text as textMsg, getProfile } from "@/lib/line/client";
 import { parsePostbackData } from "@/lib/line/flex";
 import { clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
@@ -9,6 +9,8 @@ import { redis } from "@/lib/memory/redis";
 import { withGoogleClient } from "@/lib/tools/with-google";
 import { google } from "googleapis";
 import type { LineEvent } from "@/lib/line/types";
+import { buildGate } from "@/lib/gate";
+import { approvePending, denyPending } from "@/lib/memory/allowlist";
 
 const GMAIL_MODIFY = "https://www.googleapis.com/auth/gmail.modify";
 
@@ -176,6 +178,41 @@ async function handleEvent({ userId, replyToken, args }: Ctx): Promise<void> {
   }
 }
 
+const LINE_ID_RE = /^U[a-f0-9]{32}$/i;
+
+async function handlePending({ userId, replyToken, args }: Ctx): Promise<void> {
+  const reply = mkReply(userId, replyToken);
+  const gate = buildGate();
+  if (!gate.isAdmin(userId)) {
+    await reply("Admin only.");
+    return;
+  }
+  const action = args[0];
+  const targetId = args[1];
+  if (!targetId || !LINE_ID_RE.test(targetId)) {
+    await reply("Invalid user ID.");
+    return;
+  }
+  if (action === "allow") {
+    await approvePending(targetId);
+    const profile = await getProfile(targetId).catch(() => null);
+    const name = profile?.displayName ?? "";
+    await replyOrPush(targetId, "", [
+      textMsg(
+        `Hi${name ? ` ${name}` : ""}! You're all set — welcome to Lekha 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
+      ),
+    ]);
+    await reply(`✅ Approved${name ? ` ${name}` : ""}.`);
+    return;
+  }
+  if (action === "deny") {
+    await denyPending(targetId);
+    const profile = await getProfile(targetId).catch(() => null);
+    const name = profile?.displayName ?? targetId.slice(0, 10);
+    await reply(`🗑 Denied ${name}.`);
+  }
+}
+
 async function handleFallback({ userId, replyToken }: Ctx): Promise<void> {
   await mkReply(userId, replyToken)("Type what you want and I'll do it (e.g. \"share that file\", \"email that contact\").");
 }
@@ -187,6 +224,7 @@ const HANDLERS: Record<string, ((ctx: Ctx) => Promise<void>) | undefined> = {
   gmail: handleGmail,
   list: handleList,
   event: handleEvent,
+  pending: handlePending,
   drive: handleFallback,
   contact: handleFallback,
   sent: handleFallback,

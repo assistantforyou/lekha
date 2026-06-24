@@ -7,6 +7,7 @@ export { calendarEventsFlex, type CalendarEventRow } from "./calendar-events";
 export { briefingFlex } from "./briefing";
 export { newsFlex, type NewsRow } from "./news";
 export { taskCheckinFlex, type CheckInRow } from "./task-checkin";
+export { pendingUsersFlex, type PendingUserRow } from "./pending-users";
 
 /**
  * Parse a LINE postback `data` payload. Convention:

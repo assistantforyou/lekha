@@ -13,7 +13,7 @@ import {
 } from "@/lib/memory/receipts";
 
 function randomId(): string {
-  return Math.random().toString(36).slice(2, 10);
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 }
 
 const EXTRACT_PROMPT = `You are analyzing a receipt image. Extract the following and respond with ONLY valid JSON — no prose, no markdown fences.

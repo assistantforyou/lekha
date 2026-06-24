@@ -14,7 +14,7 @@ import { listAllUsers } from "@/lib/memory/user-registry";
 import { redis } from "@/lib/memory/redis";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
-import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
+import { briefingFlex, newsFlex, gmailResultsFlex, pendingUsersFlex } from "@/lib/line/flex";
 import type { LineMessage } from "@/lib/line/client";
 
 /** LINE user ids are `U` + 32 lowercase hex chars. Tighter than `U\w+`. */
@@ -68,14 +68,15 @@ export async function handleAdminCommand(
       await replyOrPush(userId, replyToken, [textMsg("Pending queue is empty.")]);
       return true;
     }
-    const entries = await Promise.all(
+    const rows = await Promise.all(
       list.map(async (id) => {
         const info = await getPendingInfo(id);
-        const name = info?.displayName ? `${info.displayName} ` : "";
-        return `${name}(${id}) — requested ${info ? new Date(info.requestedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "unknown"}`;
+        return { userId: id, displayName: info?.displayName, requestedAt: info?.requestedAt ?? Date.now() };
       }),
     );
-    await replyOrPush(userId, replyToken, [textMsg(`Pending queue (${list.length}):\n\n${entries.join("\n")}`)]);
+    const msgs: LineMessage[] = [pendingUsersFlex(rows)];
+    if (list.length > 12) msgs.unshift(textMsg(`Pending queue: ${list.length} users (showing first 12)`));
+    await replyOrPush(userId, replyToken, msgs);
     return true;
   }
 

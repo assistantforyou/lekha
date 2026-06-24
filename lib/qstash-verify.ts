@@ -37,8 +37,3 @@ export async function verifyQStashSignature(
   }
 }
 
-/** Check whether an Authorization header matches the manual cron secret. */
-export function isManualBypass(authHeader: string | null): boolean {
-  const manualSecret = env().CRON_MANUAL_SECRET;
-  return !!manualSecret && authHeader === `Bearer ${manualSecret}`;
-}

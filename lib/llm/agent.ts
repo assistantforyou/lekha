@@ -688,8 +688,14 @@ async function handleAgentError(err: unknown, userId: string, traceId?: string):
     return `Timed out after ${err.seconds}s — that was a heavy request. Try again in a sec.`;
   }
   const msg = err instanceof Error ? err.message : String(err);
+  // AI_RetryError wraps the 503: its .message is "Failed after N attempts. Last error: ..."
+  // The 503/UNAVAILABLE status lives in the nested cause, not in msg itself.
   // Bug 4 & 5: Gemini 503 / cold-start Bad Gateway — return friendly message, not raw error
-  if (/UNAVAILABLE|Bad.?Gateway|service.?unavailable/i.test(msg) || /\b50[23]\b/.test(msg)) {
+  if (
+    /UNAVAILABLE|Bad.?Gateway|service.?unavailable|high demand|experiencing.*demand/i.test(msg) ||
+    /\b50[23]\b/.test(msg) ||
+    /AI_RetryError|maxRetriesExceeded/i.test(msg)
+  ) {
     console.warn("[agent] service unavailable", { msg: msg.slice(0, 200), traceId });
     return "Temporarily unavailable — please try again in a moment.";
   }
