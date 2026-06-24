@@ -42,5 +42,7 @@ describe("shortcut routing", () => {
     expect(isTaskQuery("what tasks do i have")).toBe(true);
     expect(isTaskQuery("show me my todo list")).toBe(true);
     expect(isTaskQuery("what do i need to do today")).toBe(true);
+    expect(isTaskQuery("what do i have to do today")).toBe(true);
+    expect(isTaskQuery("What do i have to do today")).toBe(true);
   });
 });

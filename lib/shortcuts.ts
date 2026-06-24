@@ -37,7 +37,7 @@ export function isTaskQuery(t: string): boolean {
     /\bwhat\s+tasks?\s+(do\s+i\s+have|left|remain)\b/i.test(lower) ||
     /\bshow\s+(me\s+)?my\s+(tasks?|todo)\b/i.test(lower) ||
     /\bmy\s+(remaining|open|pending|current)\s+(tasks?|todo)\b/i.test(lower) ||
-    /\bwhat\s+do\s+i\s+need\s+to\s+do\b/i.test(lower)
+    /\bwhat\s+do\s+i\s+(have|need)\s+to\s+do\b/i.test(lower)
   );
 }
 

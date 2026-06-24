@@ -842,6 +842,16 @@ export async function runAgent(
         extraToolCalls = [{ toolName: "show_help", input: {} }];
       }
     }
+    // If the model issued a false "tool unavailable" refusal for a Google-backed
+    // query (calendar, email) with zero tool calls, give a helpful reconnect nudge.
+    if (
+      tracker.allCalls.length === 0 &&
+      looksLikeGoogleRefusal(finalText) &&
+      looksLikeCalendarQuery(lastUserText)
+    ) {
+      finalText =
+        "Your Google Calendar seems temporarily unavailable — your connection may need a refresh. Try saying \"connect google\" to reconnect, or ask again in a moment.";
+    }
     const followUps = buildFollowUps(extraToolCalls.map((c) => c.toolName), { confirmDraft, modelText: finalText });
     endProcess({ confirmDraft, flexCount: flexMessages?.length ?? 0 });
     const hints: AgentHints = {
@@ -899,7 +909,7 @@ function looksLikeTaskList(text: string): boolean {
   if (/\bshow\s+(me\s+)?my\s+(tasks?|todo)\b/.test(lower)) return true;
   if (/\b(show|list|everything|anything)\s+.*\b(i\s+need\s+to\s+do|left\s+to\s+do|to\s+do)\b/.test(lower)) return true;
   if (/\banything\s+left\s+to\s+do\b/.test(lower)) return true;
-  if (/\bwhat\s+do\s+i\s+need\s+to\s+do\b/.test(lower)) return true;
+  if (/\bwhat\s+do\s+i\s+(have|need)\s+to\s+do\b/.test(lower)) return true;
   if (/\boverdue\s+(tasks?|todo)\b/.test(lower)) return true;
   return false;
 }
@@ -936,6 +946,15 @@ function looksLikeNewsQuery(text: string): boolean {
 function looksLikeHelpQuery(text: string): boolean {
   const lower = text.toLowerCase().trim();
   return /^\/?(help|start)$/.test(lower) || /\bwhat\s+can\s+you\s+do\b/i.test(lower) || /\bwhat\s+are\s+your\s+(feature|capabilities|function)/i.test(lower);
+}
+
+function looksLikeCalendarQuery(text: string): boolean {
+  return /\b(calendar|schedule|my\s+events?|upcoming\s+(events?|meetings?|calls?)|what.*on.*today|today.*schedule)\b/i.test(text);
+}
+
+function looksLikeGoogleRefusal(text: string): boolean {
+  return /\b(tool|feature|calendar|email|drive)\b.{0,60}\b(unavailable|not\s+available|can.?t\s+access|unable\s+to\s+access)\b/i.test(text) ||
+    /\b(can.?t|cannot|unable)\b.{0,40}\b(access|use)\b.{0,40}\b(calendar|email|drive|google)\b/i.test(text);
 }
 
 async function fallbackWeather(query: string, timezone = "Asia/Bangkok"): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
