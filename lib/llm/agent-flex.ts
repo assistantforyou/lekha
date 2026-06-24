@@ -588,7 +588,7 @@ export function buildFlexFromToolResults(
           done: Boolean(t.doneAt),
           dueAt: typeof t.dueAt === "number" ? t.dueAt : undefined,
         }));
-        out.push(taskListFlex(tasks, { timezone }));
+        out.push(taskListFlex(tasks, { timezone: tz }));
         suppressText = true;
         seen.add(toolName);
         continue;
@@ -716,6 +716,47 @@ export function buildFlexFromToolResults(
           out.push(buildDriveFilesFlex(value.files as Array<Record<string, unknown>>));
           suppressText = true;
         } catch { /* skip */ }
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Drive read text ────────────────────────────────────────────────
+      if (toolName === "drive_read_text" && typeof value.text === "string") {
+        const name = String(value.name ?? "File");
+        const text = (value.text as string).slice(0, 900);
+        const truncated = value.truncated || (value.text as string).length > 900;
+        out.push(buildSimpleCardFlex(
+          `📄 ${name}`,
+          "#4285F4",
+          [{ primary: truncated ? text + " …" : text }],
+        ));
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Drive get link ─────────────────────────────────────────────────
+      if (toolName === "drive_get_link" && typeof value.link === "string") {
+        const name = String(value.name ?? "File");
+        out.push(buildSimpleCardFlex("📁 Drive Link", "#4285F4", [
+          { primary: name, secondary: value.link as string },
+        ]));
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Media AI (OCR / image / document) ──────────────────────────────
+      if (
+        (toolName === "ocr_image" || toolName === "summarize_image" || toolName === "read_document" || toolName === "summarize_document") &&
+        typeof value.output === "string"
+      ) {
+        const label =
+          toolName === "ocr_image" ? "🔍 OCR Result"
+          : toolName === "summarize_image" ? "🖼️ Image Summary"
+          : toolName === "read_document" ? "📄 Document"
+          : "📄 Document Summary";
+        const text = (value.output as string).slice(0, 900);
+        const truncated = (value.output as string).length > 900;
+        out.push(buildSimpleCardFlex(label, "#636E72", [{ primary: truncated ? text + " …" : text }]));
         seen.add(toolName);
         continue;
       }
