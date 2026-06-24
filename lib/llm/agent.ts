@@ -371,7 +371,7 @@ export async function runAgent(
             tools,
             temperature: 0.6,
             stopWhen: stepCountIs(8),
-            maxRetries: 1,
+            maxRetries: 3,
             onStepFinish: (step) => {
               if (step.toolCalls.length > 0) geminiRanToolCalls = true;
               tracker.record(step as Parameters<ReturnType<typeof createStepTracker>["record"]>[0]);
