@@ -3,7 +3,7 @@ import { generateText, stepCountIs, type ModelMessage } from "ai";
 import { chatModelForTier, hasFreeKey, hasPaidKey, AGENT_TIMEOUT_MS, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
 import { isTierDown, markTierDown } from "@/lib/llm/health";
 import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
-import { factsToPromptBlock, loadFacts, displayOrder, formatFactLine } from "@/lib/memory/facts";
+import { factsToPromptBlock, loadFacts, displayOrder } from "@/lib/memory/facts";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { listRecentMedia } from "@/lib/memory/recent-media";
 import { listTasks } from "@/lib/memory/tasks";
@@ -14,7 +14,9 @@ import { buildConnectUrl } from "@/lib/tools/google-auth";
 import type { ToolSet } from "ai";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapCause, unwrapAuthRequired } from "@/lib/errors";
 import type { LineMessage } from "@/lib/line/client";
-import { buildFlexFromToolResults, buildFollowUps } from "@/lib/llm/agent-flex";
+import { buildFlexFromToolResults, buildFollowUps, buildSimpleCardFlex } from "@/lib/llm/agent-flex";
+import { taskListFlex, newsFlex } from "@/lib/line/flex";
+import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
 import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
 import { stripMarkdown } from "@/lib/format";
 import { ACTION_LABELS } from "@/lib/llm/action-labels";
@@ -211,11 +213,6 @@ function processResult(
         }
       }
     }
-    // If model generated empty text after a display tool call, render the data ourselves.
-    const displayText = renderDisplayFallback(result);
-    if (displayText) {
-      return { reply: displayText, authNeeded: null, apiDisabled: null, googleErr: null };
-    }
     const labels = allCalls.map((c) => ACTION_LABELS[c.toolName] ?? c.toolName).filter(Boolean);
     const unique = [...new Set(labels)];
     return { reply: unique.length ? unique.join(" • ") + " ✓" : "Done.", authNeeded: null, apiDisabled: null, googleErr: null };
@@ -223,376 +220,6 @@ function processResult(
   return { reply: "I didn't catch that — could you rephrase?", authNeeded: null, apiDisabled: null, googleErr: null };
 }
 
-function renderDisplayFallback(result: { steps?: { toolResults?: { toolName?: string; output?: unknown }[] }[] }): string | null {
-  for (const step of result.steps ?? []) {
-    for (const tr of step.toolResults ?? []) {
-      if (!tr) continue;
-      const v = extractToolValue(tr.output);
-      if (!v || typeof v !== "object") continue;
-      const val = v as Record<string, unknown>;
-      // Some tools return {ok:true, ...} on success; others just return the data.
-      // Only skip if it's explicitly an error.
-      if (val.ok === false || val.need_google_auth || val.google_api_disabled || val.google_error) continue;
-
-      // ── Tasks ──────────────────────────────────────────────────────────
-      if (tr.toolName === "list_tasks" && Array.isArray(val.tasks)) {
-        const tasks = val.tasks as Array<Record<string, unknown>>;
-        if (tasks.length === 0) return "You don't have any tasks right now.";
-        const open = tasks.filter((t) => !t.doneAt).map((t) => `• ${t.title}`).join("\n");
-        const done = tasks.filter((t) => t.doneAt).map((t) => `• ${t.title} ✓`).join("\n");
-        const parts: string[] = [];
-        if (open) parts.push(`Open tasks:\n${open}`);
-        if (done) parts.push(`Done:\n${done}`);
-        return parts.join("\n\n") || "Tasks loaded.";
-      }
-
-      // ── Calendar ───────────────────────────────────────────────────────
-      if (
-        (tr.toolName === "list_upcoming_events" || tr.toolName === "calendar_today" || tr.toolName === "calendar_week") &&
-        Array.isArray(val.events)
-      ) {
-        const events = val.events as Array<Record<string, unknown>>;
-        if (events.length === 0) return "No upcoming events.";
-        return events
-          .map((e) => {
-            const summary = String(e.summary ?? "(no title)");
-            const start = String(e.start ?? "").slice(0, 16).replace("T", " ");
-            const loc = e.location ? ` @ ${e.location}` : "";
-            return `• ${summary}${start ? ` — ${start}` : ""}${loc}`;
-          })
-          .join("\n");
-      }
-
-      // ── Weather ────────────────────────────────────────────────────────
-      if (tr.toolName === "weather") {
-        const place = String(val.place ?? "unknown location");
-        const current = val.current as Record<string, unknown> | null;
-        if (!current) continue;
-        const tempC = current.tempC;
-        const tempF = current.tempF;
-        const description = String(current.description ?? "").toLowerCase();
-        const humidity = current.humidityPct;
-        const wind = current.windKmh;
-        const source = String(val.source ?? "");
-        let line = place;
-        if (typeof tempC === "number") {
-          line += ` — ${tempC}°C`;
-          if (typeof tempF === "number") line += ` / ${tempF}°F`;
-        }
-        if (description) line += `, ${description}`;
-        if (typeof humidity === "number") line += `, humidity ${humidity}%`;
-        if (typeof wind === "number") line += `, wind ${wind} km/h`;
-        if (source) line += ` (source: ${source})`;
-        const forecast = val.forecast as Array<Record<string, unknown>> | null;
-        if (forecast && forecast.length > 0) {
-          const fc = forecast.slice(0, 3).map((d) => {
-            const date = String(d.date ?? "").slice(5);
-            const high = d.highC;
-            const low = d.lowC;
-            const cond = String(d.condition ?? "").toLowerCase();
-            if (typeof high === "number" && typeof low === "number") {
-              return `${date}: ${low}°C–${high}°C${cond ? `, ${cond}` : ""}`;
-            }
-            return null;
-          }).filter(Boolean);
-          if (fc.length) line += `\n\nForecast:\n${fc.join("\n")}`;
-        }
-        return line;
-      }
-
-      // ── Gmail search ───────────────────────────────────────────────────
-      if (tr.toolName === "gmail_search" && Array.isArray(val.messages)) {
-        const msgs = val.messages as Array<Record<string, unknown>>;
-        if (msgs.length === 0) return "No emails found.";
-        return msgs
-          .map((m, i) => {
-            const from = String(m.from ?? "unknown");
-            const subject = String(m.subject ?? "(no subject)");
-            const date = String(m.date ?? "").slice(0, 10);
-            return `${i + 1}. ${subject} — ${from}${date ? ` (${date})` : ""}`;
-          })
-          .join("\n");
-      }
-
-      // ── Web search ─────────────────────────────────────────────────────
-      if (tr.toolName === "web_search") {
-        const answer = val.answer ? String(val.answer) : null;
-        const results = val.results as Array<Record<string, unknown>> | null;
-        if (answer) return answer;
-        if (results && results.length > 0) {
-          return results
-            .map((r, i) => {
-              const title = String(r.title ?? "Untitled");
-              const snippet = String(r.snippet ?? "").slice(0, 200);
-              return `${i + 1}. ${title}${snippet ? `\n${snippet}` : ""}`;
-            })
-            .join("\n\n");
-        }
-        return "Search completed but no results were found.";
-      }
-
-      // ── News search ────────────────────────────────────────────────────
-      if ((tr.toolName === "news_search" || tr.toolName === "search_news") && Array.isArray(val.stories)) {
-        const stories = val.stories as Array<Record<string, unknown>>;
-        if (stories.length === 0) return "No news stories found.";
-        return stories
-          .map((s, i) => {
-            const title = String(s.title ?? "Untitled");
-            const source = s.source ? ` — ${s.source}` : "";
-            return `${i + 1}. ${title}${source}`;
-          })
-          .join("\n");
-      }
-
-      // ── Named lists ────────────────────────────────────────────────────
-      if (tr.toolName === "list_items" && Array.isArray(val.items)) {
-        const items = val.items as string[];
-        const listName = String(val.list ?? "list");
-        if (items.length === 0) return `${listName}: empty.`;
-        return `📋 ${listName}:\n${items.map((s) => `• ${s}`).join("\n")}`;
-      }
-
-      // ── Contacts search ────────────────────────────────────────────────
-      if (tr.toolName === "contacts_search" && Array.isArray(val.contacts)) {
-        const contacts = val.contacts as Array<Record<string, unknown>>;
-        if (contacts.length === 0) return "No contacts found.";
-        return contacts
-          .map((c) => {
-            const name = String(c.name ?? "Unknown");
-            const email = String(c.email ?? "");
-            return `• ${name}${email ? ` — ${email}` : ""}`;
-          })
-          .join("\n");
-      }
-
-      // ── Reminders ──────────────────────────────────────────────────────
-      if (tr.toolName === "list_reminders" && Array.isArray(val.reminders)) {
-        const reminders = val.reminders as Array<Record<string, unknown>>;
-        if (reminders.length === 0) return "No reminders set.";
-        return reminders
-          .map((r) => {
-            const text = String(r.text ?? "");
-            const fireAt = String(r.fireAt ?? "").slice(0, 16).replace("T", " ");
-            return `• ${text}${fireAt ? ` — ${fireAt}` : ""}`;
-          })
-          .join("\n");
-      }
-
-      // ── Crypto price ───────────────────────────────────────────────────
-      if (tr.toolName === "crypto_price" && typeof val.usd === "number") {
-        const id = String(val.id ?? "").toUpperCase();
-        const usd = val.usd as number;
-        const change = val.change24h as number | null;
-        const source = String(val.source ?? "");
-        let line = `• ${id}: $${usd.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
-        if (change != null) {
-          const arrow = change >= 0 ? "▲" : "▼";
-          line += ` ${arrow} ${Math.abs(change).toFixed(2)}% (24h)`;
-        }
-        if (source) line += ` (source: ${source})`;
-        return line;
-      }
-
-      // ── Stock price ────────────────────────────────────────────────────
-      if (tr.toolName === "stock_price" && typeof val.price === "number") {
-        const symbol = String(val.symbol ?? "").toUpperCase();
-        const price = val.price as number;
-        const change = val.change as number | null;
-        const changePct = val.changePercent as number | null;
-        const currency = String(val.currency ?? "USD");
-        const source = String(val.source ?? "");
-        let line = `• ${symbol}: ${price.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${currency}`;
-        if (change != null && changePct != null) {
-          const arrow = change >= 0 ? "▲" : "▼";
-          line += ` ${arrow} ${change.toFixed(2)} (${changePct.toFixed(2)}%)`;
-        }
-        if (source) line += ` (source: ${source})`;
-        return line;
-      }
-
-      // ── FX rate ────────────────────────────────────────────────────────
-      if (tr.toolName === "fx_rate" && typeof val.rate === "number") {
-        const from = String(val.from ?? "").toUpperCase();
-        const to = String(val.to ?? "").toUpperCase();
-        const rate = val.rate as number;
-        const amount = val.amount as number;
-        const converted = val.converted as number;
-        const source = String(val.source ?? "");
-        const asOf = val.asOf ? String(val.asOf) : "";
-        let line = `• ${amount} ${from} = ${converted.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${to}`;
-        if (asOf) {
-          const shortAsOf = asOf.includes("T") ? asOf.slice(0, 10) : asOf;
-          line += ` (rate: ${rate.toFixed(4)} ${from}/${to}, as of ${shortAsOf}${source ? `, source: ${source}` : ""})`;
-        } else if (source) {
-          line += ` (rate: ${rate.toFixed(4)} ${from}/${to}, source: ${source})`;
-        } else {
-          line += ` (rate: ${rate.toFixed(4)} ${from}/${to})`;
-        }
-        return line;
-      }
-
-      // ── Stock history ──────────────────────────────────────────────────
-      if (tr.toolName === "stock_history" && typeof val.lastPrice === "number") {
-        const symbol = String(val.symbol ?? "").toUpperCase();
-        const firstPrice = val.firstPrice as number;
-        const lastPrice = val.lastPrice as number;
-        const highPrice = val.highPrice as number;
-        const lowPrice = val.lowPrice as number;
-        const changePercent = val.changePercent as number;
-        const currency = String(val.currency ?? "USD");
-        const range = String(val.range ?? "");
-        const firstDate = String(val.firstDate ?? "");
-        const lastDate = String(val.lastDate ?? "");
-        let line = `• ${symbol} (${range}): ${lastPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${currency}`;
-        if (typeof changePercent === "number") {
-          const arrow = changePercent >= 0 ? "▲" : "▼";
-          line += ` ${arrow} ${Math.abs(changePercent).toFixed(2)}%`;
-        }
-        line += `\n  Range: ${lowPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })} – ${highPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${currency}`;
-        line += `\n  Period: ${firstDate} → ${lastDate}`;
-        return line;
-      }
-
-      // ── Drive search / list recent ─────────────────────────────────────
-      if ((tr.toolName === "drive_search" || tr.toolName === "drive_list_recent") && Array.isArray(val.files)) {
-        const files = val.files as Array<Record<string, unknown>>;
-        if (files.length === 0) return "No Drive files found.";
-        return files
-          .map((f, i) => {
-            const name = String(f.name ?? "Untitled");
-            const link = f.webViewLink ? ` ${f.webViewLink}` : "";
-            return `${i + 1}. ${name}${link}`;
-          })
-          .join("\n");
-      }
-
-      // ── Drive read text ────────────────────────────────────────────────
-      if (tr.toolName === "drive_read_text" && typeof val.text === "string") {
-        const name = String(val.name ?? "File");
-        const truncated = val.truncated;
-        const text = val.text as string;
-        let out = `📄 ${name}\n\n${text.slice(0, 1800)}`;
-        if (truncated || text.length > 1800) out += "\n\n--- (truncated) ---";
-        return out;
-      }
-
-      // ── Drive get link ─────────────────────────────────────────────────
-      if (tr.toolName === "drive_get_link" && typeof val.link === "string") {
-        const name = String(val.name ?? "File");
-        return `${name}\n${val.link}`;
-      }
-
-      // ── Receipts ───────────────────────────────────────────────────────
-      if ((tr.toolName === "list_receipts" || tr.toolName === "search_receipts") && Array.isArray(val.receipts)) {
-        const receipts = val.receipts as Array<Record<string, unknown>>;
-        if (receipts.length === 0) return String(val.message ?? "No receipts found.");
-        const total = val.total as number | undefined;
-        const count = val.count as number | undefined;
-        const lines = receipts
-          .map((r, i) => {
-            const merchant = String(r.merchant ?? "Unknown");
-            const date = String(r.date ?? "").slice(0, 10);
-            const amount = typeof r.total === "number" ? r.total.toFixed(2) : "?";
-            const currency = String(r.currency ?? "");
-            return `${i + 1}. ${merchant}${date ? ` (${date})` : ""} — ${amount} ${currency}`;
-          })
-          .join("\n");
-        const suffix = total != null ? `\n\nTotal: ${total.toFixed(2)}` : count != null ? `\n\n(${count} found)` : "";
-        return lines + suffix;
-      }
-
-      // ── Memories ───────────────────────────────────────────────────────
-      if (tr.toolName === "list_memories" && Array.isArray(val.facts)) {
-        const facts = val.facts as Array<Record<string, unknown>>;
-        if (facts.length === 0) return "No memories saved yet.";
-        return facts.map((f) => String(f.display ?? f.text ?? "")).join("\n");
-      }
-
-      // ── Archived memory search ─────────────────────────────────────────
-      if (tr.toolName === "search_archived_memory" && Array.isArray(val.results)) {
-        const results = val.results as Array<Record<string, unknown>>;
-        if (results.length === 0) return "No archived memories match that query.";
-        return results
-          .map((r, i) => {
-            const summary = String(r.summary ?? r.text ?? "(no summary)");
-            return `${i + 1}. ${summary.slice(0, 200)}`;
-          })
-          .join("\n\n");
-      }
-
-      // ── Archived memory list ───────────────────────────────────────────
-      if (tr.toolName === "list_archived_memory" && Array.isArray(val.chunks)) {
-        const chunks = val.chunks as Array<Record<string, unknown>>;
-        if (chunks.length === 0) return "No archived memories yet.";
-        return chunks
-          .map((c, i) => {
-            const summary = String(c.summary ?? "(no summary)");
-            const date = c.ts ? new Date(c.ts as number).toISOString().slice(0, 10) : "";
-            return `${i + 1}. ${date ? `[${date}] ` : ""}${summary.slice(0, 200)}`;
-          })
-          .join("\n\n");
-      }
-
-      // ── Sent history ───────────────────────────────────────────────────
-      if (tr.toolName === "sent_history" && Array.isArray(val.entries)) {
-        const entries = val.entries as Array<Record<string, unknown>>;
-        if (entries.length === 0) return "No sent items found in that window.";
-        return entries
-          .map((e, i) => {
-            const kind = String(e.kind ?? "unknown");
-            const detail = e.detail as Record<string, unknown> | null;
-            const ts = e.ts as number | null;
-            const date = ts ? new Date(ts).toISOString().slice(0, 16).replace("T", " ") : "";
-            let line = `${i + 1}. ${kind}${date ? ` — ${date}` : ""}`;
-            if (detail?.subject) line += `\n  Subject: ${detail.subject}`;
-            if (detail?.to && Array.isArray(detail.to)) line += `\n  To: ${(detail.to as string[]).join(", ")}`;
-            return line;
-          })
-          .join("\n");
-      }
-
-      // ── Calendar free time ─────────────────────────────────────────────
-      if (tr.toolName === "calendar_find_free_time" && Array.isArray(val.slots)) {
-        const slots = val.slots as Array<Record<string, unknown>>;
-        if (slots.length === 0) return "No free slots found in that window.";
-        return slots
-          .map((s) => {
-            const start = String(s.startISO ?? "").slice(0, 16).replace("T", " ");
-            const minutes = s.minutes as number;
-            return `• ${start} — ${minutes} min free`;
-          })
-          .join("\n");
-      }
-
-      // ── All lists ──────────────────────────────────────────────────────
-      if (tr.toolName === "show_all_lists" && Array.isArray(val.lists)) {
-        const lists = val.lists as Array<Record<string, unknown>>;
-        if (lists.length === 0) return "No lists yet.";
-        return lists.map((l) => `• ${l.name} (${l.count} items)`).join("\n");
-      }
-
-      // ── Scheduled emails ───────────────────────────────────────────────
-      if (tr.toolName === "list_scheduled_emails" && Array.isArray(val.scheduled)) {
-        const scheduled = val.scheduled as Array<Record<string, unknown>>;
-        if (scheduled.length === 0) return "No scheduled emails.";
-        return scheduled
-          .map((s) => {
-            const subject = String(s.subject ?? "(no subject)");
-            const sendAt = String(s.sendAt ?? "").slice(0, 16).replace("T", " ");
-            const to = Array.isArray(s.to) ? (s.to as string[]).join(", ") : "";
-            return `• ${subject}${sendAt ? ` — ${sendAt}` : ""}${to ? ` → ${to}` : ""}`;
-          })
-          .join("\n");
-      }
-
-      // ── Media AI (OCR / summarize / read) ──────────────────────────────
-      if ((tr.toolName === "ocr_image" || tr.toolName === "summarize_image" || tr.toolName === "read_document" || tr.toolName === "summarize_document") && typeof val.output === "string") {
-        return val.output;
-      }
-    }
-  }
-  return null;
-}
 
 function formatProcessed(processed: ProcessedResult): string {
   if (processed.authNeeded) {
@@ -808,7 +435,7 @@ export async function runAgent(
       console.error("[agent] BUG: confirmDraft=true but successfulCalls is empty — this should never happen");
     }
     const lastUserText = getLastUserText(messages);
-    const { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any, settings?.timezone, {
+    let { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any, settings?.timezone, {
       userText: lastUserText,
     });
     // NEVER suppress text when auth is needed — the connect message is critical.
@@ -816,19 +443,22 @@ export async function runAgent(
     let extraToolCalls = tracker.allCalls;
     if (finalText === "I didn't catch that — could you rephrase?") {
       // Deterministic fallbacks: if the model blanks on an unambiguous query,
-      // execute the canonical tool ourselves rather than returning a useless reply.
+      // execute the canonical tool ourselves and return a Flex card.
       if (looksLikeMemoryRecall(lastUserText)) {
         const fb = await fallbackListMemories(userId, profile.displayName);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
+        if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (looksLikeTaskList(lastUserText)) {
         const fb = await fallbackListTasks(userId, profile.displayName, settings?.timezone);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
+        if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (looksLikeWeather(lastUserText)) {
         const fb = await fallbackWeather(lastUserText, settings?.timezone);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
+        if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (opts?.hasStagedMedia && looksLikeMediaQuery(lastUserText)) {
         const fb = await fallbackSummarizeDocument(userId, profile.displayName);
         finalText = fb.text;
@@ -837,20 +467,11 @@ export async function runAgent(
         const fb = await fallbackNewsSearch(lastUserText);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
+        if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (looksLikeHelpQuery(lastUserText)) {
         finalText = HELP_TEXT;
         extraToolCalls = [{ toolName: "show_help", input: {} }];
       }
-    }
-    // If the model issued a false "tool unavailable" refusal for a Google-backed
-    // query (calendar, email) with zero tool calls, give a helpful reconnect nudge.
-    if (
-      tracker.allCalls.length === 0 &&
-      looksLikeGoogleRefusal(finalText) &&
-      looksLikeCalendarQuery(lastUserText)
-    ) {
-      finalText =
-        "Your Google Calendar seems temporarily unavailable — your connection may need a refresh. Try saying \"connect google\" to reconnect, or ask again in a moment.";
     }
     const followUps = buildFollowUps(extraToolCalls.map((c) => c.toolName), { confirmDraft, modelText: finalText });
     endProcess({ confirmDraft, flexCount: flexMessages?.length ?? 0 });
@@ -909,24 +530,25 @@ function looksLikeTaskList(text: string): boolean {
   if (/\bshow\s+(me\s+)?my\s+(tasks?|todo)\b/.test(lower)) return true;
   if (/\b(show|list|everything|anything)\s+.*\b(i\s+need\s+to\s+do|left\s+to\s+do|to\s+do)\b/.test(lower)) return true;
   if (/\banything\s+left\s+to\s+do\b/.test(lower)) return true;
-  if (/\bwhat\s+do\s+i\s+(have|need)\s+to\s+do\b/.test(lower)) return true;
+  if (/\bwhat\s+do\s+i\s+need\s+to\s+do\b/.test(lower)) return true;
   if (/\boverdue\s+(tasks?|todo)\b/.test(lower)) return true;
   return false;
 }
 
-async function fallbackListMemories(userId: string, displayName: string): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackListMemories(userId: string, _displayName: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const f = await loadFacts(userId);
   const ordered = displayOrder(f.facts);
   if (ordered.length === 0) {
     return {
-      text: `I don't have any remembered facts for you yet, ${displayName}.`,
+      text: "",
+      flexMessages: [buildSimpleCardFlex("🧠 What I Remember", "#A29BFE", [{ primary: "Nothing saved yet." }])],
       toolCalls: [{ toolName: "list_memories", input: {} }],
     };
   }
-  const now = Date.now();
-  const lines = ordered.map((fact, i) => formatFactLine(fact, i + 1, now));
+  const items = ordered.map((fact) => ({ primary: fact.content, secondary: fact.category }));
   return {
-    text: `${displayName}, here's what I remember:\n${lines.join("\n")}`,
+    text: "",
+    flexMessages: [buildSimpleCardFlex("🧠 What I Remember", "#A29BFE", items)],
     toolCalls: [{ toolName: "list_memories", input: {} }],
   };
 }
@@ -948,45 +570,46 @@ function looksLikeHelpQuery(text: string): boolean {
   return /^\/?(help|start)$/.test(lower) || /\bwhat\s+can\s+you\s+do\b/i.test(lower) || /\bwhat\s+are\s+your\s+(feature|capabilities|function)/i.test(lower);
 }
 
-function looksLikeCalendarQuery(text: string): boolean {
-  return /\b(calendar|schedule|my\s+events?|upcoming\s+(events?|meetings?|calls?)|what.*on.*today|today.*schedule)\b/i.test(text);
-}
-
-function looksLikeGoogleRefusal(text: string): boolean {
-  return /\b(tool|feature|calendar|email|drive)\b.{0,60}\b(unavailable|not\s+available|can.?t\s+access|unable\s+to\s+access)\b/i.test(text) ||
-    /\b(can.?t|cannot|unable)\b.{0,40}\b(access|use)\b.{0,40}\b(calendar|email|drive|google)\b/i.test(text);
-}
-
-async function fallbackWeather(query: string, timezone = "Asia/Bangkok"): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackWeather(query: string, _timezone = "Asia/Bangkok"): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const locationMatch = query.match(/\b(?:in|at|for)\s+(.{2,80}?)\s*(?:\?|$)/i);
   const location = locationMatch?.[1]?.trim() ?? "Bangkok";
-  const tools = buildWeatherTools();
+  const wTools = buildWeatherTools();
   try {
-    const result = await tools.weather.execute!({ location }, { toolCallId: "fallback", messages: [] });
-    const display = renderDisplayFallback({ steps: [{ toolResults: [{ toolName: "weather", output: result }] }] });
-    return { text: display ?? "Weather lookup completed.", toolCalls: [{ toolName: "weather", input: { location } }] };
-  } catch (err) {
+    const result = await wTools.weather.execute!({ location }, { toolCallId: "fallback", messages: [] });
+    const val = extractToolValue(result) as WeatherResult | null;
+    if (val && typeof val === "object" && val.ok && val.current) {
+      return {
+        text: "",
+        flexMessages: [buildWeatherFlex(val)],
+        toolCalls: [{ toolName: "weather", input: { location } }],
+      };
+    }
+    return { text: "Weather lookup completed.", toolCalls: [{ toolName: "weather", input: { location } }] };
+  } catch {
     return { text: `I couldn't get the weather for ${location} right now.`, toolCalls: [{ toolName: "weather", input: { location } }] };
   }
 }
 
-async function fallbackNewsSearch(query: string): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackNewsSearch(query: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const topicMatch = query.match(/\b(?:news\s+(?:on|about)|about|on)\s+(.{2,80}?)\s*(?:\?|$)/i);
   const topic = (topicMatch?.[1]?.trim() ?? query.replace(/\b(latest|news|today|on|about|the)\b/gi, "").trim()) || "top news";
   try {
-    const tools = buildNewsTools();
-    const result = await tools.news_search.execute!({ query: topic, days: 2, count: 5 }, { toolCallId: "fallback", messages: [] });
+    const nTools = buildNewsTools();
+    const result = await nTools.news_search.execute!({ query: topic, days: 2, count: 5 }, { toolCallId: "fallback", messages: [] });
     const val = extractToolValue(result) as Record<string, unknown> | null;
-    const stories = Array.isArray(val?.stories) ? val.stories as Array<{ title: string; url: string; snippet?: string }> : [];
+    const stories = Array.isArray(val?.stories) ? val.stories as Array<{ title: string; url: string; snippet?: string; source?: string }> : [];
     if (stories.length === 0) return { text: `No news found for "${topic}" right now.`, toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
-    const lines = stories.slice(0, 5).map((s, i) => `${i + 1}. ${s.title}`);
-    return { text: `Here's the latest on "${topic}":\n${lines.join("\n")}`, toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
+    return {
+      text: "",
+      flexMessages: [newsFlex(stories, `📰 ${topic}`)],
+      toolCalls: [{ toolName: "news_search", input: { query: topic } }],
+    };
   } catch {
     return { text: `I couldn't fetch news right now. Try again shortly.`, toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
   }
 }
 
-async function fallbackSummarizeDocument(userId: string, displayName: string): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackSummarizeDocument(userId: string, displayName: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   try {
     const tools = buildMediaAiTools(userId);
     const result = await tools.summarize_document!.execute!({} as unknown as { index?: number }, { toolCallId: "fallback", messages: [] });
@@ -1001,18 +624,21 @@ async function fallbackSummarizeDocument(userId: string, displayName: string): P
   }
 }
 
-async function fallbackListTasks(userId: string, displayName: string, timezone = "Asia/Bangkok"): Promise<{ text: string; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackListTasks(userId: string, _displayName: string, timezone = "Asia/Bangkok"): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const tasks = await listTasks(userId, "open");
   if (tasks.length === 0) {
     return {
-      text: `You don't have any open tasks right now, ${displayName}. 🎉`,
+      text: "",
+      flexMessages: [buildSimpleCardFlex("✅ Tasks", "#00B894", [{ primary: "No open tasks right now. 🎉" }])],
       toolCalls: [{ toolName: "list_tasks", input: { filter: "open" } }],
     };
   }
-  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: timezone, month: "short", day: "numeric" });
-  const lines = tasks.map((t) => `• ${t.title}${t.dueAt ? ` — due ${fmt.format(new Date(t.dueAt))}` : ""}`);
   return {
-    text: `${displayName}, here are your open tasks:\n${lines.join("\n")}`,
+    text: "",
+    flexMessages: [taskListFlex(
+      tasks.map((t) => ({ id: t.id, title: t.title, done: Boolean(t.doneAt), dueAt: t.dueAt })),
+      { timezone },
+    )],
     toolCalls: [{ toolName: "list_tasks", input: { filter: "open" } }],
   };
 }
