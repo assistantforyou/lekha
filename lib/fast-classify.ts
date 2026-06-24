@@ -33,6 +33,7 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
     intent: "task",
     patterns: [
       /\b(add\s+(a\s+)?task|create\s+(a\s+)?task|new\s+task|my\s+tasks?|list\s+(my\s+)?tasks?|what\s+tasks?|complete\s+task|done\s+task|delete\s+task|everything\s+i\s+need\s+to\s+do|anything\s+left\s+to\s+do|overdue\s+tasks?|open\s+tasks?)\b/i,
+      /\bwhat\s+do\s+i\s+(have|need)\s+to\s+do\b/i,
     ],
   },
   {

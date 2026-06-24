@@ -9,6 +9,8 @@ import {
   briefingFlex,
 } from "@/lib/line/flex";
 import { buildPlacesFlex, type PlaceItem } from "@/lib/line/places-flex";
+import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
+import { buildStockFlex, buildCryptoFlex, type StockResult, type CryptoResult } from "@/lib/line/finance-flex";
 import { extractToolValue } from "@/lib/llm/agent";
 
 type StepLike = {
@@ -74,6 +76,33 @@ export function buildFlexFromToolResults(
           contents: value.contents as object,
         } as LineMessage);
         renderFlexCount++;
+        continue;
+      }
+
+      // ── Weather — auto-render so Flex shows even when model skips render_flex ──
+      if (toolName === "weather" && value.ok === true && renderFlexCount === 0 && !seen.has(toolName)) {
+        try {
+          out.push(buildWeatherFlex(value as WeatherResult));
+        } catch { /* malformed weather data — skip */ }
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Stock price ────────────────────────────────────────────────────
+      if (toolName === "stock_price" && value.ok === true && typeof value.price === "number" && renderFlexCount === 0 && !seen.has(toolName)) {
+        try {
+          out.push(buildStockFlex(value as StockResult));
+        } catch { /* skip */ }
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Crypto price ───────────────────────────────────────────────────
+      if (toolName === "crypto_price" && value.ok === true && typeof value.usd === "number" && renderFlexCount === 0 && !seen.has(toolName)) {
+        try {
+          out.push(buildCryptoFlex(value as CryptoResult));
+        } catch { /* skip */ }
+        seen.add(toolName);
         continue;
       }
 
