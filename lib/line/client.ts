@@ -105,20 +105,30 @@ export async function reply(replyToken: string, messages: LineMessage[]): Promis
 
 /**
  * Push a message to a user (counts against monthly quota on free plan).
+ * Retries up to 2 times on transient 5xx/network errors with exponential backoff.
  */
 export async function push(to: string, messages: LineMessage[]): Promise<boolean> {
-  const end = span("line:push");
-  const r = await fetchWithTimeout(`${API}/message/push`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({ to, messages }),
-  });
-  end({ ok: r.ok, status: r.status, messages: messages.length });
-  if (!r.ok) {
-    console.warn("[line] push failed", r.status, await safeText(r));
-    return false;
+  const body = JSON.stringify({ to, messages });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const end = span("line:push");
+    const r = await fetchWithTimeout(`${API}/message/push`, {
+      method: "POST",
+      headers: authHeaders(),
+      body,
+    });
+    end({ ok: r.ok, status: r.status, messages: messages.length, attempt });
+    if (r.ok) return true;
+    const status = r.status;
+    const text = await safeText(r);
+    // Don't retry on 4xx (bad request, auth, rate-limit) — only 5xx/network
+    if (status < 500 || attempt === 2) {
+      console.warn("[line] push failed", status, text);
+      return false;
+    }
+    console.warn(`[line] push transient error ${status}, retrying (attempt ${attempt + 1})`, text);
+    await new Promise((res) => setTimeout(res, 1000 * (attempt + 1)));
   }
-  return true;
+  return false;
 }
 
 /**
