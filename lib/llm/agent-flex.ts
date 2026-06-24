@@ -18,31 +18,442 @@ type StepLike = {
 };
 
 function looksLikeNewsRequest(text: string): boolean {
-  const lower = text.toLowerCase();
-  return /\b(news|headlines?|breaking|latest\s+news|current events|what'?s happening|top\s+\d+\s+news|finance news|stock news|market news|world news|today'?s news|news today)\b/i.test(
-    lower,
-  );
+  return /\b(news|headlines?|breaking|latest\s+news|current events|what'?s happening|top\s+\d+\s+news|finance news|stock news|market news|world news|today'?s news|news today)\b/i.test(text);
 }
 
-/** Strip markdown / extraction artifacts from a Tavily content snippet. */
 function cleanSnippet(s: string): string {
   return s
-    .replace(/^#+\s*/gm, "")        // strip leading # headers
-    .replace(/\*{1,2}/g, "")        // strip * **
-    .replace(/\s*\|\s*\S+\s*$/g, "") // strip trailing "| SourceName"
-    .replace(/\n+/g, " ")           // collapse newlines
-    .replace(/\s{2,}/g, " ")        // collapse whitespace
+    .replace(/^#+\s*/gm, "")
+    .replace(/\*{1,2}/g, "")
+    .replace(/\s*\|\s*\S+\s*$/g, "")
+    .replace(/\n+/g, " ")
+    .replace(/\s{2,}/g, " ")
     .trim()
     .slice(0, 140);
 }
 
+function fmtDateTime(isoOrMs: string | number, tz = "UTC"): string {
+  const d = typeof isoOrMs === "number" ? new Date(isoOrMs) : new Date(String(isoOrMs));
+  if (isNaN(d.getTime())) return String(isoOrMs).slice(0, 16).replace("T", " ");
+  return d.toLocaleString("en-US", {
+    timeZone: tz,
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /**
- * Walk every tool result emitted by the agent and convert list-style outputs
- * into Flex bubbles/carousels. Kept separate from runAgent so the mapping
- * table doesn't bloat the main orchestrator.
- *
- * Also returns `suppressText: true` for tools whose Flex IS the full reply
- * (morning briefing, news search) so the caller can omit the model's text blob.
+ * Generic data card: colored header + labeled item rows.
+ * Exported for reuse in fallback functions (agent.ts).
+ */
+export function buildSimpleCardFlex(
+  title: string,
+  headerColor: string,
+  items: Array<{ primary: string; secondary?: string }>,
+  emptyText = "Nothing here.",
+): LineMessage {
+  const rows = items.slice(0, 15);
+
+  const bodyItems: object[] =
+    rows.length > 0
+      ? rows.map((item) => ({
+          type: "box",
+          layout: "vertical",
+          spacing: "xs",
+          contents: [
+            {
+              type: "text",
+              text: item.primary.slice(0, 120),
+              size: "sm",
+              weight: "bold",
+              wrap: true,
+              color: "#333333",
+            },
+            ...(item.secondary
+              ? [
+                  {
+                    type: "text",
+                    text: item.secondary.slice(0, 80),
+                    size: "xs",
+                    color: "#888888",
+                    wrap: true,
+                  },
+                ]
+              : []),
+          ],
+        }))
+      : [{ type: "text", text: emptyText, size: "sm", color: "#888888", align: "center" }];
+
+  const altParts = rows
+    .map((r) => r.primary)
+    .join(", ")
+    .slice(0, 360);
+
+  return {
+    type: "flex",
+    altText: `${title}${altParts ? ": " + altParts : ""}`.slice(0, 400),
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: headerColor,
+        paddingAll: "16px",
+        contents: [{ type: "text", text: title, color: "#FFFFFF", weight: "bold", size: "md" }],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        spacing: "md",
+        contents: bodyItems,
+      },
+    },
+  } as LineMessage;
+}
+
+/** Drive files as a carousel with Open buttons where links exist. */
+function buildDriveFilesFlex(files: Array<Record<string, unknown>>): LineMessage {
+  const rows = files.slice(0, 10);
+  if (rows.length === 0) return buildSimpleCardFlex("📁 Drive Files", "#4285F4", [], "No files found.");
+
+  const hasAnyLink = rows.some((f) => typeof f.webViewLink === "string" && (f.webViewLink as string).length > 0);
+  if (!hasAnyLink) {
+    return buildSimpleCardFlex(
+      "📁 Drive Files",
+      "#4285F4",
+      rows.map((f) => ({
+        primary: String(f.name ?? "Untitled"),
+        secondary: String(f.mimeType ?? "")
+          .replace("application/vnd.google-apps.", "")
+          .replace("application/", ""),
+      })),
+    );
+  }
+
+  return {
+    type: "flex",
+    altText: `Drive: ${rows.map((f) => String(f.name ?? "")).join(", ").slice(0, 350)}`,
+    contents: {
+      type: "carousel",
+      contents: rows.map((f) => {
+        const name = String(f.name ?? "Untitled");
+        const mime = String(f.mimeType ?? "")
+          .replace("application/vnd.google-apps.", "Google ")
+          .replace("application/", "");
+        const link = typeof f.webViewLink === "string" && f.webViewLink ? f.webViewLink : null;
+        return {
+          type: "bubble" as const,
+          size: "kilo" as const,
+          header: {
+            type: "box" as const,
+            layout: "vertical" as const,
+            backgroundColor: "#4285F4",
+            paddingAll: "12px",
+            contents: [
+              { type: "text" as const, text: "📁 Drive", color: "#FFFFFF", size: "xs", weight: "bold" as const },
+            ],
+          },
+          body: {
+            type: "box" as const,
+            layout: "vertical" as const,
+            spacing: "sm" as const,
+            contents: [
+              {
+                type: "text" as const,
+                text: name.slice(0, 80),
+                weight: "bold" as const,
+                size: "sm" as const,
+                wrap: true,
+                color: "#333333",
+              },
+              { type: "text" as const, text: mime.slice(0, 60) || "file", size: "xs" as const, color: "#888888" },
+            ],
+          },
+          ...(link
+            ? {
+                footer: {
+                  type: "box" as const,
+                  layout: "vertical" as const,
+                  contents: [
+                    {
+                      type: "button" as const,
+                      style: "primary" as const,
+                      height: "sm" as const,
+                      color: "#4285F4",
+                      action: { type: "uri" as const, label: "Open", uri: link },
+                    },
+                  ],
+                },
+              }
+            : {}),
+        };
+      }),
+    },
+  } as LineMessage;
+}
+
+/** Web search card — synthesized answer + numbered source list. */
+function buildWebSearchFlex(value: Record<string, unknown>, userText: string): LineMessage {
+  const answer = typeof value.answer === "string" ? value.answer.trim().slice(0, 900) : null;
+  const results = (Array.isArray(value.results) ? value.results : []) as Array<Record<string, unknown>>;
+
+  const bodyContents: object[] = [];
+  if (answer) {
+    bodyContents.push({ type: "text", text: answer, size: "sm", wrap: true, color: "#333333" });
+  }
+  if (results.length > 0) {
+    if (answer) bodyContents.push({ type: "separator", margin: "lg", color: "#EEEEEE" });
+    bodyContents.push({
+      type: "text",
+      text: "Sources",
+      size: "xs",
+      weight: "bold",
+      color: "#888888",
+      margin: answer ? "lg" : "none",
+    });
+    results.slice(0, 5).forEach((r, i) => {
+      bodyContents.push({
+        type: "text",
+        text: `${i + 1}. ${String(r.title ?? "").slice(0, 90)}`,
+        size: "xs",
+        wrap: true,
+        color: "#555555",
+        margin: "sm",
+      });
+    });
+  }
+  if (bodyContents.length === 0) {
+    bodyContents.push({ type: "text", text: "Search completed.", size: "sm", color: "#888888" });
+  }
+
+  return {
+    type: "flex",
+    altText: (answer ?? `Search: ${userText}`).slice(0, 400),
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#0984E3",
+        paddingAll: "16px",
+        contents: [{ type: "text", text: "🔍 Web Search", color: "#FFFFFF", weight: "bold", size: "md" }],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        spacing: "none",
+        contents: bodyContents,
+      },
+    },
+  } as LineMessage;
+}
+
+/** FX rate card with large rate display. */
+function buildFxRateFlex(value: Record<string, unknown>): LineMessage {
+  const from = String(value.from ?? "").toUpperCase();
+  const to = String(value.to ?? "").toUpperCase();
+  const amount = typeof value.amount === "number" ? value.amount : 1;
+  const converted = typeof value.converted === "number" ? value.converted : null;
+  const rate = typeof value.rate === "number" ? value.rate : null;
+  const asOf = value.asOf ? String(value.asOf).slice(0, 10) : null;
+  const source = typeof value.source === "string" ? value.source : null;
+
+  const contents: object[] = [
+    { type: "text", text: "💱 Exchange Rate", color: "rgba(255,255,255,0.75)", size: "xs", weight: "bold" },
+    {
+      type: "text",
+      text:
+        converted != null
+          ? `${amount.toLocaleString()} ${from} = ${converted.toLocaleString("en-US", { maximumFractionDigits: 4 })} ${to}`
+          : "Rate unavailable",
+      size: "xl",
+      weight: "bold",
+      color: "#FFFFFF",
+      wrap: true,
+      margin: "sm",
+    },
+  ];
+  if (rate != null) {
+    contents.push({
+      type: "text",
+      text: `1 ${from} = ${rate.toFixed(4)} ${to}`,
+      size: "xs",
+      color: "rgba(255,255,255,0.7)",
+      margin: "sm",
+    });
+  }
+  if (asOf || source) {
+    contents.push({
+      type: "text",
+      text: [asOf ? `As of ${asOf}` : null, source].filter(Boolean).join(" · "),
+      size: "xs",
+      color: "rgba(255,255,255,0.5)",
+      margin: "xs",
+    });
+  }
+
+  return {
+    type: "flex",
+    altText:
+      converted != null
+        ? `${amount} ${from} = ${converted.toLocaleString("en-US", { maximumFractionDigits: 4 })} ${to}`
+        : `${from}/${to} rate`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      body: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#00B894",
+        paddingAll: "20px",
+        spacing: "none",
+        contents,
+      },
+    },
+  } as LineMessage;
+}
+
+/** Stock historical data card with dark theme. */
+function buildStockHistoryFlex(value: Record<string, unknown>): LineMessage {
+  const symbol = String(value.symbol ?? "").toUpperCase();
+  const lastPrice = typeof value.lastPrice === "number" ? value.lastPrice : null;
+  const firstPrice = typeof value.firstPrice === "number" ? value.firstPrice : null;
+  const highPrice = typeof value.highPrice === "number" ? value.highPrice : null;
+  const lowPrice = typeof value.lowPrice === "number" ? value.lowPrice : null;
+  const changePercent = typeof value.changePercent === "number" ? value.changePercent : null;
+  const currency = String(value.currency ?? "USD");
+  const range = String(value.range ?? "");
+  const firstDate = String(value.firstDate ?? "");
+  const lastDate = String(value.lastDate ?? "");
+  const isUp = changePercent != null ? changePercent >= 0 : null;
+
+  const statBoxes: object[] = [];
+  if (highPrice != null)
+    statBoxes.push({
+      type: "box",
+      layout: "vertical",
+      flex: 1,
+      contents: [
+        { type: "text", text: "High", size: "xxs", color: "rgba(255,255,255,0.55)" },
+        {
+          type: "text",
+          text: highPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }),
+          size: "sm",
+          weight: "bold",
+          color: "#FFFFFF",
+        },
+      ],
+    });
+  if (lowPrice != null)
+    statBoxes.push({
+      type: "box",
+      layout: "vertical",
+      flex: 1,
+      contents: [
+        { type: "text", text: "Low", size: "xxs", color: "rgba(255,255,255,0.55)" },
+        {
+          type: "text",
+          text: lowPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }),
+          size: "sm",
+          weight: "bold",
+          color: "#FFFFFF",
+        },
+      ],
+    });
+  if (firstPrice != null)
+    statBoxes.push({
+      type: "box",
+      layout: "vertical",
+      flex: 1,
+      contents: [
+        { type: "text", text: "Open", size: "xxs", color: "rgba(255,255,255,0.55)" },
+        {
+          type: "text",
+          text: firstPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }),
+          size: "sm",
+          weight: "bold",
+          color: "#FFFFFF",
+        },
+      ],
+    });
+
+  const contents: object[] = [
+    {
+      type: "text",
+      text: `${symbol}${range ? "  ·  " + range : ""}`,
+      color: "rgba(255,255,255,0.65)",
+      size: "xs",
+      weight: "bold",
+    },
+    {
+      type: "text",
+      text:
+        lastPrice != null
+          ? `${lastPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${currency}`
+          : "N/A",
+      size: "xxl",
+      weight: "bold",
+      color: "#FFFFFF",
+      margin: "sm",
+    },
+    ...(changePercent != null
+      ? [
+          {
+            type: "text",
+            text: `${isUp ? "▲" : "▼"} ${Math.abs(changePercent).toFixed(2)}%`,
+            size: "sm",
+            color: isUp ? "#55EFC4" : "#FF7675",
+            margin: "xs",
+          },
+        ]
+      : []),
+    ...(statBoxes.length > 0
+      ? [
+          { type: "separator", margin: "lg", color: "rgba(255,255,255,0.15)" },
+          { type: "box", layout: "horizontal", margin: "lg", contents: statBoxes },
+        ]
+      : []),
+    ...(firstDate && lastDate
+      ? [
+          {
+            type: "text",
+            text: `${firstDate} → ${lastDate}`,
+            size: "xxs",
+            color: "rgba(255,255,255,0.45)",
+            margin: "sm",
+          },
+        ]
+      : []),
+  ];
+
+  return {
+    type: "flex",
+    altText: `${symbol} history${lastPrice != null ? ": " + lastPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }) + " " + currency : ""}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      body: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#2D3436",
+        paddingAll: "20px",
+        spacing: "none",
+        contents,
+      },
+    },
+  } as LineMessage;
+}
+
+/**
+ * Walk every tool result emitted by the agent and convert structured outputs
+ * into designed Flex cards. Every data-returning tool produces a Flex card and
+ * sets suppressText=true so the model's redundant text is omitted.
  */
 export function buildFlexFromToolResults(
   result: { steps?: StepLike[] },
@@ -56,19 +467,26 @@ export function buildFlexFromToolResults(
   const seen = new Set<string>();
   let suppressText = false;
   const userText = opts?.userText ?? "";
+  const tz = timezone ?? "UTC";
+
+  // Pre-scan: if the model explicitly called render_flex, skip auto-renders
+  // to avoid double-rendering the same data.
+  const modelCalledRenderFlex = (result.steps ?? []).some((s) =>
+    (s.toolResults ?? []).some((tr) => (tr as { toolName?: string }).toolName === "render_flex"),
+  );
 
   let renderFlexCount = 0;
 
   for (const step of result.steps ?? []) {
     for (const tr of step.toolResults ?? []) {
       if (!tr) continue;
-      const toolName = tr.toolName ?? "";
-      const v = extractToolValue(tr.output);
+      const toolName = (tr as { toolName?: string }).toolName ?? "";
+      const v = extractToolValue((tr as { output?: unknown }).output);
       if (!v || typeof v !== "object") continue;
       const value = v as Record<string, unknown>;
       if (value.ok === false) continue;
 
-      // ── Model-generated Flex (render_flex) — allow multiple per turn ──
+      // ── Model-generated Flex (render_flex) ────────────────────────────
       if (toolName === "render_flex" && renderFlexCount < 3) {
         out.push({
           type: "flex",
@@ -76,43 +494,71 @@ export function buildFlexFromToolResults(
           contents: value.contents as object,
         } as LineMessage);
         renderFlexCount++;
+        suppressText = true;
         continue;
       }
 
-      // ── Weather — auto-render so Flex shows even when model skips render_flex ──
-      if (toolName === "weather" && value.ok === true && renderFlexCount === 0 && !seen.has(toolName)) {
+      if (seen.has(toolName)) continue;
+
+      // ── Weather ────────────────────────────────────────────────────────
+      if (toolName === "weather" && value.ok === true && !modelCalledRenderFlex) {
         try {
           out.push(buildWeatherFlex(value as WeatherResult));
-        } catch { /* malformed weather data — skip */ }
+          suppressText = true;
+        } catch { /* skip malformed */ }
         seen.add(toolName);
         continue;
       }
 
       // ── Stock price ────────────────────────────────────────────────────
-      if (toolName === "stock_price" && value.ok === true && typeof value.price === "number" && renderFlexCount === 0 && !seen.has(toolName)) {
+      if (toolName === "stock_price" && value.ok === true && typeof value.price === "number" && !modelCalledRenderFlex) {
         try {
           out.push(buildStockFlex(value as StockResult));
+          suppressText = true;
         } catch { /* skip */ }
         seen.add(toolName);
         continue;
       }
 
       // ── Crypto price ───────────────────────────────────────────────────
-      if (toolName === "crypto_price" && value.ok === true && typeof value.usd === "number" && renderFlexCount === 0 && !seen.has(toolName)) {
+      if (toolName === "crypto_price" && value.ok === true && typeof value.usd === "number" && !modelCalledRenderFlex) {
         try {
           out.push(buildCryptoFlex(value as CryptoResult));
+          suppressText = true;
         } catch { /* skip */ }
         seen.add(toolName);
         continue;
       }
 
-      if (seen.has(toolName)) continue; // one Flex per tool per turn — avoid duplicates
+      // ── FX rate ────────────────────────────────────────────────────────
+      if (toolName === "fx_rate" && typeof value.rate === "number" && !modelCalledRenderFlex) {
+        try {
+          out.push(buildFxRateFlex(value));
+          suppressText = true;
+        } catch { /* skip */ }
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Stock history ──────────────────────────────────────────────────
+      if (toolName === "stock_history" && typeof value.lastPrice === "number" && !modelCalledRenderFlex) {
+        try {
+          out.push(buildStockHistoryFlex(value));
+          suppressText = true;
+        } catch { /* skip */ }
+        seen.add(toolName);
+        continue;
+      }
 
       // ── Morning briefing ───────────────────────────────────────────────
       if (toolName === "get_morning_briefing" && value.briefingType === "morning") {
         const text = String(value.text ?? "");
-        const news = Array.isArray(value.news) ? value.news as Array<{ title: string; url: string; source: string }> : [];
-        const inbox = Array.isArray(value.inbox) ? value.inbox as Array<{ id: string; from: string; subject: string; snippet: string }> : [];
+        const news = Array.isArray(value.news)
+          ? (value.news as Array<{ title: string; url: string; source: string }>)
+          : [];
+        const inbox = Array.isArray(value.inbox)
+          ? (value.inbox as Array<{ id: string; from: string; subject: string; snippet: string }>)
+          : [];
         if (text) out.push(briefingFlex("morning", text));
         if (news.length > 0) out.push(newsFlex(news, "📰 Today's news"));
         if (inbox.length > 0) out.push(gmailResultsFlex(inbox.map((m) => ({ ...m, unread: true }))));
@@ -124,7 +570,9 @@ export function buildFlexFromToolResults(
       // ── Evening summary ────────────────────────────────────────────────
       if (toolName === "get_evening_summary" && value.briefingType === "evening") {
         const text = String(value.text ?? "");
-        const news = Array.isArray(value.news) ? value.news as Array<{ title: string; url: string; source: string }> : [];
+        const news = Array.isArray(value.news)
+          ? (value.news as Array<{ title: string; url: string; source: string }>)
+          : [];
         if (text) out.push(briefingFlex("evening", text));
         if (news.length > 0) out.push(newsFlex(news, "📰 Today's news"));
         suppressText = true;
@@ -140,25 +588,25 @@ export function buildFlexFromToolResults(
           done: Boolean(t.doneAt),
           dueAt: typeof t.dueAt === "number" ? t.dueAt : undefined,
         }));
-        if (tasks.length > 0) {
-          out.push(taskListFlex(tasks, { timezone }));
-          seen.add(toolName);
-        }
+        out.push(taskListFlex(tasks, { timezone }));
+        suppressText = true;
+        seen.add(toolName);
         continue;
       }
 
-      // ── Named list ────────────────────────────────────────────────────
+      // ── Named list (grocery, packing, custom) ─────────────────────────
       if (toolName === "list_items" && Array.isArray(value.items)) {
         const items = (value.items as unknown[]).map((s) => String(s));
         const listName = String(value.list ?? "list");
         if (items.length > 0) {
           out.push(listItemsFlex(listName, items));
-          seen.add(toolName);
+          suppressText = true;
         }
+        seen.add(toolName);
         continue;
       }
 
-      // ── Gmail search ──────────────────────────────────────────────────
+      // ── Gmail search ───────────────────────────────────────────────────
       if (toolName === "gmail_search" && Array.isArray(value.messages)) {
         const msgs = (value.messages as Array<Record<string, unknown>>).map((m) => ({
           id: String(m.id ?? ""),
@@ -170,14 +618,18 @@ export function buildFlexFromToolResults(
         }));
         if (msgs.length > 0) {
           out.push(gmailResultsFlex(msgs));
-          seen.add(toolName);
+          suppressText = true;
         }
+        seen.add(toolName);
         continue;
       }
 
-      // ── Calendar events ───────────────────────────────────────────────
+      // ── Calendar events (list / today / week / search) ────────────────
       if (
-        (toolName === "list_upcoming_events" || toolName === "calendar_today" || toolName === "calendar_week") &&
+        (toolName === "list_upcoming_events" ||
+          toolName === "calendar_today" ||
+          toolName === "calendar_week" ||
+          toolName === "search_events") &&
         Array.isArray(value.events)
       ) {
         const events = (value.events as Array<Record<string, unknown>>).map((e) => ({
@@ -190,12 +642,179 @@ export function buildFlexFromToolResults(
         }));
         if (events.length > 0) {
           out.push(calendarEventsFlex(events, timezone));
-          seen.add(toolName);
+        } else {
+          out.push(buildSimpleCardFlex("📅 Calendar", "#4285F4", [], "Nothing on the calendar."));
         }
+        suppressText = true;
+        seen.add(toolName);
         continue;
       }
 
-      // ── Place recommendations ─────────────────────────────────────────
+      // ── Reminders ──────────────────────────────────────────────────────
+      if (toolName === "list_reminders" && Array.isArray(value.reminders)) {
+        const reminders = value.reminders as Array<Record<string, unknown>>;
+        const items = reminders.map((r) => ({
+          primary: String(r.text ?? r.message ?? ""),
+          secondary: r.fireAt
+            ? fmtDateTime(String(r.fireAt), tz)
+            : r.recurring
+              ? "Recurring"
+              : undefined,
+        }));
+        out.push(buildSimpleCardFlex("🔔 Reminders", "#E17055", items, "No reminders set."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Contacts ───────────────────────────────────────────────────────
+      if (toolName === "contacts_search" && Array.isArray(value.contacts)) {
+        const contacts = value.contacts as Array<Record<string, unknown>>;
+        const items = contacts.map((c) => ({
+          primary: String(c.name ?? "Unknown"),
+          secondary:
+            [c.email, c.phone]
+              .filter(Boolean)
+              .map(String)
+              .join("  ·  ") || undefined,
+        }));
+        out.push(buildSimpleCardFlex("👤 Contacts", "#00CEC9", items, "No contacts found."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Free time slots ────────────────────────────────────────────────
+      if (toolName === "calendar_find_free_time" && Array.isArray(value.slots)) {
+        const slots = value.slots as Array<Record<string, unknown>>;
+        const items = slots.map((s) => ({
+          primary: fmtDateTime(String(s.startISO ?? ""), tz),
+          secondary: typeof s.minutes === "number" ? `${s.minutes} min available` : undefined,
+        }));
+        out.push(buildSimpleCardFlex("🕐 Free Time Slots", "#00B894", items, "No free slots found."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Memories ───────────────────────────────────────────────────────
+      if (toolName === "list_memories" && Array.isArray(value.facts)) {
+        const facts = value.facts as Array<Record<string, unknown>>;
+        const items = facts.map((f) => ({
+          primary: String(f.display ?? f.content ?? f.text ?? ""),
+          secondary: f.category ? String(f.category) : undefined,
+        }));
+        out.push(buildSimpleCardFlex("🧠 What I Remember", "#A29BFE", items, "No memories saved yet."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Drive files ────────────────────────────────────────────────────
+      if ((toolName === "drive_search" || toolName === "drive_list_recent") && Array.isArray(value.files)) {
+        try {
+          out.push(buildDriveFilesFlex(value.files as Array<Record<string, unknown>>));
+          suppressText = true;
+        } catch { /* skip */ }
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Receipts ───────────────────────────────────────────────────────
+      if ((toolName === "list_receipts" || toolName === "search_receipts") && Array.isArray(value.receipts)) {
+        const receipts = value.receipts as Array<Record<string, unknown>>;
+        const items = receipts.map((r) => {
+          const amount =
+            typeof r.total === "number" ? `${r.total.toFixed(2)} ${r.currency ?? ""}`.trim() : null;
+          return {
+            primary: `${String(r.merchant ?? "Unknown")}${amount ? "  ·  " + amount : ""}`,
+            secondary: r.date ? String(r.date).slice(0, 10) : undefined,
+          };
+        });
+        out.push(buildSimpleCardFlex("🧾 Receipts", "#FDCB6E", items, "No receipts found."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── All lists overview ─────────────────────────────────────────────
+      if (toolName === "show_all_lists" && Array.isArray(value.lists)) {
+        const lists = value.lists as Array<Record<string, unknown>>;
+        const items = lists.map((l) => ({
+          primary: String(l.name ?? "List"),
+          secondary:
+            typeof l.count === "number"
+              ? `${l.count} item${l.count === 1 ? "" : "s"}`
+              : undefined,
+        }));
+        out.push(buildSimpleCardFlex("📋 My Lists", "#E17055", items, "No lists yet."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Scheduled emails ───────────────────────────────────────────────
+      if (toolName === "list_scheduled_emails" && Array.isArray(value.scheduled)) {
+        const scheduled = value.scheduled as Array<Record<string, unknown>>;
+        const items = scheduled.map((s) => {
+          const to = Array.isArray(s.to) ? (s.to as string[]).join(", ") : String(s.to ?? "");
+          const sendAt = s.sendAt ? fmtDateTime(String(s.sendAt), tz) : null;
+          return {
+            primary: String(s.subject ?? "(no subject)"),
+            secondary: [to ? `To: ${to}` : null, sendAt].filter(Boolean).join("  ·  ") || undefined,
+          };
+        });
+        out.push(buildSimpleCardFlex("📤 Scheduled Emails", "#74B9FF", items, "No scheduled emails."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Sent history ───────────────────────────────────────────────────
+      if (toolName === "sent_history" && Array.isArray(value.entries)) {
+        const entries = value.entries as Array<Record<string, unknown>>;
+        const items = entries.map((e) => {
+          const detail = e.detail as Record<string, unknown> | null;
+          const subject = detail?.subject ? String(detail.subject) : null;
+          const kind = String(e.kind ?? "unknown");
+          return {
+            primary: subject ? `${kind}: ${subject}` : kind,
+            secondary: e.ts ? fmtDateTime(e.ts as number, tz) : undefined,
+          };
+        });
+        out.push(buildSimpleCardFlex("📬 Sent History", "#636E72", items, "No sent items found."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Archived memory search ─────────────────────────────────────────
+      if (toolName === "search_archived_memory" && Array.isArray(value.results)) {
+        const results = value.results as Array<Record<string, unknown>>;
+        const items = results.map((r) => ({
+          primary: String(r.summary ?? r.text ?? "").slice(0, 120),
+          secondary: r.ts ? fmtDateTime(r.ts as number, tz) : undefined,
+        }));
+        out.push(buildSimpleCardFlex("📚 Memory Archive", "#6C5CE7", items, "No matching memories."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Archived memory list ───────────────────────────────────────────
+      if (toolName === "list_archived_memory" && Array.isArray(value.chunks)) {
+        const chunks = value.chunks as Array<Record<string, unknown>>;
+        const items = chunks.map((c) => ({
+          primary: String(c.summary ?? "").slice(0, 120),
+          secondary: c.ts ? fmtDateTime(c.ts as number, tz) : undefined,
+        }));
+        out.push(buildSimpleCardFlex("📚 Memory Archive", "#6C5CE7", items, "No archived memories yet."));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Place recommendations ──────────────────────────────────────────
       if (toolName === "suggest_places" && value.ok === true && Array.isArray(value.items)) {
         const items = (value.items as Array<Record<string, unknown>>).map<PlaceItem>((p) => ({
           name: String(p.name ?? ""),
@@ -214,13 +833,11 @@ export function buildFlexFromToolResults(
         continue;
       }
 
-      // ── News search ───────────────────────────────────────────────────
+      // ── News search ────────────────────────────────────────────────────
       if (
         (toolName === "news_search" || toolName === "search_news") &&
         Array.isArray(value.stories ?? value.results)
       ) {
-        // Guard against the model hallucinating a news query from stale history.
-        // Only render the news carousel when the user actually asked for news.
         if (userText && !looksLikeNewsRequest(userText)) {
           console.warn("[agent-flex] news_search called for non-news request; suppressing carousel", {
             userText: userText.slice(0, 100),
@@ -244,10 +861,26 @@ export function buildFlexFromToolResults(
         }
         continue;
       }
+
+      // ── Web search ─────────────────────────────────────────────────────
+      if (toolName === "web_search") {
+        const answer = typeof value.answer === "string" ? value.answer.trim() : null;
+        const results = Array.isArray(value.results) ? value.results : [];
+        if (answer || results.length > 0) {
+          try {
+            out.push(buildWebSearchFlex(value, userText));
+            // Suppress model text only when Tavily has a synthesized answer;
+            // otherwise keep the model's research alongside the sources card.
+            if (answer) suppressText = true;
+          } catch { /* skip */ }
+        }
+        seen.add(toolName);
+        continue;
+      }
     }
   }
 
-  // LINE allows max 5 messages per reply — cap to be safe (text + up to 4 Flex).
+  // LINE allows max 5 messages per reply — reserve one slot for the text message.
   return { messages: out.slice(0, 4), suppressText };
 }
 
@@ -265,29 +898,14 @@ const ACTION_TOOLS = new Set([
   "schedule_email",
 ]);
 
-const DISPLAY_TOOLS = new Set([
-  "list_tasks",
-  "gmail_search",
-  "news_search",
-  "search_news",
-  "list_upcoming_events",
-  "get_morning_briefing",
-  "get_evening_summary",
-]);
-
 /**
  * Build a short "what next?" quick-reply rail based on what tools just ran.
- * Returns at most 4 suggestions — LINE allows up to 13 but more than 4 looks
- * like a wall.
- *
- * When the model is asking a clarifying question (no display/action tool ran,
- * text ends with ?) we add YES/NO so the user can tap instead of type.
  */
 export function buildFollowUps(
   toolNames: string[],
   ctx: { confirmDraft: boolean; modelText?: string },
 ): { label: string; text: string }[] {
-  if (ctx.confirmDraft) return []; // confirm Flex already drives the next step
+  if (ctx.confirmDraft) return [];
   const names = new Set(toolNames);
   const out: { label: string; text: string }[] = [];
   const push = (label: string, text: string) => {
@@ -303,7 +921,7 @@ export function buildFollowUps(
     push("Reply to first", "reply to the first email");
     push("Show unread", "show me my unread emails");
   }
-  if (names.has("list_upcoming_events") || names.has("calendar_today")) {
+  if (names.has("list_upcoming_events") || names.has("calendar_today") || names.has("search_events")) {
     push("Tomorrow?", "what's on my calendar tomorrow");
     push("Add event", "add a calendar event");
   }
@@ -322,8 +940,13 @@ export function buildFollowUps(
     push("What's on my calendar?", "what's on my calendar today");
     push("Check my inbox", "summarize my recent unread email");
   }
+  if (names.has("list_reminders")) {
+    push("Add reminder", "set a reminder");
+  }
+  if (names.has("list_memories")) {
+    push("Add memory", "remember something for me");
+  }
 
-  // After any state-changing action, offer a generic "what's next" prompt.
   if (out.length === 0 && toolNames.some((t) => ACTION_TOOLS.has(t))) {
     push("What's next?", "what should I do next");
   }
