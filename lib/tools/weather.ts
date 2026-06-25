@@ -24,7 +24,12 @@ export function buildWeatherTools() {
         if (cached && Date.now() - cached.ts < WEATHER_CACHE_TTL_MS) {
           return cached.result;
         }
-        const result = await tryWttr(location) ?? await tryOpenMeteo(location);
+        // Run both providers in parallel — take whichever responds first.
+        // Each fetch has a 5s timeout so worst-case total is ~5s, not 12+12+12s sequentially.
+        const result = await Promise.any([
+          tryWttr(location).then((r) => r ?? Promise.reject(new Error("wttr null"))),
+          tryOpenMeteo(location).then((r) => r ?? Promise.reject(new Error("meteo null"))),
+        ]).catch(() => null);
         if (!result) return { ok: false, error: "Both weather providers failed. Try again in a moment." };
         weatherCache.set(cacheKey, { result, ts: Date.now() });
         return result;
@@ -50,7 +55,7 @@ async function tryWttr(location: string) {
         date?: string; maxtempC?: string; mintempC?: string;
         hourly?: Array<{ chanceofrain?: string; weatherDesc?: Array<{ value?: string }>; time?: string }>;
       }>;
-    }>(`https://wttr.in/${encodeURIComponent(location)}?format=j1`);
+    }>(`https://wttr.in/${encodeURIComponent(location)}?format=j1`, { timeoutMs: 5000 });
     console.log("[weather] wttr.in", { location, ms: Date.now() - t0 });
     const cur = data.current_condition?.[0];
     const area = data.nearest_area?.[0];
@@ -89,6 +94,7 @@ async function tryOpenMeteo(location: string) {
     // Geocode city name → lat/lon
     const geo = await fetchJSON<{ results?: Array<{ latitude: number; longitude: number; name: string; country?: string }> }>(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`,
+      { timeoutMs: 5000 },
     );
     const place = geo.results?.[0];
     if (!place) return null;
@@ -98,7 +104,8 @@ async function tryOpenMeteo(location: string) {
       current?: { temperature_2m?: number; relative_humidity_2m?: number; wind_speed_10m?: number; weather_code?: number };
       daily?: { time?: string[]; temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_probability_max?: number[]; weather_code?: number[] };
     }>(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&forecast_days=3&timezone=auto`,
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&forecast_days=7&timezone=auto`,
+      { timeoutMs: 5000 },
     );
     console.log("[weather] open-meteo fallback", { location, ms: Date.now() - t0 });
     const cur = wx.current;
@@ -115,7 +122,7 @@ async function tryOpenMeteo(location: string) {
         windKmh: cur.wind_speed_10m ?? null,
         windDir: null,
       } : null,
-      forecast: (daily?.time ?? []).slice(0, 3).map((date, i) => ({
+      forecast: (daily?.time ?? []).slice(0, 7).map((date, i) => ({
         date,
         highC: daily?.temperature_2m_max?.[i] ?? null,
         lowC: daily?.temperature_2m_min?.[i] ?? null,
