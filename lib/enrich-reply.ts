@@ -39,8 +39,11 @@ export function enrichReply(
   }
 
   if (hints.confirmDraft) {
-    // Confirm bubble carries its own postback buttons — no QR needed on the
-    // text part, but follow-ups (if any) still attach.
+    // New-style: Flex card has YES/NO postback buttons built in — no extra confirm bubble.
+    if (hints.hasDraftFlex && flex.length > 0) {
+      return flex;
+    }
+    // Old-style fallback: text block + separate confirm bubble.
     const textPart =
       followUps.length > 0
         ? withQuickReplies(replyText, followUps.slice(0, 13))

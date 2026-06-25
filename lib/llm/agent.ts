@@ -14,7 +14,7 @@ import { buildConnectUrl } from "@/lib/tools/google-auth";
 import type { ToolSet } from "ai";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapCause, unwrapAuthRequired } from "@/lib/errors";
 import type { LineMessage } from "@/lib/line/client";
-import { buildFlexFromToolResults, buildFollowUps, buildSimpleCardFlex } from "@/lib/llm/agent-flex";
+import { buildFlexFromToolResults, buildFollowUps, buildSimpleCardFlex, buildDraftFlexCards } from "@/lib/llm/agent-flex";
 import { taskListFlex, newsFlex } from "@/lib/line/flex";
 import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
 import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
@@ -250,6 +250,8 @@ function formatProcessed(processed: ProcessedResult): string {
 export type AgentHints = {
   /** A draft was rendered — show YES/No quick replies. */
   confirmDraft: boolean;
+  /** A Flex card with YES/NO postback buttons was built for the draft — skip old text confirm bubble. */
+  hasDraftFlex: boolean;
   /** Multi-account ambiguity — show account picker. */
   pickAccount: boolean;
   /** No Google account connected and the user asked for something that needs one. */
@@ -438,6 +440,21 @@ export async function runAgent(
     let { messages: flexMessages, suppressText } = buildFlexFromToolResults(result as any, settings?.timezone, {
       userText: lastUserText,
     });
+    // Build rich Flex cards for draft confirmations (with YES/NO postback buttons).
+    let hasDraftFlex = false;
+    if (confirmDraft) {
+      const draftCalls = tracker.successfulCalls.filter((c) =>
+        c.toolName === "draft_email" ||
+        c.toolName === "draft_calendar_event" ||
+        c.toolName === "schedule_email",
+      );
+      const draftCards = buildDraftFlexCards(draftCalls, settings?.timezone);
+      if (draftCards.length > 0) {
+        flexMessages = [...draftCards, ...flexMessages];
+        suppressText = true;
+        hasDraftFlex = true;
+      }
+    }
     // NEVER suppress text when auth is needed — the connect message is critical.
     let finalText = suppressText && !processed.authNeeded ? "" : text;
     let extraToolCalls = tracker.allCalls;
@@ -477,6 +494,7 @@ export async function runAgent(
     endProcess({ confirmDraft, flexCount: flexMessages?.length ?? 0 });
     const hints: AgentHints = {
       confirmDraft,
+      hasDraftFlex,
       pickAccount:
         accounts.accounts.length > 1 &&
         /which (google )?account/i.test(text) &&
@@ -499,6 +517,7 @@ export async function runAgent(
       text: errText,
       hints: {
         confirmDraft: false,
+        hasDraftFlex: false,
         pickAccount: false,
         needsGoogleConnect: unwrapAuthRequired(err) !== undefined,
       },

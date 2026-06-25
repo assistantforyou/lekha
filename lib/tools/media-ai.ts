@@ -48,6 +48,22 @@ export function buildMediaAiTools(userId: string) {
           8000,
         ),
     }),
+
+    transcribe_audio: tool({
+      description:
+        "Transcribe speech from a voice message or audio file the user sent in LINE. Returns the verbatim transcript.",
+      inputSchema: z.object({ index: z.number().int().min(1).optional() }),
+      execute: async ({ index }) =>
+        runMediaPrompt(userId, index, "audio", "Transcribe every word spoken in this audio. Output the verbatim transcript, preserving punctuation and speaker turns if there are multiple people. If inaudible, write '[inaudible]'. If no speech is detected, say 'No speech detected.'"),
+    }),
+
+    summarize_audio: tool({
+      description:
+        "Summarize or answer questions about a voice message or audio file the user sent in LINE. Use this when the user asks 'what did they say?' or 'summarize this voice note'.",
+      inputSchema: z.object({ index: z.number().int().min(1).optional() }),
+      execute: async ({ index }) =>
+        runMediaPrompt(userId, index, "audio", "Listen carefully and summarize what was said in 2-4 sentences. Capture the main topic, key points, and any action items or requests. If it's a question, state the question clearly."),
+    }),
   };
 }
 

@@ -128,6 +128,7 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
     intent: "media",
     patterns: [
       /\b(read\s+(this|the)\s+(document|pdf|file)|summarize\s+(this|the)\s+(document|pdf|file|image|photo)|ocr|extract\s+text)\b/i,
+      /\b(transcribe|what\s+(did|does)\s+(he|she|they)\s+say|what\s+did\s+it\s+say|what'?s\s+(being\s+)?said|voice\s+(note|message)|audio\s+(message|clip))\b/i,
     ],
   },
 ];

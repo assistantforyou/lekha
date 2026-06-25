@@ -71,6 +71,8 @@ export const ACTION_LABELS: Record<string, string> = {
   summarize_image: "Image summarized",
   read_document: "Document read",
   summarize_document: "Document summarized",
+  transcribe_audio: "Audio transcribed",
+  summarize_audio: "Audio summarized",
   // Receipts
   scan_receipt: "Receipt scanned",
   list_receipts: "Receipts listed",

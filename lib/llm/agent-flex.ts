@@ -14,7 +14,8 @@ import { buildStockFlex, buildCryptoFlex, type StockResult, type CryptoResult } 
 import { extractToolValue } from "@/lib/llm/agent";
 
 type StepLike = {
-  toolResults?: { toolName?: string; output?: unknown }[];
+  toolResults?: { toolCallId?: string; toolName?: string; output?: unknown }[];
+  toolCalls?: { toolCallId?: string; toolName?: string; input?: unknown }[];
 };
 
 function looksLikeNewsRequest(text: string): boolean {
@@ -464,6 +465,281 @@ function buildStockHistoryFlex(value: Record<string, unknown>): LineMessage {
   } as LineMessage;
 }
 
+// ── Draft confirmation Flex cards ──────────────────────────────────────────
+
+function draftFooter(yesLabel: string): object {
+  return {
+    type: "box",
+    layout: "horizontal",
+    spacing: "sm",
+    paddingAll: "12px",
+    contents: [
+      {
+        type: "button",
+        style: "secondary",
+        height: "sm",
+        action: { type: "postback", label: "Cancel", data: "confirm:no", displayText: "Cancel" },
+      },
+      {
+        type: "button",
+        style: "primary",
+        color: "#06C755",
+        height: "sm",
+        action: { type: "postback", label: yesLabel, data: "confirm:yes", displayText: yesLabel },
+      },
+    ],
+  };
+}
+
+function draftFieldRow(label: string, value: string, bold = false): object {
+  return {
+    type: "box",
+    layout: "horizontal",
+    spacing: "sm",
+    paddingTop: "8px",
+    paddingBottom: "8px",
+    contents: [
+      { type: "text", text: label, size: "xs", color: "#999999", flex: 3, gravity: "top" },
+      { type: "text", text: value, size: "sm", flex: 10, wrap: true, color: bold ? "#111111" : "#333333", weight: bold ? "bold" : "regular" },
+    ],
+  };
+}
+
+function draftFmtDate(iso: string, timezone?: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    timeZone: timezone ?? "UTC",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+function draftFmtRange(start?: string, end?: string, timezone?: string): string {
+  try {
+    const s = start ? draftFmtDate(start, timezone) : "?";
+    const e = end ? draftFmtDate(end, timezone) : "?";
+    return `${s} → ${e}`;
+  } catch {
+    return `${start ?? "?"} → ${end ?? "?"}`;
+  }
+}
+
+function buildEmailDraftFlex(input: unknown, tz: string): LineMessage {
+  const args = input as {
+    to?: string[]; cc?: string[]; bcc?: string[];
+    subject?: string; body?: string; fromEmail?: string;
+  };
+  const to = (args.to ?? []).join(", ") || "(missing)";
+  const subject = args.subject ?? "(no subject)";
+  const bodyText = (args.body ?? "").trim();
+  const bodyPreview = bodyText.slice(0, 220);
+
+  const rows: object[] = [];
+  if (args.fromEmail) {
+    rows.push(draftFieldRow("From", args.fromEmail));
+    rows.push({ type: "separator", color: "#f0f0f0" });
+  }
+  rows.push(draftFieldRow("To", to));
+  if (args.cc?.length) {
+    rows.push({ type: "separator", color: "#f0f0f0" });
+    rows.push(draftFieldRow("Cc", args.cc.join(", ")));
+  }
+  rows.push({ type: "separator", color: "#f0f0f0" });
+  rows.push(draftFieldRow("Subject", subject, true));
+  if (bodyPreview) {
+    rows.push({ type: "separator", color: "#f0f0f0" });
+    rows.push({
+      type: "text",
+      text: bodyText.length > 220 ? bodyPreview + " …" : bodyPreview,
+      size: "sm",
+      color: "#555555",
+      wrap: true,
+      paddingTop: "10px",
+      paddingBottom: "10px",
+    });
+  }
+
+  return {
+    type: "flex",
+    altText: `Draft email to ${to} — ${subject}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#0D1B4B",
+        paddingAll: "16px",
+        contents: [
+          { type: "text", text: "📧  EMAIL DRAFT", size: "xs", color: "rgba(255,255,255,0.65)", weight: "bold", letterSpacing: "1px" },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingStart: "16px",
+        paddingEnd: "16px",
+        paddingTop: "0px",
+        paddingBottom: "4px",
+        spacing: "none",
+        contents: rows,
+      },
+      footer: draftFooter("Send Email"),
+    },
+  } as LineMessage;
+}
+
+function buildCalendarDraftFlex(input: unknown, tz: string): LineMessage {
+  const args = input as {
+    summary?: string; startISO?: string; endISO?: string;
+    location?: string; attendees?: string[]; description?: string; fromEmail?: string;
+  };
+  const title = args.summary ?? "(no title)";
+  const when = draftFmtRange(args.startISO, args.endISO, tz);
+
+  const rows: object[] = [
+    {
+      type: "text",
+      text: title,
+      size: "lg",
+      weight: "bold",
+      color: "#111111",
+      wrap: true,
+      paddingTop: "14px",
+      paddingBottom: "10px",
+    },
+    { type: "separator", color: "#f0f0f0" },
+    draftFieldRow("🕐", when),
+  ];
+  if (args.location) {
+    rows.push({ type: "separator", color: "#f0f0f0" });
+    rows.push(draftFieldRow("📍", args.location));
+  }
+  if (args.attendees?.length) {
+    rows.push({ type: "separator", color: "#f0f0f0" });
+    rows.push(draftFieldRow("👥", args.attendees.slice(0, 5).join(", ")));
+  }
+  if (args.fromEmail) {
+    rows.push({ type: "separator", color: "#f0f0f0" });
+    rows.push(draftFieldRow("Cal", args.fromEmail));
+  }
+
+  return {
+    type: "flex",
+    altText: `Draft event: ${title} — ${when}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#1A73E8",
+        paddingAll: "16px",
+        contents: [
+          { type: "text", text: "📅  CALENDAR EVENT", size: "xs", color: "rgba(255,255,255,0.65)", weight: "bold", letterSpacing: "1px" },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingStart: "16px",
+        paddingEnd: "16px",
+        paddingTop: "0px",
+        paddingBottom: "4px",
+        spacing: "none",
+        contents: rows,
+      },
+      footer: draftFooter("Create Event"),
+    },
+  } as LineMessage;
+}
+
+function buildScheduledEmailDraftFlex(input: unknown, tz: string): LineMessage {
+  const args = input as {
+    to?: string[]; cc?: string[];
+    subject?: string; body?: string; sendAt?: string; fromEmail?: string;
+  };
+  const to = (args.to ?? []).join(", ") || "(missing)";
+  const subject = args.subject ?? "(no subject)";
+  const sendAt = args.sendAt ? draftFmtDate(args.sendAt, tz) : "(unknown)";
+  const bodyText = (args.body ?? "").trim();
+  const bodyPreview = bodyText.slice(0, 180);
+
+  const rows: object[] = [];
+  if (args.fromEmail) {
+    rows.push(draftFieldRow("From", args.fromEmail));
+    rows.push({ type: "separator", color: "#f0f0f0" });
+  }
+  rows.push(draftFieldRow("To", to));
+  rows.push({ type: "separator", color: "#f0f0f0" });
+  rows.push(draftFieldRow("Subject", subject, true));
+  rows.push({ type: "separator", color: "#f0f0f0" });
+  rows.push(draftFieldRow("📅 Send at", sendAt));
+  if (bodyPreview) {
+    rows.push({ type: "separator", color: "#f0f0f0" });
+    rows.push({
+      type: "text",
+      text: bodyText.length > 180 ? bodyPreview + " …" : bodyPreview,
+      size: "sm",
+      color: "#555555",
+      wrap: true,
+      paddingTop: "10px",
+      paddingBottom: "10px",
+    });
+  }
+
+  return {
+    type: "flex",
+    altText: `Scheduled email to ${to} — ${subject} — send at ${sendAt}`,
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: "#00897B",
+        paddingAll: "16px",
+        contents: [
+          { type: "text", text: "📤  SCHEDULED EMAIL", size: "xs", color: "rgba(255,255,255,0.65)", weight: "bold", letterSpacing: "1px" },
+        ],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingStart: "16px",
+        paddingEnd: "16px",
+        paddingTop: "0px",
+        paddingBottom: "4px",
+        spacing: "none",
+        contents: rows,
+      },
+      footer: draftFooter("Schedule Email"),
+    },
+  } as LineMessage;
+}
+
+/**
+ * Build styled Flex confirmation cards for draft tool calls (email/calendar/scheduled email).
+ * Each card includes YES/NO postback buttons tied to the pending-action queue.
+ */
+export function buildDraftFlexCards(
+  calls: ReadonlyArray<{ toolName: string; input: unknown }>,
+  timezone?: string,
+): LineMessage[] {
+  const tz = timezone ?? "UTC";
+  return calls.flatMap((call) => {
+    try {
+      if (call.toolName === "draft_email") return [buildEmailDraftFlex(call.input, tz)];
+      if (call.toolName === "draft_calendar_event") return [buildCalendarDraftFlex(call.input, tz)];
+      if (call.toolName === "schedule_email") return [buildScheduledEmailDraftFlex(call.input, tz)];
+    } catch { /* skip malformed */ }
+    return [];
+  });
+}
+
 /**
  * Walk every tool result emitted by the agent and convert structured outputs
  * into designed Flex cards. Every data-returning tool produces a Flex card and
@@ -483,6 +759,14 @@ export function buildFlexFromToolResults(
   const userText = opts?.userText ?? "";
   const tz = timezone ?? "UTC";
 
+  // Build a map of toolCallId → call input so result handlers can access the call's input.
+  const callInputMap = new Map<string, unknown>();
+  for (const step of result.steps ?? []) {
+    for (const tc of step.toolCalls ?? []) {
+      if (tc?.toolCallId) callInputMap.set(tc.toolCallId, tc.input);
+    }
+  }
+
   // Pre-scan: if the model successfully called render_flex, skip auto-renders
   // to avoid double-rendering. A failed render_flex (ok=false) does NOT count —
   // that must fall through to the auto-build so the user gets a card.
@@ -500,6 +784,8 @@ export function buildFlexFromToolResults(
     for (const tr of step.toolResults ?? []) {
       if (!tr) continue;
       const toolName = (tr as { toolName?: string }).toolName ?? "";
+      const callId = (tr as { toolCallId?: string }).toolCallId;
+      const callInput = callId ? callInputMap.get(callId) : undefined;
       const v = extractToolValue((tr as { output?: unknown }).output);
       if (!v || typeof v !== "object") continue;
       const value = v as Record<string, unknown>;
@@ -595,6 +881,37 @@ export function buildFlexFromToolResults(
         if (text) out.push(briefingFlex("evening", text));
         if (news.length > 0) out.push(newsFlex(news, "📰 Today's news"));
         suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Task added ────────────────────────────────────────────────────
+      if (toolName === "add_task" && value.ok === true) {
+        const task = value.task as Record<string, unknown> | undefined;
+        const title = String(task?.title ?? "");
+        if (title) {
+          const dueAt = typeof task?.dueAt === "number" ? fmtDateTime(task.dueAt, tz) : null;
+          out.push(buildSimpleCardFlex("✅ Task Added", "#00B894", [
+            { primary: title, secondary: dueAt ?? undefined },
+          ]));
+          suppressText = true;
+        }
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Reminder set ──────────────────────────────────────────────────
+      if ((toolName === "set_reminder" || toolName === "set_recurring_reminder") && value.ok === true) {
+        const input = callInput as { message?: string; text?: string; cron?: string } | undefined;
+        const msg = String(input?.message ?? input?.text ?? "");
+        const fireAt = typeof value.fireAt === "string" ? value.fireAt : null;
+        const fireText = fireAt ? fmtDateTime(fireAt, tz) : input?.cron ? `Recurring: ${input.cron}` : null;
+        if (msg) {
+          out.push(buildSimpleCardFlex("🔔 Reminder Set", "#E17055", [
+            { primary: msg, secondary: fireText ?? undefined },
+          ]));
+          suppressText = true;
+        }
         seen.add(toolName);
         continue;
       }
@@ -765,15 +1082,18 @@ export function buildFlexFromToolResults(
         continue;
       }
 
-      // ── Media AI (OCR / image / document) ──────────────────────────────
+      // ── Media AI (OCR / image / document / audio) ──────────────────────
       if (
-        (toolName === "ocr_image" || toolName === "summarize_image" || toolName === "read_document" || toolName === "summarize_document") &&
+        (toolName === "ocr_image" || toolName === "summarize_image" || toolName === "read_document" ||
+         toolName === "summarize_document" || toolName === "transcribe_audio" || toolName === "summarize_audio") &&
         typeof value.output === "string"
       ) {
         const label =
           toolName === "ocr_image" ? "🔍 OCR Result"
           : toolName === "summarize_image" ? "🖼️ Image Summary"
           : toolName === "read_document" ? "📄 Document"
+          : toolName === "transcribe_audio" ? "🎤 Transcript"
+          : toolName === "summarize_audio" ? "🎙️ Voice Summary"
           : "📄 Document Summary";
         const text = (value.output as string).slice(0, 900);
         const truncated = (value.output as string).length > 900;
