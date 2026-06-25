@@ -45,7 +45,7 @@ function fmtDateTime(isoOrMs: string | number, tz = "UTC"): string {
 }
 
 /**
- * Generic data card: colored header + labeled item rows.
+ * Generic data card: colored header + labeled item rows with separators.
  * Exported for reuse in fallback functions (agent.ts).
  */
 export function buildSimpleCardFlex(
@@ -56,35 +56,46 @@ export function buildSimpleCardFlex(
 ): LineMessage {
   const rows = items.slice(0, 15);
 
-  const bodyItems: object[] =
-    rows.length > 0
-      ? rows.map((item) => ({
-          type: "box",
-          layout: "vertical",
-          spacing: "xs",
-          contents: [
-            {
-              type: "text",
-              text: item.primary.slice(0, 120),
-              size: "sm",
-              weight: "bold",
-              wrap: true,
-              color: "#333333",
-            },
-            ...(item.secondary
-              ? [
-                  {
-                    type: "text",
-                    text: item.secondary.slice(0, 80),
-                    size: "xs",
-                    color: "#888888",
-                    wrap: true,
-                  },
-                ]
-              : []),
-          ],
-        }))
-      : [{ type: "text", text: emptyText, size: "sm", color: "#888888", align: "center" }];
+  let bodyContents: object[];
+  if (rows.length === 0) {
+    bodyContents = [{ type: "text", text: emptyText, size: "sm", color: "#999999", align: "center" }];
+  } else {
+    bodyContents = [];
+    rows.forEach((item, i) => {
+      if (i > 0) {
+        bodyContents.push({ type: "separator", color: "#f2f2f2" });
+      }
+      bodyContents.push({
+        type: "box",
+        layout: "vertical",
+        paddingTop: "10px",
+        paddingBottom: "10px",
+        spacing: "xs",
+        contents: [
+          {
+            type: "text",
+            text: item.primary.slice(0, 120),
+            size: "sm",
+            weight: "bold",
+            wrap: true,
+            color: "#222222",
+          },
+          ...(item.secondary
+            ? [
+                {
+                  type: "text",
+                  text: item.secondary.slice(0, 80),
+                  size: "xs",
+                  color: "#888888",
+                  wrap: true,
+                  margin: "xs",
+                },
+              ]
+            : []),
+        ],
+      });
+    });
+  }
 
   const altParts = rows
     .map((r) => r.primary)
@@ -107,9 +118,12 @@ export function buildSimpleCardFlex(
       body: {
         type: "box",
         layout: "vertical",
-        paddingAll: "16px",
-        spacing: "md",
-        contents: bodyItems,
+        paddingStart: "16px",
+        paddingEnd: "16px",
+        paddingTop: "0px",
+        paddingBottom: "8px",
+        spacing: "none",
+        contents: bodyContents,
       },
     },
   } as LineMessage;
@@ -469,10 +483,15 @@ export function buildFlexFromToolResults(
   const userText = opts?.userText ?? "";
   const tz = timezone ?? "UTC";
 
-  // Pre-scan: if the model explicitly called render_flex, skip auto-renders
-  // to avoid double-rendering the same data.
+  // Pre-scan: if the model successfully called render_flex, skip auto-renders
+  // to avoid double-rendering. A failed render_flex (ok=false) does NOT count —
+  // that must fall through to the auto-build so the user gets a card.
   const modelCalledRenderFlex = (result.steps ?? []).some((s) =>
-    (s.toolResults ?? []).some((tr) => (tr as { toolName?: string }).toolName === "render_flex"),
+    (s.toolResults ?? []).some((tr) => {
+      if ((tr as { toolName?: string }).toolName !== "render_flex") return false;
+      const v = extractToolValue((tr as { output?: unknown }).output);
+      return v != null && typeof v === "object" && (v as Record<string, unknown>).ok !== false;
+    }),
   );
 
   let renderFlexCount = 0;
@@ -730,6 +749,7 @@ export function buildFlexFromToolResults(
           "#4285F4",
           [{ primary: truncated ? text + " …" : text }],
         ));
+        suppressText = true;
         seen.add(toolName);
         continue;
       }
@@ -740,6 +760,7 @@ export function buildFlexFromToolResults(
         out.push(buildSimpleCardFlex("📁 Drive Link", "#4285F4", [
           { primary: name, secondary: value.link as string },
         ]));
+        suppressText = true;
         seen.add(toolName);
         continue;
       }
@@ -757,6 +778,7 @@ export function buildFlexFromToolResults(
         const text = (value.output as string).slice(0, 900);
         const truncated = (value.output as string).length > 900;
         out.push(buildSimpleCardFlex(label, "#636E72", [{ primary: truncated ? text + " …" : text }]));
+        suppressText = true;
         seen.add(toolName);
         continue;
       }

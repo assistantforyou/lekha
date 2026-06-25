@@ -213,7 +213,7 @@ function processResult(
         }
       }
     }
-    const labels = allCalls.map((c) => ACTION_LABELS[c.toolName] ?? c.toolName).filter(Boolean);
+    const labels = allCalls.map((c) => ACTION_LABELS[c.toolName]).filter((l): l is string => l != null);
     const unique = [...new Set(labels)];
     return { reply: unique.length ? unique.join(" • ") + " ✓" : "Done.", authNeeded: null, apiDisabled: null, googleErr: null };
   }

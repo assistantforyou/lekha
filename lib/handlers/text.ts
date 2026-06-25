@@ -113,8 +113,10 @@ export async function respondToText(
   endReply();
 
   const endAppend = span("text:appendTurns", traceId);
-  await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
-  await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
+  await Promise.all([
+    appendTurn(userId, { role: "user", content: userText, ts: Date.now() }),
+    appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() }),
+  ]);
   endAppend();
 
   endHandler({ userTextLength: userText.length, replyLength: replyText.length });
