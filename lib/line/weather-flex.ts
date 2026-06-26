@@ -67,7 +67,7 @@ function statCol(label: string, value: string): unknown {
     flex: 1,
     contents: [
       { type: "text", text: value, size: "sm", weight: "bold", color: "#ffffff", align: "center" },
-      { type: "text", text: label, size: "xxs", color: "rgba(255,255,255,0.55)", align: "center", margin: "xs" },
+      { type: "text", text: label, size: "xxs", color: "#AAAAAA", align: "center", margin: "xs" },
     ],
   };
 }
@@ -77,7 +77,7 @@ function vDivider(): unknown {
     type: "box",
     layout: "vertical",
     width: "1px",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "#FFFFFF33",
     contents: [{ type: "filler" }],
   };
 }
@@ -110,16 +110,16 @@ export function buildWeatherFlex(result: WeatherResult): LineMessage {
       layout: "horizontal",
       alignItems: "center",
       contents: [
-        { type: "text", text: `📍 ${result.place}`, size: "sm", color: "rgba(255,255,255,0.75)", flex: 1, wrap: true },
+        { type: "text", text: `📍 ${result.place}`, size: "sm", color: "#DDDDDD", flex: 1, wrap: true },
         { type: "text", text: emoji, size: "xxl", flex: 0 },
       ],
     },
     { type: "text", text: tempText, size: "5xl", weight: "bold", color: "#ffffff", margin: "sm" },
-    { type: "text", text: condDesc, size: "sm", color: "rgba(255,255,255,0.8)", margin: "xs", wrap: true },
+    { type: "text", text: condDesc, size: "sm", color: "#EEEEEE", margin: "xs", wrap: true },
   ];
 
   if (statRow.length > 0) {
-    headerContents.push({ type: "separator", margin: "md", color: "rgba(255,255,255,0.15)" });
+    headerContents.push({ type: "separator", margin: "md", color: "#557799" });
     headerContents.push({
       type: "box",
       layout: "horizontal",

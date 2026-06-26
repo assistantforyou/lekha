@@ -55,7 +55,7 @@ function statCol(label: string, value: string, valueColor = "#ffffff"): unknown 
     flex: 1,
     contents: [
       { type: "text", text: value, size: "sm", weight: "bold", color: valueColor, align: "center", wrap: true },
-      { type: "text", text: label, size: "xxs", color: "rgba(255,255,255,0.55)", align: "center", margin: "xs" },
+      { type: "text", text: label, size: "xxs", color: "#AAAAAA", align: "center", margin: "xs" },
     ],
   };
 }
@@ -65,7 +65,7 @@ function vDivider(): unknown {
     type: "box",
     layout: "vertical",
     width: "1px",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "#FFFFFF33",
     contents: [{ type: "filler" }],
   };
 }
@@ -85,7 +85,7 @@ function detailRow(label: string, value: string): unknown {
 
 export function buildStockFlex(r: StockResult): LineMessage {
   const isUp = r.change != null ? r.change >= 0 : null;
-  const changeColor = isUp === true ? "#69F0AE" : isUp === false ? "#FF5252" : "rgba(255,255,255,0.6)";
+  const changeColor = isUp === true ? "#69F0AE" : isUp === false ? "#FF5252" : "#999999";
   const arrow = isUp === true ? "▲" : isUp === false ? "▼" : "";
 
   const priceText = fmtPrice(r.price, r.currency);
@@ -107,15 +107,15 @@ export function buildStockFlex(r: StockResult): LineMessage {
   }
 
   const headerContents: unknown[] = [
-    { type: "text", text: `📊 ${r.symbol}`, size: "xs", color: "rgba(255,255,255,0.65)", weight: "bold", letterSpacing: "1px" },
+    { type: "text", text: `📊 ${r.symbol}`, size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
     { type: "text", text: priceText, size: "4xl", weight: "bold", color: "#ffffff", margin: "sm" },
     { type: "text", text: changeText, size: "sm", color: changeColor, margin: "xs" },
   ];
 
   if (statCols.length > 0) {
-    const marketCol = statCol("Market", marketLabel(r.marketState).replace(/^[^\s]+\s/, ""), "rgba(255,255,255,0.9)");
+    const marketCol = statCol("Market", marketLabel(r.marketState).replace(/^[^\s]+\s/, ""), "#E8E8E8");
     const allCols = [marketCol, ...statCols];
-    headerContents.push({ type: "separator", margin: "md", color: "rgba(255,255,255,0.15)" });
+    headerContents.push({ type: "separator", margin: "md", color: "#334466" });
     headerContents.push({
       type: "box",
       layout: "horizontal",
@@ -165,7 +165,7 @@ export function buildStockFlex(r: StockResult): LineMessage {
 
 export function buildCryptoFlex(r: CryptoResult): LineMessage {
   const isUp = r.change24h != null ? r.change24h >= 0 : null;
-  const changeColor = isUp === true ? "#69F0AE" : isUp === false ? "#FF5252" : "rgba(255,255,255,0.6)";
+  const changeColor = isUp === true ? "#69F0AE" : isUp === false ? "#FF5252" : "#999999";
   const arrow = isUp === true ? "▲" : isUp === false ? "▼" : "";
 
   const priceText =
@@ -181,7 +181,7 @@ export function buildCryptoFlex(r: CryptoResult): LineMessage {
   const sym = coinSymbol(r.id);
 
   const headerContents: unknown[] = [
-    { type: "text", text: `${sym}  ${name.toUpperCase()}`, size: "xs", color: "rgba(255,255,255,0.65)", weight: "bold", letterSpacing: "1px" },
+    { type: "text", text: `${sym}  ${name.toUpperCase()}`, size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
     { type: "text", text: priceText, size: "4xl", weight: "bold", color: "#ffffff", margin: "sm" },
     { type: "text", text: changeText, size: "sm", color: changeColor, margin: "xs" },
   ];

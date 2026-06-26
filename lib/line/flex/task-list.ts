@@ -164,7 +164,7 @@ export function taskListFlex(
         paddingAll: "16px",
         contents: [
           { type: "text", text: "✅  Tasks", color: "#ffffff", weight: "bold", size: "md" },
-          { type: "text", text: headerTitle, color: "rgba(255,255,255,0.7)", size: "xs", margin: "xs" },
+          { type: "text", text: headerTitle, color: "#CCCCCC", size: "xs", margin: "xs" },
         ],
       },
       body: {

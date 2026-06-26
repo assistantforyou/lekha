@@ -280,7 +280,7 @@ function buildFxRateFlex(value: Record<string, unknown>): LineMessage {
   const source = typeof value.source === "string" ? value.source : null;
 
   const contents: object[] = [
-    { type: "text", text: "💱 Exchange Rate", color: "rgba(255,255,255,0.75)", size: "xs", weight: "bold" },
+    { type: "text", text: "💱 Exchange Rate", color: "#DDDDDD", size: "xs", weight: "bold" },
     {
       type: "text",
       text:
@@ -299,7 +299,7 @@ function buildFxRateFlex(value: Record<string, unknown>): LineMessage {
       type: "text",
       text: `1 ${from} = ${rate.toFixed(4)} ${to}`,
       size: "xs",
-      color: "rgba(255,255,255,0.7)",
+      color: "#CCCCCC",
       margin: "sm",
     });
   }
@@ -308,7 +308,7 @@ function buildFxRateFlex(value: Record<string, unknown>): LineMessage {
       type: "text",
       text: [asOf ? `As of ${asOf}` : null, source].filter(Boolean).join(" · "),
       size: "xs",
-      color: "rgba(255,255,255,0.5)",
+      color: "#999999",
       margin: "xs",
     });
   }
@@ -355,7 +355,7 @@ function buildStockHistoryFlex(value: Record<string, unknown>): LineMessage {
       layout: "vertical",
       flex: 1,
       contents: [
-        { type: "text", text: "High", size: "xxs", color: "rgba(255,255,255,0.55)" },
+        { type: "text", text: "High", size: "xxs", color: "#AAAAAA" },
         {
           type: "text",
           text: highPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }),
@@ -371,7 +371,7 @@ function buildStockHistoryFlex(value: Record<string, unknown>): LineMessage {
       layout: "vertical",
       flex: 1,
       contents: [
-        { type: "text", text: "Low", size: "xxs", color: "rgba(255,255,255,0.55)" },
+        { type: "text", text: "Low", size: "xxs", color: "#AAAAAA" },
         {
           type: "text",
           text: lowPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }),
@@ -387,7 +387,7 @@ function buildStockHistoryFlex(value: Record<string, unknown>): LineMessage {
       layout: "vertical",
       flex: 1,
       contents: [
-        { type: "text", text: "Open", size: "xxs", color: "rgba(255,255,255,0.55)" },
+        { type: "text", text: "Open", size: "xxs", color: "#AAAAAA" },
         {
           type: "text",
           text: firstPrice.toLocaleString("en-US", { maximumFractionDigits: 2 }),
@@ -402,7 +402,7 @@ function buildStockHistoryFlex(value: Record<string, unknown>): LineMessage {
     {
       type: "text",
       text: `${symbol}${range ? "  ·  " + range : ""}`,
-      color: "rgba(255,255,255,0.65)",
+      color: "#C0C0C0",
       size: "xs",
       weight: "bold",
     },
@@ -430,7 +430,7 @@ function buildStockHistoryFlex(value: Record<string, unknown>): LineMessage {
       : []),
     ...(statBoxes.length > 0
       ? [
-          { type: "separator", margin: "lg", color: "rgba(255,255,255,0.15)" },
+          { type: "separator", margin: "lg", color: "#334466" },
           { type: "box", layout: "horizontal", margin: "lg", contents: statBoxes },
         ]
       : []),
@@ -440,7 +440,7 @@ function buildStockHistoryFlex(value: Record<string, unknown>): LineMessage {
             type: "text",
             text: `${firstDate} → ${lastDate}`,
             size: "xxs",
-            color: "rgba(255,255,255,0.45)",
+            color: "#888888",
             margin: "sm",
           },
         ]
@@ -574,7 +574,7 @@ function buildEmailDraftFlex(input: unknown, tz: string): LineMessage {
         backgroundColor: "#0D1B4B",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "📧  EMAIL DRAFT", size: "xs", color: "rgba(255,255,255,0.65)", weight: "bold", letterSpacing: "1px" },
+          { type: "text", text: "📧  EMAIL DRAFT", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
         ],
       },
       body: {
@@ -639,7 +639,7 @@ function buildCalendarDraftFlex(input: unknown, tz: string): LineMessage {
         backgroundColor: "#1A73E8",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "📅  CALENDAR EVENT", size: "xs", color: "rgba(255,255,255,0.65)", weight: "bold", letterSpacing: "1px" },
+          { type: "text", text: "📅  CALENDAR EVENT", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
         ],
       },
       body: {
@@ -703,7 +703,7 @@ function buildScheduledEmailDraftFlex(input: unknown, tz: string): LineMessage {
         backgroundColor: "#00897B",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "📤  SCHEDULED EMAIL", size: "xs", color: "rgba(255,255,255,0.65)", weight: "bold", letterSpacing: "1px" },
+          { type: "text", text: "📤  SCHEDULED EMAIL", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
         ],
       },
       body: {
