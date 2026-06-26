@@ -97,8 +97,8 @@ export async function respondToText(
     hasStagedMedia,
     settings,
     hint,
-    // Image bytes bundled in the request need more time: download + vision + reasoning
-    timeoutMs: imageData ? 50_000 : undefined,
+    // Image already staged — just needs extra room for Gemini vision + response steps
+    timeoutMs: imageData ? 38_000 : undefined,
   });
   const { text: replyText, hints } = result;
 

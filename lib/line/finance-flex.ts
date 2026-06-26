@@ -176,11 +176,11 @@ export function buildCryptoFlex(r: CryptoResult): LineMessage {
       ? `${arrow} ${r.change24h >= 0 ? "+" : ""}${r.change24h.toFixed(2)}%  24h`
       : "";
 
-  const name = r.id.charAt(0).toUpperCase() + r.id.slice(1);
-  const sym = coinSymbol(r.id);
+  const ticker = coinTicker(r.id);
+  const pair = `${ticker} / USD`;
 
   const headerContents: unknown[] = [
-    { type: "text", text: `${sym}  ${name.toUpperCase()}`, size: "xs", color: "#C0C0C0", weight: "bold" },
+    { type: "text", text: pair, size: "xs", color: "#C0C0C0", weight: "bold" },
     { type: "text", text: priceText, size: "4xl", weight: "bold", color: "#ffffff", margin: "sm" },
     { type: "text", text: changeText, size: "sm", color: changeColor, margin: "xs" },
   ];
@@ -220,10 +220,10 @@ export function buildCryptoFlex(r: CryptoResult): LineMessage {
       : {}),
   };
 
-  return flex(`${name}: ${priceText} ${changeText}`, bubble);
+  return flex(`${ticker}/USD: ${priceText} ${changeText}`, bubble);
 }
 
-function coinSymbol(id: string): string {
+function coinTicker(id: string): string {
   const map: Record<string, string> = {
     bitcoin: "BTC",
     ethereum: "ETH",
