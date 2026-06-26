@@ -17,6 +17,7 @@ export type StockResult = {
 export type CryptoResult = {
   ok: true;
   id: string;
+  ticker: string;
   usd: number;
   change24h: number | null;
   asOf: string | null;
@@ -176,8 +177,7 @@ export function buildCryptoFlex(r: CryptoResult): LineMessage {
       ? `${arrow} ${r.change24h >= 0 ? "+" : ""}${r.change24h.toFixed(2)}%  24h`
       : "";
 
-  const ticker = coinTicker(r.id);
-  const pair = `${ticker} / USD`;
+  const pair = `${r.ticker} / USD`;
 
   const headerContents: unknown[] = [
     { type: "text", text: pair, size: "xs", color: "#C0C0C0", weight: "bold" },
@@ -220,31 +220,6 @@ export function buildCryptoFlex(r: CryptoResult): LineMessage {
       : {}),
   };
 
-  return flex(`${ticker}/USD: ${priceText} ${changeText}`, bubble);
+  return flex(`${r.ticker}/USD: ${priceText} ${changeText}`, bubble);
 }
 
-function coinTicker(id: string): string {
-  const map: Record<string, string> = {
-    bitcoin: "BTC",
-    ethereum: "ETH",
-    solana: "SOL",
-    dogecoin: "DOGE",
-    ripple: "XRP",
-    cardano: "ADA",
-    binancecoin: "BNB",
-    tron: "TRX",
-    litecoin: "LTC",
-    polkadot: "DOT",
-    chainlink: "LINK",
-    "matic-network": "MATIC",
-    "avalanche-2": "AVAX",
-    uniswap: "UNI",
-    cosmos: "ATOM",
-    near: "NEAR",
-    "shiba-inu": "SHIB",
-    pepe: "PEPE",
-    dogwifcoin: "WIF",
-  };
-  const norm = id.toLowerCase();
-  return map[norm] ?? norm.toUpperCase().slice(0, 5);
-}

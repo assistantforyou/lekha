@@ -169,6 +169,7 @@ export function buildFinanceTools() {
           return {
             ok: true,
             id,
+            ticker: norm.toUpperCase(),
             usd: q.usd,
             change24h: q.usd_24h_change ?? null,
             asOf: q.last_updated_at ? new Date(q.last_updated_at * 1000).toISOString() : null,
