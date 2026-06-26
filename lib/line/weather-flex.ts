@@ -229,7 +229,6 @@ export function buildWeatherFlex(result: WeatherResult): LineMessage {
           size: "xxs",
           weight: "bold",
           color: "#aaaaaa",
-          letterSpacing: "1px",
         },
         { type: "separator", margin: "sm", color: "#eeeeee" },
         ...forecastRows,

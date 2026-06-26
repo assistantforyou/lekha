@@ -23,6 +23,8 @@ import { ACTION_LABELS } from "@/lib/llm/action-labels";
 import { buildMediaAiTools } from "@/lib/tools/media-ai";
 import { buildWeatherTools } from "@/lib/tools/weather";
 import { buildNewsTools } from "@/lib/tools/news";
+import { buildFinanceTools } from "@/lib/tools/finance";
+import { buildCryptoFlex, buildStockFlex, type CryptoResult, type StockResult } from "@/lib/line/finance-flex";
 import { HELP_TEXT } from "@/lib/tools/help";
 
 /**
@@ -476,6 +478,11 @@ export async function runAgent(
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
+      } else if (looksLikeFinance(lastUserText)) {
+        const fb = await fallbackFinance(lastUserText);
+        finalText = fb.text;
+        extraToolCalls = fb.toolCalls;
+        if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (opts?.hasStagedMedia && looksLikeMediaQuery(lastUserText)) {
         const fb = await fallbackSummarizeDocument(userId, profile.displayName);
         finalText = fb.text;
@@ -574,6 +581,41 @@ async function fallbackListMemories(userId: string, _displayName: string): Promi
 
 function looksLikeWeather(text: string): boolean {
   return /\b(weather|forecast|temperature|temp)\b/i.test(text);
+}
+
+function looksLikeFinance(text: string): { type: "crypto"; coin: string } | { type: "stock"; ticker: string } | null {
+  // Trading pairs: "btc/usdt", "eth/usd"
+  const pairMatch = text.match(/\b(btc|eth|sol|bnb|xrp|doge|ada|dot|link|avax)\s*\/\s*\w+\b/i);
+  if (pairMatch?.[1]) return { type: "crypto", coin: pairMatch[1] };
+  // "price of btc", "price of bitcoin"
+  const priceOfMatch = text.match(/\bprice\s+of\s+(btc|eth|sol|bnb|xrp|doge|bitcoin|ethereum|solana|crypto\w*)\b/i);
+  if (priceOfMatch?.[1]) return { type: "crypto", coin: priceOfMatch[1] };
+  // "btc price", "bitcoin price"
+  const coinPriceMatch = text.match(/\b(btc|eth|sol|bnb|xrp|doge|bitcoin|ethereum|solana)\s+(price|value|worth)\b/i);
+  if (coinPriceMatch?.[1]) return { type: "crypto", coin: coinPriceMatch[1] };
+  return null;
+}
+
+async function fallbackFinance(query: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+  const finInfo = looksLikeFinance(query);
+  if (!finInfo || finInfo.type !== "crypto") return { text: "I couldn't look that up right now.", toolCalls: [] };
+  const coin = finInfo.coin;
+  const fTools = buildFinanceTools();
+  try {
+    const result = await fTools.crypto_price.execute!({ coin }, { toolCallId: "fallback", messages: [] });
+    const val = extractToolValue(result) as CryptoResult | null;
+    if (val && typeof val === "object" && val.ok) {
+      return {
+        text: "",
+        flexMessages: [buildCryptoFlex(val)],
+        toolCalls: [{ toolName: "crypto_price", input: { coin } }],
+      };
+    }
+    const err = (val as unknown as { error?: string })?.error;
+    return { text: err ?? "Couldn't fetch that price right now.", toolCalls: [{ toolName: "crypto_price", input: { coin } }] };
+  } catch {
+    return { text: "Couldn't fetch that price right now. Try again shortly.", toolCalls: [{ toolName: "crypto_price", input: { coin } }] };
+  }
 }
 
 function looksLikeMediaQuery(text: string): boolean {

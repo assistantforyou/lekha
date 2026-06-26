@@ -574,7 +574,7 @@ function buildEmailDraftFlex(input: unknown, tz: string): LineMessage {
         backgroundColor: "#0D1B4B",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "📧  EMAIL DRAFT", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
+          { type: "text", text: "📧  EMAIL DRAFT", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: undefined },
         ],
       },
       body: {
@@ -639,7 +639,7 @@ function buildCalendarDraftFlex(input: unknown, tz: string): LineMessage {
         backgroundColor: "#1A73E8",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "📅  CALENDAR EVENT", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
+          { type: "text", text: "📅  CALENDAR EVENT", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: undefined },
         ],
       },
       body: {
@@ -703,7 +703,7 @@ function buildScheduledEmailDraftFlex(input: unknown, tz: string): LineMessage {
         backgroundColor: "#00897B",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "📤  SCHEDULED EMAIL", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
+          { type: "text", text: "📤  SCHEDULED EMAIL", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: undefined },
         ],
       },
       body: {

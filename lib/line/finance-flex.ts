@@ -106,7 +106,7 @@ export function buildStockFlex(r: StockResult): LineMessage {
   }
 
   const headerContents: unknown[] = [
-    { type: "text", text: `📊 ${r.symbol}`, size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
+    { type: "text", text: `📊 ${r.symbol}`, size: "xs", color: "#C0C0C0", weight: "bold" },
     { type: "text", text: priceText, size: "4xl", weight: "bold", color: "#ffffff", margin: "sm" },
     { type: "text", text: changeText, size: "sm", color: changeColor, margin: "xs" },
   ];
@@ -180,7 +180,7 @@ export function buildCryptoFlex(r: CryptoResult): LineMessage {
   const sym = coinSymbol(r.id);
 
   const headerContents: unknown[] = [
-    { type: "text", text: `${sym}  ${name.toUpperCase()}`, size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: "1px" },
+    { type: "text", text: `${sym}  ${name.toUpperCase()}`, size: "xs", color: "#C0C0C0", weight: "bold" },
     { type: "text", text: priceText, size: "4xl", weight: "bold", color: "#ffffff", margin: "sm" },
     { type: "text", text: changeText, size: "sm", color: changeColor, margin: "xs" },
   ];

@@ -142,7 +142,8 @@ export function buildFinanceTools() {
         coin: z.string().min(1).max(40),
       }),
       execute: async ({ coin }) => {
-        const norm = coin.toLowerCase().trim();
+        // Strip trading pair suffix: "btc/usdt" → "btc", "eth-usd" → "eth"
+        const norm = coin.toLowerCase().trim().split(/[\/\-]/)[0]!.trim();
         const aliases: Record<string, string> = {
           btc: "bitcoin", eth: "ethereum", sol: "solana", doge: "dogecoin",
           ada: "cardano", xrp: "ripple", bnb: "binancecoin", trx: "tron",

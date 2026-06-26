@@ -45,10 +45,14 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
   {
     intent: "finance",
     patterns: [
-      // explicit financial queries only — require price/stock/quote suffix for tickers
       /\b(stock\s+price|stock\s+quote|share\s+price|crypto\s+price|bitcoin|ethereum)\b/i,
-      /\b(eth|btc|sol|bnb|xrp|doge)\s+(price|value|worth)\b/i,
-      /\b[A-Z]{2,5}\b\s+(price|stock|quote|shares?)\b/i,
+      /\b(eth|btc|sol|bnb|xrp|doge|ada|dot|link|avax)\s+(price|value|worth)\b/i,
+      // "price of btc", "price of bitcoin", etc.
+      /\bprice\s+of\s+(btc|eth|sol|bnb|xrp|doge|bitcoin|ethereum|solana|crypto\w*)\b/i,
+      // trading pairs: btc/usdt, eth/usd, etc.
+      /\b(btc|eth|sol|bnb|xrp|doge|ada|dot|link|avax)\s*\/\s*\w+\b/i,
+      // uppercase-only tickers (no /i flag so [A-Z] = truly uppercase, not "the")
+      /\b[A-Z]{2,5}\s+(price|stock|quote|shares?)\b/,
       /\b(fx\s+rate|exchange\s+rate|currency\s+rate)\b/i,
     ],
   },
