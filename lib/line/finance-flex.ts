@@ -65,7 +65,6 @@ function vDivider(): unknown {
     type: "box",
     layout: "vertical",
     width: "1px",
-    backgroundColor: "#FFFFFF33",
     contents: [{ type: "filler" }],
   };
 }
