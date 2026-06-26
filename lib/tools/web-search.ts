@@ -7,7 +7,7 @@ export function buildWebSearchTool() {
   return {
     web_search: tool({
       description:
-        "Search the web for fresh, factual information. Use for research, background context, or explanatory questions where your training data may be stale. NEVER for news/current events (use news_search), stock/crypto/FX prices, or weather. Pass count when the user requests a specific number of results (e.g. 'top 10').",
+        "Search the web for fresh, factual information. Use for research, background context, or explanatory questions where your training data may be stale. Prefer news_search for current events, crypto_price/stock_price for finance, and weather for forecasts — but web_search is always acceptable as a fallback if those tools fail or when the query is ambiguous. Pass count when the user requests a specific number of results (e.g. 'top 10').",
       inputSchema: z.object({
         query: z.string().min(2).max(200),
         count: z.number().int().min(1).max(10).default(5).describe("Number of results to return. Default 5. Pass up to 10 when user asks for more."),

@@ -24,6 +24,7 @@ import { buildMediaAiTools } from "@/lib/tools/media-ai";
 import { buildWeatherTools } from "@/lib/tools/weather";
 import { buildNewsTools } from "@/lib/tools/news";
 import { buildFinanceTools } from "@/lib/tools/finance";
+import { buildWebSearchTool } from "@/lib/tools/web-search";
 import { buildCryptoFlex, buildStockFlex, type CryptoResult, type StockResult } from "@/lib/line/finance-flex";
 import { HELP_TEXT } from "@/lib/tools/help";
 
@@ -495,6 +496,14 @@ export async function runAgent(
       } else if (looksLikeHelpQuery(lastUserText)) {
         finalText = HELP_TEXT;
         extraToolCalls = [{ toolName: "show_help", input: {} }];
+      } else if (looksLikeFactualQuery(lastUserText)) {
+        // Universal fallback: any factual/research question the model blanked on
+        // → web_search. This is how Claude.ai/Gemini work: web search is always
+        // the backstop for current or factual queries the model can't answer alone.
+        const fb = await fallbackWebSearch(lastUserText);
+        finalText = fb.text;
+        extraToolCalls = fb.toolCalls;
+        if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       }
     }
     const followUps = buildFollowUps(extraToolCalls.map((c) => c.toolName), { confirmDraft, modelText: finalText });
@@ -631,6 +640,21 @@ function looksLikeHelpQuery(text: string): boolean {
   return /^\/?(help|start)$/.test(lower) || /\bwhat\s+can\s+you\s+do\b/i.test(lower) || /\bwhat\s+are\s+your\s+(feature|capabilities|function)/i.test(lower);
 }
 
+// Catch-all: does this look like a factual or research question worth searching?
+// Excludes casual chat, single-word utterances, and pure commands.
+function looksLikeFactualQuery(text: string): boolean {
+  const t = text.trim();
+  // Too short to be a real question
+  if (t.length < 8) return false;
+  // Looks like a question or research query
+  return (
+    /\?(^|$)/.test(t) ||
+    /^(what|who|when|where|why|how|which|is|are|was|were|can|does|do|will|has|have)\b/i.test(t) ||
+    /\b(price|rate|value|cost|score|rank|population|capital|founded|ceo|owner|headquarters)\b/i.test(t) ||
+    /\b(latest|current|today|now|right\s+now|live|real[- ]?time)\b/i.test(t)
+  );
+}
+
 async function fallbackWeather(query: string, _timezone = "Asia/Bangkok"): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const locationMatch = query.match(/\b(?:in|at|for)\s+(.{2,80}?)\s*(?:\?|$)/i);
   const location = locationMatch?.[1]?.trim() ?? "Bangkok";
@@ -682,6 +706,29 @@ async function fallbackSummarizeDocument(userId: string, displayName: string): P
     return { text: `${displayName}, here's what I found in the document:\n\n${output}`, toolCalls: [{ toolName: "summarize_document", input: {} }] };
   } catch (err) {
     return { text: `I couldn't read that document, ${displayName}. Try sending it again.`, toolCalls: [{ toolName: "summarize_document", input: {} }] };
+  }
+}
+
+async function fallbackWebSearch(query: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+  const wsTool = buildWebSearchTool();
+  try {
+    const result = await wsTool.web_search.execute!({ query, count: 5 }, { toolCallId: "fallback", messages: [] });
+    const val = extractToolValue(result) as Record<string, unknown> | null;
+    if (val && val.ok === false) {
+      return { text: "I couldn't search for that right now. Please try again.", toolCalls: [{ toolName: "web_search", input: { query } }] };
+    }
+    const answer = typeof val?.answer === "string" && val.answer ? val.answer : null;
+    const results = Array.isArray(val?.results) ? val.results as Array<{ title: string; url: string; content?: string }> : [];
+    if (answer) {
+      return { text: answer, toolCalls: [{ toolName: "web_search", input: { query } }] };
+    }
+    if (results.length > 0) {
+      const lines = results.slice(0, 3).map((r) => `• ${r.title}: ${(r.content ?? "").slice(0, 120)}...`).join("\n");
+      return { text: lines, toolCalls: [{ toolName: "web_search", input: { query } }] };
+    }
+    return { text: "I couldn't find anything for that right now.", toolCalls: [{ toolName: "web_search", input: { query } }] };
+  } catch {
+    return { text: "Search failed. Please try again shortly.", toolCalls: [{ toolName: "web_search", input: { query } }] };
   }
 }
 
