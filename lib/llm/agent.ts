@@ -287,6 +287,8 @@ export async function runAgent(
     settings?: Awaited<ReturnType<typeof getSettings>>;
     /** fastClassify hint — used to narrow the facts injected into the prompt. */
     hint?: string;
+    /** Override the default 30s agent timeout. Use 45s when image bytes are in the request. */
+    timeoutMs?: number;
   },
 ): Promise<AgentResult> {
   const endAgent = span("agent:runAgent", traceId);
@@ -383,7 +385,7 @@ export async function runAgent(
             },
             providerOptions: GEMINI_PROVIDER_OPTIONS,
           }),
-          AGENT_TIMEOUT_MS,
+          opts?.timeoutMs ?? AGENT_TIMEOUT_MS,
         );
         if (tiersToTry.length > 1 && i > 0) console.log("[tier] switched to", tier, { ms: Date.now() });
         break;

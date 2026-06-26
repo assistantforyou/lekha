@@ -29,7 +29,7 @@ export async function respondToImage(
     return;
   }
 
-  const ack = "Got your image — what would you like to do with it?";
+  const ack = "Got your image. Ask me to read text from it, describe it, or scan it as a receipt.";
   await replyOrPush(userId, replyToken, [textMsg(ack)]);
   await appendTurn(userId, { role: "user", content: "[sent an image]", ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: ack, ts: Date.now() });

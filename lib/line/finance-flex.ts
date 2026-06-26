@@ -225,12 +225,26 @@ export function buildCryptoFlex(r: CryptoResult): LineMessage {
 
 function coinSymbol(id: string): string {
   const map: Record<string, string> = {
-    bitcoin: "₿",
-    ethereum: "Ξ",
-    solana: "◎",
-    dogecoin: "Ð",
-    ripple: "✕",
-    cardano: "₳",
+    bitcoin: "BTC",
+    ethereum: "ETH",
+    solana: "SOL",
+    dogecoin: "DOGE",
+    ripple: "XRP",
+    cardano: "ADA",
+    binancecoin: "BNB",
+    tron: "TRX",
+    litecoin: "LTC",
+    polkadot: "DOT",
+    chainlink: "LINK",
+    "matic-network": "MATIC",
+    "avalanche-2": "AVAX",
+    uniswap: "UNI",
+    cosmos: "ATOM",
+    near: "NEAR",
+    "shiba-inu": "SHIB",
+    pepe: "PEPE",
+    dogwifcoin: "WIF",
   };
-  return map[id.toLowerCase()] ?? "🪙";
+  const norm = id.toLowerCase();
+  return map[norm] ?? norm.toUpperCase().slice(0, 5);
 }

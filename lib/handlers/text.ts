@@ -97,6 +97,8 @@ export async function respondToText(
     hasStagedMedia,
     settings,
     hint,
+    // Image bytes bundled in the request need more time: download + vision + reasoning
+    timeoutMs: imageData ? 50_000 : undefined,
   });
   const { text: replyText, hints } = result;
 
