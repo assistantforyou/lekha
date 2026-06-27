@@ -42,10 +42,12 @@ export async function respondToText(
     : Promise.resolve(null);
 
   // If we're about to read a bundled image, acknowledge immediately so the chat
-  // doesn't look blank while Gemini processes the bytes.
+  // doesn't look blank while Gemini processes the bytes. Use PUSH for the ack so
+  // the single-use replyToken stays available for the actual answer (push is
+  // best-effort on the free LINE plan; reply is guaranteed within the 1-min window).
   let ackPromise: Promise<"reply" | "push" | "failed"> | undefined;
   if (freshImage && imageLooksReferenced) {
-    ackPromise = replyOrPush(userId, replyToken, [textMsg("Reading the image, one sec…")]);
+    ackPromise = replyOrPush(userId, undefined, [textMsg("Reading the image, one sec…")]);
   }
 
   const hint = fastClassify(userText, { hasStagedMedia });
@@ -113,18 +115,19 @@ export async function respondToText(
   const { text: replyText, hints } = result;
 
   const endReply = span("text:reply", traceId);
-  // If we already used the replyToken for the "reading image" ack, push the answer.
-  const ackUsedReplyToken = ackPromise && (await ackPromise) !== "failed";
+  // Always use the replyToken for the actual answer. The earlier ack was sent via
+  // push (best effort); if the free plan's push quota is exhausted, the user still
+  // gets the answer via reply and sees the loading animation while processing.
   await replyOrPush(
     userId,
-    ackUsedReplyToken ? undefined : replyToken,
+    replyToken,
     enrichReply(
       replyText,
       hints,
       accounts.accounts.map((a) => a.email),
     ).slice(0, 5),
   );
-  endReply({ pushed: ackUsedReplyToken });
+  endReply();
 
   const endAppend = span("text:appendTurns", traceId);
   await Promise.all([
