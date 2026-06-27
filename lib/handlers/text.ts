@@ -1,5 +1,5 @@
 import { type ModelMessage } from "ai";
-import { replyOrPush, showLoading, getMessageContent } from "@/lib/line/client";
+import { replyOrPush, showLoading, getMessageContent, text as textMsg } from "@/lib/line/client";
 import { runAgent } from "@/lib/llm/agent";
 import { appendTurn, historyForPrompt } from "@/lib/memory/history";
 import { loadFacts } from "@/lib/memory/facts";
@@ -27,7 +27,9 @@ export async function respondToText(
   const freshImage = staged.find((m) => m.kind === "image" && Date.now() - m.ts < 30_000);
   const imageLooksReferenced = freshImage
     ? /\b(this|that|it|the\s+(image|photo|picture|screenshot))\b/i.test(userText) ||
-      /\b(what'?s|what\s+is|describe|ocr|read|summarize|analyze|see)\b/i.test(userText)
+      /^(what|where|who|which|how|can|could|would|will|did|do|does|is|are|am)\b/i.test(userText) ||
+      /\b(read|see|look|check|find|tell|get|extract|identify|describe|summarize|analy[sz]e|ocr|scan)\b/i.test(userText) ||
+      /\b(ip\s+address|mac\s+address|serial|version|password|wifi|qr|barcode|text|code|error|screen|monitor|display)\b/i.test(userText)
     : false;
 
   const imagePromise = freshImage && imageLooksReferenced
@@ -38,6 +40,13 @@ export async function respondToText(
         { sizeBytes: freshImage.sizeBytes },
       ).catch(() => null)
     : Promise.resolve(null);
+
+  // If we're about to read a bundled image, acknowledge immediately so the chat
+  // doesn't look blank while Gemini processes the bytes.
+  let ackPromise: Promise<"reply" | "push" | "failed"> | undefined;
+  if (freshImage && imageLooksReferenced) {
+    ackPromise = replyOrPush(userId, replyToken, [textMsg("Reading the image, one sec…")]);
+  }
 
   const hint = fastClassify(userText, { hasStagedMedia });
 
@@ -97,22 +106,25 @@ export async function respondToText(
     hasStagedMedia,
     settings,
     hint,
-    // Image already staged — just needs extra room for Gemini vision + response steps
-    timeoutMs: imageData ? 38_000 : undefined,
+    imageBundled: !!imageData,
+    // Image already staged — give Gemini vision + response steps more time
+    timeoutMs: imageData ? 55_000 : undefined,
   });
   const { text: replyText, hints } = result;
 
   const endReply = span("text:reply", traceId);
+  // If we already used the replyToken for the "reading image" ack, push the answer.
+  const ackUsedReplyToken = ackPromise && (await ackPromise) !== "failed";
   await replyOrPush(
     userId,
-    replyToken,
+    ackUsedReplyToken ? undefined : replyToken,
     enrichReply(
       replyText,
       hints,
       accounts.accounts.map((a) => a.email),
     ).slice(0, 5),
   );
-  endReply();
+  endReply({ pushed: ackUsedReplyToken });
 
   const endAppend = span("text:appendTurns", traceId);
   await Promise.all([

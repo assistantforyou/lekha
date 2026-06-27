@@ -287,7 +287,9 @@ export async function runAgent(
     settings?: Awaited<ReturnType<typeof getSettings>>;
     /** fastClassify hint — used to narrow the facts injected into the prompt. */
     hint?: string;
-    /** Override the default 30s agent timeout. Use 45s when image bytes are in the request. */
+    /** The current user message already includes the image bytes; don't tell the model to call image-reading tools. */
+    imageBundled?: boolean;
+    /** Override the default 30s agent timeout. Use 55s when image bytes are in the request. */
     timeoutMs?: number;
   },
 ): Promise<AgentResult> {
@@ -309,20 +311,35 @@ export async function runAgent(
     // Only mention staged items from the last 10 minutes to keep the prompt tight.
     const freshStaged = staged.filter((m) => Date.now() - m.ts < 10 * 60_000);
     const recentBlock = freshStaged.length
-      ? `\n\nStaged LINE media (1-indexed, oldest first). The user may be referring to one of these:\n${freshStaged
-          .map((m, i) => {
-            const ago = Math.round((Date.now() - m.ts) / 60_000);
-            const parts = [
-              `${i + 1}. ${m.kind}`,
-              m.fileName ? `"${m.fileName}"` : null,
-              `(${m.contentType}`,
-              m.sizeBytes ? `, ${(m.sizeBytes / 1024).toFixed(0)} KB` : "",
-              `)`,
-              `— ${ago}m ago`,
-            ];
-            return parts.filter(Boolean).join(" ");
-          })
-          .join("\n")}\nIf the user asks about an image, call \`ocr_image\` or \`summarize_image\` with the index. If they ask about a PDF/document, call \`summarize_document\` or \`read_document\`. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
+      ? opts?.imageBundled
+        ? `\n\nThe user's current message includes the image shown above. Answer based on that image. Do NOT call \`ocr_image\` or \`summarize_image\` for this image — it is already visible to you.\n\nOther staged LINE media (1-indexed, oldest first):\n${freshStaged
+            .map((m, i) => {
+              const ago = Math.round((Date.now() - m.ts) / 60_000);
+              const parts = [
+                `${i + 1}. ${m.kind}`,
+                m.fileName ? `"${m.fileName}"` : null,
+                `(${m.contentType}`,
+                m.sizeBytes ? `, ${(m.sizeBytes / 1024).toFixed(0)} KB` : "",
+                `)`,
+                `— ${ago}m ago`,
+              ];
+              return parts.filter(Boolean).join(" ");
+            })
+            .join("\n")}\nIf they ask about a PDF/document above, call \`summarize_document\` or \`read_document\`. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
+        : `\n\nStaged LINE media (1-indexed, oldest first). The user may be referring to one of these:\n${freshStaged
+            .map((m, i) => {
+              const ago = Math.round((Date.now() - m.ts) / 60_000);
+              const parts = [
+                `${i + 1}. ${m.kind}`,
+                m.fileName ? `"${m.fileName}"` : null,
+                `(${m.contentType}`,
+                m.sizeBytes ? `, ${(m.sizeBytes / 1024).toFixed(0)} KB` : "",
+                `)`,
+                `— ${ago}m ago`,
+              ];
+              return parts.filter(Boolean).join(" ");
+            })
+            .join("\n")}\nIf the user asks about an image, call \`ocr_image\` or \`summarize_image\` with the index. If they ask about a PDF/document, call \`summarize_document\` or \`read_document\`. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
       : "";
     const tz = settings.timezone ?? "Asia/Bangkok";
     const factsBlock = factsToPromptBlock(facts, factLimitForHint(opts?.hint));
@@ -800,7 +817,7 @@ async function handleAgentError(err: unknown, userId: string, traceId?: string):
   }
   if (err instanceof AgentTimeoutError) {
     console.warn("[agent] timeout", { seconds: err.seconds, traceId });
-    return `Timed out after ${err.seconds}s — that was a heavy request. Try again in a sec.`;
+    return "That took longer than I expected. Try again in a moment, or crop the image to the relevant area.";
   }
   const msg = err instanceof Error ? err.message : String(err);
   // AI_RetryError wraps the 503: its .message is "Failed after N attempts. Last error: ..."
