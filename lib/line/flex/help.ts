@@ -1,80 +1,94 @@
 import type { FlexMessage } from "@/lib/line/client";
 
-export type HelpExample = {
+export type HelpCategory = {
   id: string;
-  question: string;
-  answer: string;
+  icon: string;
+  title: string;
+  description: string;
+  demoAnswer: string;
 };
 
-export const HELP_EXAMPLES: HelpExample[] = [
+export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "memory",
-    question: "What do you know about me?",
-    answer: "I remember a few things about you:\n• You prefer espresso over filter coffee ☕\n• Your timezone is Asia/Bangkok 🌏\n• You like morning briefings at 7 AM ☀️\n\nTell me more anytime with \"remember that I...\".",
+    icon: "🧠",
+    title: "Memory",
+    description: "remember facts, recall what I know, update memories",
+    demoAnswer: "I can remember your preferences, routines, and important details so I don't have to ask twice. Try telling me anything — I'll store it.",
   },
   {
     id: "tasks",
-    question: "List my open tasks",
-    answer: "Here are your open tasks:\n1. Review Q3 report\n2. Call Alice about the contract\n\nSay \"mark task #1 done\" when you finish one. ✅",
+    icon: "✅",
+    title: "Tasks",
+    description: "add tasks, mark done, list open work",
+    demoAnswer: "Here's what I'd do: add a task 'call the plumber'. ✅\n\n(Demo only — no task was created.)",
   },
   {
-    id: "weather",
-    question: "What's the weather in Bangkok?",
-    answer: "In Bangkok right now it's 32°C and partly cloudy. 🌤️\n\nI can check weather anywhere — just ask \"what's the weather in Tokyo?\"",
+    id: "reminders",
+    icon: "⏰",
+    title: "Reminders",
+    description: "one-shot or recurring LINE pushes",
+    demoAnswer: "I'd set a reminder: stretch in 5 minutes. ⏰\n\n(Demo only — no reminder was set.)",
+  },
+  {
+    id: "lists",
+    icon: "📋",
+    title: "Lists",
+    description: "grocery, packing, or any named list",
+    demoAnswer: "I'd add milk to your grocery list. 🥛\n\n(Demo only — list unchanged.)",
+  },
+  {
+    id: "email",
+    icon: "📧",
+    title: "Email & Inbox",
+    description: "draft/send/search Gmail (Google needed)",
+    demoAnswer: "With Google connected, I can search your inbox, draft replies, and send emails. Say 'connect google' to link an account.",
+  },
+  {
+    id: "calendar",
+    icon: "📅",
+    title: "Calendar",
+    description: "schedule events, list upcoming (Google needed)",
+    demoAnswer: "With Google connected, I can check your schedule and draft events. I can also warn you before meetings if you want.",
+  },
+  {
+    id: "drive",
+    icon: "📁",
+    title: "Drive & Docs",
+    description: "search, upload, read files (Google needed)",
+    demoAnswer: "I can search Drive, get share links, read text files, and upload photos or documents you send me.",
+  },
+  {
+    id: "media",
+    icon: "📷",
+    title: "Media",
+    description: "photos, voice notes, PDFs, Office files",
+    demoAnswer: "Send me a photo and I'll read text or describe it. Send a PDF and I'll summarize it. Voice notes work too.",
+  },
+  {
+    id: "receipts",
+    icon: "🧾",
+    title: "Receipts",
+    description: "scan, list, search expense receipts",
+    demoAnswer: "Send a receipt photo and say 'scan this'. I'll save the merchant, amount, date, and items so you can search them later. 🧾",
   },
   {
     id: "search",
-    question: "Search the web for Thai recipes",
-    answer: "Here are a few popular Thai recipes:\n• Pad Thai\n• Tom Yum Goong\n• Green Curry\n\nWant me to dig deeper into one?",
+    icon: "🌐",
+    title: "Search & Info",
+    description: "web search, weather, stocks, news",
+    demoAnswer: "I can search the web, check weather, look up stocks/crypto, and get news. I always cite sources with a timestamp.",
   },
   {
-    id: "receipt",
-    question: "How do I scan a receipt?",
-    answer: "Send me a photo of the receipt and say \"scan this\". I'll save the merchant, amount, date, and items so you can search them later. 🧾",
+    id: "settings",
+    icon: "⚙️",
+    title: "Settings",
+    description: "timezone, location, language, briefings",
+    demoAnswer: "I'd set your timezone to Asia/Bangkok. 🌏\n\n(Demo only — settings unchanged.)",
   },
 ];
 
-const CATEGORIES = [
-  { icon: "🧠", title: "Memory", examples: "remember facts, recall what I know, update memories" },
-  { icon: "✅", title: "Tasks", examples: "add tasks, mark done, list open work" },
-  { icon: "⏰", title: "Reminders", examples: "one-shot or recurring LINE pushes" },
-  { icon: "📋", title: "Lists", examples: "grocery, packing, or any named list" },
-  { icon: "📧", title: "Email & Inbox", examples: "draft/send/search Gmail (Google needed)" },
-  { icon: "📅", title: "Calendar", examples: "schedule events, list upcoming (Google needed)" },
-  { icon: "📁", title: "Drive & Docs", examples: "search, upload, read files (Google needed)" },
-  { icon: "📷", title: "Media", examples: "photos, voice notes, PDFs, Office files" },
-  { icon: "🧾", title: "Receipts", examples: "scan, list, search expense receipts" },
-  { icon: "🌐", title: "Search & Info", examples: "web search, weather, stocks, news" },
-  { icon: "⚙️", title: "Settings", examples: "timezone, location, language, briefings" },
-];
-
-function categoryRow(cat: (typeof CATEGORIES)[number]): object {
-  return {
-    type: "box",
-    layout: "vertical",
-    spacing: "xs",
-    margin: "md",
-    contents: [
-      {
-        type: "text",
-        text: `${cat.icon}  ${cat.title}`,
-        weight: "bold",
-        size: "sm",
-        color: "#333333",
-        wrap: true,
-      },
-      {
-        type: "text",
-        text: cat.examples,
-        size: "xs",
-        color: "#777777",
-        wrap: true,
-      },
-    ],
-  };
-}
-
-function exampleRow(ex: HelpExample): object {
+function categoryRow(cat: HelpCategory): object {
   return {
     type: "box",
     layout: "horizontal",
@@ -83,13 +97,27 @@ function exampleRow(ex: HelpExample): object {
     alignItems: "center",
     contents: [
       {
-        type: "text",
-        text: ex.question,
+        type: "box",
+        layout: "vertical",
+        spacing: "xs",
         flex: 1,
-        size: "sm",
-        color: "#333333",
-        wrap: true,
-        align: "start",
+        contents: [
+          {
+            type: "text",
+            text: `${cat.icon}  ${cat.title}`,
+            weight: "bold",
+            size: "sm",
+            color: "#333333",
+            wrap: true,
+          },
+          {
+            type: "text",
+            text: cat.description,
+            size: "xs",
+            color: "#777777",
+            wrap: true,
+          },
+        ],
       },
       {
         type: "button",
@@ -98,9 +126,10 @@ function exampleRow(ex: HelpExample): object {
         height: "sm",
         flex: 0,
         action: {
-          type: "message",
+          type: "postback",
           label: "Try it",
-          text: ex.question,
+          data: `help-demo:${cat.id}`,
+          displayText: cat.title,
         },
       },
     ],
@@ -111,36 +140,21 @@ export function helpFlex(): FlexMessage {
   const bodyContents: object[] = [
     {
       type: "text",
-      text: "Here's what I can do:",
+      text: "Here's what I can do. Tap a green button to see how I reply:",
       size: "sm",
       color: "#555555",
       wrap: true,
     },
   ];
 
-  for (const cat of CATEGORIES) {
+  for (const cat of HELP_CATEGORIES) {
     bodyContents.push({ type: "separator", margin: "md", color: "#f2f2f2" });
     bodyContents.push(categoryRow(cat));
   }
 
-  bodyContents.push({ type: "separator", margin: "xl", color: "#e0e0e0" });
-  bodyContents.push({
-    type: "text",
-    text: "Tap a green button to see how I reply:",
-    weight: "bold",
-    size: "sm",
-    color: "#333333",
-    wrap: true,
-    margin: "md",
-  });
-
-  for (const ex of HELP_EXAMPLES) {
-    bodyContents.push(exampleRow(ex));
-  }
-
   return {
     type: "flex",
-    altText: "Lekha help: memory, tasks, reminders, lists, email, calendar, drive, media, receipts, search, settings. Tap an example to see a reply.",
+    altText: "Lekha help: memory, tasks, reminders, lists, email, calendar, drive, media, receipts, search, settings. Tap a category to see a demo reply.",
     contents: {
       type: "bubble",
       size: "mega",
@@ -149,7 +163,7 @@ export function helpFlex(): FlexMessage {
         layout: "vertical",
         backgroundColor: "#5B6FF0",
         paddingAll: "14px",
-        contents: [{ type: "text", text: "🤖  Lekha Help", color: "#FFFFFF", weight: "bold", size: "lg" }],
+        contents: [{ type: "text", text: "Lekha Help", color: "#FFFFFF", weight: "bold", size: "lg" }],
       },
       body: {
         type: "box",
@@ -162,9 +176,8 @@ export function helpFlex(): FlexMessage {
   };
 }
 
-/** Return the curated answer for a help example question, or null if no match. */
-export function curatedAnswer(question: string): string | null {
-  const normalized = question.trim().toLowerCase();
-  const ex = HELP_EXAMPLES.find((e) => e.question.toLowerCase() === normalized);
-  return ex?.answer ?? null;
+/** Return the curated static demo answer for a help category, or null if unknown. */
+export function curatedDemoAnswer(id: string): string | null {
+  const cat = HELP_CATEGORIES.find((c) => c.id === id);
+  return cat?.demoAnswer ?? null;
 }

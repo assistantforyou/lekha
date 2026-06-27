@@ -1,6 +1,6 @@
 import { replyOrPush, text as textMsg, showLoading, type LineMessage } from "@/lib/line/client";
 import { HELP_TEXT } from "@/lib/tools/help";
-import { helpFlex, curatedAnswer } from "@/lib/line/flex";
+import { helpFlex } from "@/lib/line/flex";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
@@ -22,7 +22,6 @@ type Shortcut = {
 };
 
 const helpTrigger = /^\/?(help|what can you do|capabilities)$/i;
-const exampleAnswerTrigger = /^(What do you know about me\?|List my open tasks|What's the weather in Bangkok\?|Search the web for Thai recipes|How do I scan a receipt\?)$/i;
 const briefingTrigger =
   /\b(morning briefing|daily briefing|daily summary|morning brief)\b|^(give me|show me|what'?s|send me|can you give me|can you show me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary|brief)[\s?!.]*$/i;
 const eveningTrigger =
@@ -51,17 +50,6 @@ const SHORTCUTS: Shortcut[] = [
       await replyOrPush(userId, replyToken, [helpFlex()]);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: HELP_TEXT, ts: Date.now() });
-    },
-  },
-  {
-    name: "help-example",
-    match: (t) => exampleAnswerTrigger.test(t),
-    async run({ userId, replyToken, userText }) {
-      const answer = curatedAnswer(userText);
-      if (!answer) return;
-      await replyOrPush(userId, replyToken, [textMsg(answer)]);
-      await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
-      await appendTurn(userId, { role: "assistant", content: answer, ts: Date.now() });
     },
   },
   {

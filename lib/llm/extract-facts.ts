@@ -35,8 +35,10 @@ Categories:
 - other: anything durable that doesn't fit above
 
 Rules:
-- 0 to 10 facts. Each <= 200 chars.
-- Only durable facts (no one-off questions, transient moods, "asked you to forget").
+- 0 to 15 facts. Each <= 200 chars.
+- Extract durable facts aggressively: preferences, relationships, routines, deadlines, context, health, work, and anything that will still matter in a week.
+- Facts can be inferred — the user does not need to explicitly say "remember that". If they mention their mom, a recurring gym schedule, a project deadline, a food dislike, etc., capture it.
+- Do NOT include: one-off questions, transient moods, assistant responses, or anything the user asked you to forget.
 - Phrase in third person ("User prefers X").
 - Preserve the original language — if the conversation was in Thai, write facts in Thai. Do not translate.
 - If nothing durable, return { "facts": [] }.

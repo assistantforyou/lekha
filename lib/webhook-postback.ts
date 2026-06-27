@@ -1,5 +1,6 @@
 import { replyOrPush, text as textMsg, getProfile } from "@/lib/line/client";
-import { parsePostbackData } from "@/lib/line/flex";
+import { parsePostbackData, curatedDemoAnswer } from "@/lib/line/flex";
+import { loadFacts, displayOrder } from "@/lib/memory/facts";
 import { clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
 import { completeTask, reopenTask, completeAllOpenTasks, listTasks } from "@/lib/memory/tasks";
@@ -213,6 +214,30 @@ async function handlePending({ userId, replyToken, args }: Ctx): Promise<void> {
   }
 }
 
+async function handleHelpDemo({ userId, replyToken, args }: Ctx): Promise<void> {
+  const id = args[0];
+  const reply = mkReply(userId, replyToken);
+  if (!id) {
+    await reply("I didn't understand that demo button.");
+    return;
+  }
+
+  if (id === "memory") {
+    const facts = await loadFacts(userId);
+    const ordered = displayOrder(facts.facts);
+    if (ordered.length === 0) {
+      await reply("I don't have anything stored about you yet. Tell me something — a preference, a routine, an important person — and I'll remember it.");
+      return;
+    }
+    const lines = ordered.slice(0, 10).map((f) => `• ${f.content}`);
+    await reply(`Here's what I actually remember about you:\n${lines.join("\n")}\n\nYou can add more anytime by just telling me.`);
+    return;
+  }
+
+  const answer = curatedDemoAnswer(id);
+  await reply(answer ?? "Try typing your request and I'll do it for real.");
+}
+
 async function handleFallback({ userId, replyToken }: Ctx): Promise<void> {
   await mkReply(userId, replyToken)("Type what you want and I'll do it (e.g. \"share that file\", \"email that contact\").");
 }
@@ -225,6 +250,7 @@ const HANDLERS: Record<string, ((ctx: Ctx) => Promise<void>) | undefined> = {
   list: handleList,
   event: handleEvent,
   pending: handlePending,
+  "help-demo": handleHelpDemo,
   drive: handleFallback,
   contact: handleFallback,
   sent: handleFallback,
