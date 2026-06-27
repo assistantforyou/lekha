@@ -8,6 +8,7 @@ export { briefingFlex } from "./briefing";
 export { newsFlex, type NewsRow } from "./news";
 export { taskCheckinFlex, type CheckInRow } from "./task-checkin";
 export { pendingUsersFlex, type PendingUserRow } from "./pending-users";
+export { helpFlex, curatedAnswer, HELP_EXAMPLES, type HelpExample } from "./help";
 
 /**
  * Parse a LINE postback `data` payload. Convention:

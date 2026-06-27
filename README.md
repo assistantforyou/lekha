@@ -29,37 +29,60 @@ Built on Next.js 16 + Vercel AI SDK v6 + Gemini, deployed on Vercel Functions. *
 
 ## What it does
 
-| User says (in LINE) | Bot does |
-|---|---|
-| "hi" / "help" / "what can you do" | Greets / lists every capability |
-| `set my timezone to Asia/Bangkok` | Stores. Used in calendar drafts, briefings, reminders |
-| `remember I prefer espresso over filter` | Durable fact. Future replies factor it in |
-| `forget memory #3` / `edit memory #2 to say…` | Memory editor |
-| `add a task to ship the cert` / `list my tasks` / `mark task #3 done` | Persistent open work items (distinct from reminders) |
-| `remind me in 5 min to stretch` | One-shot QStash push |
-| `remind me every weekday at 8am to take vitamins` | Recurring schedule |
-| `email mom the receipt` | Looks up "mom" in your Google Contacts → drafts → YES → sent |
-| `email panupolt + jamyang cc grandmatits` | Multi-recipient single draft |
-| `summarize today's inbox` / `what's in my unread emails` | gmail_summarize_recent |
-| `reply to bob's last email saying I'll be there` | gmail_search → draft_gmail_reply (proper threading) |
-| `send this on Monday at 9 AM` | Scheduled email (QStash-deferred) |
-| `schedule lunch with Ana tomorrow at noon` | Google Calendar draft + create |
-| `what's on my calendar today` | list_upcoming_events |
-| `search my drive for the q3 deck` | Drive search |
-| `read me my Q3 deck` (after search) | Plain-text content (auto-converts Google Docs) |
-| Sends a PDF + `save this to my drive` | Drive upload from staged LINE media |
-| Sends a PDF + `email this to bob@x.com` | Real attachment, not a link |
-| Sends 4 photos + `send all of them to my wife` | 4 attachments in one email |
-| Sends a photo + `extract text` | OCR via Gemini multimodal |
-| Sends a voice memo + `transcribe this` | Audio → text |
-| Sends a PDF + `summarize this document` | Bullet-point summary |
-| `use my work google account from now on` | switch_google_account |
-| `connect another google account` | OAuth flow for a second account |
-| `send me a daily briefing at 7am` | Enables proactive morning push (calendar + tasks + optional inbox) |
-| `remind me 15 min before each meeting` | Pre-meeting alerts via cron sweep |
-| `what did I send to bob today` | sent_history audit lookup |
-| `search my old conversations for X` | search_archived_memory (months back) |
-| `export my data` | JSON dump |
+---
+
+### 🧠 Memory & Personal Context
+- `remember I prefer espresso over filter` → durable fact, referenced in future replies
+- `what do you know about me?` → lists remembered facts
+- `forget memory #3` / `update memory #2 to say…` → memory editor
+- `search my old conversations for X` → semantic + substring archive search
+
+---
+
+### ✅ Tasks & 📋 Lists
+- `add a task to ship the cert` / `list my tasks` / `mark task #3 done`
+- `add milk to my grocery list` / `show my packing list` / `clear the list`
+
+---
+
+### ⏰ Reminders
+- `remind me in 5 min to stretch` → one-shot LINE push
+- `remind me every weekday at 8am to take vitamins` → recurring schedule
+
+---
+
+### 📧 Email & Inbox *(Google account needed)*
+- `email mom the receipt` → looks up "mom" in Contacts, drafts, waits for YES
+- `summarize today's inbox` / `reply to bob's last email saying I'll be there`
+- `send this on Monday at 9 AM` → scheduled email
+
+---
+
+### 📅 Calendar & 📁 Drive *(Google account needed)*
+- `schedule lunch with Ana tomorrow at noon`
+- `search my drive for the q3 deck` / `save this PDF to Drive`
+- `create a Google Doc: meeting notes for today`
+
+---
+
+### 📷 Media, 🧾 Receipts & 🌐 Search
+- Send a photo → `what does this photo say?` (OCR / vision Q&A)
+- Send a voice memo → `transcribe this`
+- Send a receipt → `scan this`
+- `what's the weather in Bangkok?` / `USD to THB` / `latest news on X`
+
+---
+
+### ⚙️ Settings & 🔌 Accounts
+- `set my timezone to Asia/Bangkok` / `set my location to Bangkok`
+- `connect my Google account` / `use my work account`
+- `send me a morning briefing at 7 AM` / `remind me 15 min before each meeting`
+
+---
+
+### 🛠️ Advanced
+- `what did I send to bob today` → sent-history audit
+- `export my data` → JSON dump of everything stored about you
 
 ---
 
