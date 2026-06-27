@@ -312,7 +312,7 @@ export async function runAgent(
     const freshStaged = staged.filter((m) => Date.now() - m.ts < 10 * 60_000);
     const recentBlock = freshStaged.length
       ? opts?.imageBundled
-        ? `\n\nThe user's current message includes the image shown above. Answer based on that image. Do NOT call \`ocr_image\` or \`summarize_image\` for this image — it is already visible to you.\n\nOther staged LINE media (1-indexed, oldest first):\n${freshStaged
+        ? `\n\nThe user's current message includes the image shown above. Answer based ONLY on visible text/content in that image. Quote the relevant text when possible. If the answer is not clearly visible, say you can't find it — do not guess or use outside knowledge. Do NOT call \`ocr_image\` or \`summarize_image\` for this image; it is already visible to you.\n\nOther staged LINE media (1-indexed, oldest first):\n${freshStaged
             .map((m, i) => {
               const ago = Math.round((Date.now() - m.ts) / 60_000);
               const parts = [
