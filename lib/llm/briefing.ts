@@ -4,6 +4,8 @@ import { listTasks, type Task } from "@/lib/memory/tasks";
 import { listReminders, type StoredReminder } from "@/lib/tools/reminders";
 import { env } from "@/lib/env";
 import { fetchCachedNews, type NewsStory } from "@/lib/news-cache";
+import { fetchWeather } from "@/lib/tools/weather-shared";
+
 
 type WeatherResult = {
   tempC: number | null;
@@ -12,39 +14,6 @@ type WeatherResult = {
   lowC: number | null;
   rainChancePct: number | null;
 };
-
-async function fetchWeather(location: string): Promise<WeatherResult | null> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 4000);
-  try {
-    const data = await fetch(
-      `https://wttr.in/${encodeURIComponent(location)}?format=j1`,
-      { signal: ctrl.signal, headers: { "user-agent": "lekha-bot" } },
-    ).then((r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json() as Promise<{
-        current_condition?: Array<{ temp_C?: string; weatherDesc?: Array<{ value?: string }> }>;
-        weather?: Array<{
-          maxtempC?: string; mintempC?: string;
-          hourly?: Array<{ chanceofrain?: string }>;
-        }>;
-      }>;
-    });
-    const cur = data.current_condition?.[0];
-    const today = data.weather?.[0];
-    return {
-      tempC: cur?.temp_C ? Number(cur.temp_C) : null,
-      description: cur?.weatherDesc?.[0]?.value ?? "",
-      highC: today?.maxtempC ? Number(today.maxtempC) : null,
-      lowC: today?.mintempC ? Number(today.mintempC) : null,
-      rainChancePct: today?.hourly?.[4]?.chanceofrain ? Number(today.hourly[4]!.chanceofrain) : null,
-    };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(t);
-  }
-}
 
 export type BriefingNewsItem = {
   title: string;
@@ -375,12 +344,18 @@ export async function buildMorningBriefing(
 
   // Weather
   const wx = weatherResult.status === "fulfilled" ? weatherResult.value : null;
-  if (wx && wx.tempC !== null) {
-    const desc = wx.description ? `, ${wx.description.toLowerCase()}` : "";
-    let line = `${wx.tempC}°C${desc}`;
+  const cur = wx?.current;
+  const todayForecast = wx?.forecast?.[0];
+  if (cur && cur.tempC !== null) {
+    const desc = cur.description ? `, ${cur.description.toLowerCase()}` : "";
+    let line = `${cur.tempC}°C${desc}`;
     const extras: string[] = [];
-    if (wx.highC !== null && wx.lowC !== null) extras.push(`${wx.highC}° / ${wx.lowC}°`);
-    if (wx.rainChancePct !== null && wx.rainChancePct > 0) extras.push(`${wx.rainChancePct}% rain`);
+    if (todayForecast && todayForecast.highC !== null && todayForecast.lowC !== null) {
+      extras.push(`${todayForecast.highC}° / ${todayForecast.lowC}°`);
+    }
+    if (todayForecast && todayForecast.rainChancePct !== null && todayForecast.rainChancePct > 0) {
+      extras.push(`${todayForecast.rainChancePct}% rain`);
+    }
     if (extras.length) line += ` · ${extras.join(" · ")}`;
     const loc = opts.location ? `${opts.location} · ` : "";
     sections.push(`🌤 ${loc}${line}`);

@@ -1,9 +1,12 @@
 import { redis } from "./redis";
+import { createTtlCache } from "./cache";
 import { generateText } from "ai";
 import { extractorModel } from "@/lib/llm/provider";
 import type { ModelMessage } from "ai";
 import { createHash } from "crypto";
 import { span } from "@/lib/timing";
+
+const historyCache = createTtlCache<StoredTurn[]>(5_000);
 
 const MAX_TURNS = 35;
 const TOKEN_CAP = 3000;
@@ -20,11 +23,16 @@ const summaryKey = (userId: string, hash: string) => `history:summary:${userId}:
 const runningSummaryKey = (userId: string) => `history:running_summary:${userId}`;
 
 export async function loadHistory(userId: string): Promise<StoredTurn[]> {
+  const cached = historyCache.get(userId);
+  if (cached) return cached;
+
   const end = span("history:load");
   const raw = await redis().lrange<StoredTurn | string>(key(userId), 0, MAX_TURNS - 1);
   const parsed = raw.map((r) => (typeof r === "string" ? (JSON.parse(r) as StoredTurn) : r));
-  end({ turns: parsed.length });
-  return parsed.reverse();
+  const result = parsed.reverse();
+  historyCache.set(userId, result);
+  end({ turns: result.length });
+  return result;
 }
 
 export async function appendTurn(userId: string, turn: StoredTurn): Promise<number> {
@@ -40,6 +48,7 @@ export async function appendTurn(userId: string, turn: StoredTurn): Promise<numb
   tx.ltrim(k, 0, MAX_TURNS - 1);
   tx.llen(k);
   const res = (await tx.exec()) as [number, string, number];
+  historyCache.invalidate(userId);
   end({ role: turn.role });
   return res[2];
 }

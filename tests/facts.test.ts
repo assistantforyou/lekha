@@ -108,9 +108,9 @@ describe("structured facts", () => {
   });
 
   it("LRU evicts oldest when exceeding cap", async () => {
-    // Force-load 201 facts with stepping timestamps.
+    // Force-load 501 facts with stepping timestamps.
     const facts = { facts: [] as Array<{ id: string; category: "other"; content: string; createdAt: number; updatedAt: number }>, updatedAt: Date.now() };
-    for (let i = 0; i < 201; i++) {
+    for (let i = 0; i < 501; i++) {
       facts.facts.push({
         id: String(i),
         category: "other",
@@ -124,7 +124,7 @@ describe("structured facts", () => {
     // Trigger save through appendFact: this exercises the cap.
     await appendFact("U1", "fresh", { category: "other" });
     const f = await loadFacts("U1");
-    expect(f.facts.length).toBeLessThanOrEqual(200);
+    expect(f.facts.length).toBeLessThanOrEqual(500);
     // The freshest entry (just appended) should survive.
     const contents = f.facts.map((x) => x.content);
     expect(contents).toContain("fresh");

@@ -1,8 +1,11 @@
 import { redis } from "./redis";
+import { createTtlCache } from "./cache";
 import {
   scheduleTaskDeadlineWarning,
   cancelTaskDeadlineWarning,
 } from "@/lib/proactive-schedules";
+
+const taskCache = createTtlCache<Task[]>(5_000);
 
 export type Task = {
   id: string;
@@ -27,6 +30,7 @@ export async function addTask(userId: string, t: Omit<Task, "id" | "createdAt">)
     );
   }
   await redis().rpush(listKey(userId), JSON.stringify(task));
+  invalidateTaskCache(userId);
   return task;
 }
 
@@ -34,11 +38,18 @@ export async function listTasks(
   userId: string,
   filter: "all" | "open" | "done" = "open",
 ): Promise<Task[]> {
+  const cached = taskCache.get(userId, "list", filter);
+  if (cached) return cached;
+
   const raw = await redis().lrange<string | Task>(listKey(userId), 0, -1);
   const items = raw.map((r) => (typeof r === "string" ? (JSON.parse(r) as Task) : r));
-  if (filter === "all") return items;
-  if (filter === "done") return items.filter((t) => t.doneAt);
-  return items.filter((t) => !t.doneAt);
+  const result = filter === "all" ? items : filter === "done" ? items.filter((t) => t.doneAt) : items.filter((t) => !t.doneAt);
+  taskCache.set(userId, result, "list", filter);
+  return result;
+}
+
+function invalidateTaskCache(userId: string) {
+  taskCache.invalidate(userId);
 }
 
 export async function completeTask(userId: string, id: string): Promise<Task | null> {
@@ -55,6 +66,7 @@ export async function completeTask(userId: string, id: string): Promise<Task | n
   tx.del(k);
   tx.rpush(k, ...next.map((t) => JSON.stringify(t)));
   await tx.exec();
+  invalidateTaskCache(userId);
   return task;
 }
 
@@ -70,6 +82,7 @@ export async function reopenTask(userId: string, id: string): Promise<Task | nul
     // Re-persist with the new warn id.
     await mutateTask(userId, id, () => task);
   }
+  invalidateTaskCache(userId);
   return task;
 }
 
@@ -85,6 +98,7 @@ export async function updateTask(
     await cancelTaskDeadlineWarning(old.qstashDeadlineWarnId);
   }
   const task = await mutateTask(userId, id, (t) => ({ ...t, ...patch }));
+  invalidateTaskCache(userId);
   if (task && dueAtChanged && task.dueAt && task.dueAt > Date.now()) {
     task.qstashDeadlineWarnId = await scheduleTaskDeadlineWarning(
       userId,
@@ -95,6 +109,7 @@ export async function updateTask(
     // Re-persist with the new warn id.
     await mutateTask(userId, id, () => task);
   }
+  invalidateTaskCache(userId);
   return task;
 }
 
@@ -117,6 +132,7 @@ export async function completeAllOpenTasks(userId: string): Promise<Task[]> {
   tx.del(k);
   tx.rpush(k, ...next.map((t) => JSON.stringify(t)));
   await tx.exec();
+  invalidateTaskCache(userId);
   return completed;
 }
 
@@ -133,6 +149,7 @@ export async function deleteTask(userId: string, id: string): Promise<boolean> {
   tx.del(k);
   if (next.length) tx.rpush(k, ...next.map((t) => JSON.stringify(t)));
   await tx.exec();
+  invalidateTaskCache(userId);
   return true;
 }
 
@@ -156,5 +173,6 @@ async function mutateTask(
   tx.del(k);
   tx.rpush(k, ...next.map((t) => JSON.stringify(t)));
   await tx.exec();
+  invalidateTaskCache(userId);
   return found;
 }

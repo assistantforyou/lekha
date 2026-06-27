@@ -2,8 +2,11 @@ import { z } from "zod";
 import { tool } from "ai";
 import { Client as QStash } from "@upstash/qstash";
 import { redis } from "@/lib/memory/redis";
+import { createTtlCache } from "@/lib/memory/cache";
 import { env, hasQStash } from "@/lib/env";
 import { localTimeToUtcCron } from "@/lib/cron";
+
+const reminderCache = createTtlCache<StoredReminder[]>(5_000);
 
 const qstash = () => {
   if (!hasQStash()) throw new Error("QStash not configured");
@@ -29,12 +32,24 @@ export const reminderKey = (userId: string, id: string) => `reminder:${userId}:$
 export const reminderListKey = (userId: string) => `reminder:${userId}:_list`;
 
 export async function listReminders(userId: string): Promise<StoredReminder[]> {
+  const cached = reminderCache.get(userId);
+  if (cached) return cached;
+
   const ids = await redis().smembers(reminderListKey(userId));
-  if (!ids.length) return [];
+  if (!ids.length) {
+    reminderCache.set(userId, []);
+    return [];
+  }
   const items = await Promise.all(
     ids.map((id) => redis().get<StoredReminder>(reminderKey(userId, id))),
   );
-  return items.filter((x): x is StoredReminder => x !== null).sort((a, b) => a.fireAt - b.fireAt);
+  const result = items.filter((x): x is StoredReminder => x !== null).sort((a, b) => a.fireAt - b.fireAt);
+  reminderCache.set(userId, result);
+  return result;
+}
+
+function invalidateReminderCache(userId: string) {
+  reminderCache.invalidate(userId);
 }
 
 async function scheduleFinalReminder(
@@ -158,6 +173,7 @@ export function buildReminderTools(userId: string) {
           await redis().set(reminderKey(userId, id), stored, { ex: delaySec + 60 });
           await redis().sadd(reminderListKey(userId), id);
           await redis().expire(reminderListKey(userId), 60 * 60 * 24 * 400);
+          invalidateReminderCache(userId);
           console.log("[reminder] scheduled", { userId, id, fireAt: new Date(fireAt).toISOString(), delaySec, chained: delaySec > QSTASH_MAX_DELAY_SEC });
           return { ok: true, id, fireAt: new Date(fireAt).toISOString() };
         } catch (err) {
@@ -212,6 +228,7 @@ export function buildReminderTools(userId: string) {
         }
         await redis().del(reminderKey(userId, id));
         await redis().srem(reminderListKey(userId), id);
+        invalidateReminderCache(userId);
         return { ok: true };
       },
     }),
@@ -266,6 +283,7 @@ export function buildReminderTools(userId: string) {
           await redis().set(reminderKey(userId, id), stored, { ex: 60 * 60 * 24 * 400 });
           await redis().sadd(reminderListKey(userId), id);
           await redis().expire(reminderListKey(userId), 60 * 60 * 24 * 400);
+          invalidateReminderCache(userId);
           return { ok: true, id, cron: cronUtc, days };
         } catch (err) {
           console.error("[reminder] recurring schedule failed", err);

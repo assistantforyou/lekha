@@ -330,7 +330,10 @@ export async function runAgent(
 
     // Volatile per-request context goes into a synthetic first message pair so
     // the system prompt stays stable and Gemini's implicit prefix cache can hit.
-    const contextParts = [buildTimeContext(tz), accountsBlock, recentBlock].filter(Boolean).join("\n");
+    const recencyReminder = opts?.hint === "recent"
+      ? "This message likely asks about current or recent information. ALWAYS search the web (web_search or news_search) before answering. Do not rely on training data."
+      : "";
+    const contextParts = [buildTimeContext(tz), accountsBlock, recentBlock, recencyReminder].filter(Boolean).join("\n");
     const timePrefix: ModelMessage[] = contextParts
       ? [
           { role: "user", content: [{ type: "text", text: contextParts }] },
@@ -463,7 +466,9 @@ export async function runAgent(
     // NEVER suppress text when auth is needed — the connect message is critical.
     let finalText = suppressText && !processed.authNeeded ? "" : text;
     let extraToolCalls = tracker.allCalls;
-    if (finalText === "I didn't catch that — could you rephrase?") {
+    const looksBlankOrUnhelpful = finalText === "I didn't catch that — could you rephrase?" ||
+      (finalText.length < 60 && !processed.authNeeded && !processed.apiDisabled && !processed.googleErr && tracker.successfulCalls.length === 0);
+    if (looksBlankOrUnhelpful) {
       // Deterministic fallbacks: if the model blanks on an unambiguous query,
       // execute the canonical tool ourselves and return a Flex card.
       if (looksLikeMemoryRecall(lastUserText)) {
@@ -519,7 +524,7 @@ export async function runAgent(
         tracker.successfulCalls.some((c) =>
           c.toolName === "draft_email" ||
           c.toolName === "draft_calendar_event" ||
-          c.toolName === "upload_to_drive",
+          c.toolName === "drive_upload_recent_media",
         ),
       needsGoogleConnect:
         processed.authNeeded !== null || (accounts.accounts.length === 0 && /connect google/i.test(text)),

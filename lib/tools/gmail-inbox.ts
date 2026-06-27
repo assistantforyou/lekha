@@ -3,19 +3,10 @@ import { tool } from "ai";
 import { google } from "googleapis";
 import { withGoogleClient } from "./with-google";
 import { appendPending, type SendEmailAction } from "@/lib/confirm";
+import { headerMap } from "./gmail-helpers";
 
 const GMAIL_RO = "https://www.googleapis.com/auth/gmail.readonly";
 const GMAIL_SEND = "https://www.googleapis.com/auth/gmail.send";
-
-type Headers = Record<string, string>;
-
-function headerMap(headers: { name?: string | null; value?: string | null }[] | undefined): Headers {
-  const out: Headers = {};
-  for (const h of headers ?? []) {
-    if (h.name && h.value) out[h.name.toLowerCase()] = h.value;
-  }
-  return out;
-}
 
 function decodeBody(part: {
   body?: { data?: string | null; size?: number | null } | null;

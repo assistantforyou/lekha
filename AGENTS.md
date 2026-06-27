@@ -1,32 +1,38 @@
 # Lekha — repo guide for AI coding agents
 
-A personal AI assistant living in LINE. **Private bot** (allowlist-gated with self-serve signup queue), per-user state, agentic tool use, proactive layer (morning briefings, pre-meeting alerts, evening summaries).
+A personal AI assistant living in LINE. **Private bot** (allowlist-gated with self-serve signup queue), per-user state, agentic tool use, proactive layer (morning briefings, pre-meeting alerts, evening summaries, task check-ins).
 
 ## Stack at a glance
 
 | | |
 |---|---|
-| Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
-| Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
-| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash for agent + extraction) |
+| Runtime | Next.js 16.2.6 App Router on Vercel Functions (Node.js, Fluid Compute), region `sin1` |
+| Language | TypeScript 6.0.3, strict, `noUncheckedIndexedAccess: true` |
+| React | React 19.2.6 |
+| Styling | Tailwind CSS 4.3.0, Framer Motion 12.40.0 |
+| LLM | Vercel AI SDK v6 (`ai` 6.0.193) + `@ai-sdk/google` 3.0.80 |
+| Chat model | `gemini-2.5-flash` (full Flash, paid tier preferred; free tier via `GEMINI_API_KEY_FREE`) |
+| Extractor model | `gemini-2.5-flash-lite` (background extraction/summarization) |
 | Embeddings | Gemini `text-embedding-004` (768 dims) |
-| Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
+| Memory / queues | Upstash Redis (Vercel Marketplace → `KV_*`; direct → `UPSTASH_REDIS_REST_*`) |
 | Vector search | Upstash Vector — archive semantic search (substring fallback when unset) |
 | Scheduled jobs | Upstash QStash (one-shot reminders, deferred emails, recurring schedules, cron sweep) |
 | Web search | Tavily |
-| Google APIs | `googleapis` SDK — Gmail send/read/modify, Calendar events/readonly, Drive, People (contacts), Docs, Slides |
-| Validation | Zod |
-| Tests | Vitest (unit tests — no network, no Redis) |
-| Payments | Stripe (optional — monthly/yearly subscriptions) |
+| Google APIs | `googleapis` 173.0.0 — Gmail, Calendar, Drive, People, Docs, Slides |
+| Validation | Zod 4.4.3 |
+| Tests | Vitest 4.1.8 (unit tests — no network, no Redis) |
+| Payments | Stripe 22.2.0 (optional monthly/yearly subscriptions) |
 
 ## Quick commands
 
 ```bash
-npm run dev          # next dev (needs .env.local; pull via `vercel env pull`)
-npm run build        # production build (turbopack)
+npm run dev          # next dev (Turbopack)
+npm run build        # production build
 npm run typecheck    # tsc --noEmit
-npm test             # vitest run
-npm run test:watch   # vitest
+npm test             # vitest run (excludes chat.integration.test.ts)
+npm run test:integration  # vitest run tests/chat.integration.test.ts
+npm run test:watch   # vitest watch mode
+npm run test:coverage # vitest with coverage
 npm run lint         # eslint .
 npx vercel deploy --prod --yes   # ship
 npx vercel logs --no-follow --since 1h --no-branch --expand   # recent prod logs with full output
@@ -37,93 +43,123 @@ npx vercel logs --no-follow --since 1h --no-branch --expand   # recent prod logs
 ```
 app/
 ├── api/
-│   ├── line/webhook/route.ts          # thin entrypoint: verify → parse → dispatch
-│   ├── dev/chat/route.ts              # Claude testing endpoint — bypass LINE, POST {userId,text}
-│   ├── auth/line/{start,callback}/    # LINE Login web OAuth
-│   ├── oauth/google/callback/route.ts # OAuth code exchange + auto-resume pending
-│   ├── reminders/fire/route.ts        # QStash callback for one-shot/recurring reminders
-│   ├── scheduled-email/fire/route.ts  # QStash callback for deferred email sends
-│   ├── cron/sweep/route.ts            # QStash callback every 15 min — proactive layer
-│   ├── cron/sweep/fire/route.ts       # manual cron trigger (bearer auth)
-│   ├── webhooks/stripe/route.ts       # Stripe webhook handler
-│   ├── subscribe/route.ts             # marketing email capture
-│   └── health/route.ts
-├── connect/[token]/page.tsx           # signed-token landing → Google consent
-├── signup/                            # marketing signup pages
-├── components/marketing/, components/ui/
-└── layout.tsx, page.tsx               # marketing landing page
+│   ├── line/webhook/route.ts               # main entrypoint: verify → parse → dispatch
+│   ├── dev/chat/route.ts                   # bearer-protected testing endpoint — bypass LINE/allowlist/rate-limit
+│   ├── oauth/google/callback/route.ts      # Google OAuth code exchange + auto-resume pending actions
+│   ├── auth/line/{start,callback}/         # LINE Login web OAuth for signup
+│   ├── auth/line/dashboard-{start,callback}/route.ts  # dashboard session auth via LINE Login
+│   ├── reminders/{fire,relay}/route.ts     # QStash callbacks for one-shot/recurring reminders
+│   ├── scheduled-email/fire/route.ts       # QStash callback for deferred email sends
+│   ├── cron/sweep/route.ts                 # legacy QStash callback — forwards to runSweepForUser
+│   ├── cron/sweep/fire/route.ts            # current QStash callback for master sweep + typed one-shots
+│   ├── webhooks/stripe/route.ts            # Stripe checkout/subscription webhooks
+│   ├── github/webhook/route.ts             # GitHub push/PR/issue/merge notifications
+│   ├── github/line-webhook/route.ts        # recipient registration for GitHub notifications
+│   ├── subscribe/route.ts                  # marketing email capture
+│   ├── health/route.ts                     # dependency health check
+│   ├── status/route.ts                     # human-readable Gemini tier status page
+│   ├── dashboard/{me,settings,facts,connect-google,disconnect-google,test-line}/route.ts
+│   └── report/{marketing,status,user}/route.ts
+├── connect/[token]/page.tsx                # signed-token landing → Google consent
+├── dashboard/page.tsx                      # auth-guarded dashboard UI
+├── signup/                                 # marketing signup/pricing pages
+├── report/                                 # internal status report pages
+├── privacy/, terms/                        # legal pages
+├── components/marketing/, components/ui/   # React components
+└── layout.tsx, page.tsx                    # marketing landing page
 lib/
-├── env.ts                             # zod env + redisCreds() (KV_* and UPSTASH_REDIS_REST_*)
-├── errors.ts                          # GoogleAuthRequired, RateLimited, NeedsConfirmation
-├── ratelimit.ts                       # per-user 500/hr sliding window
-├── gate.ts                            # allowlist + admin parsing
-├── confirm.ts                         # pending action queue (atomic RPUSH)
-├── pending-runner.ts                  # executePendingAll — runs queue on YES, logs sends
-├── cron.ts                            # QStash schedule helpers + local→UTC cron conversion
-├── utils.ts                           # shared utilities (cn, etc.)
-├── timing.ts                          # performance span/tick helpers
-├── shortcuts.ts                       # declarative LLM-bypass table
-├── enrich-reply.ts                    # text + AgentHints → LineMessage
-├── admin-commands.ts                  # /allow /remove /users /pending /approve /deny /myid
-├── sweep.ts                           # proactive sweep orchestration
+├── env.ts                                  # zod env + redisCreds() (KV_* and UPSTASH_REDIS_REST_*)
+├── errors.ts                               # GoogleAuthRequired, RateLimited, NeedsConfirmation
+├── ratelimit.ts                            # per-user 500/hr sliding window
+├── gate.ts                                 # allowlist + admin parsing
+├── confirm.ts                              # pending action queue (atomic RPUSH)
+├── pending-runner.ts                       # executePendingAll — runs queue on YES, logs sends
+├── cron.ts                                 # QStash schedule helpers + local→UTC cron conversion
+├── proactive-schedules.ts                  # schedule one-shot deadline/pre-meeting QStash jobs
+├── sweep.ts                                # proactive sweep orchestration
+├── fast-classify.ts                        # zero-latency regex intent hint → tool registry narrowing
+├── admin-commands.ts                       # /allow /remove /users /pending /approve /deny /myid
+├── shortcuts.ts                            # declarative LLM-bypass table
+├── enrich-reply.ts                         # text + AgentHints → LineMessage
+├── webhook-postback.ts                     # postback verb dispatch
+├── format.ts                               # formatting helpers
+├── fetch.ts                                # fetch wrappers
+├── utils.ts                                # shared utilities (cn, etc.)
+├── timing.ts                               # performance span/tick helpers
+├── handlers/
+│   ├── text.ts                             # text message → runAgent
+│   ├── image.ts                            # image message → vision + staging
+│   └── other-media.ts                      # video/audio/file staging
 ├── line/
-│   ├── verify.ts                      # HMAC-SHA256 signature verification
-│   ├── client.ts                      # REST client for reply/push/loading
-│   ├── types.ts                       # zod schemas for all LINE event types
-│   ├── mime.ts                        # file mime-type helpers
-│   └── flex/                          # LINE Flex Message templates + postback parser
+│   ├── verify.ts                           # HMAC-SHA256 signature verification
+│   ├── client.ts                           # REST client for reply/push/loading
+│   ├── types.ts                            # zod schemas for all LINE event types
+│   ├── mime.ts                             # file mime-type helpers
+│   ├── flex/                               # LINE Flex Message templates + parsePostbackData
+│   ├── finance-flex.ts                     # finance result Flex cards
+│   ├── places-flex.ts                      # places result Flex cards
+│   └── weather-flex.ts                     # weather result Flex cards
 ├── llm/
-│   ├── provider.ts                    # chatModel + extractorModel + embeddingModel — swap here
-│   ├── prompts.ts                     # base personality + system prompt builder
-│   ├── agent.ts                       # runAgent + helpers (shared by webhook + dev endpoint)
-│   ├── agent-flex.ts                  # Flex Message builders from tool results
-│   ├── extract-facts.ts               # background fact extraction + archive summarization
-│   ├── render-drafts.ts               # canonical verbatim draft block
-│   ├── briefing.ts                    # morning briefing: weather/tasks/reminders/calendar/news/inbox
-│   └── evening-summary.ts             # 9 PM evening summary
+│   ├── provider.ts                         # chatModel + extractorModel + embeddingModel — swap here
+│   ├── prompts.ts                          # base personality + system prompt builder
+│   ├── agent.ts                            # runAgent + helpers (shared by webhook + dev endpoint)
+│   ├── agent-flex.ts                       # Flex Message builders from tool results
+│   ├── action-labels.ts                    # deterministic fallback action triggers
+│   ├── casual-reply.ts                     # small-talk / greeting handlers
+│   ├── extract-facts.ts                    # background fact extraction + archive summarization
+│   ├── render-drafts.ts                    # canonical verbatim draft block
+│   ├── briefing.ts                         # morning briefing: weather/tasks/reminders/calendar/news/inbox
+│   ├── evening-summary.ts                  # 9 PM evening summary
+│   ├── preread-doc.ts                      # document pre-reading helper
+│   └── health.ts                           # Gemini health/tier checks
 ├── memory/
-│   ├── redis.ts                       # singleton Upstash client
-│   ├── crypto.ts                      # AES-256-GCM + HMAC + safeEqual
-│   ├── history.ts                     # rolling 20-msg history + turn counter (TTL 90d)
-│   ├── facts.ts                       # structured facts blob (categorized, LRU-capped 200)
-│   ├── archive.ts                     # long-term compressed conversation chunks (200 max)
-│   ├── profile.ts                     # display name + first-contact tracking
-│   ├── recent-media.ts                # staged LINE media list (RPUSH, 10 max, TTL 30 min)
-│   ├── settings.ts                    # per-user tz/locale/loc/briefing prefs (versioned + migrations)
-│   ├── tasks.ts                       # persistent open work items
-│   ├── receipts.ts                    # receipt store (200 max, 1-year TTL, category-indexed)
-│   ├── sent-log.ts                    # audit log (last 200, 6 month TTL)
-│   ├── user-registry.ts               # set of all known userIds for cron sweep
-│   └── allowlist.ts                   # private access control — Redis set `users:allowed`
+│   ├── redis.ts                            # singleton Upstash client
+│   ├── crypto.ts                           # AES-256-GCM + HMAC + safeEqual
+│   ├── history.ts                          # rolling 35-turn history + summarization
+│   ├── facts.ts                            # structured facts blob (categorized, LRU-capped 200)
+│   ├── archive.ts                          # long-term compressed conversation chunks (200 max)
+│   ├── profile.ts                          # display name + first-contact tracking
+│   ├── recent-media.ts                     # staged LINE media list (RPUSH, 10 max, TTL 30 min)
+│   ├── settings.ts                         # per-user tz/locale/loc/briefing prefs (versioned + migrations)
+│   ├── tasks.ts                            # persistent open work items
+│   ├── receipts.ts                         # receipt store (200 max, 1-year TTL, category-indexed)
+│   ├── sent-log.ts                         # audit log (last 200, 6 month TTL)
+│   ├── user-registry.ts                    # set of all known userIds for cron sweep
+│   ├── doc-cache.ts                        # Google Doc plain-text cache
+│   ├── allowlist.ts                        # private access control — Redis sets users:allowed / users:pending
+│   └── search-cache.ts                     # archive search result cache
+├── news-cache.ts                           # news result cache
 └── tools/
-    ├── index.ts                       # toolsForUser(userId) — async, declarative registry, env + per-user OAuth gated
-    ├── help.ts                        # show_help text dump
-    ├── settings.ts                    # set_timezone/location/language/morning_briefing/pre_meeting + evening_summary
-    ├── morning-briefing.ts            # get_morning_briefing tool
-    ├── evening-summary.ts             # get_evening_summary tool
-    ├── memory.ts                      # remember/list/update/forget/clear + archive search
-    ├── tasks.ts                       # CRUD on tasks
-    ├── reminders.ts                   # set/list/cancel/set_recurring (one-shot via publish, recurring via schedule)
-    ├── web-search.ts                  # Tavily
-    ├── contacts.ts                    # contacts_search via Google People API
-    ├── google-auth.ts                 # multi-account OAuth, encrypted tokens, scope check, atomic state
-    ├── google-accounts.ts             # list/connect/switch/disconnect Google accounts
-    ├── with-google.ts                 # auth/api-disabled/quota error → structured marker
-    ├── email.ts                       # draft_email + sendEmail (multi-recip, Drive + LINE attach, Gmail threading)
-    ├── gmail-inbox.ts                 # gmail_search/read/summarize_recent + draft_gmail_reply
-    ├── scheduled-email.ts             # schedule_email/list/cancel — QStash-deferred sends
-    ├── calendar.ts                    # draft + create + list_upcoming
-    ├── drive.ts                       # search/list_recent/get_link/read_text/upload_recent_media
-    ├── media-ai.ts                    # transcribe/summarize_audio + ocr/summarize_image + summarize_document
-    ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt
-    ├── sent-history.ts                # query the audit log
-    ├── export.ts                      # JSON dump of all user data
-    ├── weather.ts                     # weather — wttr.in primary, Open-Meteo fallback (both keyless)
-    ├── finance.ts                     # fx rates, stock quotes, crypto prices — keyless, ~3s timeout
-    ├── news.ts                        # news search via Tavily
-    ├── lists.ts                       # named lists (grocery, packing, custom) — 7 CRUD tools, Redis-backed
-    ├── docs.ts                        # Google Docs create/edit + Slides create with structured slides
-    └── staged-media.ts                # list / clear LINE media staged for attach/upload
+    ├── index.ts                            # toolsForUser(userId) — async, declarative registry, env + OAuth + hint gated
+    ├── help.ts                             # show_help text dump
+    ├── settings.ts                         # get_my_settings + set_timezone/location/language + enable/disable prefs
+    ├── morning-briefing.ts                 # get_morning_briefing tool
+    ├── evening-summary.ts                  # get_evening_summary tool
+    ├── memory.ts                           # remember/list/update/forget/clear + archive search
+    ├── tasks.ts                            # CRUD on tasks
+    ├── reminders.ts                        # set/list/cancel/set_recurring (one-shot via publish, recurring via schedule)
+    ├── web-search.ts                       # Tavily
+    ├── contacts.ts                         # contacts_search via Google People API
+    ├── google-auth.ts                      # multi-account OAuth, encrypted tokens, scope check, atomic state
+    ├── google-accounts.ts                  # list/connect/switch/disconnect Google accounts
+    ├── with-google.ts                      # auth/api-disabled/quota error → structured marker
+    ├── email.ts                            # draft_email + sendEmail (multi-recip, Drive + LINE attach, Gmail threading)
+    ├── gmail-inbox.ts                      # gmail_search/read/summarize_recent + draft_gmail_reply
+    ├── scheduled-email.ts                  # schedule_email/list/cancel — QStash-deferred sends
+    ├── calendar.ts                         # draft + create + list_upcoming/today/week + find_free_time
+    ├── drive.ts                            # search/list_recent/get_link/read_text/upload_recent_media
+    ├── docs.ts                             # Google Docs create/edit + Slides create
+    ├── media-ai.ts                         # transcribe/summarize_audio + ocr/summarize_image + summarize_document + summarize_video
+    ├── receipts.ts                         # scan_receipt/list_receipts/search_receipts/delete_receipt
+    ├── sent-history.ts                     # query the audit log
+    ├── export.ts                           # JSON dump of all user data
+    ├── weather.ts                          # weather — wttr.in primary, Open-Meteo fallback (both keyless)
+    ├── finance.ts                          # fx rates, stock quotes, crypto prices — keyless, ~3s timeout
+    ├── news.ts                             # news search via Tavily
+    ├── lists.ts                            # named lists (grocery, packing, custom) — Redis-backed
+    ├── places.ts                           # suggest_places — structured place cards
+    ├── render-flex.ts                      # render_flex — model-generated LINE Flex cards
+    └── staged-media.ts                     # list / clear LINE media staged for attach/upload
 tests/
 ├── allowlist.test.ts
 ├── briefing-gate.test.ts
@@ -131,11 +167,14 @@ tests/
 ├── cron.test.ts
 ├── crypto.test.ts
 ├── facts.test.ts
+├── finance.test.ts
 ├── flex.test.ts
 ├── history.test.ts
+├── routing.test.ts
+├── search-cache.test.ts
 └── verify.test.ts
 marketing/
-├── src/                               # standalone Vite React marketing site
+├── src/                                    # standalone Vite + React 18 marketing site
 ├── public/
 ├── index.html
 ├── package.json
@@ -151,7 +190,7 @@ The AI SDK v6 catches exceptions in `tool({ execute })` and feeds the error back
 `appendPending` uses `RPUSH` because the model often emits multiple `draft_*` calls in one parallel-tool-use step. Read-modify-write would race (last write wins, one action lost). Same for `recent-media` staging — also `RPUSH` capped via `LTRIM`.
 
 ### 3. Canonical draft rendering, not model paraphrasing
-After `generateText`, `runAgent` collects all `draft_email` / `draft_calendar_event` tool calls and builds a verbatim block via `renderDraftsBlock`. Source of truth = tool args.
+After `generateText`, `runAgent` collects all `draft_email` / `draft_calendar_event` / `schedule_email` tool calls and builds a verbatim block via `renderDraftsBlock`. Source of truth = tool args.
 
 ### 4. Auto-resume after OAuth
 `/api/oauth/google/callback` executes pending actions immediately after a successful exchange and pushes the result. No "try again."
@@ -166,22 +205,22 @@ Everything in Redis is keyed by LINE `userId`. There is no global state besides 
 Handler uses `after(async () => …)` so LINE doesn't time out / retry. Real work happens after response. Webhook events de-duped via `seen:{webhookEventId}` 10-min keys.
 
 ### 8. Webhook + QStash signature verify before any work
-`verifyLineSignature` runs first, on the raw body, before JSON parsing. Same for QStash `Receiver.verify()` on the cron sweep, reminder fire, and scheduled-email fire routes.
+`verifyLineSignature` runs first, on the raw body, before JSON parsing. Same for QStash `Receiver.verify()` on the cron sweep, reminder fire, scheduled-email fire, and reminder relay routes.
 
 ### 9. Tokens encrypted at rest
-OAuth tokens AES-256-GCM with `TOKEN_ENCRYPTION_KEY` (32-byte hex). `OAUTH_STATE_SECRET` HMACs connect-link tokens. State nonces and connect-link tokens are atomically consumed via `GETDEL` (single-use).
+OAuth tokens AES-256-GCM with `TOKEN_ENCRYPTION_KEY` (64 hex chars). `OAUTH_STATE_SECRET` HMACs connect-link tokens. State nonces and connect-link tokens are atomically consumed via `GETDEL` (single-use).
 
 ### 10. Rate limit per user
 Upstash sliding window, **500/hr/user**. Paid Gemini RPM absorbs the burst; the cap exists to bound LINE push quota cost and provide an abuse circuit-breaker at 100+ user scale.
 
 ### 11. Settings injected into every system prompt
-Timezone, location, language, connected Google accounts, staged media — all live in the system prompt so the model behaves correctly without needing to call lookup tools. Settings use versioning + migration: `CURRENT_VERSION` in `lib/memory/settings.ts` defines the schema. When a new schema is deployed, `applyMigrations()` runs on read and writes back once, never overriding explicit user choices tracked in `userConfigured` array.
+Timezone, location, language, connected Google accounts, staged media — all live in the system prompt so the model behaves correctly without needing to call lookup tools. Settings use versioning + migration: `CURRENT_VERSION = 6` in `lib/memory/settings.ts` defines the schema. When a new schema is deployed, `applyMigrations()` runs on read and writes back once, never overriding explicit user choices tracked in `userConfigured` array.
 
 ### 12. Long-term memory via Upstash Vector (with substring fallback)
-Every fact-extraction cycle (every 10 turns) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `text-embedding-004` (768 dims) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries.
+Every fact-extraction cycle (every `memoryCompactAt` turns, default 10) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `text-embedding-004` (768 dims) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries.
 
 ### 13. Proactive layer via master sweep
-A single QStash schedule hits `/api/cron/sweep` every 15 min (legacy endpoint; forwards to `lib/sweep.ts` `runSweepForUser`). Iterates `users:active` set, decides per-user whether to push (morning briefing window check, evening summary window check, task check-in window check). **There are no per-user QStash schedules for briefings/summaries.**
+A single QStash schedule hits `/api/cron/sweep` every 15 min (legacy endpoint; forwards to `lib/sweep.ts` `runSweepForUser`). The current endpoint is `/api/cron/sweep/fire`. It iterates `users:active` set and decides per-user whether to push (morning briefing window check, evening summary window check, task check-in window check). **There are no per-user QStash schedules for briefings/summaries.**
 
 Idempotency is via `claimPushLock()` (`pushlock:{userId}:{type}:{YYYY-MM-DD}` with 5-min TTL), not per-event Redis keys. Pre-meeting alerts and task deadline warnings are scheduled as one-shot QStash messages at event/task creation time — the sweep does NOT scan calendars for upcoming events.
 
@@ -195,22 +234,27 @@ The bot is private by default. Every event hits the gate before any other logic.
 
 **Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome), `/deny <id>` (remove from pending). Anyone can `/myid` to get their own LINE userId.
 
-### 16. Single LLM provider — Gemini 2.5 Flash (paid), 30s timeout
+### 16. Single LLM provider — Gemini 2.5 Flash, 30s timeout
 No cascade, no fallback. We use full Flash (not Flash Lite) for agentic tool use because Flash Lite blanked/panicked under the full tool registry. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 30s — fail-fast for real hangs without burning function time. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
 
 ### 17. Orchestrator-level error relay enforcement
 After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
 
-### 18. Static full tool registry (per-user OAuth gating)
-`toolsForUser(userId)` returns the full static tool registry, gated only on env/user prerequisites (OAuth connected, service configured). We removed per-intent tool filtering because it varied the tool prefix and hurt Gemini implicit caching; full Flash can handle the full registry reliably. The system prompt stays static (preserves caching). Cached per-user for 5 minutes.
+### 18. Conditional tool registry (per-user OAuth gating + intent narrowing)
+`toolsForUser(userId)` returns a registry gated on env/user prerequisites (OAuth connected, service configured, user-disabled categories, staged media). On top of that, `lib/fast-classify.ts` runs instant regex matching on every user message and passes an optional `hint` to `toolsForUser`. Entries tagged with `hints: [...]` are only built when the hint matches; entries with no `hints` field are **universal** (always included). `web_search` is universal so any wrong narrowing still has a search fallback.
+
+- `hint="reminder"` → ~12 tools | `hint="weather"` → ~8 | `hint="task"` → ~12 | `hint="recent"` → search/web/news tools
+- `hint="email"` → ~20 | `hint=undefined` → ~50+ tools (all eligible tools)
+
+Failure mode is always safe: `undefined` → all tools. The classifier never causes a tool to be missing — it only narrows when certain. Do NOT re-add an LLM-based intent classifier; the previous implementation caused hard failures when the LLM mis-classified a query.
 
 ### 19. Structured facts (categorized, LRU-capped) + token-bounded history
-Facts are stored at `user:{userId}:facts:v2` as JSON with shape `{ facts: Fact[], updatedAt }`. Each `Fact` has `id`, `category` (preferences|people|habits|deadlines|context|health|work|other), `content`, `createdAt`, `updatedAt`, optional `confidence`. Cap at 200 facts/user with LRU eviction by `updatedAt`.
+Facts are stored at `user:{userId}:facts:v2` as JSON with shape `{ facts: Fact[], updatedAt }`. Each `Fact` has `id`, `category` (preferences|people|habits|deadlines|context|health|work|other), `content`, `createdAt`, `updatedAt`, optional `confidence`. Cap at **500 facts/user** with LRU eviction by `updatedAt`. Reads are selective (only the needed recent facts are deserialized for prompt injection). Content capped at 1000 chars.
 
-History uses a rolling 20 turns in Redis but `historyForPrompt` summarizes the oldest 10 turns into a ~200-token block via the extractor model if the rolling history exceeds ~3000 tokens (chars/4 heuristic). Summary is cached by content hash for 7 days.
+History uses a rolling **35 turns** in Redis. `historyForPrompt` summarizes the oldest chunk to ~200 tokens via the extractor model if the rolling history exceeds ~3000 tokens (script-weighted heuristic). Summary is cached by SHA1 content hash for **30 days** and also accumulated into `history:running_summary:{userId}`. Placeholder assistant replies are filtered out before storage and before prompt building.
 
 ### 20. LINE Flex Messages + postback routing
-Draft confirmations, task lists, and other high-signal interactions render as Flex bubbles with tap-to-act postback buttons. Module: `lib/line/flex/` (one file per template + `index.ts` + `parsePostbackData` helper). Templates always include a meaningful `altText` so old LINE clients still see something useful.
+Draft confirmations, task lists, and other high-signal interactions render as Flex bubbles with tap-to-act postback buttons. Module: `lib/line/flex/` (one file per template + `index.ts` + `parsePostbackData` helper + `validate.ts` for runtime sanitization). Templates always include a meaningful `altText` so old LINE clients still see something useful. Model-generated Flex via `render_flex` is schema-validated and sanitized before it reaches LINE (altText clamped, postback data ≤ 300 chars, carousel capped at 10 bubbles, markdown stripped from altText); invalid cards fall back to a plain text bubble.
 
 Postback `data` is parsed by verb prefix (`verb:arg:arg…`, capped at 300 chars by LINE). Current routes:
 - `confirm:yes` / `confirm:no` → `executePendingAll` / `clearPending`
@@ -224,13 +268,14 @@ Idempotency relies on the existing `seen:{webhookEventId}` dedup.
 - **Strict TS, `noUncheckedIndexedAccess`.** Array element access returns `T | undefined`.
 - **Zod for everything at boundaries.**
 - **Prefer `lib/` for pure logic, `app/api/*/route.ts` for HTTP boundaries.** Don't export non-handler functions from route files.
-- **Logging:** `console.warn` / `console.error` with a `[module]` prefix (`[reminder]`, `[oauth]`, `[google]`, `[sweep]`, `[briefing]`).
+- **Logging:** `console.warn` / `console.error` with a `[module]` prefix (`[reminder]`, `[oauth]`, `[google]`, `[sweep]`, `[briefing]`, `[webhook]`, `[agent]`).
+- **Module-prefixed file naming** where appropriate; shared helpers live in `lib/` root.
 
 ## Adding a new tool
 
 1. Create `lib/tools/your-tool.ts`. Export `buildYourTools(userId)` returning `tool({ description, inputSchema, execute })` records.
 2. Wrap any Google call in `withGoogleClient(userId, fromEmail, [scopes], async ({client}) => …)`.
-3. Register in `lib/tools/index.ts` (env-gated if needed).
+3. Register in `lib/tools/index.ts` (env-gated if needed). Add `hints: [...]` to limit when it's included — omit for universal tools. If you add a new intent, also add a pattern to `lib/fast-classify.ts`.
 4. If it produces something the user must approve, write through `appendPending` and add a renderer in `lib/llm/render-drafts.ts`.
 5. Update `lib/llm/prompts.ts` so the model knows about it.
 
@@ -248,7 +293,7 @@ Idempotency relies on the existing `seen:{webhookEventId}` dedup.
 
 - **AI SDK v6 swallows tool exceptions** — must use structured returns for control flow.
 - **Parallel tool calls in one step race** — atomic Redis ops mandatory.
-- **Gemini paid tier** — billing must be enabled on the Google Cloud project tied to `GEMINI_API_KEY`. Free tier RPM (10–30) is too low for agentic turns.
+- **Gemini paid tier** — billing must be enabled on the Google Cloud project tied to `GEMINI_API_KEY`. Free tier RPM (10–30) is too low for agentic turns; paid tier (1,000+ RPM) absorbs the burst.
 - **`HARM_CATEGORY_*` thresholds**: use `BLOCK_NONE` not `OFF`. Skip `CIVIC_INTEGRITY` (rejected on some variants).
 - **Vercel Marketplace's Upstash Redis injects `KV_*`** not `UPSTASH_REDIS_REST_*`.
 - **OAuth refresh tokens are tied to client_id** — swap projects → `invalid_grant`. Detected and translated to need-reauth.
@@ -272,12 +317,15 @@ Idempotency relies on the existing `seen:{webhookEventId}` dedup.
 Tests are Vitest, run in Node environment, no network, no Redis:
 
 ```bash
-npm test             # single run
+npm test             # single run (excludes integration chat test)
+npm run test:integration  # integration chat test only
 npm run test:watch   # watch mode
 npm run test:coverage # with coverage
 ```
 
-Current test files cover: allowlist gating, briefing-fire logic, confirm/pending queue, cron schedule helpers, crypto (AES/HMAC), fact storage, Flex Message templates, history rolling window, and LINE signature verification.
+Current test files cover: allowlist gating, briefing-fire logic, confirm/pending queue, cron schedule helpers, crypto (AES/HMAC), fact storage, finance formatting, Flex Message templates, history rolling window, prompt routing/shortcuts, archive search cache, and LINE signature verification.
+
+Redis is mocked in-memory via `vi.mock("@/lib/memory/redis", …)` where needed. `env.ts` is mocked where needed. CI runs `npm run typecheck` → `npm run build` → `npm test` with stub env values.
 
 ## Dev chat endpoint (testing without LINE)
 
@@ -295,13 +343,27 @@ Requires `DEV_CHAT_SECRET` env var. Runs the full agent (same history, tools, fa
 
 ## Cron sweep setup
 
-The proactive layer (morning briefings, pre-meeting alerts, evening summaries) needs a QStash schedule pointing at `/api/cron/sweep` every 15 min. See SETUP.md step 11. Without it, proactive features are silent (everything else still works).
+The proactive layer (morning briefings, pre-meeting alerts, evening summaries, task check-ins) needs a QStash schedule pointing at `/api/cron/sweep` every 15 min. See SETUP.md step 11. Without it, proactive features are silent (everything else still works).
 
 Manual trigger (uses `OAUTH_STATE_SECRET` as bearer):
 ```bash
 curl -XPOST https://YOUR-VERCEL-URL/api/cron/sweep \
   -H "Authorization: Bearer $OAUTH_STATE_SECRET"
 ```
+
+## Security considerations
+
+| Concern | Defense |
+|---|---|
+| LINE webhook spoofing | HMAC-SHA256 verification of `X-Line-Signature` against raw body, timing-safe compare, BEFORE any work |
+| QStash callback spoofing | `Upstash-Signature` verified via `@upstash/qstash` Receiver |
+| OAuth state CSRF / replay | Signed (HMAC) connect-link tokens, server-side nonce in Redis with 10-min TTL, single-use GETDEL |
+| Refresh tokens at rest | AES-256-GCM with `TOKEN_ENCRYPTION_KEY` (64 hex chars) |
+| LLM identity jailbreak | `userId` is bound from the verified webhook, never from tool args. Tools use that bound `userId` to fetch tokens |
+| Abuse / quota burn | Per-user sliding-window rate limit (500/hr) via `@upstash/ratelimit` |
+| Webhook replay | Each event de-duped by `webhookEventId` for 10 min |
+| Confirmation gate | Drafts are queued, executed only on explicit YES — bot won't send the wrong email even if it misreads intent |
+| Headers | `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` on all routes |
 
 ## Collaboration
 

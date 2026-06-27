@@ -44,7 +44,7 @@ export async function respondToText(
   const endPreload = span("text:preload", traceId);
   const [rawHistoryMsgs, facts, accounts, settings, imageData] = await Promise.all([
     historyForPrompt(userId),
-    loadFacts(userId),
+    loadFacts(userId, 30),
     listAccounts(userId),
     getSettings(userId),
     imagePromise,

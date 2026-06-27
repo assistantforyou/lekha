@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { extractorModel } from "@/lib/llm/provider";
+import { chatModel } from "@/lib/llm/provider";
 import { getMessageContent } from "@/lib/line/client";
 import { setDocContent } from "@/lib/memory/doc-cache";
 import { normalizeMediaTypeFromBytes } from "@/lib/tools/media-ai";
@@ -36,7 +36,7 @@ export async function prereadDoc(
 
   try {
     const r = await generateText({
-      model: extractorModel(),
+      model: chatModel(),
       messages: [
         {
           role: "user",

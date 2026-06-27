@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { span } from "@/lib/timing";
+import { sanitizeFlexMessages } from "@/lib/line/flex/validate";
 
 const API = "https://api.line.me/v2/bot";
 const DATA_API = "https://api-data.line.me/v2/bot";
@@ -90,12 +91,14 @@ function authHeaders() {
  */
 export async function reply(replyToken: string, messages: LineMessage[]): Promise<boolean> {
   const end = span("line:reply");
+  const { messages: safeMessages, warnings } = sanitizeFlexMessages(messages);
+  if (warnings.length) console.warn("[line] flex validation warnings", warnings);
   const r = await fetchWithTimeout(`${API}/message/reply`, {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify({ replyToken, messages }),
+    body: JSON.stringify({ replyToken, messages: safeMessages }),
   });
-  end({ ok: r.ok, status: r.status, messages: messages.length });
+  end({ ok: r.ok, status: r.status, messages: safeMessages.length });
   if (!r.ok) {
     console.warn("[line] reply failed", r.status, await safeText(r));
     return false;
@@ -108,7 +111,9 @@ export async function reply(replyToken: string, messages: LineMessage[]): Promis
  * Retries up to 2 times on transient 5xx/network errors with exponential backoff.
  */
 export async function push(to: string, messages: LineMessage[]): Promise<boolean> {
-  const body = JSON.stringify({ to, messages });
+  const { messages: safeMessages, warnings } = sanitizeFlexMessages(messages);
+  if (warnings.length) console.warn("[line] flex validation warnings", warnings);
+  const body = JSON.stringify({ to, messages: safeMessages });
   for (let attempt = 0; attempt < 3; attempt++) {
     const end = span("line:push");
     const r = await fetchWithTimeout(`${API}/message/push`, {
@@ -116,7 +121,7 @@ export async function push(to: string, messages: LineMessage[]): Promise<boolean
       headers: authHeaders(),
       body,
     });
-    end({ ok: r.ok, status: r.status, messages: messages.length, attempt });
+    end({ ok: r.ok, status: r.status, messages: safeMessages.length, attempt });
     if (r.ok) return true;
     const status = r.status;
     const text = await safeText(r);

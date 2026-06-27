@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { redis } from "@/lib/memory/redis";
+import { createTtlCache } from "@/lib/memory/cache";
+
+const listCache = createTtlCache<string[]>(5_000);
+const listNamesCache = createTtlCache<{ name: string; count: number }[]>(5_000);
 
 /**
  * Named list tools — grocery lists, packing lists, to-watch lists, etc.
@@ -20,7 +24,20 @@ const listKey = (userId: string, name: string) => `lists:${userId}:${normalizeNa
 const namesKey = (userId: string) => `lists:${userId}:_names`;
 
 async function getListItems(userId: string, name: string): Promise<string[]> {
-  return redis().lrange<string>(listKey(userId, name), 0, -1);
+  const cached = listCache.get(userId, name);
+  if (cached) return cached;
+  const items = await redis().lrange<string>(listKey(userId, name), 0, -1);
+  listCache.set(userId, items, name);
+  return items;
+}
+
+function invalidateListCache(userId: string, name?: string) {
+  if (name) {
+    listCache.invalidate(userId, name);
+  } else {
+    listCache.invalidate(userId);
+  }
+  listNamesCache.invalidate(userId);
 }
 
 export function buildListTools(userId: string) {
@@ -34,6 +51,7 @@ export function buildListTools(userId: string) {
       execute: async ({ list_name }) => {
         const name = normalizeName(list_name);
         await redis().sadd(namesKey(userId), name);
+        invalidateListCache(userId, name);
         return { ok: true as const, list: name, note: `Created empty list "${name}".` };
       },
     }),
@@ -54,6 +72,7 @@ export function buildListTools(userId: string) {
         }
         await redis().rpush(k, item.trim());
         await redis().sadd(namesKey(userId), name);
+        invalidateListCache(userId, name);
         const total = current + 1;
         return { ok: true as const, list: name, item: item.trim(), total };
       },
@@ -76,6 +95,7 @@ export function buildListTools(userId: string) {
         if (removed === 0) {
           return { ok: false as const, error: `"${item}" not found in "${name}".` };
         }
+        invalidateListCache(userId, name);
         return { ok: true as const, list: name, removed: match };
       },
     }),
@@ -101,6 +121,7 @@ export function buildListTools(userId: string) {
       execute: async ({ list_name }) => {
         const name = normalizeName(list_name);
         await redis().del(listKey(userId, name));
+        invalidateListCache(userId, name);
         return { ok: true as const, list: name, cleared: true };
       },
     }),
@@ -109,15 +130,22 @@ export function buildListTools(userId: string) {
       description: "Show all of the user's named lists and how many items each has.",
       inputSchema: z.object({}),
       execute: async () => {
+        const cached = listNamesCache.get(userId);
+        if (cached) return { ok: true as const, lists: cached };
         const names = await redis().smembers(namesKey(userId));
-        if (!names.length) return { ok: true as const, lists: [] };
+        if (!names.length) {
+          listNamesCache.set(userId, []);
+          return { ok: true as const, lists: [] };
+        }
         const counts = await Promise.all(
           names.map(async (name) => ({
             name,
             count: await redis().llen(listKey(userId, name)),
           })),
         );
-        return { ok: true as const, lists: counts.sort((a, b) => a.name.localeCompare(b.name)) };
+        const result = counts.sort((a, b) => a.name.localeCompare(b.name));
+        listNamesCache.set(userId, result);
+        return { ok: true as const, lists: result };
       },
     }),
 
@@ -144,6 +172,7 @@ export function buildListTools(userId: string) {
         tx.srem(namesKey(userId), oldN);
         tx.sadd(namesKey(userId), newN);
         await tx.exec();
+        invalidateListCache(userId);
         return { ok: true as const, oldName: oldN, newName: newN, itemsMoved: items.length };
       },
     }),
@@ -157,6 +186,7 @@ export function buildListTools(userId: string) {
         const name = normalizeName(list_name);
         await redis().del(listKey(userId, name));
         await redis().srem(namesKey(userId), name);
+        invalidateListCache(userId, name);
         return { ok: true as const, list: name, deleted: true };
       },
     }),

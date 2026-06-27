@@ -59,7 +59,7 @@ export function taskListFlex(
   if (rows.length === 0) {
     return {
       type: "flex",
-      altText: "No tasks. 🎉",
+      altText: "No tasks — none left. 🎉",
       contents: {
         type: "bubble",
         size: "mega",

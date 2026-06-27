@@ -111,6 +111,19 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
     ],
   },
   {
+    intent: "recent",
+    patterns: [
+      // Time markers
+      /\b(today|tonight|this\s+week|this\s+month|last\s+night|right\s+now|currently|just\s+(now|announced|released|dropped)|as\s+of\s+now)\b/i,
+      // Live / current data
+      /\b(latest|current|recent|breaking|live|real[- ]?time|upcoming|ongoing|now)\b/i,
+      // Specific current-event topics
+      /\b(score|winner|election|hurricane|earthquake|tsunami|flight\s+status|airport\s+(open|closed)|stock\s+market|market\s+today)\b/i,
+      // Years from 2024 onward
+      /\b(202[4-9]|20[3-9]\d)\b/,
+    ],
+  },
+  {
     intent: "receipts",
     patterns: [
       /\b(scan\s+(a\s+|this\s+)?receipt|list\s+(my\s+)?receipts?|my\s+receipts?|track\s+(my\s+)?expenses?)\b/i,

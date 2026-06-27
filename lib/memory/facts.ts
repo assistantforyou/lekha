@@ -45,7 +45,7 @@ export type UserFacts = {
   updatedAt: number;
 };
 
-const MAX_FACTS = 200;
+const MAX_FACTS = 500;
 const MAX_CONTENT = 1000;
 const PROMPT_FACTS_MAX = 30; // Most recent facts only; keeps prompt size bounded.
 const FACTS_CACHE_TTL_MS = 30_000;
@@ -63,10 +63,13 @@ function isCategory(s: unknown): s is FactCategory {
   return typeof s === "string" && (FACT_CATEGORIES as string[]).includes(s);
 }
 
-export async function loadFacts(userId: string): Promise<UserFacts> {
+export async function loadFacts(userId: string, limit?: number): Promise<UserFacts> {
   const cached = factsCache.get(userId);
   if (cached && Date.now() - cached.ts < FACTS_CACHE_TTL_MS) {
-    return cached.facts;
+    const facts = cached.facts;
+    if (limit === undefined || facts.facts.length <= limit) return facts;
+    // Cached facts exceed requested limit — slice without mutating cache.
+    return { facts: displayOrder(facts.facts).slice(0, limit), updatedAt: facts.updatedAt };
   }
   const v = await redis().get<UserFacts>(key(userId));
   const facts = v && Array.isArray(v.facts) ? v : { facts: [], updatedAt: 0 };
@@ -75,6 +78,9 @@ export async function loadFacts(userId: string): Promise<UserFacts> {
     await redis().del(legacyKey(userId)).catch(() => {});
   }
   factsCache.set(userId, { facts, ts: Date.now() });
+  if (limit !== undefined && facts.facts.length > limit) {
+    return { facts: displayOrder(facts.facts).slice(0, limit), updatedAt: facts.updatedAt };
+  }
   return facts;
 }
 

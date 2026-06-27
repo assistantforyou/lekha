@@ -1,6 +1,8 @@
 import { redis } from "./redis";
+import { createTtlCache } from "./cache";
 
 const TTL_SEC = 30 * 60;
+const recentMediaCache = createTtlCache<RecentMedia[]>(5_000);
 const MAX_ITEMS = 10;
 
 export type MediaKind = "image" | "video" | "audio" | "file";
@@ -28,12 +30,17 @@ export async function appendRecentMedia(userId: string, m: RecentMedia): Promise
   tx.ltrim(k, -MAX_ITEMS, -1);
   tx.expire(k, TTL_SEC);
   await tx.exec();
+  recentMediaCache.invalidate(userId);
 }
 
 /** Return all staged media in the order the user sent them (oldest → newest). */
 export async function listRecentMedia(userId: string): Promise<RecentMedia[]> {
+  const cached = recentMediaCache.get(userId);
+  if (cached) return cached;
   const raw = await redis().lrange<string | RecentMedia>(key(userId), 0, -1);
-  return raw.map((r) => (typeof r === "string" ? (JSON.parse(r) as RecentMedia) : r));
+  const result = raw.map((r) => (typeof r === "string" ? (JSON.parse(r) as RecentMedia) : r));
+  recentMediaCache.set(userId, result);
+  return result;
 }
 
 /** Refresh TTL so an active document conversation keeps the media staged. */
@@ -43,4 +50,5 @@ export async function touchRecentMedia(userId: string): Promise<void> {
 
 export async function clearRecentMedia(userId: string): Promise<void> {
   await redis().del(key(userId));
+  recentMediaCache.invalidate(userId);
 }

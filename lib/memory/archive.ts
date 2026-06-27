@@ -3,6 +3,14 @@ import { env, hasUpstashVector } from "@/lib/env";
 import { Index } from "@upstash/vector";
 import { embed } from "ai";
 import { embeddingModel } from "@/lib/llm/provider";
+import { createHash } from "crypto";
+
+const EMBED_CACHE_TTL_SEC = 24 * 60 * 60;
+const SEARCH_CACHE_TTL_SEC = 10 * 60;
+
+function sha1(s: string): string {
+  return createHash("sha1").update(s).digest("hex").slice(0, 16);
+}
 
 export type ArchivedSummary = {
   id: string;
@@ -30,9 +38,15 @@ function vector(): Index | null {
 }
 
 async function embedText(text: string): Promise<number[] | null> {
+  const cacheKey = `archive:embed:${sha1(text)}`;
+  const cached = await redis().get<number[]>(cacheKey);
+  if (cached) return cached;
+
   try {
     const { embedding } = await embed({ model: embeddingModel(), value: text });
-    return embedding as number[];
+    const v = embedding as number[];
+    await redis().set(cacheKey, v, { ex: EMBED_CACHE_TTL_SEC }).catch(() => {});
+    return v;
   } catch (err) {
     console.warn("[archive] embed failed", err);
     return null;
@@ -84,6 +98,11 @@ export async function listArchive(userId: string): Promise<ArchivedSummary[]> {
  * - Otherwise: substring match against all summaries (loads from Redis).
  */
 export async function searchArchive(userId: string, query: string): Promise<ArchivedSummary[]> {
+  const normalized = query.trim().toLowerCase();
+  const cacheKey = `archive:search:${userId}:${sha1(normalized)}`;
+  const cached = await redis().get<ArchivedSummary[]>(cacheKey);
+  if (cached) return cached;
+
   const vec = vector();
   if (vec) {
     // Validate userId format before interpolating into the filter string.
@@ -120,14 +139,19 @@ export async function searchArchive(userId: string, query: string): Promise<Arch
               });
             }
           }
-          if (out.length) return out;
+          if (out.length) {
+            await redis().set(cacheKey, out, { ex: SEARCH_CACHE_TTL_SEC }).catch(() => {});
+            return out;
+          }
         }
       } catch (err) {
         console.warn("[archive] vector query failed; falling back to substring", err);
       }
     }
   }
-  return searchArchiveFallback(userId, query);
+  const fallback = await searchArchiveFallback(userId, query);
+  await redis().set(cacheKey, fallback, { ex: SEARCH_CACHE_TTL_SEC }).catch(() => {});
+  return fallback;
 }
 
 async function searchArchiveFallback(userId: string, query: string): Promise<ArchivedSummary[]> {
