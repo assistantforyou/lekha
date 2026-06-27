@@ -22,7 +22,7 @@ type Shortcut = {
 };
 
 const helpTrigger = /^\/?(help|what can you do|capabilities)$/i;
-const exampleAnswerTrigger = /^(Remember that I prefer espresso|Add a task to call the plumber|Remind me in 5 minutes to stretch|Add milk to my grocery list|Set my timezone to Asia\/Bangkok)$/i;
+const exampleAnswerTrigger = /^(What do you know about me\?|List my open tasks|What's the weather in Bangkok\?|Search the web for Thai recipes|How do I scan a receipt\?)$/i;
 const briefingTrigger =
   /\b(morning briefing|daily briefing|daily summary|morning brief)\b|^(give me|show me|what'?s|send me|can you give me|can you show me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary|brief)[\s?!.]*$/i;
 const eveningTrigger =

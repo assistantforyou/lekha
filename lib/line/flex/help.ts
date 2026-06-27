@@ -2,7 +2,6 @@ import type { FlexMessage } from "@/lib/line/client";
 
 export type HelpExample = {
   id: string;
-  category: string;
   question: string;
   answer: string;
 };
@@ -10,33 +9,28 @@ export type HelpExample = {
 export const HELP_EXAMPLES: HelpExample[] = [
   {
     id: "memory",
-    category: "Memory",
-    question: "Remember that I prefer espresso",
-    answer: "Got it — I'll remember you prefer espresso. ☕",
+    question: "What do you know about me?",
+    answer: "I remember a few things about you:\n• You prefer espresso over filter coffee ☕\n• Your timezone is Asia/Bangkok 🌏\n• You like morning briefings at 7 AM ☀️\n\nTell me more anytime with \"remember that I...\".",
   },
   {
-    id: "task",
-    category: "Tasks",
-    question: "Add a task to call the plumber",
-    answer: "Added to your tasks: call the plumber. ✅",
+    id: "tasks",
+    question: "List my open tasks",
+    answer: "Here are your open tasks:\n1. Review Q3 report\n2. Call Alice about the contract\n\nSay \"mark task #1 done\" when you finish one. ✅",
   },
   {
-    id: "reminder",
-    category: "Reminders",
-    question: "Remind me in 5 minutes to stretch",
-    answer: "⏰ I'll remind you to stretch in 5 minutes.",
+    id: "weather",
+    question: "What's the weather in Bangkok?",
+    answer: "In Bangkok right now it's 32°C and partly cloudy. 🌤️\n\nI can check weather anywhere — just ask \"what's the weather in Tokyo?\"",
   },
   {
-    id: "list",
-    category: "Lists",
-    question: "Add milk to my grocery list",
-    answer: "Added milk to your grocery list. 🥛",
+    id: "search",
+    question: "Search the web for Thai recipes",
+    answer: "Here are a few popular Thai recipes:\n• Pad Thai\n• Tom Yum Goong\n• Green Curry\n\nWant me to dig deeper into one?",
   },
   {
-    id: "settings",
-    category: "Settings",
-    question: "Set my timezone to Asia/Bangkok",
-    answer: "Timezone set to Asia/Bangkok. 🌏",
+    id: "receipt",
+    question: "How do I scan a receipt?",
+    answer: "Send me a photo of the receipt and say \"scan this\". I'll save the merchant, amount, date, and items so you can search them later. 🧾",
   },
 ];
 
@@ -80,6 +74,39 @@ function categoryRow(cat: (typeof CATEGORIES)[number]): object {
   };
 }
 
+function exampleRow(ex: HelpExample): object {
+  return {
+    type: "box",
+    layout: "horizontal",
+    spacing: "md",
+    margin: "md",
+    alignItems: "center",
+    contents: [
+      {
+        type: "text",
+        text: ex.question,
+        flex: 1,
+        size: "sm",
+        color: "#333333",
+        wrap: true,
+        align: "start",
+      },
+      {
+        type: "button",
+        style: "primary",
+        color: "#00B894",
+        height: "sm",
+        flex: 0,
+        action: {
+          type: "message",
+          label: "Try it",
+          text: ex.question,
+        },
+      },
+    ],
+  };
+}
+
 export function helpFlex(): FlexMessage {
   const bodyContents: object[] = [
     {
@@ -99,7 +126,7 @@ export function helpFlex(): FlexMessage {
   bodyContents.push({ type: "separator", margin: "xl", color: "#e0e0e0" });
   bodyContents.push({
     type: "text",
-    text: "Tap an example to see how I reply:",
+    text: "Tap a green button to see how I reply:",
     weight: "bold",
     size: "sm",
     color: "#333333",
@@ -107,20 +134,13 @@ export function helpFlex(): FlexMessage {
     margin: "md",
   });
 
-  const exampleButtons = HELP_EXAMPLES.map((ex) => ({
-    type: "button",
-    style: "secondary",
-    height: "sm",
-    action: {
-      type: "message",
-      label: ex.question,
-      text: ex.question,
-    },
-  }));
+  for (const ex of HELP_EXAMPLES) {
+    bodyContents.push(exampleRow(ex));
+  }
 
   return {
     type: "flex",
-    altText: "Lekha help: memory, tasks, reminders, lists, email, calendar, drive, media, receipts, search, settings.",
+    altText: "Lekha help: memory, tasks, reminders, lists, email, calendar, drive, media, receipts, search, settings. Tap an example to see a reply.",
     contents: {
       type: "bubble",
       size: "mega",
@@ -129,9 +149,7 @@ export function helpFlex(): FlexMessage {
         layout: "vertical",
         backgroundColor: "#5B6FF0",
         paddingAll: "14px",
-        contents: [
-          { type: "text", text: "🤖  Lekha Help", color: "#FFFFFF", weight: "bold", size: "lg" },
-        ],
+        contents: [{ type: "text", text: "🤖  Lekha Help", color: "#FFFFFF", weight: "bold", size: "lg" }],
       },
       body: {
         type: "box",
@@ -139,12 +157,6 @@ export function helpFlex(): FlexMessage {
         spacing: "none",
         paddingAll: "16px",
         contents: bodyContents,
-      },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        spacing: "sm",
-        contents: exampleButtons.slice(0, 5),
       },
     },
   };
