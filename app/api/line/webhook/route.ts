@@ -42,13 +42,34 @@ export async function POST(req: NextRequest) {
     return new NextResponse("bad payload", { status: 400 });
   }
 
+  const events = payload.events;
+  const gate = buildGate();
+
+  // Handle lightweight postback taps synchronously so the replyToken is used
+  // immediately and the UI feels instant. Messages/follows still run after().
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    if (!event || event.type !== "postback") continue;
+    try {
+      const replied = await handleEvent(event, gate);
+      if (!replied) {
+        console.warn("[webhook] postback produced no reply", { userId: event.source?.userId });
+      }
+    } catch (err) {
+      console.error("[webhook] postback handler crashed", err);
+      const uid = event.source?.userId;
+      const rt = "replyToken" in event ? event.replyToken : undefined;
+      if (uid && rt) {
+        replyOrPush(uid, rt, [textMsg("Something went wrong — try again in a moment.")]).catch(() => {});
+      }
+    }
+  }
+
   // Respond 200 immediately; do all real work after the response.
   after(async () => {
-    const events = payload.events;
-    const gate = buildGate();
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
-      if (!event) continue;
+      if (!event || event.type === "postback") continue;
       // Media immediately followed by text in the same batch → stage only;
       // the text handler runs the agent with the staged media in context.
       const nextEvent = events[i + 1];

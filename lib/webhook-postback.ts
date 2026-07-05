@@ -285,6 +285,7 @@ export async function handlePostback(event: LineEvent): Promise<void> {
   const data = event.postback.data ?? "";
   const { verb, args } = parsePostbackData(data);
 
+  console.warn("[postback] routing", { userId, verb, args: args.join(":"), hasReplyToken: !!event.replyToken });
   const handler = HANDLERS[verb];
   if (handler) {
     await handler({ userId, replyToken: event.replyToken, args });

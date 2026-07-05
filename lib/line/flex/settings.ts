@@ -45,7 +45,7 @@ function postbackButton(label: string, data: string, style: "primary" | "seconda
     style,
     color: color ?? (style === "primary" ? ACCENT : undefined),
     height: "sm",
-    action: { type: "postback", label, data, displayText: label },
+    action: { type: "postback", label, data },
   };
 }
 

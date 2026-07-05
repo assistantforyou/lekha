@@ -23,6 +23,7 @@ const VALID_SECTIONS = new Set([
 type Section = "main" | "briefing" | "tools" | "persona" | "memory" | "facts" | "locale";
 
 async function sendMenu(userId: string, replyToken: string, section: Section): Promise<void> {
+  console.warn("[settings] sendMenu", { userId, section, hasReplyToken: !!replyToken });
   const settings = await getSettings(userId);
   let messages = [settingsMainFlex(settings)];
   if (section === "briefing") messages = [settingsBriefingFlex(settings)];
@@ -34,7 +35,12 @@ async function sendMenu(userId: string, replyToken: string, section: Section): P
     messages = [settingsFactsFlex(facts.facts)];
   }
   if (section === "locale") messages = [settingsLocaleFlex(settings)];
-  await replyOrPush(userId, replyToken, messages);
+  try {
+    await replyOrPush(userId, replyToken, messages);
+  } catch (err) {
+    console.error("[settings] sendMenu replyOrPush failed", { userId, section, replyToken, error: err });
+    throw err;
+  }
 }
 
 function deriveDisabledCategories(tools: Record<string, boolean>): string[] {
@@ -177,6 +183,7 @@ async function handleFactsAction(userId: string, replyToken: string, args: strin
 }
 
 export async function handleSettingsPostback(userId: string, replyToken: string, args: string[]): Promise<void> {
+  console.warn("[settings] postback", { userId, args: args.join(":"), hasReplyToken: !!replyToken });
   if (args.length === 0) {
     await sendMenu(userId, replyToken, "main");
     return;
