@@ -1,4 +1,4 @@
-import { replyOrPush, text as textMsg, showLoading } from "@/lib/line/client";
+import { replyOrPush, text as textMsg, showLoading, withQuickReplies } from "@/lib/line/client";
 import { getSettings, updateSettings, type UserSettings } from "@/lib/memory/settings";
 import { loadFacts, appendFact, saveFacts } from "@/lib/memory/facts";
 import { redis } from "@/lib/memory/redis";
@@ -224,15 +224,25 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
   if (first === "prompt" && args[1]) {
     const key = args[1];
     await setPendingPrompt(userId, key);
-    const prompts: Record<string, string> = {
+    const textPrompts: Record<string, string> = {
       timezone: "What timezone should I use? (e.g. Asia/Bangkok)",
       location: "What location should I use? (e.g. Bangkok, Thailand)",
-      morning: "What time should I send your morning briefing? (e.g. 07:00)",
-      evening: "What time should I send your evening summary? (e.g. 21:00)",
-      checkin: "What time should I check in on your tasks? (e.g. 20:30)",
       fact: "What fact should I remember?",
     };
-    await replyOrPush(userId, replyToken, [textMsg(prompts[key] ?? "What value?")]);
+    const timeSlots: Record<string, string[]> = {
+      morning: ["05:00", "05:30", "06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00"],
+      evening: ["17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00"],
+      checkin: ["15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00"],
+    };
+    if (timeSlots[key]) {
+      await replyOrPush(
+        userId,
+        replyToken,
+        [withQuickReplies("Pick a time, or type your own (e.g. 21:30).", timeSlots[key]!.map((t) => ({ label: t, text: t })))],
+      );
+    } else {
+      await replyOrPush(userId, replyToken, [textMsg(textPrompts[key] ?? "What value?")]);
+    }
     return;
   }
 

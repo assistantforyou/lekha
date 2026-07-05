@@ -196,8 +196,13 @@ export function settingsMainFlex(settings: UserSettings): FlexMessage {
 }
 
 function timePresetRow(label: string, current: string | null, keyPrefix: string): object {
-  const presets = ["06:00", "07:00", "08:00", "09:00"];
-  const options = presets.map((t) => ({
+  const defaultPresets = ["06:00", "07:00", "08:00", "09:00"];
+  const presets: Record<string, string[]> = {
+    morning: defaultPresets,
+    evening: ["18:00", "19:00", "20:00", "21:00"],
+    checkin: ["16:00", "17:00", "18:00", "19:00"],
+  };
+  const options = (presets[keyPrefix] ?? defaultPresets).map((t) => ({
     label: t,
     data: `settings:briefing:set:${keyPrefix}Time:${t}`,
     on: current === t,
@@ -270,6 +275,7 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
         separator(),
         wrap(
           { type: "text", text: "Channels", weight: "bold", size: "sm", color: TEXT },
+          hint("LINE chat sends the briefing here. Email sends it to your connected Gmail address."),
           toggleRow("LINE chat", settings.briefingChannels.line, "settings:briefing:set:briefingChannel:line:true", "settings:briefing:set:briefingChannel:line:false"),
           toggleRow("Email", settings.briefingChannels.email, "settings:briefing:set:briefingChannel:email:true", "settings:briefing:set:briefingChannel:email:false"),
           toggleRow("Push alert", settings.briefingChannels.push, "settings:briefing:set:briefingChannel:push:true", "settings:briefing:set:briefingChannel:push:false"),
@@ -338,17 +344,25 @@ export function settingsPersonaFlex(settings: UserSettings): FlexMessage {
       header: header("🎭 Persona"),
       body: body([
         hint("How Lekha sounds when she replies to you."),
-        chipRow("Tone", [
-          { label: "Warm", data: "settings:persona:set:personaTone:Warm", on: settings.personaTone === "Warm" },
-          { label: "Professional", data: "settings:persona:set:personaTone:Professional", on: settings.personaTone === "Professional" },
-          { label: "Playful", data: "settings:persona:set:personaTone:Playful", on: settings.personaTone === "Playful" },
-        ]),
-        chipRow("Address you as", [
-          { label: "First name", data: "settings:persona:set:personaAddressing:First name", on: settings.personaAddressing === "First name" },
-          { label: "Khun", data: "settings:persona:set:personaAddressing:Khun", on: settings.personaAddressing === "Khun" },
-          { label: "Sir / Madam", data: "settings:persona:set:personaAddressing:Sir / Madam", on: settings.personaAddressing === "Sir / Madam" },
-          { label: "No address", data: "settings:persona:set:personaAddressing:No address", on: settings.personaAddressing === "No address" },
-        ]),
+        chipRow(
+          "Tone",
+          [
+            { label: "Warm", data: "settings:persona:set:personaTone:Warm", on: settings.personaTone === "Warm" },
+            { label: "Professional", data: "settings:persona:set:personaTone:Professional", on: settings.personaTone === "Professional" },
+            { label: "Playful", data: "settings:persona:set:personaTone:Playful", on: settings.personaTone === "Playful" },
+          ],
+          2,
+        ),
+        chipRow(
+          "Address you as",
+          [
+            { label: "First name", data: "settings:persona:set:personaAddressing:First name", on: settings.personaAddressing === "First name" },
+            { label: "Khun", data: "settings:persona:set:personaAddressing:Khun", on: settings.personaAddressing === "Khun" },
+            { label: "Sir / Madam", data: "settings:persona:set:personaAddressing:Sir / Madam", on: settings.personaAddressing === "Sir / Madam" },
+            { label: "No address", data: "settings:persona:set:personaAddressing:No address", on: settings.personaAddressing === "No address" },
+          ],
+          2,
+        ),
         chipRow("Primary language", [
           { label: "English", data: "settings:persona:set:personaPrimaryLang:English", on: settings.personaPrimaryLang === "English" },
           { label: "Thai", data: "settings:persona:set:personaPrimaryLang:Thai", on: settings.personaPrimaryLang === "Thai" },
@@ -410,8 +424,7 @@ export function settingsMemoryFlex(settings: UserSettings): FlexMessage {
 }
 
 export function settingsFactsFlex(facts: Fact[]): FlexMessage {
-  const PAGE_SIZE = 20;
-  const rows = facts.slice(0, PAGE_SIZE).map((f) => ({
+  const rows = facts.map((f) => ({
     type: "box",
     layout: "horizontal",
     margin: "md",
@@ -423,7 +436,7 @@ export function settingsFactsFlex(facts: Fact[]): FlexMessage {
         layout: "vertical",
         flex: 1,
         contents: [
-          { type: "text", text: `[${f.category}] ${f.content.slice(0, 80)}${f.content.length > 80 ? "…" : ""}`, size: "xs", color: TEXT, wrap: true },
+          { type: "text", text: `[${f.category}] ${f.content.slice(0, 120)}${f.content.length > 120 ? "…" : ""}`, size: "xs", color: TEXT, wrap: true },
         ],
       },
       postbackButton("Delete", `settings:facts:del:${f.id}`, "secondary"),
@@ -438,7 +451,7 @@ export function settingsFactsFlex(facts: Fact[]): FlexMessage {
       size: "mega",
       header: header("📝 Facts"),
       body: body([
-        hint(`Showing ${rows.length} of ${facts.length} fact${facts.length === 1 ? "" : "s"}. Deleting is immediate.`),
+        hint(`Showing all ${facts.length} fact${facts.length === 1 ? "" : "s"}. Deleting is immediate.`),
         ...(rows.length ? rows : [{ type: "text", text: "No facts yet. Tap Add fact to create one.", size: "sm", color: "#777777", wrap: true }]),
         separator(),
         {
