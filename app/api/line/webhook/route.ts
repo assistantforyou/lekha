@@ -22,6 +22,7 @@ import { maybeExtractFacts } from "@/lib/maybe-extract";
 import { handlePostback } from "@/lib/webhook-postback";
 import { span } from "@/lib/timing";
 import { markUserActive } from "@/lib/sweep";
+import { isOnboarded, startOnboarding } from "@/lib/onboarding";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -122,12 +123,16 @@ async function handleEvent(
     const endProfile = span("webhook:getOrCreateProfile", traceId);
     const profile = await getOrCreateProfile(userId);
     endProfile();
-    const name = profile.displayName && profile.displayName !== "friend" ? ` ${profile.displayName}` : "";
-    await replyOrPush(userId, event.replyToken, [
-      textMsg(
-        `Hi${name}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
-      ),
-    ]);
+    const name = profile.displayName && profile.displayName !== "friend" ? profile.displayName : "";
+    if (!(await isOnboarded(userId))) {
+      await startOnboarding(userId, event.replyToken, name);
+    } else {
+      await replyOrPush(userId, event.replyToken, [
+        textMsg(
+          `Hi${name ? ` ${name}` : ""}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
+        ),
+      ]);
+    }
     endEvent({ type: "follow" });
     return true;
   }

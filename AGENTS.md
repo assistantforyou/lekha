@@ -285,6 +285,13 @@ Idempotency relies on the existing `seen:{webhookEventId}` dedup.
 2. Add a case in `executeOne` inside `lib/pending-runner.ts` (and `logSent` for the audit trail).
 3. Render it in `lib/llm/render-drafts.ts`.
 
+## LINE settings menu & onboarding
+
+- **Settings command:** Typing `=settings=` in LINE opens a rich, LLM-free Flex menu. Users can toggle briefings, tools, persona, memory, facts, language, location, and timezone via `postback` buttons. The menu is built in `lib/line/flex/settings.ts` and handled in `lib/settings-menu.ts`.
+- **Typed settings commands:** Users can also type `=set <key> <value>` (e.g. `=set timezone Asia/Tokyo`, `=set language th`, `=set morning off`) or `=remember <fact>` to edit settings without invoking the LLM.
+- **Postback verbs:** `settings:main`, `settings:section:<name>`, `settings:set:<key>:<value>`, `settings:toggle:<target>:off`, `settings:facts:del:<id>`.
+- **Onboarding:** New users (follow event or admin approval) receive a 4-step onboarding wizard if they haven't completed it. Postback verb is `onboard:<step>:<choice>`. Onboarding state is stored at `user:{userId}:onboarded`.
+
 ## Swapping the LLM
 
 `lib/llm/provider.ts` only.

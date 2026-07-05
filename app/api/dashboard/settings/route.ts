@@ -45,6 +45,12 @@ export async function POST(req: NextRequest) {
     patch.eveningSummaryTime = raw.eveningTime;
   }
 
+  // Derive taskCheckInEnabled + taskCheckInTime from dashboard's checkinOn + checkinTime
+  if (typeof raw.checkinOn === "boolean" && typeof raw.checkinTime === "string") {
+    patch.taskCheckInEnabled = raw.checkinOn;
+    patch.taskCheckInTime = raw.checkinOn ? raw.checkinTime : null;
+  }
+
   // Briefing topics
   if (raw.topics && typeof raw.topics === "object") {
     patch.briefingTopics = raw.topics as Record<string, boolean>;

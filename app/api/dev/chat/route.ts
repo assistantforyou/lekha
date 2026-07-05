@@ -21,6 +21,7 @@ import { span } from "@/lib/timing";
 import { classify, clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
 import { registerUser } from "@/lib/memory/user-registry";
+import { dispatchShortcut } from "@/lib/shortcuts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -249,6 +250,14 @@ export async function POST(req: NextRequest) {
   // ── TEXT PATH ───────────────────────────────────────────────────────────
   // Check pending actions first (same logic as production webhook).
   const pending = await getPending(userId);
+
+  // Mirror production shortcut handling (help, morning briefing, settings, etc.)
+  // before falling through to the agent. replyToken is empty so shortcuts push.
+  if (await dispatchShortcut({ userId, replyToken: "", userText: text })) {
+    endRequest({ shortcut: true });
+    return NextResponse.json({ reply: "shortcut handled", hints: { confirmDraft: false } });
+  }
+
   if (pending.length > 0) {
     const decision = classify(text);
     if (decision === "yes") {

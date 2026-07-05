@@ -8,6 +8,7 @@ import { getSettings } from "@/lib/memory/settings";
 import { appendTurn } from "@/lib/memory/history";
 import { briefingFlex, newsFlex, gmailResultsFlex, taskListFlex } from "@/lib/line/flex";
 import { listTasks } from "@/lib/memory/tasks";
+import { handleSettingsCommand } from "@/lib/settings-menu";
 
 type Ctx = {
   userId: string;
@@ -21,6 +22,7 @@ type Shortcut = {
   run: (ctx: Ctx) => Promise<void>;
 };
 
+const settingsTrigger = /^=settings\b|^=set\s|^=remember\s/i;
 const helpTrigger = /^\/?(help|what can you do|capabilities)$/i;
 const briefingTrigger =
   /\b(morning briefing|daily briefing|daily summary|morning brief)\b|^(give me|show me|what'?s|send me|can you give me|can you show me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary|brief)[\s?!.]*$/i;
@@ -43,6 +45,13 @@ export function isTaskQuery(t: string): boolean {
 }
 
 const SHORTCUTS: Shortcut[] = [
+  {
+    name: "settings",
+    match: (t) => settingsTrigger.test(t),
+    async run({ userId, replyToken, userText }) {
+      await handleSettingsCommand(userId, replyToken, userText);
+    },
+  },
   {
     name: "help",
     match: (t) => helpTrigger.test(t),

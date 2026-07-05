@@ -120,6 +120,8 @@ function makeDefaultState(displayName: string, userId?: string) {
     morningTime: "07:00",
     eveningOn: true,
     eveningTime: "21:00",
+    checkinOn: true,
+    checkinTime: "20:30",
     /* Topics */
     topics: {
       stocks: true, wellness: true, politics: false, crime: false,
@@ -279,6 +281,41 @@ const Topbar = ({ active }: { active: string }) => {
   );
 };
 
+/* ============== GETTING STARTED ============== */
+const GettingStartedCard = ({ setActive }: { setActive: (id: string) => void }) => {
+  const [show, setShow] = useState(() =>
+    typeof window !== "undefined" ? localStorage.getItem("lekha_dismissed_tour") !== "1" : true,
+  );
+  if (!show) return null;
+  const steps = [
+    { id: "briefing", label: "Pick your briefings", ico: "📰" },
+    { id: "tools", label: "Choose tools", ico: "🛠" },
+    { id: "memory", label: "Set your persona", ico: "🎭" },
+    { id: "connections", label: "Connect Google", ico: "🔗" },
+  ];
+  return (
+    <div className="card" style={{ background: "linear-gradient(90deg, rgba(91,111,240,0.12) 0%, rgba(91,111,240,0.04) 100%)", borderColor: "rgba(91,111,240,0.25)" }}>
+      <div className="card-hdr">
+        <div className="card-hdr-icon"><I.spark/></div>
+        <div>
+          <h3>Getting started</h3>
+          <p className="sub">Four quick steps to make Lekha yours.</p>
+        </div>
+        <button className="btn-mini btn-ghost" onClick={() => { setShow(false); localStorage.setItem("lekha_dismissed_tour", "1"); }}>Dismiss</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginTop: 8 }}>
+        {steps.map((s, i) => (
+          <button key={s.id} className="card" style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", color: "inherit", padding: 12 }}
+            onClick={() => setActive(s.id)}>
+            <div style={{ fontSize: 20, marginBottom: 6 }}>{s.ico}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{i + 1}. {s.label}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 /* ============== OVERVIEW ============== */
 const OverviewView = ({ state, setActive }: { state: State; setActive: (id: string) => void }) => {
   const topicsOn = Object.values(state.topics).filter(Boolean).length;
@@ -305,11 +342,13 @@ const OverviewView = ({ state, setActive }: { state: State; setActive: (id: stri
           <div className="lbl">Memory<br/>Entries</div>
         </div>
         <div className="stat">
-          <div className="v">{state.morningOn && state.eveningOn ? 2 : state.morningOn || state.eveningOn ? 1 : 0}</div>
+          <div className="v">{[state.morningOn, state.eveningOn, state.checkinOn].filter(Boolean).length}</div>
           <div className="lbl">Daily Briefs<br/>Scheduled</div>
-          <div className="trend">{state.morningOn ? state.morningTime : "—"} · {state.eveningOn ? state.eveningTime : "—"}</div>
+          <div className="trend">{state.morningOn ? state.morningTime : "—"} · {state.eveningOn ? state.eveningTime : "—"} · {state.checkinOn ? state.checkinTime : "—"}</div>
         </div>
       </div>
+
+      <GettingStartedCard setActive={setActive} />
 
       <div className="grid-2">
         <button className="card" style={{textAlign:"left", cursor:"pointer", fontFamily:"inherit", color:"inherit"}}
@@ -458,6 +497,15 @@ const BriefingView = ({ state, set }: { state: State; set: (patch: Partial<State
             <input type="time" className="sched-time-input" value={state.eveningTime}
               onChange={(e) => set({ eveningTime: e.target.value })}/>
             <div className="sched-meta">{state.eveningOn ? `Sent ${state.eveningTime} · Asia/Bangkok` : "Off — turn on to receive"}</div>
+          </div>
+          <div className={`sched-slot ${state.checkinOn ? "on" : ""}`}>
+            <div className="sched-slot-hdr">
+              <div className="sched-slot-name"><span className="ico">✅</span> Task check-in</div>
+              <Toggle on={state.checkinOn} onChange={v => set({ checkinOn: v })}/>
+            </div>
+            <input type="time" className="sched-time-input" value={state.checkinTime}
+              onChange={(e) => set({ checkinTime: e.target.value })}/>
+            <div className="sched-meta">{state.checkinOn ? `Sent ${state.checkinTime} · Asia/Bangkok` : "Off — turn on to receive"}</div>
           </div>
         </div>
 
@@ -1214,6 +1262,8 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
             morningTime: s.morningBriefingTime ?? "07:00",
             eveningOn: s.eveningSummaryEnabled,
             eveningTime: s.eveningSummaryTime ?? "21:00",
+            checkinOn: s.taskCheckInEnabled,
+            checkinTime: s.taskCheckInTime ?? "20:30",
             topics: s.briefingTopics ?? prev.topics,
             briefLength: s.briefingLength ?? prev.briefLength,
             briefLang: s.briefingLanguage ?? prev.briefLang,
@@ -1267,6 +1317,8 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
           morningTime: next.morningTime,
           eveningOn: next.eveningOn,
           eveningTime: next.eveningTime,
+          checkinOn: next.checkinOn,
+          checkinTime: next.checkinTime,
           topics: next.topics,
           briefLength: next.briefLength,
           briefLang: next.briefLang,

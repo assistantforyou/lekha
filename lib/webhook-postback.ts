@@ -1,5 +1,7 @@
 import { replyOrPush, text as textMsg, getProfile } from "@/lib/line/client";
 import { parsePostbackData, curatedDemoAnswer } from "@/lib/line/flex";
+import { handleSettingsPostback } from "@/lib/settings-menu";
+import { handleOnboardingPostback, isOnboarded, startOnboarding } from "@/lib/onboarding";
 import { loadFacts, displayOrder } from "@/lib/memory/facts";
 import { clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
@@ -198,11 +200,15 @@ async function handlePending({ userId, replyToken, args }: Ctx): Promise<void> {
     await approvePending(targetId);
     const profile = await getProfile(targetId).catch(() => null);
     const name = profile?.displayName ?? "";
-    await replyOrPush(targetId, "", [
-      textMsg(
-        `Hi${name ? ` ${name}` : ""}! You're all set — welcome to Lekha 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
-      ),
-    ]);
+    if (!(await isOnboarded(targetId))) {
+      await startOnboarding(targetId, "", name);
+    } else {
+      await replyOrPush(targetId, "", [
+        textMsg(
+          `Hi${name ? ` ${name}` : ""}! You're all set — welcome to Lekha 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
+        ),
+      ]);
+    }
     await reply(`✅ Approved${name ? ` ${name}` : ""}.`);
     return;
   }
@@ -242,8 +248,18 @@ async function handleFallback({ userId, replyToken }: Ctx): Promise<void> {
   await mkReply(userId, replyToken)("Type what you want and I'll do it (e.g. \"share that file\", \"email that contact\").");
 }
 
+async function handleSettings({ userId, replyToken, args }: Ctx): Promise<void> {
+  await handleSettingsPostback(userId, replyToken, args);
+}
+
+async function handleOnboard({ userId, replyToken, args }: Ctx): Promise<void> {
+  await handleOnboardingPostback(userId, replyToken, args);
+}
+
 const HANDLERS: Record<string, ((ctx: Ctx) => Promise<void>) | undefined> = {
   confirm: handleConfirm,
+  settings: handleSettings,
+  onboard: handleOnboard,
   task: handleTask,
   checkin: handleCheckin,
   gmail: handleGmail,
