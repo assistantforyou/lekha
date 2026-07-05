@@ -24,7 +24,8 @@ export async function GET() {
     const qstashStart = Date.now();
     try {
       const { Client } = await import("@upstash/qstash");
-      const client = new Client({ token: env().QSTASH_TOKEN! });
+      const baseUrl = env().QSTASH_URL;
+      const client = new Client({ token: env().QSTASH_TOKEN!, ...(baseUrl ? { baseUrl } : {}) });
       await client.schedules.list(); // lightweight check
       checks.qstash = { ok: true, ms: Date.now() - qstashStart };
     } catch (e) {

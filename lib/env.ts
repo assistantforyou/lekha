@@ -25,6 +25,7 @@ const Env = z.object({
 
   // QStash
   QSTASH_TOKEN: z.string().optional(),
+  QSTASH_URL: z.string().url().optional(),
   QSTASH_CURRENT_SIGNING_KEY: z.string().optional(),
   QSTASH_NEXT_SIGNING_KEY: z.string().optional(),
 

@@ -3,7 +3,8 @@ import { env, hasQStash } from "@/lib/env";
 
 function qstash() {
   if (!hasQStash()) throw new Error("QStash not configured");
-  return new QStash({ token: env().QSTASH_TOKEN! });
+  const baseUrl = env().QSTASH_URL;
+  return new QStash({ token: env().QSTASH_TOKEN!, ...(baseUrl ? { baseUrl } : {}) });
 }
 
 /**

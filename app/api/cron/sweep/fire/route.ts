@@ -11,7 +11,7 @@ import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/even
 import { sweepTaskCheckIn, isUserRecentlyActive, claimPushLock, runSweepForUser, isAllowedForProactive } from "@/lib/sweep";
 import { listTasks } from "@/lib/memory/tasks";
 import { listAllUsers } from "@/lib/memory/user-registry";
-import { verifyQStashSignature, unauthorized, badRequest, notConfigured } from "@/lib/qstash-verify";
+import { verifyQStashSignature, unauthorized, badRequest, notConfigured, isManualCronTrigger } from "@/lib/qstash-verify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,8 +38,11 @@ export async function POST(req: NextRequest) {
   if (!hasQStash()) return notConfigured();
   const raw = await req.text();
   const sig = req.headers.get("upstash-signature") ?? req.headers.get("Upstash-Signature");
-  const ok = await verifyQStashSignature(raw, sig, "/api/cron/sweep/fire");
-  if (!ok) return unauthorized();
+  const manual = isManualCronTrigger(req);
+  if (!manual) {
+    const ok = await verifyQStashSignature(raw, sig, "/api/cron/sweep/fire");
+    if (!ok) return unauthorized();
+  }
 
   let body: unknown;
   try {
