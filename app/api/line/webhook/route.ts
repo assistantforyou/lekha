@@ -12,6 +12,7 @@ import { checkRateLimit } from "@/lib/ratelimit";
 import { classify, clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
 import { buildGate, passesAllowlist } from "@/lib/gate";
+import { isAllowed, addToAllowlist } from "@/lib/memory/allowlist";
 
 import { handleAdminCommand, handleMyId } from "@/lib/admin-commands";
 import { dispatchShortcut } from "@/lib/shortcuts";
@@ -116,6 +117,33 @@ async function handleEvent(
     if (set === null) {
       endEvent({ skipped: "duplicate" });
       return false;
+    }
+  }
+
+  // Free trial code: non-allowed users can type "FREETRIAL100" to bypass the paywall.
+  if (
+    event.type === "message" &&
+    "message" in event &&
+    event.message.type === "text" &&
+    "text" in event.message &&
+    event.source?.userId
+  ) {
+    const ftUserId = event.source.userId;
+    const ftText = (event.message.text as string).trim();
+    if (ftText.toUpperCase() === "FREETRIAL100" && !(await isAllowed(ftUserId))) {
+      await addToAllowlist(ftUserId);
+      registerUser(ftUserId).catch(() => {});
+      const ftProfile = await getOrCreateProfile(ftUserId);
+      const ftName =
+        ftProfile.displayName && ftProfile.displayName !== "friend" ? ` ${ftProfile.displayName}` : "";
+      const ftReplyToken = "replyToken" in event ? event.replyToken : undefined;
+      await replyOrPush(ftUserId, ftReplyToken, [
+        textMsg(
+          `Free trial activated! 🎉 Welcome to Lekha${ftName}!\n\nI'm your personal AI assistant. I can set reminders, search the web, check weather and stocks, read photos, and much more.\n\nType "help" to see everything I can do, or "connect google" to link Gmail, Calendar, and Drive.`,
+        ),
+      ]);
+      endEvent({ type: "free-trial" });
+      return true;
     }
   }
 
