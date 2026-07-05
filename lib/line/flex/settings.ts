@@ -1,6 +1,5 @@
 import type { FlexMessage } from "@/lib/line/client";
 import type { UserSettings } from "@/lib/memory/settings";
-import { env } from "@/lib/env";
 import type { Fact } from "@/lib/memory/facts";
 
 const ACCENT = "#5B6FF0";
@@ -11,11 +10,6 @@ const TEXT = "#333333";
 
 const PRESET_TIMEZONES = ["Asia/Bangkok", "Asia/Singapore", "Asia/Tokyo", "Europe/London", "America/New_York"];
 const PRESET_LOCATIONS = ["Bangkok, Thailand", "Singapore", "Tokyo, Japan", "London, UK", "New York, USA"];
-
-function dashboardUrl(): string {
-  const base = env().APP_BASE_URL || "https://lekha-iota.vercel.app";
-  return `${base.replace(/\/$/, "")}/dashboard`;
-}
 
 function header(title: string): object {
   return {
@@ -61,15 +55,6 @@ function messageButton(label: string, text: string, style: "primary" | "secondar
     style,
     height: "sm",
     action: { type: "message", label, text },
-  };
-}
-
-function uriButton(label: string, uri: string, style: "primary" | "secondary" = "secondary"): object {
-  return {
-    type: "button",
-    style,
-    height: "sm",
-    action: { type: "uri", label, uri },
   };
 }
 
@@ -128,7 +113,7 @@ function sectionButton(icon: string, title: string, subtitle: string, section: s
           { type: "text", text: subtitle, size: "xs", color: "#777777", wrap: true },
         ],
       },
-      postbackButton("Open", `settings:section:${section}`, "primary", ACCENT),
+      postbackButton("Edit", `settings:section:${section}`, "primary", ACCENT),
     ],
   };
 }
@@ -165,7 +150,7 @@ export function settingsMainFlex(settings: UserSettings): FlexMessage {
       size: "mega",
       header: header("⚙️ Settings"),
       body: body([
-        hint("Tap a section to edit. Changes apply immediately. No AI calls are made here."),
+        hint("Tap a section to edit. Changes apply immediately inside LINE."),
         sectionButton("📰", "Briefings", `Morning ${morning} · Evening ${evening} · Check-in ${checkIn}`, "briefing"),
         sectionButton("🛠", "Tools", `${toolsOn}/5 surfaces enabled`, "tools"),
         sectionButton("🎭", "Persona", `${settings.personaTone} · ${settings.personaAddressing} · ${settings.personaPrimaryLang}`, "persona"),
@@ -179,7 +164,6 @@ export function settingsMainFlex(settings: UserSettings): FlexMessage {
           margin: "md",
           spacing: "sm",
           contents: [
-            uriButton("Open dashboard", dashboardUrl(), "primary"),
             postbackButton("Close", "settings:noop", "secondary"),
           ],
         },
@@ -296,7 +280,7 @@ export function settingsToolsFlex(settings: UserSettings): FlexMessage {
       size: "mega",
       header: header("🛠 Tools"),
       body: body([
-        hint("Turn whole tool surfaces on or off. Fine-grained options are on the dashboard."),
+        hint("Turn whole tool surfaces on or off. More options coming soon."),
         ...rows,
         separator(),
         {
@@ -306,7 +290,6 @@ export function settingsToolsFlex(settings: UserSettings): FlexMessage {
           spacing: "sm",
           contents: [
             postbackButton("← Back", "settings:main", "secondary"),
-            uriButton("Fine-tune on dashboard", dashboardUrl(), "primary"),
           ],
         },
       ]),
