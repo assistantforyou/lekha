@@ -8,7 +8,7 @@ import { getSettings } from "@/lib/memory/settings";
 import { appendTurn } from "@/lib/memory/history";
 import { briefingFlex, newsFlex, gmailResultsFlex, taskListFlex } from "@/lib/line/flex";
 import { listTasks } from "@/lib/memory/tasks";
-import { handleSettingsCommand } from "@/lib/settings-menu";
+import { handleSettingsCommand, getPendingSettingsPrompt } from "@/lib/settings-menu";
 
 type Ctx = {
   userId: string;
@@ -137,6 +137,11 @@ const SHORTCUTS: Shortcut[] = [
 
 /** Match the first shortcut and run it. Returns true if handled. */
 export async function dispatchShortcut(ctx: Ctx): Promise<boolean> {
+  if (await getPendingSettingsPrompt(ctx.userId)) {
+    await handleSettingsCommand(ctx.userId, ctx.replyToken, ctx.userText);
+    return true;
+  }
+
   for (const s of SHORTCUTS) {
     if (s.match(ctx.userText)) {
       await s.run(ctx);

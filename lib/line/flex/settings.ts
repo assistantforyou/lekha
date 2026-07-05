@@ -39,13 +39,34 @@ function separator(): object {
   return { type: "separator", margin: "md", color: "#f2f2f2" };
 }
 
-function postbackButton(label: string, data: string, style: "primary" | "secondary" = "primary", color?: string): object {
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+function postbackButton(
+  label: string,
+  data: string,
+  style: "primary" | "secondary" = "primary",
+  color?: string,
+  displayText?: string,
+): object {
   return {
     type: "button",
     style,
     color: color ?? (style === "primary" ? ACCENT : undefined),
     height: "sm",
-    action: { type: "postback", label, data, displayText: label },
+    action: { type: "postback", label, data, displayText: displayText ?? label },
+  };
+}
+
+function promptButton(label: string, promptKey: string, style: "primary" | "secondary" = "secondary"): object {
+  return {
+    type: "button",
+    style,
+    height: "sm",
+    action: { type: "postback", label, data: `settings:prompt:${promptKey}` },
   };
 }
 
@@ -71,7 +92,7 @@ function toggleRow(label: string, isOn: boolean, onData: string, offData: string
         layout: "vertical",
         flex: 1,
         contents: [
-          { type: "text", text: label, weight: "bold", size: "sm", color: TEXT, wrap: true },
+          { type: "text", text: label, weight: "bold", size: "sm", color: TEXT, wrap: true, adjustMode: "shrink-to-fit" },
           { type: "text", text: isOn ? "On" : "Off", size: "xs", color: isOn ? OK : MUTED },
         ],
       },
@@ -80,19 +101,21 @@ function toggleRow(label: string, isOn: boolean, onData: string, offData: string
   };
 }
 
-function chipRow(label: string, options: { label: string; data: string; on: boolean }[]): object {
+function chipRow(
+  label: string,
+  options: { label: string; data: string; on: boolean }[],
+  perRow = 3,
+): object {
   const buttons = options.map((o) =>
     postbackButton(o.label, o.data, o.on ? "primary" : "secondary", o.on ? ACCENT_DARK : undefined),
   );
+  const rows = chunk(buttons, perRow).map((group) => ({ type: "box", layout: "horizontal", spacing: "sm", contents: group }));
   return {
     type: "box",
     layout: "vertical",
     margin: "md",
     spacing: "sm",
-    contents: [
-      { type: "text", text: label, weight: "bold", size: "sm", color: TEXT },
-      { type: "box", layout: "horizontal", spacing: "sm", contents: buttons },
-    ],
+    contents: [{ type: "text", text: label, weight: "bold", size: "sm", color: TEXT }, ...rows],
   };
 }
 
@@ -113,7 +136,7 @@ function sectionButton(icon: string, title: string, subtitle: string, section: s
           { type: "text", text: subtitle, size: "xs", color: "#777777", wrap: true },
         ],
       },
-      postbackButton("Edit", `settings:section:${section}`, "primary", ACCENT),
+      postbackButton("Edit", `settings:section:${section}`, "primary", ACCENT, `Edit ${title}`),
     ],
   };
 }
@@ -180,6 +203,10 @@ function timePresetRow(label: string, current: string | null, keyPrefix: string)
     on: current === t,
   }));
   const offOn = current === null ? "secondary" : "primary";
+  const buttonRows = chunk(
+    options.map((o) => postbackButton(o.label, o.data, o.on ? "primary" : "secondary", o.on ? ACCENT_DARK : undefined)),
+    2,
+  ).map((group) => ({ type: "box", layout: "horizontal", spacing: "sm", contents: group }));
   return {
     type: "box",
     layout: "vertical",
@@ -195,8 +222,8 @@ function timePresetRow(label: string, current: string | null, keyPrefix: string)
           postbackButton(current === null ? "Off" : "Turn off", `settings:toggle:${keyPrefix}:off`, offOn, offOn === "primary" ? undefined : MUTED),
         ],
       },
-      { type: "box", layout: "horizontal", spacing: "sm", contents: options.map((o) => postbackButton(o.label, o.data, o.on ? "primary" : "secondary", o.on ? ACCENT_DARK : undefined)) },
-      messageButton("Custom time…", `=set ${keyPrefix} `, "secondary"),
+      ...buttonRows,
+      promptButton("Custom time…", keyPrefix, "secondary"),
     ],
   };
 }
@@ -231,11 +258,15 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
           { label: "Bullets", data: "settings:briefing:set:briefingLength:Bullets", on: settings.briefingLength === "Bullets" },
           { label: "Full", data: "settings:briefing:set:briefingLength:Full", on: settings.briefingLength === "Full" },
         ]),
-        chipRow("Language", [
-          { label: "English", data: "settings:briefing:set:briefingLanguage:English", on: settings.briefingLanguage === "English" },
-          { label: "ไทย", data: "settings:briefing:set:briefingLanguage:ไทย", on: settings.briefingLanguage === "ไทย" },
-          { label: "EN + ไทย", data: "settings:briefing:set:briefingLanguage:EN + ไทย", on: settings.briefingLanguage === "EN + ไทย" },
-        ]),
+        chipRow(
+          "Language",
+          [
+            { label: "English", data: "settings:briefing:set:briefingLanguage:English", on: settings.briefingLanguage === "English" },
+            { label: "ไทย", data: "settings:briefing:set:briefingLanguage:ไทย", on: settings.briefingLanguage === "ไทย" },
+            { label: "EN + ไทย", data: "settings:briefing:set:briefingLanguage:EN + ไทย", on: settings.briefingLanguage === "EN + ไทย" },
+          ],
+          2,
+        ),
         separator(),
         wrap(
           { type: "text", text: "Channels", weight: "bold", size: "sm", color: TEXT },
@@ -244,7 +275,7 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
           toggleRow("Push alert", settings.briefingChannels.push, "settings:briefing:set:briefingChannel:push:true", "settings:briefing:set:briefingChannel:push:false"),
         ),
         separator(),
-        wrap({ type: "text", text: "Topics", weight: "bold", size: "sm", color: TEXT }, ...topicRows),
+        wrap({ type: "text", text: "Daily briefing topics", weight: "bold", size: "sm", color: TEXT }, ...topicRows),
         separator(),
         {
           type: "box",
@@ -362,7 +393,7 @@ export function settingsMemoryFlex(settings: UserSettings): FlexMessage {
           spacing: "sm",
           contents: [
             postbackButton("View facts", "settings:section:facts", "primary"),
-            messageButton("Add fact…", "=remember ", "secondary"),
+            promptButton("Add fact…", "fact", "secondary"),
           ],
         },
         separator(),
@@ -417,7 +448,7 @@ export function settingsFactsFlex(facts: Fact[]): FlexMessage {
           spacing: "sm",
           contents: [
             postbackButton("← Back", "settings:section:memory", "secondary"),
-            messageButton("Add fact…", "=remember ", "primary"),
+            promptButton("Add fact…", "fact", "primary"),
           ],
         },
       ]),
@@ -442,13 +473,21 @@ export function settingsLocaleFlex(settings: UserSettings): FlexMessage {
         ]),
         currentRow("Current", settings.language ?? "Auto"),
         separator(),
-        chipRow("Timezone", PRESET_TIMEZONES.map((tz) => ({ label: tz.split("/")[1] ?? tz, data: `settings:locale:set:timezone:${tz}`, on: settings.timezone === tz }))),
+        chipRow(
+          "Timezone",
+          PRESET_TIMEZONES.map((tz) => ({ label: tz.split("/")[1] ?? tz, data: `settings:locale:set:timezone:${tz}`, on: settings.timezone === tz })),
+          3,
+        ),
         currentRow("Timezone", settings.timezone),
-        messageButton("Custom timezone…", "=set timezone ", "secondary"),
+        promptButton("Custom timezone…", "timezone", "secondary"),
         separator(),
-        chipRow("Location", PRESET_LOCATIONS.map((loc) => ({ label: loc, data: `settings:locale:set:location:${loc}`, on: settings.location === loc }))),
+        chipRow(
+          "Location",
+          PRESET_LOCATIONS.map((loc) => ({ label: loc, data: `settings:locale:set:location:${loc}`, on: settings.location === loc })),
+          2,
+        ),
         currentRow("Location", settings.location ?? "—"),
-        messageButton("Custom location…", "=set location ", "secondary"),
+        promptButton("Custom location…", "location", "secondary"),
         separator(),
         {
           type: "box",

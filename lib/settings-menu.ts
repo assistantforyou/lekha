@@ -1,6 +1,7 @@
 import { replyOrPush, text as textMsg, showLoading } from "@/lib/line/client";
 import { getSettings, updateSettings, type UserSettings } from "@/lib/memory/settings";
 import { loadFacts, appendFact, saveFacts } from "@/lib/memory/facts";
+import { redis } from "@/lib/memory/redis";
 import {
   settingsMainFlex,
   settingsBriefingFlex,
@@ -22,7 +23,23 @@ const VALID_SECTIONS = new Set([
 
 type Section = "main" | "briefing" | "tools" | "persona" | "memory" | "facts" | "locale";
 
+const PROMPT_KEY = (userId: string) => `settings:prompt:${userId}`;
+
+async function getPendingPrompt(userId: string): Promise<string | null> {
+  return (await redis().get<string>(PROMPT_KEY(userId))) ?? null;
+}
+
+function setPendingPrompt(userId: string, key: string): Promise<string | null> {
+  return redis().set(PROMPT_KEY(userId), key, { ex: 60 * 5 });
+}
+
+function clearPendingPrompt(userId: string): Promise<number> {
+  return redis().del(PROMPT_KEY(userId));
+}
+
 async function sendMenu(userId: string, replyToken: string, section: Section): Promise<void> {
+  clearPendingPrompt(userId).catch(() => {});
+
   console.warn("[settings] sendMenu", { userId, section, hasReplyToken: !!replyToken });
   const settings = await getSettings(userId);
   let messages = [settingsMainFlex(settings)];
@@ -204,6 +221,21 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
     return;
   }
 
+  if (first === "prompt" && args[1]) {
+    const key = args[1];
+    await setPendingPrompt(userId, key);
+    const prompts: Record<string, string> = {
+      timezone: "What timezone should I use? (e.g. Asia/Bangkok)",
+      location: "What location should I use? (e.g. Bangkok, Thailand)",
+      morning: "What time should I send your morning briefing? (e.g. 07:00)",
+      evening: "What time should I send your evening summary? (e.g. 21:00)",
+      checkin: "What time should I check in on your tasks? (e.g. 20:30)",
+      fact: "What fact should I remember?",
+    };
+    await replyOrPush(userId, replyToken, [textMsg(prompts[key] ?? "What value?")]);
+    return;
+  }
+
   if (first === "facts") {
     await handleFactsAction(userId, replyToken, args);
     return;
@@ -283,6 +315,33 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
   const text = userText.trim();
   const lower = text.toLowerCase();
 
+  const pending = await getPendingPrompt(userId);
+  if (pending) {
+    if (lower === "cancel") {
+      await clearPendingPrompt(userId);
+      await replyOrPush(userId, replyToken, [textMsg("Cancelled.")]);
+      return true;
+    }
+    if (!text.startsWith("=")) {
+      await clearPendingPrompt(userId);
+      if (pending === "fact") {
+        if (text) {
+          await appendFact(userId, text, { category: "other" });
+          await replyOrPush(userId, replyToken, [textMsg("Got it — I’ll remember that.")]);
+          await sendMenu(userId, replyToken, "facts");
+        } else {
+          await replyOrPush(userId, replyToken, [textMsg("What should I remember? Type your fact.")]);
+          await setPendingPrompt(userId, "fact");
+        }
+      } else {
+        await applyTypedSet(userId, replyToken, pending, text);
+      }
+      return true;
+    }
+    await clearPendingPrompt(userId);
+    // fall through to process the = command normally
+  }
+
   if (lower === "=settings=") {
     showLoading(userId, 5).catch(() => {});
     await sendMenu(userId, replyToken, "main");
@@ -331,3 +390,5 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
 
   return false;
 }
+
+export { getPendingPrompt as getPendingSettingsPrompt };
