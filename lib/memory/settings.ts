@@ -270,3 +270,8 @@ export async function updateSettings(
   settingsCache.delete(userId);
   return next;
 }
+
+/** Test hook: clear the in-memory settings cache. */
+export function _resetSettingsCache() {
+  settingsCache.clear();
+}

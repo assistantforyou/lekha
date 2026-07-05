@@ -143,6 +143,8 @@ function makeDefaultState(displayName: string, userId?: string) {
     } as Record<string, Record<string, unknown>>,
     /* Connections */
     connections: { line: true, gcal: false, gmail: false, gdrive: false, gcontacts: false, gpeople: false } as Record<string, boolean>,
+    /* Locale */
+    timezone: "Asia/Bangkok" as string,
     /* Memory */
     compactAt: 10,
     memoryEnabled: true,
@@ -487,7 +489,7 @@ const BriefingView = ({ state, set }: { state: State; set: (patch: Partial<State
             </div>
             <input type="time" className="sched-time-input" value={state.morningTime}
               onChange={(e) => set({ morningTime: e.target.value })}/>
-            <div className="sched-meta">{state.morningOn ? `Sent ${state.morningTime} · Asia/Bangkok` : "Off — turn on to receive"}</div>
+            <div className="sched-meta">{state.morningOn ? `Sent ${state.morningTime} · ${state.timezone}` : "Off — turn on to receive"}</div>
           </div>
           <div className={`sched-slot ${state.eveningOn ? "on" : ""}`}>
             <div className="sched-slot-hdr">
@@ -496,7 +498,7 @@ const BriefingView = ({ state, set }: { state: State; set: (patch: Partial<State
             </div>
             <input type="time" className="sched-time-input" value={state.eveningTime}
               onChange={(e) => set({ eveningTime: e.target.value })}/>
-            <div className="sched-meta">{state.eveningOn ? `Sent ${state.eveningTime} · Asia/Bangkok` : "Off — turn on to receive"}</div>
+            <div className="sched-meta">{state.eveningOn ? `Sent ${state.eveningTime} · ${state.timezone}` : "Off — turn on to receive"}</div>
           </div>
           <div className={`sched-slot ${state.checkinOn ? "on" : ""}`}>
             <div className="sched-slot-hdr">
@@ -505,7 +507,7 @@ const BriefingView = ({ state, set }: { state: State; set: (patch: Partial<State
             </div>
             <input type="time" className="sched-time-input" value={state.checkinTime}
               onChange={(e) => set({ checkinTime: e.target.value })}/>
-            <div className="sched-meta">{state.checkinOn ? `Sent ${state.checkinTime} · Asia/Bangkok` : "Off — turn on to receive"}</div>
+            <div className="sched-meta">{state.checkinOn ? `Sent ${state.checkinTime} · ${state.timezone}` : "Off — turn on to receive"}</div>
           </div>
         </div>
 
@@ -1269,6 +1271,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
             briefLang: s.briefingLanguage ?? prev.briefLang,
             briefChannels: s.briefingChannels ?? prev.briefChannels,
             topicSources: s.briefingTopicSources ?? prev.topicSources,
+            timezone: s.timezone ?? prev.timezone,
             tools: s.tools ?? prev.tools,
             toolSettings: s.toolSettings ?? prev.toolSettings,
             compactAt: s.memoryCompactAt ?? prev.compactAt,

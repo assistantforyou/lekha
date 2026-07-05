@@ -115,7 +115,7 @@ function chipRow(
     layout: "vertical",
     margin: "md",
     spacing: "sm",
-    contents: [{ type: "text", text: label, weight: "bold", size: "sm", color: TEXT }, ...rows],
+    contents: [{ type: "text", text: label, weight: "bold", size: "sm", color: TEXT, wrap: true }, ...rows],
   };
 }
 
@@ -223,7 +223,7 @@ function timePresetRow(label: string, current: string | null, keyPrefix: string)
         layout: "horizontal",
         alignItems: "center",
         contents: [
-          { type: "text", text: label, weight: "bold", size: "sm", color: TEXT, flex: 1 },
+          { type: "text", text: label, weight: "bold", size: "sm", color: TEXT, flex: 1, wrap: true },
           postbackButton(current === null ? "Off" : "Turn off", `settings:toggle:${keyPrefix}:off`, offOn, offOn === "primary" ? undefined : MUTED),
         ],
       },
@@ -274,14 +274,14 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
         ),
         separator(),
         wrap(
-          { type: "text", text: "Channels", weight: "bold", size: "sm", color: TEXT },
+          { type: "text", text: "Channels", weight: "bold", size: "sm", color: TEXT, wrap: true },
           hint("LINE chat sends the briefing here. Email sends it to your connected Gmail address."),
           toggleRow("LINE chat", settings.briefingChannels.line, "settings:briefing:set:briefingChannel:line:true", "settings:briefing:set:briefingChannel:line:false"),
           toggleRow("Email", settings.briefingChannels.email, "settings:briefing:set:briefingChannel:email:true", "settings:briefing:set:briefingChannel:email:false"),
           toggleRow("Push alert", settings.briefingChannels.push, "settings:briefing:set:briefingChannel:push:true", "settings:briefing:set:briefingChannel:push:false"),
         ),
         separator(),
-        wrap({ type: "text", text: "Daily briefing topics", weight: "bold", size: "sm", color: TEXT }, ...topicRows),
+        wrap({ type: "text", text: "Daily briefing topics", weight: "bold", size: "sm", color: TEXT, wrap: true }, ...topicRows),
         separator(),
         {
           type: "box",
@@ -436,7 +436,7 @@ export function settingsFactsFlex(facts: Fact[]): FlexMessage {
         layout: "vertical",
         flex: 1,
         contents: [
-          { type: "text", text: `[${f.category}] ${f.content.slice(0, 120)}${f.content.length > 120 ? "…" : ""}`, size: "xs", color: TEXT, wrap: true },
+          { type: "text", text: `[${f.category}] ${f.content}`, size: "xs", color: TEXT, wrap: true },
         ],
       },
       postbackButton("Delete", `settings:facts:del:${f.id}`, "secondary"),

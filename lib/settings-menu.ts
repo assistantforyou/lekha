@@ -79,6 +79,16 @@ function parseBool(s: string | undefined): boolean | null {
   return null;
 }
 
+function isValidTime(s: string): boolean {
+  return /^(?:[0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(s);
+}
+
+function parseCompact(s: string): number | null {
+  const n = Number(s);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1 || n > 1000) return null;
+  return n;
+}
+
 function normalizeLanguage(s: string): string | null {
   const lower = s.toLowerCase();
   if (lower === "auto") return null;
@@ -155,11 +165,14 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
       patch.disabledCategories = deriveDisabledCategories(nextTools);
     }
   } else if (key === "morningTime" && value) {
+    if (!isValidTime(value)) return;
     patch.morningBriefingTime = value;
   } else if (key === "eveningTime" && value) {
+    if (!isValidTime(value)) return;
     patch.eveningSummaryEnabled = true;
     patch.eveningSummaryTime = value;
   } else if (key === "checkinTime" && value) {
+    if (!isValidTime(value)) return;
     patch.taskCheckInEnabled = true;
     patch.taskCheckInTime = value;
   }
@@ -292,26 +305,44 @@ async function applyTypedSet(userId: string, replyToken: string, rawKey: string,
     patch.language = normalizeLanguage(value);
     returnSection = "locale";
   } else if (key === "morning") {
-    patch.morningBriefingTime = value.toLowerCase() === "off" ? null : value;
+    if (value.toLowerCase() === "off") {
+      patch.morningBriefingTime = null;
+    } else if (isValidTime(value)) {
+      patch.morningBriefingTime = value;
+    } else {
+      await replyOrPush(userId, replyToken, [textMsg("Please use HH:MM (e.g. 07:30) or 'off'.")]);
+      return;
+    }
     returnSection = "briefing";
   } else if (key === "evening") {
     if (value.toLowerCase() === "off") {
       patch.eveningSummaryEnabled = false;
-    } else {
+    } else if (isValidTime(value)) {
       patch.eveningSummaryEnabled = true;
       patch.eveningSummaryTime = value;
+    } else {
+      await replyOrPush(userId, replyToken, [textMsg("Please use HH:MM (e.g. 21:30) or 'off'.")]);
+      return;
     }
     returnSection = "briefing";
   } else if (key === "checkin") {
     if (value.toLowerCase() === "off") {
       patch.taskCheckInEnabled = false;
-    } else {
+    } else if (isValidTime(value)) {
       patch.taskCheckInEnabled = true;
       patch.taskCheckInTime = value;
+    } else {
+      await replyOrPush(userId, replyToken, [textMsg("Please use HH:MM (e.g. 20:30) or 'off'.")]);
+      return;
     }
     returnSection = "briefing";
   } else if (key === "compact" || key === "compactat" || key === "memorycompactat") {
-    patch.memoryCompactAt = Number(value);
+    const n = parseCompact(value);
+    if (n === null) {
+      await replyOrPush(userId, replyToken, [textMsg("Compact interval must be a whole number between 1 and 1000 messages.")]);
+      return;
+    }
+    patch.memoryCompactAt = n;
     returnSection = "memory";
   } else {
     await replyOrPush(userId, replyToken, [textMsg(`Unknown setting key "${rawKey}". Type =settings= to see the menu.`)]);
