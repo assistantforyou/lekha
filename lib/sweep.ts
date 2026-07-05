@@ -8,6 +8,7 @@ import { buildGate } from "@/lib/gate";
 import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
 import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
 import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
+import { deriveCheckInTime } from "@/lib/time-utils";
 
 const ACTIVE_WINDOW_MS = 10 * 60 * 1000; // 10 min
 const ACTIVE_THROTTLE_MS = 5 * 60 * 1000; // 5 min
@@ -57,21 +58,6 @@ export async function claimPushLock(userId: string, type: string, ttlSec = 300):
   const key = `pushlock:${userId}:${type}:${new Date().toISOString().slice(0, 10)}`;
   const r = await redis().set(key, 1, { ex: ttlSec, nx: true });
   return r !== null;
-}
-
-/** Derive task check-in time from evening summary time (30 min before). */
-export function deriveCheckInTime(eveningTime: string): string {
-  const m = /^(\d{1,2}):(\d{2})$/.exec(eveningTime);
-  if (!m) return "20:30";
-  let hh = parseInt(m[1]!, 10);
-  let mm = parseInt(m[2]!, 10);
-  mm -= 30;
-  if (mm < 0) {
-    mm += 60;
-    hh -= 1;
-  }
-  if (hh < 0) hh += 24;
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
 function localTimeStr(timezone: string): string {

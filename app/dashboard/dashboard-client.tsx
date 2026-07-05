@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./dashboard.css";
+import { deriveCheckInTime } from "@/lib/time-utils";
 
 /* ============== ICONS ============== */
 const I = {
@@ -121,7 +122,7 @@ function makeDefaultState(displayName: string, userId?: string) {
     eveningOn: true,
     eveningTime: "21:00",
     checkinOn: true,
-    checkinTime: "20:30",
+    checkinTime: deriveCheckInTime("21:00"),
     /* Topics */
     topics: {
       stocks: true, wellness: true, politics: false, crime: false,
@@ -1265,7 +1266,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
             eveningOn: s.eveningSummaryEnabled,
             eveningTime: s.eveningSummaryTime ?? "21:00",
             checkinOn: s.taskCheckInEnabled,
-            checkinTime: s.taskCheckInTime ?? "20:30",
+            checkinTime: s.taskCheckInTime ?? deriveCheckInTime(s.eveningSummaryTime ?? "21:00"),
             topics: s.briefingTopics ?? prev.topics,
             briefLength: s.briefingLength ?? prev.briefLength,
             briefLang: s.briefingLanguage ?? prev.briefLang,
@@ -1312,6 +1313,12 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
   const syncToBackend = useCallback((next: State) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
+      const derivedCheckIn = deriveCheckInTime(next.eveningTime);
+      const checkinTimeToSave = !next.checkinOn
+        ? null
+        : next.checkinTime === derivedCheckIn
+          ? null
+          : next.checkinTime;
       fetch("/api/dashboard/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1321,7 +1328,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
           eveningOn: next.eveningOn,
           eveningTime: next.eveningTime,
           checkinOn: next.checkinOn,
-          checkinTime: next.checkinTime,
+          checkinTime: checkinTimeToSave,
           topics: next.topics,
           briefLength: next.briefLength,
           briefLang: next.briefLang,

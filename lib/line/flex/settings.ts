@@ -1,6 +1,7 @@
 import type { FlexMessage } from "@/lib/line/client";
 import type { UserSettings } from "@/lib/memory/settings";
 import type { Fact } from "@/lib/memory/facts";
+import { deriveCheckInTime } from "@/lib/time-utils";
 
 const ACCENT = "#5B6FF0";
 const ACCENT_DARK = "#4A5BD8";
@@ -161,7 +162,9 @@ function wrap(...contents: object[]): object {
 export function settingsMainFlex(settings: UserSettings): FlexMessage {
   const morning = settings.morningBriefingTime ? `${settings.morningBriefingTime}` : "Off";
   const evening = settings.eveningSummaryEnabled ? settings.eveningSummaryTime : "Off";
-  const checkIn = settings.taskCheckInEnabled ? (settings.taskCheckInTime ?? "Auto") : "Off";
+  const checkIn = settings.taskCheckInEnabled
+    ? (settings.taskCheckInTime ?? deriveCheckInTime(settings.eveningSummaryTime))
+    : "Off";
   const toolsOn = Object.values(settings.tools).filter(Boolean).length;
   const topicsOn = Object.values(settings.briefingTopics).filter(Boolean).length;
 
@@ -175,11 +178,11 @@ export function settingsMainFlex(settings: UserSettings): FlexMessage {
       body: body([
         hint("Tap a section to edit. Changes apply immediately inside LINE."),
         sectionButton("📰", "Briefings", `Morning ${morning} · Evening ${evening} · Check-in ${checkIn}`, "briefing"),
-        sectionButton("🛠", "Tools", `${toolsOn}/5 surfaces enabled`, "tools"),
-        sectionButton("🎭", "Persona", `${settings.personaTone} · ${settings.personaAddressing} · ${settings.personaPrimaryLang}`, "persona"),
-        sectionButton("🧠", "Memory", `Compact every ${settings.memoryCompactAt} msgs · ${settings.memoryEnabled ? "on" : "off"}`, "memory"),
-        sectionButton("📝", "Facts", "View, add, or delete memories", "facts"),
-        sectionButton("🌐", "Language & Location", `${settings.language ?? "Auto"} · ${settings.location ?? "No location"} · ${settings.timezone}`, "locale"),
+        sectionButton("🛠", "Tools", `Turn whole tool surfaces on or off · ${toolsOn}/5 enabled`, "tools"),
+        sectionButton("🎭", "Persona", `Tone · Address · Language · Voice match`, "persona"),
+        sectionButton("🧠", "Memory", `Auto-extract facts every ${settings.memoryCompactAt} msgs · ${settings.memoryEnabled ? "on" : "off"}`, "memory"),
+        sectionButton("📝", "Facts", `Everything Lekha remembers about you`, "facts"),
+        sectionButton("🌐", "Language & Location", `Timezone · Location · Reply language`, "locale"),
         separator(),
         {
           type: "box",
@@ -252,10 +255,10 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
       size: "mega",
       header: header("📰 Briefings"),
       body: body([
-        hint("Toggle each briefing and pick a time. Tap Back when done."),
+        hint("Choose when and how Lekha briefs you each day. Times are in your timezone."),
         timePresetRow("Morning", settings.morningBriefingTime, "morning"),
         timePresetRow("Evening", settings.eveningSummaryEnabled ? settings.eveningSummaryTime : null, "evening"),
-        timePresetRow("Task check-in", settings.taskCheckInEnabled ? (settings.taskCheckInTime ?? "20:30") : null, "checkin"),
+        timePresetRow("Task check-in", settings.taskCheckInEnabled ? (settings.taskCheckInTime ?? deriveCheckInTime(settings.eveningSummaryTime)) : null, "checkin"),
         separator(),
         toggleRow("Include unread Gmail", settings.inboxBriefingEnabled, "settings:briefing:set:inboxBriefingEnabled:true", "settings:briefing:set:inboxBriefingEnabled:false"),
         chipRow("Length", [
@@ -317,7 +320,7 @@ export function settingsToolsFlex(settings: UserSettings): FlexMessage {
       size: "mega",
       header: header("🛠 Tools"),
       body: body([
-        hint("Turn whole tool surfaces on or off. More options coming soon."),
+        hint("Enable or disable whole tool surfaces. Tap a tool to expand its options."),
         ...rows,
         separator(),
         {
@@ -343,7 +346,7 @@ export function settingsPersonaFlex(settings: UserSettings): FlexMessage {
       size: "mega",
       header: header("🎭 Persona"),
       body: body([
-        hint("How Lekha sounds when she replies to you."),
+        hint("Choose Lekha's tone, how she addresses you, and her primary language."),
         chipRow(
           "Tone",
           [
@@ -390,7 +393,7 @@ export function settingsMemoryFlex(settings: UserSettings): FlexMessage {
       size: "mega",
       header: header("🧠 Memory"),
       body: body([
-        hint("Control long-term memory and fact extraction."),
+        hint("Lekha auto-extracts durable facts every N messages. Turn off to stop auto-extraction."),
         toggleRow("Memory enabled", settings.memoryEnabled, "settings:memory:set:memoryEnabled:true", "settings:memory:set:memoryEnabled:false"),
         chipRow("Auto-compact every", [
           { label: "5", data: "settings:memory:set:memoryCompactAt:5", on: settings.memoryCompactAt === 5 },
@@ -478,7 +481,7 @@ export function settingsLocaleFlex(settings: UserSettings): FlexMessage {
       size: "mega",
       header: header("🌐 Language & Location"),
       body: body([
-        hint("Pick presets or type a custom value."),
+        hint("Set your timezone, location, and preferred reply language."),
         chipRow("Reply language", [
           { label: "Auto", data: "settings:locale:set:language:auto", on: settings.language === null },
           { label: "English", data: "settings:locale:set:language:en", on: settings.language === "en" },

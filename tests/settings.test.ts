@@ -62,6 +62,7 @@ import {
 } from "@/lib/line/flex/settings";
 import { validateFlexMessage } from "@/lib/line/flex/validate";
 import { loadFacts } from "@/lib/memory/facts";
+import { deriveCheckInTime } from "@/lib/time-utils";
 
 function fullSettings(overrides: Partial<UserSettings> = {}): UserSettings {
   return { ...DEFAULTS, ...overrides };
@@ -262,5 +263,28 @@ describe("settings typed commands", () => {
     expect(last.text).toContain("whole number");
     s = await getSettings("U1");
     expect(s.memoryCompactAt).toBe(15);
+  });
+});
+
+describe("time postback colon handling", () => {
+  beforeEach(() => reset());
+
+  it("reconstructs check-in time from colon-split postback", async () => {
+    await handleSettingsPostback("U1", "token", ["briefing", "set", "checkinTime", "18", "45"]);
+    const s = await getSettings("U1");
+    expect(s.taskCheckInTime).toBe("18:45");
+    expect(s.taskCheckInEnabled).toBe(true);
+  });
+
+  it("reconstructs evening time from typed command", async () => {
+    await handleSettingsCommand("U1", "token", "=settings:briefing:set:eveningTime:21:30");
+    const s = await getSettings("U1");
+    expect(s.eveningSummaryTime).toBe("21:30");
+  });
+
+  it("shows derived check-in time when taskCheckInTime is null", () => {
+    const msg = settingsMainFlex(fullSettings({ taskCheckInTime: null, eveningSummaryTime: "22:00" }));
+    const json = JSON.stringify(msg);
+    expect(json).toContain(deriveCheckInTime("22:00"));
   });
 });

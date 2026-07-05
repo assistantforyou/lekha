@@ -129,8 +129,12 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
     const b = parseBool(value);
     if (b !== null) patch.memoryEnabled = b;
   } else if (key === "memoryCompactAt" && value) {
-    const n = Number(value);
-    if (Number.isFinite(n)) patch.memoryCompactAt = n;
+    const n = parseCompact(value);
+    if (n === null) {
+      await replyOrPush(userId, replyToken, [textMsg("Compact interval must be a whole number between 1 and 1000 messages.")]);
+      return;
+    }
+    patch.memoryCompactAt = n;
   } else if (key === "language" && value) {
     patch.language = normalizeLanguage(value);
   } else if (key === "timezone" && value) {
@@ -165,16 +169,28 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
       patch.disabledCategories = deriveDisabledCategories(nextTools);
     }
   } else if (key === "morningTime" && value) {
-    if (!isValidTime(value)) return;
-    patch.morningBriefingTime = value;
+    const t = args.slice(3).join(":");
+    if (!isValidTime(t)) {
+      await replyOrPush(userId, replyToken, [textMsg("Please pick a valid time like 07:30.")]);
+      return;
+    }
+    patch.morningBriefingTime = t;
   } else if (key === "eveningTime" && value) {
-    if (!isValidTime(value)) return;
+    const t = args.slice(3).join(":");
+    if (!isValidTime(t)) {
+      await replyOrPush(userId, replyToken, [textMsg("Please pick a valid time like 21:30.")]);
+      return;
+    }
     patch.eveningSummaryEnabled = true;
-    patch.eveningSummaryTime = value;
+    patch.eveningSummaryTime = t;
   } else if (key === "checkinTime" && value) {
-    if (!isValidTime(value)) return;
+    const t = args.slice(3).join(":");
+    if (!isValidTime(t)) {
+      await replyOrPush(userId, replyToken, [textMsg("Please pick a valid time like 20:30.")]);
+      return;
+    }
     patch.taskCheckInEnabled = true;
-    patch.taskCheckInTime = value;
+    patch.taskCheckInTime = t;
   }
 
   await applyPatchAndReply(userId, replyToken, patch, returnSection);
