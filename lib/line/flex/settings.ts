@@ -45,7 +45,7 @@ function postbackButton(label: string, data: string, style: "primary" | "seconda
     style,
     color: color ?? (style === "primary" ? ACCENT : undefined),
     height: "sm",
-    action: { type: "postback", label, data },
+    action: { type: "postback", label, data, displayText: label },
   };
 }
 
@@ -91,7 +91,7 @@ function chipRow(label: string, options: { label: string; data: string; on: bool
     spacing: "sm",
     contents: [
       { type: "text", text: label, weight: "bold", size: "sm", color: TEXT },
-      { type: "box", layout: "horizontal", spacing: "sm", wrap: true, contents: buttons },
+      { type: "box", layout: "horizontal", spacing: "sm", contents: buttons },
     ],
   };
 }
@@ -195,7 +195,7 @@ function timePresetRow(label: string, current: string | null, keyPrefix: string)
           postbackButton(current === null ? "Off" : "Turn off", `settings:toggle:${keyPrefix}:off`, offOn, offOn === "primary" ? undefined : MUTED),
         ],
       },
-      { type: "box", layout: "horizontal", spacing: "sm", wrap: true, contents: options.map((o) => postbackButton(o.label, o.data, o.on ? "primary" : "secondary", o.on ? ACCENT_DARK : undefined)) },
+      { type: "box", layout: "horizontal", spacing: "sm", contents: options.map((o) => postbackButton(o.label, o.data, o.on ? "primary" : "secondary", o.on ? ACCENT_DARK : undefined)) },
       messageButton("Custom time…", `=set ${keyPrefix} `, "secondary"),
     ],
   };
@@ -379,7 +379,8 @@ export function settingsMemoryFlex(settings: UserSettings): FlexMessage {
 }
 
 export function settingsFactsFlex(facts: Fact[]): FlexMessage {
-  const rows = facts.slice(0, 10).map((f) => ({
+  const PAGE_SIZE = 20;
+  const rows = facts.slice(0, PAGE_SIZE).map((f) => ({
     type: "box",
     layout: "horizontal",
     margin: "md",
@@ -406,7 +407,7 @@ export function settingsFactsFlex(facts: Fact[]): FlexMessage {
       size: "mega",
       header: header("📝 Facts"),
       body: body([
-        hint(`Showing ${facts.length} fact${facts.length === 1 ? "" : "s"}. Deleting is immediate.`),
+        hint(`Showing ${rows.length} of ${facts.length} fact${facts.length === 1 ? "" : "s"}. Deleting is immediate.`),
         ...(rows.length ? rows : [{ type: "text", text: "No facts yet. Tap Add fact to create one.", size: "sm", color: "#777777", wrap: true }]),
         separator(),
         {
