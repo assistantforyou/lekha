@@ -27,6 +27,7 @@ import { buildFinanceTools } from "@/lib/tools/finance";
 import { buildWebSearchTool } from "@/lib/tools/web-search";
 import { buildCryptoFlex, buildStockFlex, type CryptoResult, type StockResult } from "@/lib/line/finance-flex";
 import { HELP_TEXT } from "@/lib/tools/help";
+import { appendAuditEntry, type AuditToolCall } from "@/lib/memory/audit-log";
 
 /**
  * Map a fastClassify hint to a facts-injection limit.
@@ -71,6 +72,25 @@ export function extractToolValue(output: unknown): unknown {
     return output;
   }
   return output;
+}
+
+/** Full tool call + result pairs (name/input/output/ok) for the compliance audit log. */
+function flattenToolCallsForAudit(steps: {
+  toolCalls: { toolName: string; input: unknown }[];
+  toolResults: { output?: unknown }[];
+}[]): AuditToolCall[] {
+  const out: AuditToolCall[] = [];
+  for (const step of steps) {
+    for (let i = 0; i < step.toolCalls.length; i++) {
+      const c = step.toolCalls[i];
+      if (!c) continue;
+      const tr = step.toolResults[i];
+      const output = tr ? extractToolValue(tr.output) : undefined;
+      const ok = !(output && typeof output === "object" && (output as Record<string, unknown>).ok === false);
+      out.push({ toolName: c.toolName, input: c.input, output, ok });
+    }
+  }
+  return out;
 }
 
 function classifyResultType(val: unknown): string {
@@ -298,6 +318,7 @@ export async function runAgent(
   },
 ): Promise<AgentResult> {
   const endAgent = span("agent:runAgent", traceId);
+  const agentStart = performance.now();
 
   try {
     const [accounts, staged, settings] = await Promise.all([
@@ -553,10 +574,27 @@ export async function runAgent(
       followUps,
     };
     endAgent({ success: true, steps: result.steps.length, toolCalls: extraToolCalls.length, replyLength: finalText.length });
+    appendAuditEntry(userId, {
+      traceId,
+      hint: opts?.hint,
+      userMessage: lastUserText,
+      reply: finalText,
+      toolCalls: flattenToolCallsForAudit(result.steps),
+      durationMs: Math.round(performance.now() - agentStart),
+    }).catch((e) => console.error("[audit] append failed", e));
     return { text: finalText, hints, toolCalls: extraToolCalls };
   } catch (err) {
     const errText = await handleAgentError(err, userId, traceId);
     endAgent({ error: err instanceof Error ? err.message : String(err) });
+    appendAuditEntry(userId, {
+      traceId,
+      hint: opts?.hint,
+      userMessage: getLastUserText(messages),
+      reply: errText,
+      toolCalls: [],
+      error: err instanceof Error ? err.message : String(err),
+      durationMs: Math.round(performance.now() - agentStart),
+    }).catch((e) => console.error("[audit] append failed", e));
     return {
       text: errText,
       hints: {
