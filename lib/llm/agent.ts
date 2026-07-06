@@ -230,7 +230,11 @@ function formatProcessed(processed: ProcessedResult): string {
     const intro = isReauth
       ? "Your Google connection expired and needs to be refreshed."
       : "I need access to your Google account to do that.";
-    return `${intro}\n\nType "connect google" to reconnect — it only takes a few seconds.\n\n${processed.authNeeded.connectUrl}`;
+    // Don't paste the raw connect URL into text — it's dead, unselectable
+    // text inside a Flex bubble. Tapping "Connect Google" below (added via
+    // hints.needsGoogleConnect in enrichReply) sends "connect google", which
+    // replies with a real tappable button.
+    return `${intro}\n\nTap "Connect Google" below to reconnect — it only takes a few seconds.`;
   }
   if (processed.apiDisabled) {
     const enableHint = processed.apiDisabled.enableUrl
@@ -800,8 +804,12 @@ async function handleAgentError(err: unknown, userId: string, traceId?: string):
   try {
     const authErr = unwrapAuthRequired(err);
     if (authErr) {
-      const url = await buildConnectUrl(userId);
-      return `To do that I need access to your Google account. Connect here (link expires in 10 min):\n${url}`;
+      // Ensures the connect link exists / env is configured, but we don't paste
+      // the raw URL into text (dead, unselectable inside a Flex text bubble).
+      // hints.needsGoogleConnect (set below) adds a "Connect Google" quick
+      // reply that routes through the tappable-button shortcut instead.
+      await buildConnectUrl(userId);
+      return `To do that I need access to your Google account. Tap "Connect Google" below to connect it.`;
     }
   } catch (e) {
     console.error("[agent] buildConnectUrl failed in error handler", e);

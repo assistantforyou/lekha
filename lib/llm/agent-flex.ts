@@ -7,6 +7,7 @@ import {
   calendarEventsFlex,
   newsFlex,
   briefingFlex,
+  googleConnectFlex,
 } from "@/lib/line/flex";
 import { buildPlacesFlex, type PlaceItem } from "@/lib/line/places-flex";
 import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
@@ -851,6 +852,17 @@ export function buildFlexFromToolResults(
           out.push(buildStockHistoryFlex(value));
           suppressText = true;
         } catch { /* skip */ }
+        seen.add(toolName);
+        continue;
+      }
+
+      // ── Google connect link ─────────────────────────────────────────────
+      // The model tends to paste the raw URL from the tool result into its
+      // text reply, which is dead/unselectable inside a Flex text bubble.
+      // Render a real tappable button instead and suppress the model's text.
+      if (toolName === "connect_google_account" && typeof value.url === "string") {
+        out.push(googleConnectFlex(value.url));
+        suppressText = true;
         seen.add(toolName);
         continue;
       }

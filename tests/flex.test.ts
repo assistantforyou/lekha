@@ -9,6 +9,7 @@ import {
   briefingFlex,
   newsFlex,
   taskCheckinFlex,
+  googleConnectFlex,
 } from "@/lib/line/flex";
 
 describe("confirmCancelFlex", () => {
@@ -172,6 +173,28 @@ describe("taskCheckinFlex", () => {
     const json = JSON.stringify(msg.contents);
     const matches = json.match(/checkin:done:t\d+/g) ?? [];
     expect(matches.length).toBeLessThanOrEqual(10);
+  });
+});
+
+describe("googleConnectFlex", () => {
+  it("carries the connect URL on a uri button, not as bare text", () => {
+    const url = "https://lekha-iota.vercel.app/connect/abc123";
+    const msg = googleConnectFlex(url);
+    expect(msg.type).toBe("flex");
+    const json = JSON.stringify(msg.contents);
+    expect(json).toContain(`"type":"uri"`);
+    expect(json).toContain(`"uri":"${url}"`);
+    // The URL must not appear inside any "text" node — a bare URL in a Flex
+    // text component isn't auto-linkified by LINE and isn't tappable.
+    const textNodes = JSON.stringify(msg.contents).match(/"type":"text","text":"[^"]*"/g) ?? [];
+    for (const node of textNodes) {
+      expect(node).not.toContain(url);
+    }
+  });
+
+  it("supports a custom reason", () => {
+    const msg = googleConnectFlex("https://example.com/connect/x", { reason: "Reconnect to keep email working." });
+    expect(JSON.stringify(msg.contents)).toContain("Reconnect to keep email working.");
   });
 });
 

@@ -1,6 +1,6 @@
 import { replyOrPush, text as textMsg, showLoading, type LineMessage } from "@/lib/line/client";
 import { HELP_TEXT } from "@/lib/tools/help";
-import { helpFlex } from "@/lib/line/flex";
+import { helpFlex, googleConnectFlex } from "@/lib/line/flex";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
@@ -67,9 +67,9 @@ const SHORTCUTS: Shortcut[] = [
     async run({ userId, replyToken }) {
       const url = await buildConnectUrl(userId).catch(() => null);
       const msg = url
-        ? `Connect your Google account here (link expires in 10 min):\n${url}`
-        : "Couldn't generate a connect link — make sure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.";
-      await replyOrPush(userId, replyToken, [textMsg(msg)]);
+        ? googleConnectFlex(url)
+        : textMsg("Couldn't generate a connect link — make sure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.");
+      await replyOrPush(userId, replyToken, [msg]);
     },
   },
   {
