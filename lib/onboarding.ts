@@ -17,10 +17,12 @@ export async function clearOnboarded(userId: string): Promise<void> {
 }
 
 /**
- * Start the interactive setup tutorial. The first message is sent as a push so
- * it feels like a one-time onboarding prompt; every step after that is a reply.
+ * Start the interactive setup tutorial. When triggered from a user message
+ * (replyToken present), the first step is sent as a reply in the same thread.
+ * When triggered without a replyToken (e.g. admin approval), it falls back to
+ * a push.
  */
-export async function startOnboarding(userId: string, _replyToken: string, displayName = ""): Promise<void> {
-  await startTutorial(userId, "", displayName);
+export async function startOnboarding(userId: string, replyToken: string, displayName = ""): Promise<void> {
+  await startTutorial(userId, replyToken, displayName);
 }
 

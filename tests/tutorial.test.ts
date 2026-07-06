@@ -37,6 +37,7 @@ import {
   getTutorialStep,
   TUTORIAL_SECTIONS,
 } from "@/lib/tutorial";
+import { startOnboarding } from "@/lib/onboarding";
 import { getSettings, _resetSettingsCache } from "@/lib/memory/settings";
 
 describe("setup tutorial", () => {
@@ -53,6 +54,13 @@ describe("setup tutorial", () => {
     expect(first.text).toContain("James");
     // Tutorial step is set so the user can continue after tapping the button.
     expect(await getTutorialStep("U1")).toBe(0);
+  });
+
+  it("startOnboarding replies the first step when a replyToken is provided", async () => {
+    await startOnboarding("U1", "token", "James");
+    expect(await getTutorialStep("U1")).toBe(0);
+    expect(sent.length).toBe(1);
+    expect(sent[0]!.messages[0]).toMatchObject({ type: "flex" });
   });
 
   it("moves through tutorial steps and applies settings", async () => {
