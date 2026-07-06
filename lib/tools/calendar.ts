@@ -5,7 +5,7 @@ import { getGoogleClient } from "./google-auth";
 import { withGoogleClient, guardGoogleApiCall } from "./with-google";
 import { appendPending, type CreateCalendarEventAction } from "@/lib/confirm";
 import { getSettings } from "@/lib/memory/settings";
-import { schedulePreMeetingAlerts } from "@/lib/proactive-schedules";
+import { schedulePreMeetingAlerts, cancelPreMeetingAlerts } from "@/lib/proactive-schedules";
 
 const CAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const CAL_READ_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
@@ -150,6 +150,24 @@ export function buildCalendarTools(userId: string) {
             requestBody: patch,
             sendUpdates: attendees !== undefined ? "all" : "none",
           });
+          // If the time moved, the old pre-meeting alerts (scheduled off the
+          // original start time) now fire at the wrong offset — re-anchor them.
+          // Never let this mask the successful patch above.
+          if (startISO !== undefined) {
+            try {
+              await cancelPreMeetingAlerts(userId, eventId);
+              const settings = await getSettings(userId);
+              if (settings.preMeetingLeads.length > 0) {
+                await schedulePreMeetingAlerts(userId, eventId, startISO, settings.preMeetingLeads);
+              }
+            } catch (err) {
+              console.error("[calendar] pre-meeting alert reschedule failed (event still updated)", {
+                userId,
+                eventId,
+                error: err instanceof Error ? err.message : String(err),
+              });
+            }
+          }
           return {
             ok: true as const,
             updated: {
@@ -176,6 +194,18 @@ export function buildCalendarTools(userId: string) {
         return withGoogleClient(userId, fromEmail, [CAL_SCOPE], async ({ client }) => {
           const calendar = google.calendar({ version: "v3", auth: client });
           await calendar.events.delete({ calendarId: "primary", eventId });
+          // Deleting the event doesn't cancel its pre-meeting alerts — without
+          // this they'd fire on schedule referencing an event that no longer
+          // exists. Never let a cancellation failure mask the successful delete.
+          try {
+            await cancelPreMeetingAlerts(userId, eventId);
+          } catch (err) {
+            console.error("[calendar] pre-meeting alert cancel failed (event still deleted)", {
+              userId,
+              eventId,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
           return { ok: true as const };
         });
       },
