@@ -12,9 +12,10 @@ const TEXT = "#333333";
 const TUTORIAL_KEY = (userId: string) => `user:${userId}:tutorial:step`;
 const TUTORIAL_WAITING_KEY = (userId: string) => `user:${userId}:tutorial:waiting`;
 
-export const TUTORIAL_SECTIONS = ["locale", "briefing", "tools", "persona", "memory"] as const;
+export const TUTORIAL_SECTIONS = ["language", "locale", "briefing", "tools", "persona", "memory"] as const;
 type TutorialSection = (typeof TUTORIAL_SECTIONS)[number];
 type WaitingField = "timezone" | "location" | "morning" | "evening" | "checkin";
+type Lang = "en" | "th";
 
 function header(title: string, step: string): object {
   return {
@@ -80,6 +81,133 @@ function customButton(label: string, field: WaitingField): object {
   return postbackButton(label, `tutorial:custom:${field}`, "secondary");
 }
 
+const T = {
+  en: {
+    welcome: "Welcome! Let's set up Lekha in 30 seconds.",
+    welcomeStart: "Start setup",
+    tapToStart: "Tap the button below to start.",
+    languageTitle: "🌐 Language",
+    languageDescription: "Choose the language I'll use for setup and replies. You can change this later.",
+    english: "English",
+    thai: "ไทย",
+    localeTitle: "🌐 Location",
+    localeDescription: "Choose your timezone and location. Pick Bangkok if you're in Thailand, or type a custom city.",
+    replyLanguage: "Reply language",
+    auto: "Auto",
+    timezone: "Timezone",
+    location: "Location",
+    bangkok: "Bangkok",
+    custom: "Custom",
+    skip: "Skip",
+    briefingTitle: "📰 Daily Briefings",
+    briefingDescription: "Pick times for your morning briefing, evening summary, and task check-in. Or turn them off.",
+    morningBriefing: "Morning briefing",
+    eveningSummary: "Evening summary",
+    taskCheckIn: "Task check-in",
+    off: "Off",
+    toolsTitle: "🛠 Tools",
+    toolsDescription: "Choose what I can help you with. You can change this anytime in settings.",
+    toolsAll: "✅ All 5 tools",
+    toolsProductivity: "📅 Productivity",
+    toolsCommunication: "📧 Communication",
+    toolsMinimal: "📝 Minimal",
+    toolsChat: "🔒 Just chat",
+    personaTitle: "🎭 Persona",
+    personaDescription: "Choose how I sound and how I address you.",
+    tone: "Tone",
+    addressYouAs: "Address you as",
+    warm: "Warm",
+    professional: "Professional",
+    playful: "Playful",
+    firstName: "First name",
+    khun: "Khun",
+    sirMadam: "Sir / Madam",
+    noAddress: "No address",
+    memoryTitle: "🧠 Memory",
+    memoryDescription: "I remember facts from our chats, full documents you upload, and transcripts of voice memos. You can ask about any of them later.",
+    autoExtractFacts: "Auto-extract facts",
+    on: "On",
+    tidyUpMemory: "Tidy up memory every",
+    messages: "messages",
+    finish: "Finish",
+    back: "← Back",
+    next: "Next →",
+    allSet: "You're all set! I'll remember your choices. Type =settings= anytime to change them, or just start chatting.",
+    customTimezonePrompt: "What timezone are you in? Type a city or country (e.g. Tokyo, London).",
+    customLocationPrompt: "Where are you based? Type a city or country (e.g. New York).",
+    customMorningPrompt: "What time for your morning briefing? (e.g. 07:30 or 7:30 AM)",
+    customEveningPrompt: "What time for your evening summary? (e.g. 21:00 or 9 PM)",
+    customCheckinPrompt: "What time for your task check-in? (e.g. 20:00 or 8 PM)",
+    timezoneError: "I didn't recognize that timezone. Try a city like Bangkok, Tokyo, or London.",
+    locationError: "Please type a real location (at least 2 characters).",
+    timeError: "I didn't catch the time. Try something like 07:30, 7:30 AM, 21:00, or 9 PM.",
+    tryAgain: "Please try again.",
+    tapButtonsOrRestart: "Tap the buttons above to finish setup, or type =tutorial to restart.",
+  },
+  th: {
+    welcome: "ยินดีต้อนรับ! มาตั้งค่า Lekha ใน 30 วินาทีกัน",
+    welcomeStart: "เริ่มตั้งค่า",
+    tapToStart: "แตะปุ่มด้านล่างเพื่อเริ่ม",
+    languageTitle: "🌐 ภาษา",
+    languageDescription: "เลือกภาษาที่ฉันจะใช้ตั้งค่าและตอบกลับ คุณสามารถเปลี่ยนได้ภายหลัง",
+    english: "English",
+    thai: "ไทย",
+    localeTitle: "🌐 ตำแหน่งที่ตั้ง",
+    localeDescription: "เลือกเขตเวลาและสถานที่ของคุณ เลือกกรุงเทพหากคุณอยู่ไทย หรือพิมพ์ชื่อเมืองอื่น",
+    replyLanguage: "ภาษาตอบกลับ",
+    auto: "อัตโนมัติ",
+    timezone: "เขตเวลา",
+    location: "สถานที่",
+    bangkok: "กรุงเทพ",
+    custom: "กำหนดเอง",
+    skip: "ข้าม",
+    briefingTitle: "📰 สรุปประจำวัน",
+    briefingDescription: "เลือกเวลารับสรุปตอนเช้า สรุปตอนเย็น และการเช็คงาน หรือปิดก็ได้",
+    morningBriefing: "สรุปตอนเช้า",
+    eveningSummary: "สรุปตอนเย็น",
+    taskCheckIn: "เช็คงาน",
+    off: "ปิด",
+    toolsTitle: "🛠 เครื่องมือ",
+    toolsDescription: "เลือกสิ่งที่ฉันช่วยคุณได้ คุณสามารถเปลี่ยนได้ทุกเมื่อในการตั้งค่า",
+    toolsAll: "✅ 5 เครื่องมือทั้งหมด",
+    toolsProductivity: "📅 งานประจำวัน",
+    toolsCommunication: "📧 ติดต่อสื่อสาร",
+    toolsMinimal: "📝 พื้นฐาน",
+    toolsChat: "🔒 แชทอย่างเดียว",
+    personaTitle: "🎭 บุคลิก",
+    personaDescription: "เลือกลักษณะการพูดและวิธีเรียกคุณ",
+    tone: "โทน",
+    addressYouAs: "วิธีเรียกคุณ",
+    warm: "เป็นกันเอง",
+    professional: "ทางการ",
+    playful: "สนุกสนาน",
+    firstName: "ชื่อจริง",
+    khun: "คุณ",
+    sirMadam: "ท่าน",
+    noAddress: "ไม่เรียก",
+    memoryTitle: "🧠 ความจำ",
+    memoryDescription: "ฉันจำข้อเท็จจริงจากแชท เอกสารที่คุณอัปโหลด และสคริปต์เสียงบันทึก คุณถามได้ทุกเมื่อ",
+    autoExtractFacts: "สรุปข้อเท็จจริงอัตโนมัติ",
+    on: "เปิด",
+    tidyUpMemory: "จัดระเบียบความจำทุก",
+    messages: "ข้อความ",
+    finish: "เสร็จสิ้น",
+    back: "← กลับ",
+    next: "ต่อไป →",
+    allSet: "ตั้งค่าเสร็จแล้ว! ฉันจะจำการตั้งค่าของคุณ พิมพ์ =settings= เพื่อเปลี่ยน หรือเริ่มแชทได้เลย",
+    customTimezonePrompt: "คุณอยู่ในเขตเวลาใด? พิมพ์ชื่อเมืองหรือประเทศ (เช่น โตเกียว ลอนดอน)",
+    customLocationPrompt: "คุณอยู่ที่ไหน? พิมพ์ชื่อเมืองหรือประเทศ (เช่น นิวยอร์ก)",
+    customMorningPrompt: "สรุปตอนเช้ากี่โมง? (เช่น 07:30 หรือ 7:30 AM)",
+    customEveningPrompt: "สรุปตอนเย็นกี่โมง? (เช่น 21:00 หรือ 9 PM)",
+    customCheckinPrompt: "เช็คงานกี่โมง? (เช่น 20:00 หรือ 8 PM)",
+    timezoneError: "ฉันไม่รู้จักเขตเวลานั้น ลองชื่อเมืองเช่น กรุงเทพ โตเกียว หรือ ลอนดอน",
+    locationError: "กรุณาพิมพ์สถานที่จริง (อย่างน้อย 2 ตัวอักษร)",
+    timeError: "ฉันไม่เข้าใจเวลา ลองเช่น 07:30, 7:30 AM, 21:00 หรือ 9 PM",
+    tryAgain: "กรุณาลองอีกครั้ง",
+    tapButtonsOrRestart: "แตะปุ่มด้านบนเพื่อตั้งค่าต่อ หรือพิมพ์ =tutorial เพื่อเริ่มใหม่",
+  },
+};
+
 // Map common English / Thai inputs to IANA timezones.
 const TIMEZONE_ALIASES: Record<string, string> = {
   bangkok: "Asia/Bangkok",
@@ -116,10 +244,13 @@ const TIMEZONE_ALIASES: Record<string, string> = {
   เบอร์ลิน: "Europe/Berlin",
 };
 
+function tutorialLang(settings: UserSettings): Lang {
+  return settings.language === "th" ? "th" : "en";
+}
+
 function resolveTimezone(input: string): string | null {
   const key = input.trim().toLowerCase();
   if (TIMEZONE_ALIASES[key]) return TIMEZONE_ALIASES[key];
-  // Try common IANA forms like "Asia/Tokyo" or "asia-tokyo".
   const normalized = key.replace(/_/g, "/").replace(/-/g, "/");
   if (normalized.includes("/") && !normalized.startsWith("/")) return normalized;
   return null;
@@ -127,7 +258,6 @@ function resolveTimezone(input: string): string | null {
 
 function parseCustomTime(input: string): string | null {
   const t = input.trim().toLowerCase();
-  // "7", "7am", "07:00", "7:00 am", "19:00", "9pm"
   const m = t.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
   if (!m) return null;
   let h = Number(m[1]);
@@ -137,7 +267,6 @@ function parseCustomTime(input: string): string | null {
   if (Number.isNaN(min) || min < 0 || min > 59) return null;
   if (amp === "pm" && h !== 12) h += 12;
   if (amp === "am" && h === 12) h = 0;
-  if (amp && h > 12) return null;
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
@@ -154,165 +283,201 @@ function tutorialBubble(step: number, total: number, title: string, description:
   };
 }
 
-function navRow(back: boolean, nextLabel: string): object {
+function navRow(lang: Lang, back: boolean): object {
+  const t = T[lang];
   const contents: object[] = [];
-  if (back) contents.push(postbackButton("← Back", "tutorial:back", "secondary"));
-  contents.push(postbackButton(nextLabel, "tutorial:next", "primary"));
+  if (back) contents.push(postbackButton(t.back, "tutorial:back", "secondary"));
+  contents.push(postbackButton(t.next, "tutorial:next", "primary"));
   return { type: "box", layout: "horizontal", margin: "md", spacing: "sm", contents };
 }
 
+function finishNavRow(lang: Lang): object {
+  const t = T[lang];
+  return { type: "box", layout: "horizontal", margin: "md", spacing: "sm", contents: [postbackButton(t.back, "tutorial:back", "secondary"), postbackButton(t.finish, "tutorial:next", "primary")] };
+}
+
+async function languageStep(settings: UserSettings): Promise<FlexMessage> {
+  // The language step is intentionally bilingual so it's understandable before a choice is made.
+  return {
+    type: "flex",
+    altText: "Choose your language / เลือกภาษา",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: header("🌐 Language / ภาษา", "Setup step 1 of 6"),
+      body: body([
+        hint("Choose the language for setup and replies. / เลือกภาษาสำหรับการตั้งค่าและการตอบกลับ"),
+        separator(),
+        {
+          type: "box",
+          layout: "vertical",
+          spacing: "sm",
+          contents: [
+            optionButton("English", "tutorial:set:language:en", settings.language === "en"),
+            optionButton("ไทย", "tutorial:set:language:th", settings.language === "th"),
+          ],
+        },
+      ]),
+    },
+  };
+}
+
 async function localeStep(settings: UserSettings): Promise<FlexMessage> {
+  const lang = tutorialLang(settings);
+  const t = T[lang];
   const languages = [
-    { label: "Auto", value: "auto", on: settings.language === null },
+    { label: t.auto, value: "auto", on: settings.language === null },
     { label: "English", value: "en", on: settings.language === "en" },
     { label: "ไทย", value: "th", on: settings.language === "th" },
   ];
   const bangkokTz = settings.timezone === "Asia/Bangkok";
   const bangkokLoc = settings.location === "Bangkok, Thailand";
-  return tutorialBubble(1, 5, "🌐 Language & Location", "Pick your language. For timezone and location, choose Bangkok if you're in Thailand, or type a custom city.", [
+  return tutorialBubble(2, 6, t.localeTitle, t.localeDescription, [
     chipRow(
-      "Reply language (Auto = match you)",
+      t.replyLanguage,
       languages.map((o) => optionButton(o.label, `tutorial:set:language:${o.value}`, o.on)),
       3,
     ),
     chipRow(
-      "Timezone",
-      [optionButton("Bangkok", "tutorial:set:timezone:Asia/Bangkok", bangkokTz), customButton("Custom", "timezone")],
+      t.timezone,
+      [optionButton(t.bangkok, "tutorial:set:timezone:Asia/Bangkok", bangkokTz), customButton(t.custom, "timezone")],
       2,
     ),
     chipRow(
-      "Location",
+      t.location,
       [
-        optionButton("Bangkok", "tutorial:set:location:Bangkok, Thailand", bangkokLoc),
-        customButton("Custom", "location"),
-        optionButton("Skip", "tutorial:set:location:skip", settings.location === null),
+        optionButton(t.bangkok, "tutorial:set:location:Bangkok, Thailand", bangkokLoc),
+        customButton(t.custom, "location"),
+        optionButton(t.skip, "tutorial:set:location:skip", settings.location === null),
       ],
       1,
     ),
-    navRow(false, "Next →"),
+    navRow(lang, false),
   ]);
 }
 
 async function briefingStep(settings: UserSettings): Promise<FlexMessage> {
-  const morningOn = (t: string) => settings.morningBriefingTime === t;
-  const eveningOn = (t: string) => settings.eveningSummaryEnabled && settings.eveningSummaryTime === t;
-  const checkinOn = (t: string) => settings.taskCheckInEnabled && settings.taskCheckInTime === t;
-  return tutorialBubble(2, 5, "📰 Daily Briefings", "I can send you a morning briefing, an evening summary, and a task check-in. Pick preset times, type a custom time, or turn them off.", [
+  const lang = tutorialLang(settings);
+  const t = T[lang];
+  const morningOn = (time: string) => settings.morningBriefingTime === time;
+  const eveningOn = (time: string) => settings.eveningSummaryEnabled && settings.eveningSummaryTime === time;
+  const checkinOn = (time: string) => settings.taskCheckInEnabled && settings.taskCheckInTime === time;
+  return tutorialBubble(3, 6, t.briefingTitle, t.briefingDescription, [
     chipRow(
-      "Morning briefing",
+      t.morningBriefing,
       [
         optionButton("07:00", "tutorial:set:morning:07:00", morningOn("07:00")),
         optionButton("08:00", "tutorial:set:morning:08:00", morningOn("08:00")),
-        customButton("Custom", "morning"),
-        optionButton("Off", "tutorial:set:morning:off", settings.morningBriefingTime === null),
+        customButton(t.custom, "morning"),
+        optionButton(t.off, "tutorial:set:morning:off", settings.morningBriefingTime === null),
       ],
       2,
     ),
     chipRow(
-      "Evening summary",
+      t.eveningSummary,
       [
         optionButton("20:00", "tutorial:set:evening:20:00", eveningOn("20:00")),
         optionButton("21:00", "tutorial:set:evening:21:00", eveningOn("21:00")),
-        customButton("Custom", "evening"),
-        optionButton("Off", "tutorial:set:evening:off", !settings.eveningSummaryEnabled),
+        customButton(t.custom, "evening"),
+        optionButton(t.off, "tutorial:set:evening:off", !settings.eveningSummaryEnabled),
       ],
       2,
     ),
     chipRow(
-      "Task check-in",
+      t.taskCheckIn,
       [
         optionButton("19:00", "tutorial:set:checkin:19:00", checkinOn("19:00")),
         optionButton("20:00", "tutorial:set:checkin:20:00", checkinOn("20:00")),
-        customButton("Custom", "checkin"),
-        optionButton("Off", "tutorial:set:checkin:off", !settings.taskCheckInEnabled),
+        customButton(t.custom, "checkin"),
+        optionButton(t.off, "tutorial:set:checkin:off", !settings.taskCheckInEnabled),
       ],
       2,
     ),
-    navRow(true, "Next →"),
+    navRow(lang, true),
   ]);
 }
 
-type ToolPreset = { label: string; value: string; tools: Record<string, boolean> };
+type ToolPreset = { labelKey: keyof (typeof T)["en"]; value: string; tools: Record<string, boolean> };
 
 function matchesPreset(settings: UserSettings, preset: ToolPreset): boolean {
   return Object.entries(preset.tools).every(([k, v]) => settings.tools[k as keyof UserSettings["tools"]] === v);
 }
 
 async function toolsStep(settings: UserSettings): Promise<FlexMessage> {
+  const lang = tutorialLang(settings);
+  const t = T[lang];
   const presets: ToolPreset[] = [
-    { label: "✅ All 5 tools", value: "all", tools: { todo: true, reminders: true, calendar: true, email: true, drive: true } },
-    { label: "📅 Productivity (tasks, reminders, calendar)", value: "productivity", tools: { todo: true, reminders: true, calendar: true, email: false, drive: false } },
-    { label: "📧 Communication (email + calendar)", value: "communication", tools: { todo: false, reminders: false, calendar: true, email: true, drive: false } },
-    { label: "📝 Minimal (tasks + reminders only)", value: "minimal", tools: { todo: true, reminders: true, calendar: false, email: false, drive: false } },
-    { label: "🔒 Just chat (no Google tools)", value: "chat", tools: { todo: false, reminders: false, calendar: false, email: false, drive: false } },
+    { labelKey: "toolsAll", value: "all", tools: { todo: true, reminders: true, calendar: true, email: true, drive: true } },
+    { labelKey: "toolsProductivity", value: "productivity", tools: { todo: true, reminders: true, calendar: true, email: false, drive: false } },
+    { labelKey: "toolsCommunication", value: "communication", tools: { todo: false, reminders: false, calendar: true, email: true, drive: false } },
+    { labelKey: "toolsMinimal", value: "minimal", tools: { todo: true, reminders: true, calendar: false, email: false, drive: false } },
+    { labelKey: "toolsChat", value: "chat", tools: { todo: false, reminders: false, calendar: false, email: false, drive: false } },
   ];
-  return tutorialBubble(3, 5, "🛠 Tools", "Choose what I can help with. You can change this anytime by typing =settings=.", [
+  return tutorialBubble(4, 6, t.toolsTitle, t.toolsDescription, [
     {
       type: "box",
       layout: "vertical",
       spacing: "sm",
-      contents: presets.map((p) => postbackButton(p.label, `tutorial:set:tools:${p.value}`, matchesPreset(settings, p) ? "primary" : "secondary")),
+      contents: presets.map((p) => postbackButton(t[p.labelKey], `tutorial:set:tools:${p.value}`, matchesPreset(settings, p) ? "primary" : "secondary")),
     },
     separator(),
-    navRow(true, "Next →"),
+    navRow(lang, true),
   ]);
 }
 
 async function personaStep(settings: UserSettings): Promise<FlexMessage> {
+  const lang = tutorialLang(settings);
+  const t = T[lang];
   const tones = [
-    { label: "🙂 Warm", value: "Warm", on: settings.personaTone === "Warm" },
-    { label: "👔 Professional", value: "Professional", on: settings.personaTone === "Professional" },
-    { label: "😄 Playful", value: "Playful", on: settings.personaTone === "Playful" },
+    { label: t.warm, value: "Warm", on: settings.personaTone === "Warm" },
+    { label: t.professional, value: "Professional", on: settings.personaTone === "Professional" },
+    { label: t.playful, value: "Playful", on: settings.personaTone === "Playful" },
   ];
   const addressing = [
-    { label: "👤 First name", value: "First name", on: settings.personaAddressing === "First name" },
-    { label: "🙏 Khun", value: "Khun", on: settings.personaAddressing === "Khun" },
-    { label: "🎩 Sir / Madam", value: "Sir / Madam", on: settings.personaAddressing === "Sir / Madam" },
-    { label: "🚫 No address", value: "No address", on: settings.personaAddressing === "No address" },
+    { label: t.firstName, value: "First name", on: settings.personaAddressing === "First name" },
+    { label: t.khun, value: "Khun", on: settings.personaAddressing === "Khun" },
+    { label: t.sirMadam, value: "Sir / Madam", on: settings.personaAddressing === "Sir / Madam" },
+    { label: t.noAddress, value: "No address", on: settings.personaAddressing === "No address" },
   ];
-  return tutorialBubble(4, 5, "🎭 Persona", "Choose how I sound and how I address you.", [
-    chipRow("Tone", tones.map((o) => optionButton(o.label, `tutorial:set:personaTone:${o.value}`, o.on)), 1),
-    chipRow("Address you as", addressing.map((o) => optionButton(o.label, `tutorial:set:personaAddressing:${o.value}`, o.on)), 1),
-    navRow(true, "Next →"),
+  return tutorialBubble(5, 6, t.personaTitle, t.personaDescription, [
+    chipRow(t.tone, tones.map((o) => optionButton(o.label, `tutorial:set:personaTone:${o.value}`, o.on)), 1),
+    chipRow(t.addressYouAs, addressing.map((o) => optionButton(o.label, `tutorial:set:personaAddressing:${o.value}`, o.on)), 1),
+    navRow(lang, true),
   ]);
 }
 
 async function memoryStep(settings: UserSettings): Promise<FlexMessage> {
+  const lang = tutorialLang(settings);
+  const t = T[lang];
   const intervals = [
     { label: "5", value: "5", on: settings.memoryCompactAt === 5 },
     { label: "10", value: "10", on: settings.memoryCompactAt === 10 },
     { label: "20", value: "20", on: settings.memoryCompactAt === 20 },
     { label: "50", value: "50", on: settings.memoryCompactAt === 50 },
   ];
-  return tutorialBubble(
-    5,
-    5,
-    "🧠 Memory",
-    "I remember facts from our chats, full documents you upload, and transcripts of voice memos. You can ask about any of them later.",
-    [
-      {
-        type: "box",
-        layout: "horizontal",
-        margin: "md",
-        spacing: "md",
-        alignItems: "center",
-        contents: [
-          {
-            type: "box",
-            layout: "vertical",
-            flex: 1,
-            contents: [
-              { type: "text", text: "Auto-extract facts", weight: "bold", size: "sm", color: TEXT },
-              { type: "text", text: settings.memoryEnabled ? "On" : "Off", size: "xs", color: settings.memoryEnabled ? OK : MUTED },
-            ],
-          },
-          postbackButton(settings.memoryEnabled ? "Turn off" : "Turn on", `tutorial:set:memoryEnabled:${settings.memoryEnabled ? "false" : "true"}`, "primary"),
-        ],
-      },
-      chipRow("Tidy up memory every N messages", intervals.map((o) => optionButton(o.label, `tutorial:set:memoryCompactAt:${o.value}`, o.on)), 4),
-      navRow(true, "Finish ✅"),
-    ],
-  );
+  return tutorialBubble(6, 6, t.memoryTitle, t.memoryDescription, [
+    {
+      type: "box",
+      layout: "horizontal",
+      margin: "md",
+      spacing: "md",
+      alignItems: "center",
+      contents: [
+        {
+          type: "box",
+          layout: "vertical",
+          flex: 1,
+          contents: [
+            { type: "text", text: t.autoExtractFacts, weight: "bold", size: "sm", color: TEXT },
+            { type: "text", text: settings.memoryEnabled ? t.on : "Off", size: "xs", color: settings.memoryEnabled ? OK : MUTED },
+          ],
+        },
+        postbackButton(settings.memoryEnabled ? "Turn off" : "Turn on", `tutorial:set:memoryEnabled:${settings.memoryEnabled ? "false" : "true"}`, "primary"),
+      ],
+    },
+    chipRow(`${t.tidyUpMemory} N ${t.messages}`, intervals.map((o) => optionButton(o.label, `tutorial:set:memoryCompactAt:${o.value}`, o.on)), 4),
+    finishNavRow(lang),
+  ]);
 }
 
 export async function getTutorialStep(userId: string): Promise<number> {
@@ -344,6 +509,7 @@ export async function setTutorialWaiting(userId: string, field: string | null): 
 async function bubbleForStep(settings: UserSettings, step: number): Promise<FlexMessage | null> {
   const section = TUTORIAL_SECTIONS[step];
   if (!section) return null;
+  if (section === "language") return languageStep(settings);
   if (section === "locale") return localeStep(settings);
   if (section === "briefing") return briefingStep(settings);
   if (section === "tools") return toolsStep(settings);
@@ -364,8 +530,9 @@ export async function sendTutorialStep(userId: string, replyToken: string, step:
 export async function startTutorial(userId: string, replyToken: string, displayName = ""): Promise<void> {
   await setTutorialStep(userId, 0);
   if (!replyToken) {
-    // Initial welcome push — the user taps the button to begin.
-    const welcome = `Hi${displayName ? `, ${displayName}` : ""}! Welcome to Lekha 👋\n\nLet's set up your account in 30 seconds so I can be your perfect assistant.`;
+    const welcome = displayName
+      ? `Hi ${displayName}! Welcome to Lekha 👋\n\nLet's set up your account in 30 seconds.\n\nสวัสดี ${displayName}! ยินดีต้อนรับสู่ Lekha 👋\n\nมาตั้งค่าบัญชีของคุณใน 30 วินาทีกัน`
+      : "Welcome to Lekha 👋\n\nLet's set up your account in 30 seconds.\n\nยินดีต้อนรับสู่ Lekha 👋\n\nมาตั้งค่าบัญชีของคุณใน 30 วินาทีกัน";
     await replyOrPush(userId, "", [
       textMsg(welcome),
       {
@@ -375,8 +542,8 @@ export async function startTutorial(userId: string, replyToken: string, displayN
           type: "bubble",
           size: "mega",
           body: body([
-            { type: "text", text: "Tap the button below to start.", size: "sm", color: TEXT, wrap: true },
-            { type: "box", layout: "horizontal", margin: "md", spacing: "sm", contents: [postbackButton("Start setup", "tutorial:start", "primary")] },
+            { type: "text", text: "Tap the button below to start. / แตะปุ่มด้านล่างเพื่อเริ่ม", size: "sm", color: TEXT, wrap: true },
+            { type: "box", layout: "horizontal", margin: "md", spacing: "sm", contents: [postbackButton("Start setup / เริ่มตั้งค่า", "tutorial:start", "primary")] },
           ]),
         },
       },
@@ -389,11 +556,12 @@ export async function startTutorial(userId: string, replyToken: string, displayN
 async function finishTutorial(userId: string, replyToken: string): Promise<void> {
   await clearTutorialStep(userId);
   await setTutorialWaiting(userId, null);
-  // Mark the user as onboarded so the setup tutorial doesn't run again.
   await redis().set(`user:${userId}:onboarded`, 1);
+  const settings = await getSettings(userId);
+  const t = T[tutorialLang(settings)];
   await replyOrPush(userId, replyToken, [
-    textMsg("You're all set! 🎉\n\nI'll remember your choices. Type =settings= anytime to change them, or just start chatting."),
-    settingsMainFlex(await getSettings(userId)),
+    textMsg(t.allSet),
+    settingsMainFlex(settings),
   ]);
 }
 
@@ -467,41 +635,45 @@ async function applyTutorialSetting(
   return patch;
 }
 
-function customPrompt(field: WaitingField): string {
+function customPrompt(field: WaitingField, lang: Lang): string {
+  const t = T[lang];
   switch (field) {
     case "timezone":
-      return "What timezone are you in? Type a city or country in English or Thai (e.g. Tokyo, โตเกียว, London, ลอนดอน).";
+      return t.customTimezonePrompt;
     case "location":
-      return "Where are you based? Type a city or country in English or Thai (e.g. New York, นิวยอร์ก).";
+      return t.customLocationPrompt;
     case "morning":
-      return "What time would you like your morning briefing? (e.g. 07:30 or 7:30 AM)";
+      return t.customMorningPrompt;
     case "evening":
-      return "What time would you like your evening summary? (e.g. 21:00 or 9 PM)";
+      return t.customEveningPrompt;
     case "checkin":
-      return "What time should I check in on your tasks? (e.g. 20:00 or 8 PM)";
+      return t.customCheckinPrompt;
   }
 }
 
 async function handleCustomInput(userId: string, replyToken: string, field: WaitingField, input: string): Promise<void> {
+  const settings = await getSettings(userId);
+  const lang = tutorialLang(settings);
+  const t = T[lang];
   let value: string | null = null;
   let error = "";
 
   if (field === "timezone") {
     const tz = resolveTimezone(input);
     if (tz) value = tz;
-    else error = "I didn't recognize that timezone. Try a city like Bangkok, Tokyo, London, or โตเกียว.";
+    else error = t.timezoneError;
   } else if (field === "location") {
     const loc = input.trim();
     if (loc.length >= 2) value = loc;
-    else error = "Please type a real location (at least 2 characters).";
+    else error = t.locationError;
   } else if (field === "morning" || field === "evening" || field === "checkin") {
     const time = parseCustomTime(input);
     if (time) value = time;
-    else error = "I didn't catch the time. Try something like 07:30, 7:30 AM, 21:00, or 9 PM.";
+    else error = t.timeError;
   }
 
   if (error || !value) {
-    await replyOrPush(userId, replyToken, [textMsg(error || "Couldn't understand that. Please try again.")]);
+    await replyOrPush(userId, replyToken, [textMsg(`${error} ${t.tryAgain}`)]);
     return;
   }
 
@@ -527,9 +699,9 @@ export async function handleTutorialText(userId: string, replyToken: string, use
     return true;
   }
 
-  await replyOrPush(userId, replyToken, [
-    textMsg("Tap the buttons above to finish setup, or type =tutorial to restart."),
-  ]);
+  const settings = await getSettings(userId);
+  const t = T[tutorialLang(settings)];
+  await replyOrPush(userId, replyToken, [textMsg(t.tapButtonsOrRestart)]);
   return true;
 }
 
@@ -546,15 +718,27 @@ export async function handleTutorialPostback(userId: string, replyToken: string,
     const value = args.slice(2).join(":");
     await setTutorialWaiting(userId, null);
     await applyTutorialSetting(userId, key, value);
-    const step = await getTutorialStep(userId);
-    if (step >= 0) await sendTutorialStep(userId, replyToken, step);
+    let step = await getTutorialStep(userId);
+    if (step < 0) return;
+    // Selecting language should immediately advance so the rest of the setup
+    // is shown in the chosen language.
+    if (key === "language") {
+      step = step + 1;
+      if (step >= TUTORIAL_SECTIONS.length) {
+        await finishTutorial(userId, replyToken);
+        return;
+      }
+    }
+    await sendTutorialStep(userId, replyToken, step);
     return;
   }
 
   if (action === "custom" && args[1]) {
     const field = args[1] as WaitingField;
+    const settings = await getSettings(userId);
+    const lang = tutorialLang(settings);
     await setTutorialWaiting(userId, field);
-    await replyOrPush(userId, replyToken, [textMsg(customPrompt(field))]);
+    await replyOrPush(userId, replyToken, [textMsg(customPrompt(field, lang))]);
     return;
   }
 

@@ -70,40 +70,44 @@ describe("setup tutorial", () => {
     await startTutorial("U1", "token");
     expect(await getTutorialStep("U1")).toBe(0);
 
-    // Step 0: locale
+    // Step 0: language
     await handleTutorialPostback("U1", "token", ["set", "language", "en"]);
-    await handleTutorialPostback("U1", "token", ["set", "timezone", "Asia/Tokyo"]);
-    await handleTutorialPostback("U1", "token", ["next"]);
     expect(await getTutorialStep("U1")).toBe(1);
     let s = await getSettings("U1");
     expect(s.language).toBe("en");
+
+    // Step 1: locale
+    await handleTutorialPostback("U1", "token", ["set", "timezone", "Asia/Tokyo"]);
+    await handleTutorialPostback("U1", "token", ["next"]);
+    expect(await getTutorialStep("U1")).toBe(2);
+    s = await getSettings("U1");
     expect(s.timezone).toBe("Asia/Tokyo");
 
-    // Step 1: briefings
+    // Step 2: briefings
     await handleTutorialPostback("U1", "token", ["set", "morning", "08:00"]);
     await handleTutorialPostback("U1", "token", ["set", "evening", "off"]);
     await handleTutorialPostback("U1", "token", ["next"]);
-    expect(await getTutorialStep("U1")).toBe(2);
+    expect(await getTutorialStep("U1")).toBe(3);
     s = await getSettings("U1");
     expect(s.morningBriefingTime).toBe("08:00");
     expect(s.eveningSummaryEnabled).toBe(false);
 
-    // Step 2: tools
+    // Step 3: tools
     await handleTutorialPostback("U1", "token", ["set", "tools", "minimal"]);
     await handleTutorialPostback("U1", "token", ["next"]);
-    expect(await getTutorialStep("U1")).toBe(3);
+    expect(await getTutorialStep("U1")).toBe(4);
     s = await getSettings("U1");
     expect(s.tools).toEqual({ todo: true, reminders: true, calendar: false, email: false, drive: false });
     expect(s.disabledCategories).toContain("calendar");
 
-    // Step 3: persona
+    // Step 4: persona
     await handleTutorialPostback("U1", "token", ["set", "personaTone", "Professional"]);
     await handleTutorialPostback("U1", "token", ["next"]);
-    expect(await getTutorialStep("U1")).toBe(4);
+    expect(await getTutorialStep("U1")).toBe(5);
     s = await getSettings("U1");
     expect(s.personaTone).toBe("Professional");
 
-    // Step 4: memory
+    // Step 5: memory
     await handleTutorialPostback("U1", "token", ["set", "memoryCompactAt", "20"]);
     await handleTutorialPostback("U1", "token", ["next"]);
     // Finished: tutorial step cleared and confirmation sent.
@@ -138,6 +142,7 @@ describe("setup tutorial", () => {
 
   it("accepts custom timezone input in English and Thai", async () => {
     await startTutorial("U1", "token");
+    await handleTutorialPostback("U1", "token", ["set", "language", "en"]);
     await handleTutorialPostback("U1", "token", ["custom", "timezone"]);
     const prompt = sent[sent.length - 1]!.messages[0] as { text?: string };
     expect(prompt.text).toContain("What timezone");
@@ -154,6 +159,7 @@ describe("setup tutorial", () => {
 
   it("accepts custom time and location input", async () => {
     await startTutorial("U1", "token");
+    await handleTutorialPostback("U1", "token", ["set", "language", "en"]);
     await handleTutorialPostback("U1", "token", ["custom", "morning"]);
     await handleTutorialText("U1", "token", "9:30 AM");
     let s = await getSettings("U1");
@@ -167,6 +173,7 @@ describe("setup tutorial", () => {
 
   it("supports new tool presets", async () => {
     await startTutorial("U1", "token");
+    await handleTutorialPostback("U1", "token", ["set", "language", "en"]);
     await handleTutorialPostback("U1", "token", ["set", "timezone", "Asia/Bangkok"]);
     await handleTutorialPostback("U1", "token", ["next"]);
     await handleTutorialPostback("U1", "token", ["set", "morning", "08:00"]);
@@ -177,7 +184,17 @@ describe("setup tutorial", () => {
     expect(s.tools).toEqual({ todo: false, reminders: false, calendar: true, email: true, drive: false });
   });
 
+  it("renders Thai after Thai language is chosen", async () => {
+    await startTutorial("U1", "token");
+    await handleTutorialPostback("U1", "token", ["set", "language", "th"]);
+    // A Thai-language bubble should have been sent for the locale step.
+    const lastFlex = sent.findLast((m) => (m.messages[0] as { type?: string }).type === "flex");
+    expect(lastFlex).toBeDefined();
+    const json = JSON.stringify(lastFlex!.messages[0]);
+    expect(json).toContain("ตำแหน่งที่ตั้ง");
+  });
+
   it("covers all settings sections", () => {
-    expect(TUTORIAL_SECTIONS).toEqual(["locale", "briefing", "tools", "persona", "memory"]);
+    expect(TUTORIAL_SECTIONS).toEqual(["language", "locale", "briefing", "tools", "persona", "memory"]);
   });
 });
