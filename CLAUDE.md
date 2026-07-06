@@ -288,6 +288,7 @@ Three tools in `lib/tools/documents.ts` expose this to the model: `list_document
 - **Upstash Vector index must be dim 768, cosine** to match Gemini `gemini-embedding-001` truncated via `outputDimensionality: 768`. Mismatch surfaces as silent upsert failures — as does any embedding-model 404/rename, which is exactly what happened when `text-embedding-004` was retired (see decision #12).
 - **LINE postback `data` capped at 300 chars** — pass IDs, never full content.
 - **LINE Flex Messages require `altText`** — without it the API call fails.
+- **LINE Flex text colors must be hex (`#RRGGBB`)** — `rgba()` is rejected with a 400 on `/header/contents/N/color`, the message never appears, and the only evidence is in Vercel logs. Always use hex colors in Flex templates.
 
 ## Claude bot access (testing without LINE)
 

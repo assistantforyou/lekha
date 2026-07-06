@@ -50,6 +50,11 @@ function sanitizeContents(contents: Record<string, unknown>, errors: string[]): 
   }
 
   if (type === "box") {
+    // LINE rejects `wrap` on box components; it's only valid on text elements.
+    if ("wrap" in contents) {
+      delete (contents as Record<string, unknown>).wrap;
+      errors.push("removed invalid 'wrap' from box");
+    }
     const arr = (contents as Record<string, unknown>).contents;
     if (!Array.isArray(arr)) {
       errors.push("box.contents must be an array");

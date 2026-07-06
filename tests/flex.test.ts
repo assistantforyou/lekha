@@ -11,6 +11,7 @@ import {
   taskCheckinFlex,
   googleConnectFlex,
 } from "@/lib/line/flex";
+import { validateFlexMessage } from "@/lib/line/flex/validate";
 
 describe("confirmCancelFlex", () => {
   it("emits a flex message with altText derived from summary", () => {
@@ -215,5 +216,28 @@ describe("parsePostbackData", () => {
 
   it("empty string yields empty verb", () => {
     expect(parsePostbackData("")).toEqual({ verb: "", args: [] });
+  });
+});
+
+describe("validateFlexMessage", () => {
+  it("strips invalid 'wrap' from box components", () => {
+    const msg = {
+      type: "flex",
+      altText: "Test",
+      contents: {
+        type: "bubble",
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            { type: "box", layout: "horizontal", wrap: true, contents: [] },
+          ],
+        },
+      },
+    };
+    const v = validateFlexMessage(msg);
+    expect(v.ok).toBe(true);
+    expect(JSON.stringify(v.message.contents)).not.toContain('"wrap"');
+    expect(v.errors.some((e) => e.includes("wrap"))).toBe(true);
   });
 });

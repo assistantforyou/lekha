@@ -53,16 +53,20 @@ function postbackButton(
   };
 }
 
-function chipRow(label: string, buttons: object[]): object {
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+function chipRow(label: string, buttons: object[], perRow = 3): object {
+  const rows = chunk(buttons, perRow).map((group) => ({ type: "box", layout: "horizontal", spacing: "sm", contents: group }));
   return {
     type: "box",
     layout: "vertical",
     margin: "md",
     spacing: "sm",
-    contents: [
-      { type: "text", text: label, weight: "bold", size: "sm", color: TEXT },
-      { type: "box", layout: "horizontal", spacing: "sm", wrap: true, contents: buttons },
-    ],
+    contents: [{ type: "text", text: label, weight: "bold", size: "sm", color: TEXT }, ...rows],
   };
 }
 
