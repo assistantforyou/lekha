@@ -8,13 +8,14 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated), per-u
 |---|---|
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
 | Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
-| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash, paid tier — no fallback) |
+| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash, paid-first, free-key fallback only if paid is down) |
 | Embeddings | Gemini `gemini-embedding-001` (truncated to 768 dims, L2-normalized) |
 | Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
 | Vector search | Upstash Vector — archive semantic search (substring fallback when unset) |
 | Scheduled jobs | Upstash QStash (one-shot reminders, deferred emails, recurring schedules, cron sweep) |
 | Web search | Tavily |
 | Google APIs | `googleapis` SDK — Gmail send/read/modify, Calendar events/readonly, Drive, People (contacts) |
+| Photo storage | User's Google Drive (free, default) → Vercel Blob fallback (`BLOB_READ_WRITE_TOKEN`, optional, WebP-compressed) — receipts only, for users without Google connected |
 | Validation | Zod |
 
 ## Quick commands
@@ -106,7 +107,7 @@ lib/
     ├── calendar.ts                    # 8 tools: draft/search/update/delete/list_upcoming/today/week/find_free_time
     ├── drive.ts                       # search/list_recent/get_link/read_text/upload_recent_media/create_folder/delete/move/rename/share
     ├── media-ai.ts                    # ocr/summarize_image + summarize/read_document — staged-media only
-    ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt — staged-media only; backs up the photo to Drive ("Lekha Receipts" folder) when Google is connected
+    ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt — staged-media only; backs up the photo to Drive ("Lekha Receipts" folder) or, if Google isn't connected, Vercel Blob (WebP-compressed)
     ├── sent-history.ts                # query the audit log
     ├── export.ts                      # JSON dump of all user data
     ├── weather.ts                     # weather — wttr.in primary, Open-Meteo fallback (both keyless)
@@ -256,6 +257,8 @@ Admin-only retrieval via `/audit <userId> [n]` (`lib/admin-commands.ts`, default
 - **AI SDK v6 swallows tool exceptions** — must use structured returns for control flow.
 - **Parallel tool calls in one step race** — atomic Redis ops mandatory.
 - **Gemini paid tier** — billing must be enabled on the Google Cloud project tied to `GEMINI_API_KEY`. Free tier RPM (10–30) is too low for agentic turns; paid tier (1,000+ RPM) absorbs the burst.
+- **Vercel Blob's Hobby (free) tier isn't metered/billed** — exceeding the included usage just pauses Blob access for 30 days, it does not charge you. Safe to use for the receipts-photo fallback without spend-management guardrails.
+- **`sharp` is a native addon** — Vercel's own `next/image` optimizer uses it, so it's well-supported on their Node.js runtime, but hasn't been explicitly verified end-to-end in this project yet. If receipt photos silently fail to reach Blob storage, check for a `sharp`-related error first.
 - **`HARM_CATEGORY_*` thresholds**: use `BLOCK_NONE` not `OFF`. Skip `CIVIC_INTEGRITY` (rejected on some variants).
 - **Vercel Marketplace's Upstash Redis injects `KV_*`** not `UPSTASH_REDIS_REST_*`.
 - **OAuth refresh tokens are tied to client_id** — swap projects → `invalid_grant`. Detected and translated to need-reauth.

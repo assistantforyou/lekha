@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import { google } from "googleapis";
 import { Readable } from "node:stream";
 import { extractorModel } from "@/lib/llm/provider";
+import { hasBlobStorage } from "@/lib/env";
 import { listRecentMedia } from "@/lib/memory/recent-media";
 import { getMessageContent } from "@/lib/line/client";
 import { withGoogleClient } from "./with-google";
@@ -17,24 +18,24 @@ import {
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 const RECEIPTS_FOLDER_NAME = "Lekha Receipts";
+/** Prefix keeps a user's receipt photos grouped and cheap to bulk-delete later. */
+const blobPathPrefix = (userId: string) => `receipts/${userId}`;
 
 function randomId(): string {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 8);
 }
 
-/**
- * Best-effort backup of the original receipt photo to the user's own Google
- * Drive — free storage that's already theirs, no new infra needed. Failures
- * (not connected, API error, etc.) are swallowed; the receipt still saves
- * with extracted data only, just without a "View photo" link.
- */
-async function backupReceiptPhoto(
+function slugify(merchant: string, date: string): string {
+  return `${date}_${merchant}`.replace(/[^\w\-. ]/g, "_").slice(0, 100);
+}
+
+/** Try the user's own Google Drive first — free, no storage limits of ours to manage. */
+async function backupToGoogleDrive(
   userId: string,
   bytes: Uint8Array,
   mediaType: string,
-  merchant: string,
-  date: string,
-): Promise<{ driveFileId?: string; driveLink?: string }> {
+  name: string,
+): Promise<{ photoStorage: "drive"; photoUrl: string } | null> {
   try {
     const result = await withGoogleClient(userId, undefined, [DRIVE_SCOPE], async ({ client }) => {
       const drive = google.drive({ version: "v3", auth: client });
@@ -51,21 +52,73 @@ async function backupReceiptPhoto(
         });
         folderId = created.data.id ?? undefined;
       }
-      const ext = mediaType.includes("png") ? "png" : "jpg";
-      const name = `${date}_${merchant}`.replace(/[^\w\-. ]/g, "_").slice(0, 100) + `.${ext}`;
       const r = await drive.files.create({
         requestBody: { name, ...(folderId ? { parents: [folderId] } : {}) },
         media: { mimeType: mediaType, body: Readable.from(Buffer.from(bytes)) },
         fields: "id,webViewLink",
       });
-      return { driveFileId: r.data.id ?? undefined, driveLink: r.data.webViewLink ?? undefined };
+      return r.data.webViewLink ?? null;
     });
-    if (result && "driveFileId" in result) return result;
-    return {};
+    if (typeof result === "string") return { photoStorage: "drive", photoUrl: result };
+    return null;
   } catch (err) {
     console.warn("[receipts] Drive photo backup failed", err);
-    return {};
+    return null;
   }
+}
+
+/**
+ * Fallback for users without Google connected: Vercel Blob's free (Hobby)
+ * tier is hard-capped, not billed — it just pauses access if exceeded, so
+ * there's no surprise-cost risk. Recompress to WebP first since it's ~70-80%
+ * smaller than the original JPEG/PNG at visually-equivalent quality, which
+ * stretches the free storage allowance considerably further.
+ */
+async function backupToBlobStorage(
+  bytes: Uint8Array,
+  userId: string,
+  name: string,
+): Promise<{ photoStorage: "blob"; photoUrl: string } | null> {
+  if (!hasBlobStorage()) return null;
+  try {
+    const [{ put }, sharp] = await Promise.all([
+      import("@vercel/blob"),
+      import("sharp").then((m) => m.default),
+    ]);
+    const webp = await sharp(Buffer.from(bytes)).resize(1600, 1600, { fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+    const blob = await put(`${blobPathPrefix(userId)}/${name}.webp`, webp, {
+      access: "public",
+      contentType: "image/webp",
+      addRandomSuffix: true,
+    });
+    return { photoStorage: "blob", photoUrl: blob.url };
+  } catch (err) {
+    console.warn("[receipts] Blob photo backup failed", err);
+    return null;
+  }
+}
+
+/**
+ * Best-effort backup of the original receipt photo so it can be pulled up
+ * again later. Tries the user's own Google Drive first (free, no quota of
+ * ours to manage); falls back to Vercel Blob (also free within Hobby limits,
+ * WebP-compressed) if Drive isn't connected or the upload fails. Returns {}
+ * if neither is available — the receipt still saves with extracted data only.
+ */
+async function backupReceiptPhoto(
+  userId: string,
+  bytes: Uint8Array,
+  mediaType: string,
+  merchant: string,
+  date: string,
+): Promise<{ photoStorage?: "drive" | "blob"; photoUrl?: string }> {
+  const name = slugify(merchant, date);
+  const ext = mediaType.includes("png") ? "png" : "jpg";
+  const drive = await backupToGoogleDrive(userId, bytes, mediaType, `${name}.${ext}`);
+  if (drive) return drive;
+  const blob = await backupToBlobStorage(bytes, userId, name);
+  if (blob) return blob;
+  return {};
 }
 
 const EXTRACT_PROMPT = `You are analyzing a receipt image. Extract the following and respond with ONLY valid JSON — no prose, no markdown fences.
@@ -91,7 +144,7 @@ export function buildReceiptTools(userId: string) {
   return {
     scan_receipt: tool({
       description:
-        "Scan a receipt photo the user sent in LINE. Extracts merchant, date, total, items, and category, then saves it to the user's receipt history. If the user has Google connected, also backs up the original photo to a 'Lekha Receipts' folder in their Drive so it can be pulled up again later (a 'View photo' button appears on list_receipts/search_receipts results) — otherwise only the extracted data is kept, no photo. Call this when the user sends a receipt image and wants to log or record it.",
+        "Scan a receipt photo the user sent in LINE. Extracts merchant, date, total, items, and category, then saves it to the user's receipt history. Also backs up the original photo — to a 'Lekha Receipts' folder in Google Drive if connected, otherwise to built-in storage — so it can be pulled up again later (a 'View photo' button appears on list_receipts/search_receipts results). If neither storage option is available, only the extracted data is kept, no photo. Call this when the user sends a receipt image and wants to log or record it.",
       inputSchema: z.object({
         index: z
           .number()
@@ -168,7 +221,7 @@ export function buildReceiptTools(userId: string) {
 
         const merchant = String(extracted["merchant"] ?? "Unknown");
         const date = String(extracted["date"] ?? new Date().toISOString().slice(0, 10));
-        const { driveFileId, driveLink } = await backupReceiptPhoto(userId, bytes, mediaType, merchant, date);
+        const { photoStorage, photoUrl } = await backupReceiptPhoto(userId, bytes, mediaType, merchant, date);
 
         const receipt: Receipt = {
           id: randomId(),
@@ -183,7 +236,7 @@ export function buildReceiptTools(userId: string) {
             : [],
           notes,
           imageMessageId: item.messageId,
-          ...(driveFileId ? { driveFileId, driveLink } : {}),
+          ...(photoUrl ? { photoStorage, photoUrl } : {}),
         };
 
         await appendReceipt(userId, receipt);

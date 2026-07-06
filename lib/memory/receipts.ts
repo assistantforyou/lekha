@@ -15,10 +15,10 @@ export type Receipt = {
   notes?: string;
   /** LINE message ID the image came from — may expire but kept for reference. */
   imageMessageId?: string;
-  /** Set when the original photo was uploaded to the user's Google Drive. */
-  driveFileId?: string;
-  /** Shareable Drive link for the saved photo — used for the "View photo" button. */
-  driveLink?: string;
+  /** Where the original photo was backed up, if anywhere. */
+  photoStorage?: "drive" | "blob";
+  /** Viewable link for the saved photo — used for the "View photo" button. */
+  photoUrl?: string;
 };
 
 const key = (userId: string) => `receipts:${userId}`;

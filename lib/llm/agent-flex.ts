@@ -1135,7 +1135,7 @@ export function buildFlexFromToolResults(
           return {
             primary: `${String(r.merchant ?? "Unknown")}${amount ? "  ·  " + amount : ""}`,
             secondary: r.date ? String(r.date).slice(0, 10) : undefined,
-            link: typeof r.driveLink === "string" ? r.driveLink : undefined,
+            link: typeof r.photoUrl === "string" ? r.photoUrl : undefined,
             linkLabel: "View photo",
           };
         });

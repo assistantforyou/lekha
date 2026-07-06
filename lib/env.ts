@@ -37,6 +37,11 @@ const Env = z.object({
   UPSTASH_VECTOR_REST_URL: z.string().url().optional(),
   UPSTASH_VECTOR_REST_TOKEN: z.string().min(1).optional(),
 
+  // Vercel Blob (fallback receipt-photo storage for users without Google
+  // connected). Auto-injected by Vercel once a Blob store is attached to the
+  // project — Storage tab → Create Database → Blob.
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
+
   // Crypto
   TOKEN_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/, "must be 64 hex chars"),
   OAUTH_STATE_SECRET: z.string().min(32),
@@ -117,4 +122,8 @@ export function hasQStash(): boolean {
 export function hasUpstashVector(): boolean {
   const e = env();
   return Boolean(e.UPSTASH_VECTOR_REST_URL && e.UPSTASH_VECTOR_REST_TOKEN);
+}
+
+export function hasBlobStorage(): boolean {
+  return Boolean(env().BLOB_READ_WRITE_TOKEN);
 }
