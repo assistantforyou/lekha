@@ -407,16 +407,20 @@ export async function runAgent(
 
     const endGenerate = span("agent:generateText", traceId);
 
-    // Build ordered tier list: free first (separate GCP project, no billing),
-    // paid as fallback. Skip a tier if its key is absent or recently marked down.
+    // Build ordered tier list: paid first, free as a last-resort fallback only
+    // if paid is down. Previously tried free first to save cost, but production
+    // logs showed the free tier's RPM (10-30, see CLAUDE.md gotchas) is too low
+    // for this agentic workload — it failed on essentially every single call,
+    // costing ~16-19s per turn retrying a call that was never going to succeed
+    // before falling back to paid anyway. Zero cost savings, pure latency tax.
     const [freeDown, paidDown] = await Promise.all([
       hasFreeKey() ? isTierDown("free") : Promise.resolve(true),
       hasPaidKey() ? isTierDown("paid") : Promise.resolve(true),
     ]);
     const tiersToTry: ("free" | "paid")[] = [];
-    if (hasFreeKey() && !freeDown) tiersToTry.push("free");
     if (hasPaidKey() && !paidDown) tiersToTry.push("paid");
-    if (tiersToTry.length === 0) tiersToTry.push(hasFreeKey() ? "free" : "paid");
+    if (hasFreeKey() && !freeDown) tiersToTry.push("free");
+    if (tiersToTry.length === 0) tiersToTry.push(hasPaidKey() ? "paid" : "free");
 
     let geminiRanToolCalls = false;
     let lastTierErr: unknown = null;

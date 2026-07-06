@@ -47,6 +47,30 @@ describe("fastClassify", () => {
     expect(fastClassify("connect my google account")).toBe("connect");
     expect(fastClassify("list my connected google accounts")).toBe("connect");
   });
+
+  it("classifies 'list my reminders' as 'reminder', matching the 'my' the task pattern already allows", () => {
+    // Regression: the pattern required "list" immediately followed by
+    // "reminder(s)" with no "my" in between, unlike the task pattern
+    // (list\s+(my\s+)?tasks?) which already handled this. Fell through to
+    // the full tool registry and Gemini blanked on live testing.
+    expect(fastClassify("list my reminders")).toBe("reminder");
+    expect(fastClassify("list reminders")).toBe("reminder");
+  });
+
+  it("handles plural nouns across all intents — \\b doesn't match mid-word", () => {
+    // Same bug class as the google-accounts and list-my-reminders regressions
+    // above, audited across the whole KEYWORD_MAP after finding it a third
+    // time live ("list my scheduled emails" blanked the model on production).
+    expect(fastClassify("cancel my reminders")).toBe("reminder");
+    expect(fastClassify("delete my reminders")).toBe("reminder");
+    expect(fastClassify("add tasks: buy milk, walk the dog")).toBe("task");
+    expect(fastClassify("delete my tasks")).toBe("task");
+    expect(fastClassify("what calendar events do I have")).toBe("calendar");
+    expect(fastClassify("schedule calls for next week")).toBe("calendar");
+    expect(fastClassify("list my scheduled emails")).toBe("email");
+    expect(fastClassify("send emails to the team")).toBe("email");
+    expect(fastClassify("search my memories for that")).toBe("memory");
+  });
 });
 
 describe("search-first prompt rules", () => {

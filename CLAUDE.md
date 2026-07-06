@@ -9,7 +9,7 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated), per-u
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
 | Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
 | LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash, paid tier — no fallback) |
-| Embeddings | Gemini `text-embedding-004` (768 dims) |
+| Embeddings | Gemini `gemini-embedding-001` (truncated to 768 dims, L2-normalized) |
 | Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
 | Vector search | Upstash Vector — archive semantic search (substring fallback when unset) |
 | Scheduled jobs | Upstash QStash (one-shot reminders, deferred emails, recurring schedules, cron sweep) |
@@ -162,7 +162,9 @@ Timezone, location, language, connected Google accounts, staged media — all li
 Settings use versioning + migration: `CURRENT_VERSION` in `lib/memory/settings.ts` defines the schema. When a new schema is deployed, `applyMigrations()` runs on read and writes back once, never overriding explicit user choices tracked in `userConfigured` array.
 
 ### 12. Long-term memory via Upstash Vector (with substring fallback)
-Every fact-extraction cycle (every 10 turns) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `text-embedding-004` (768 dims) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries. At 100+ users with growing archives, semantic search materially beats substring on questions like "what did we discuss about that bird-themed project".
+Every fact-extraction cycle (every 10 turns) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `gemini-embedding-001` (truncated to 768 dims via `outputDimensionality`, L2-normalized manually since only the native 3072-dim output is auto-normalized) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries. At 100+ users with growing archives, semantic search materially beats substring on questions like "what did we discuss about that bird-themed project".
+
+**Note:** `text-embedding-004` (the original model this was built against) was retired by Google at some point — every embed call was silently 404ing and falling back to substring for an unknown period before this was caught (2026-07-06). Embed failures only `console.warn`, so this kind of outage produces no user-visible error — if semantic recall feels off, check runtime logs for `[archive] embed failed` before assuming the query itself is the problem.
 
 ### 13. Proactive layer via master sweep
 A single QStash schedule hits `/api/cron/sweep` every 15 min (legacy endpoint; forwards to `lib/sweep.ts` `runSweepForUser`). Iterates `users:active` set, decides per-user whether to push (morning briefing window check, evening summary window check, task check-in window check). **There are no per-user QStash schedules for briefings/summaries.**
@@ -179,8 +181,10 @@ The bot is private by default. Every event hits the gate before any other logic.
 
 **Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome message), `/deny <id>` (remove from pending), `/status <id>` (diagnostic snapshot), `/force-briefing <id> [morning|evening]` (manual trigger), `/audit <id> [n]` (compliance trace — see decision #22). Anyone can `/myid` to get their own LINE userId.
 
-### 16. Single LLM provider — Gemini 2.5 Flash (paid), 30s timeout
-`runAgent` calls Gemini directly with the full tool registry. No cascade, no fallback. We moved off Flash Lite because it blanked/panicked on agentic tool use; full Flash handles the same workload reliably. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 30s, giving multi-step turns room without burning function time on real hangs. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
+### 16. Single LLM provider — Gemini 2.5 Flash (paid), 55s timeout
+`runAgent` calls Gemini directly with the full tool registry. We moved off Flash Lite because it blanked/panicked on agentic tool use; full Flash handles the same workload reliably. Paid tier RPM (1,000+) absorbs the agentic turn burst. `AGENT_TIMEOUT_MS` is 55s, giving multi-step turns room without burning function time on real hangs (multi-step tool turns routinely take 30-45s). `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
+
+**Tier order is paid-first, free-as-emergency-fallback-only** (`tiersToTry` in `lib/llm/agent.ts`; `chatModel()` in `lib/llm/provider.ts` mirrors this for non-agentic single-call paths — image analysis, media-ai, preread-doc, health check). This used to be free-first as a cost-saving attempt, but production logs (2026-07-06) showed the free tier's RPM (10-30) is essentially always exhausted under real agentic-turn volume — `[tier] free→paid (quota)` fired on effectively every single logged turn, each one burning 16-19s retrying a call that was never going to succeed before falling back to the paid tier that actually works. Zero cost savings, pure latency tax, on nearly every user-facing reply. Reordered so paid — the tier that's actually reliable — is tried first; free only gets used if paid itself is down. On a full outage (both tiers down) the bot still returns an error rather than degrading further — that part of the original tradeoff stands.
 
 ### 18. Conditional tool registry (per-user OAuth gating + intent narrowing)
 `toolsForUser(userId)` is async and gates Google-dependent tools (email, calendar, drive, gmail-inbox, scheduled-email, contacts) on whether THIS user has actually connected a Google account (`listAccounts(userId).accounts.length > 0`). Non-Google users get ~20 tools instead of ~82. The connect-account tools remain registered for all users so the model can guide linking. See decision #21 for per-request narrowing on top of this.
@@ -263,10 +267,10 @@ Admin-only retrieval via `/audit <userId> [n]` (`lib/admin-commands.ts`, default
 - **LINE doesn't bundle a caption with media.** Recent-media staging spans messages within 30-min TTL.
 - **`Content-Transfer-Encoding: 7bit` is invalid for UTF-8 bodies** (Thai, emoji). Use base64.
 - **OAuth state nonce + connect-link token must be atomically consumed** (GETDEL) — non-atomic GET+DEL has a replay window.
-- **Gemini timeout at 30s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`). Full Flash reasons a bit longer than Flash Lite; 30s gives multi-step turns room while still fail-fast-ing real hangs. Image-only `generateText` calls use the same constant.
+- **Gemini timeout at 55s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`). Full Flash reasons a bit longer than Flash Lite, and multi-step tool turns routinely take 30-45s; 55s gives them room while still fail-fast-ing real hangs. Image-only `generateText` calls use the same constant. Note `withTimeout`'s `Promise.race` doesn't actually cancel the losing call — a reported timeout can still complete server-side moments later, so a user retrying a timed-out non-idempotent action (e.g. send email) could in theory duplicate it.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
-- **Upstash Vector index must be dim 768, cosine** to match Gemini `text-embedding-004`. Mismatch surfaces as silent upsert failures.
+- **Upstash Vector index must be dim 768, cosine** to match Gemini `gemini-embedding-001` truncated via `outputDimensionality: 768`. Mismatch surfaces as silent upsert failures — as does any embedding-model 404/rename, which is exactly what happened when `text-embedding-004` was retired (see decision #12).
 - **LINE postback `data` capped at 300 chars** — pass IDs, never full content.
 - **LINE Flex Messages require `altText`** — without it the API call fails.
 

@@ -37,14 +37,33 @@ function vector(): Index | null {
   return vectorClient;
 }
 
+const EMBED_DIMS = 768;
+
+function l2Normalize(v: number[]): number[] {
+  const norm = Math.sqrt(v.reduce((sum, x) => sum + x * x, 0));
+  return norm > 0 ? v.map((x) => x / norm) : v;
+}
+
 async function embedText(text: string): Promise<number[] | null> {
-  const cacheKey = `archive:embed:${sha1(text)}`;
+  // Keyed by model too — a future model/dimension swap must not silently mix
+  // incompatible cached vectors in with the new ones (this is exactly the kind
+  // of silent failure that let the old text-embedding-004 outage go unnoticed).
+  const cacheKey = `archive:embed:gemini-embedding-001:${sha1(text)}`;
   const cached = await redis().get<number[]>(cacheKey);
   if (cached) return cached;
 
   try {
-    const { embedding } = await embed({ model: embeddingModel(), value: text });
-    const v = embedding as number[];
+    const { embedding } = await embed({
+      model: embeddingModel(),
+      value: text,
+      providerOptions: {
+        google: { outputDimensionality: EMBED_DIMS, taskType: "SEMANTIC_SIMILARITY" },
+      },
+    });
+    // gemini-embedding-001 only auto-normalizes its native 3072-dim output —
+    // truncated dimensions (768 here) must be normalized manually for cosine
+    // similarity to behave correctly.
+    const v = l2Normalize(embedding as number[]);
     await redis().set(cacheKey, v, { ex: EMBED_CACHE_TTL_SEC }).catch(() => {});
     return v;
   } catch (err) {

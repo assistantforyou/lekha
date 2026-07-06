@@ -33,7 +33,7 @@ const Env = z.object({
   TAVILY_API_KEY: z.string().optional(),
 
   // Upstash Vector (semantic archive search). Index must be dim 768 to match
-  // Gemini text-embedding-004, with cosine similarity.
+  // Gemini gemini-embedding-001 truncated to 768 dims, with cosine similarity.
   UPSTASH_VECTOR_REST_URL: z.string().url().optional(),
   UPSTASH_VECTOR_REST_TOKEN: z.string().min(1).optional(),
 
