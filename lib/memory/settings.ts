@@ -57,6 +57,8 @@ export type UserSettings = {
   personaPrimaryLang: "English" | "Thai";
   /** Whether to match the user's writing voice. */
   personaVoiceMatch: boolean;
+  /** Optional preferred name the user wants Lekha to use. null = use LINE display name. */
+  personaPreferredName: string | null;
   // ────────────────────────────────────────────────────────────────────────
   /**
    * Keys the user has explicitly configured via a settings tool. Migrations skip
@@ -70,7 +72,7 @@ export type UserSettings = {
 };
 
 // Bump this and add a migration entry below every time you change a default value.
-const CURRENT_VERSION = 7;
+const CURRENT_VERSION = 8;
 
 export const DEFAULTS: UserSettings = {
   timezone: "Asia/Bangkok",
@@ -121,6 +123,7 @@ export const DEFAULTS: UserSettings = {
   personaAddressing: "First name",
   personaPrimaryLang: "English",
   personaVoiceMatch: true,
+  personaPreferredName: null,
   userConfigured: [],
   settingsVersion: CURRENT_VERSION,
   updatedAt: 0,
@@ -196,6 +199,13 @@ const MIGRATIONS: Array<(s: StoredSettings, configured: Set<string>) => Partial<
   (_s, configured) => {
     const patch: Partial<UserSettings> = {};
     if (!configured.has("briefingLanguage")) patch.briefingLanguage = "English";
+    return patch;
+  },
+
+  // v7 → v8: add optional preferred name field
+  (_s, configured) => {
+    const patch: Partial<UserSettings> = {};
+    if (!configured.has("personaPreferredName")) patch.personaPreferredName = null;
     return patch;
   },
 ];

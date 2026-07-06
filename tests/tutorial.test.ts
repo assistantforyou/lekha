@@ -39,6 +39,7 @@ import {
 } from "@/lib/tutorial";
 import { startOnboarding } from "@/lib/onboarding";
 import { getSettings, _resetSettingsCache } from "@/lib/memory/settings";
+import { loadFacts } from "@/lib/memory/facts";
 
 describe("setup tutorial", () => {
   beforeEach(() => {
@@ -101,21 +102,30 @@ describe("setup tutorial", () => {
     expect(s.disabledCategories).toContain("calendar");
 
     // Step 4: persona
+    await handleTutorialPostback("U1", "token", ["custom", "preferredName"]);
+    await handleTutorialText("U1", "token", "Jamie");
+    s = await getSettings("U1");
+    expect(s.personaPreferredName).toBe("Jamie");
     await handleTutorialPostback("U1", "token", ["set", "personaTone", "Professional"]);
     await handleTutorialPostback("U1", "token", ["next"]);
     expect(await getTutorialStep("U1")).toBe(5);
     s = await getSettings("U1");
     expect(s.personaTone).toBe("Professional");
 
-    // Step 5: memory
-    await handleTutorialPostback("U1", "token", ["set", "memoryCompactAt", "20"]);
-    await handleTutorialPostback("U1", "token", ["next"]);
-    // Finished: tutorial step cleared and confirmation sent.
+    // Step 5: memory — type one seed fact
+    await handleTutorialText("U1", "token", "I prefer coffee over tea");
+    // Finished: tutorial step cleared and personalized confirmation sent.
     expect(await getTutorialStep("U1")).toBe(-1);
     s = await getSettings("U1");
-    expect(s.memoryCompactAt).toBe(20);
+    expect(s.memoryEnabled).toBe(true);
+    expect(s.memoryCompactAt).toBe(10);
+    const facts = await loadFacts("U1");
+    expect(facts.facts.length).toBe(1);
+    expect(facts.facts[0]!.content).toBe("I prefer coffee over tea");
+    expect(facts.facts[0]!.priority).toBe(10);
     const last = sent[sent.length - 1]!.messages[0] as { text?: string };
-    expect(last.text).toContain("all set");
+    expect(last.text).toContain("Jamie");
+    expect(last.text).toContain("coffee");
   });
 
   it("supports back navigation", async () => {

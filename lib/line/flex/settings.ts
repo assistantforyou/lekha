@@ -347,6 +347,8 @@ export function settingsPersonaFlex(settings: UserSettings): FlexMessage {
       header: header("🎭 Persona"),
       body: body([
         hint("Choose Lekha's tone, how she addresses you, and her primary language."),
+        currentRow("Preferred name", settings.personaPreferredName || "LINE display name"),
+        promptButton("Set preferred name", "preferredName", "secondary"),
         chipRow(
           "Tone",
           [

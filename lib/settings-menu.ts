@@ -125,6 +125,8 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
   } else if (key === "personaVoiceMatch" && value) {
     const b = parseBool(value);
     if (b !== null) patch.personaVoiceMatch = b;
+  } else if (key === "personaPreferredName" && value) {
+    patch.personaPreferredName = value.trim() || null;
   } else if (key === "memoryEnabled" && value) {
     const b = parseBool(value);
     if (b !== null) patch.memoryEnabled = b;
@@ -257,6 +259,7 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
       timezone: "What timezone should I use? (e.g. Asia/Bangkok)",
       location: "What location should I use? (e.g. Bangkok, Thailand)",
       fact: "What fact should I remember?",
+      preferredName: "What should I call you?",
     };
     const timeSlots: Record<string, string[]> = {
       morning: ["05:00", "05:30", "06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00"],
@@ -360,6 +363,9 @@ async function applyTypedSet(userId: string, replyToken: string, rawKey: string,
     }
     patch.memoryCompactAt = n;
     returnSection = "memory";
+  } else if (key === "preferredname" || key === "personapreferredname") {
+    patch.personaPreferredName = value || null;
+    returnSection = "persona";
   } else {
     await replyOrPush(userId, replyToken, [textMsg(`Unknown setting key "${rawKey}". Type =settings= to see the menu.`)]);
     return;
@@ -390,6 +396,10 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
           await replyOrPush(userId, replyToken, [textMsg("What should I remember? Type your fact.")]);
           await setPendingPrompt(userId, "fact");
         }
+      } else if (pending === "preferredName") {
+        await updateSettings(userId, { personaPreferredName: text.trim() || null });
+        await replyOrPush(userId, replyToken, [textMsg("Got it — I'll call you that from now on.")]);
+        await sendMenu(userId, replyToken, "persona");
       } else {
         await applyTypedSet(userId, replyToken, pending, text);
       }

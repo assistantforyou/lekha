@@ -2,19 +2,28 @@ import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { getSettings, updateSettings, type UserSettings } from "@/lib/memory/settings";
 import { redis } from "@/lib/memory/redis";
 import { settingsMainFlex } from "@/lib/line/flex/settings";
+import { loadFacts, saveFacts, _internalNewFact } from "@/lib/memory/facts";
 import type { FlexMessage } from "@/lib/line/client";
 
 const ACCENT = "#5B6FF0";
-const OK = "#00B894";
-const MUTED = "#9CA3AF";
 const TEXT = "#333333";
 
 const TUTORIAL_KEY = (userId: string) => `user:${userId}:tutorial:step`;
 const TUTORIAL_WAITING_KEY = (userId: string) => `user:${userId}:tutorial:waiting`;
+const TUTORIAL_DISPLAY_NAME_KEY = (userId: string) => `user:${userId}:tutorial:displayName`;
+
+async function setTutorialDisplayName(userId: string, displayName: string): Promise<void> {
+  await redis().set(TUTORIAL_DISPLAY_NAME_KEY(userId), displayName, { ex: 60 * 60 * 24 });
+}
+
+async function getTutorialDisplayName(userId: string): Promise<string> {
+  const v = await redis().get<string>(TUTORIAL_DISPLAY_NAME_KEY(userId));
+  return typeof v === "string" ? v : "";
+}
 
 export const TUTORIAL_SECTIONS = ["language", "locale", "briefing", "tools", "persona", "memory"] as const;
 type TutorialSection = (typeof TUTORIAL_SECTIONS)[number];
-type WaitingField = "timezone" | "location" | "morning" | "evening" | "checkin";
+type WaitingField = "timezone" | "location" | "morning" | "evening" | "checkin" | "preferredName";
 type Lang = "en" | "th";
 
 function header(title: string, step: string): object {
@@ -123,12 +132,16 @@ const T = {
     khun: "Khun",
     sirMadam: "Sir / Madam",
     noAddress: "No address",
+    preferredName: "Preferred name",
+    setPreferredName: "Set name",
+    changePreferredName: "Change",
+    currentName: "Current",
+    preferredNamePrompt: "What should I call you?",
     memoryTitle: "🧠 Memory",
-    memoryDescription: "I remember facts from our chats, full documents you upload, and transcripts of voice memos. You can ask about any of them later.",
-    autoExtractFacts: "Auto-extract facts",
-    on: "On",
-    tidyUpMemory: "Tidy up memory every",
-    messages: "messages",
+    memoryDescription: "Tell me one thing I should remember about you.",
+    memoryFactHint: "Anything — a preference, a person, a deadline, a habit.",
+    finishGreeting: "Hi {name}! You're all set. I've remembered: {fact}",
+    emptyFactGreeting: "Hi {name}! You're all set. Just start chatting, or type =settings= anytime.",
     finish: "Finish",
     back: "← Back",
     next: "Next →",
@@ -185,12 +198,16 @@ const T = {
     khun: "คุณ",
     sirMadam: "ท่าน",
     noAddress: "ไม่เรียก",
+    preferredName: "ชื่อที่ใช้เรียก",
+    setPreferredName: "ตั้งชื่อ",
+    changePreferredName: "เปลี่ยน",
+    currentName: "ปัจจุบัน",
+    preferredNamePrompt: "ฉันควรเรียกคุณว่าอะไร?",
     memoryTitle: "🧠 ความจำ",
-    memoryDescription: "ฉันจำข้อเท็จจริงจากแชท เอกสารที่คุณอัปโหลด และสคริปต์เสียงบันทึก คุณถามได้ทุกเมื่อ",
-    autoExtractFacts: "สรุปข้อเท็จจริงอัตโนมัติ",
-    on: "เปิด",
-    tidyUpMemory: "จัดระเบียบความจำทุก",
-    messages: "ข้อความ",
+    memoryDescription: "บอกฉันสักเรื่องที่ควรจำเกี่ยวกับคุณ",
+    memoryFactHint: "อะไรก็ได้ — ความชอบ คนรู้จัก กำหนดเวลา หรือนิสัย",
+    finishGreeting: "สวัสดี {name}! ตั้งค่าเสร็จแล้ว ฉันจำไว้แล้ว: {fact}",
+    emptyFactGreeting: "สวัสดี {name}! ตั้งค่าเสร็จแล้ว เริ่มแชทได้เลย หรือพิมพ์ =settings= เพื่อเปลี่ยนการตั้งค่า",
     finish: "เสร็จสิ้น",
     back: "← กลับ",
     next: "ต่อไป →",
@@ -336,7 +353,7 @@ async function localeStep(settings: UserSettings): Promise<FlexMessage> {
     chipRow(
       t.replyLanguage,
       languages.map((o) => optionButton(o.label, `tutorial:set:language:${o.value}`, o.on)),
-      3,
+      2,
     ),
     chipRow(
       t.timezone,
@@ -425,9 +442,35 @@ async function toolsStep(settings: UserSettings): Promise<FlexMessage> {
   ]);
 }
 
-async function personaStep(settings: UserSettings): Promise<FlexMessage> {
+function preferredNameRow(settings: UserSettings, displayName: string, lang: Lang): object {
+  const t = T[lang];
+  const current = settings.personaPreferredName?.trim() || displayName || (lang === "th" ? "ยังไม่ตั้ง" : "Not set");
+  const buttonLabel = settings.personaPreferredName?.trim() ? t.changePreferredName : t.setPreferredName;
+  return {
+    type: "box",
+    layout: "horizontal",
+    margin: "md",
+    spacing: "md",
+    alignItems: "center",
+    contents: [
+      {
+        type: "box",
+        layout: "vertical",
+        flex: 1,
+        contents: [
+          { type: "text", text: t.preferredName, weight: "bold", size: "sm", color: TEXT, wrap: true },
+          { type: "text", text: `${t.currentName}: ${current}`, size: "xs", color: "#777777", wrap: true },
+        ],
+      },
+      postbackButton(buttonLabel, "tutorial:custom:preferredName", "secondary"),
+    ],
+  };
+}
+
+async function personaStep(settings: UserSettings, userId: string): Promise<FlexMessage> {
   const lang = tutorialLang(settings);
   const t = T[lang];
+  const displayName = await getTutorialDisplayName(userId);
   const tones = [
     { label: t.warm, value: "Warm", on: settings.personaTone === "Warm" },
     { label: t.professional, value: "Professional", on: settings.personaTone === "Professional" },
@@ -440,6 +483,7 @@ async function personaStep(settings: UserSettings): Promise<FlexMessage> {
     { label: t.noAddress, value: "No address", on: settings.personaAddressing === "No address" },
   ];
   return tutorialBubble(5, 6, t.personaTitle, t.personaDescription, [
+    preferredNameRow(settings, displayName, lang),
     chipRow(t.tone, tones.map((o) => optionButton(o.label, `tutorial:set:personaTone:${o.value}`, o.on)), 1),
     chipRow(t.addressYouAs, addressing.map((o) => optionButton(o.label, `tutorial:set:personaAddressing:${o.value}`, o.on)), 1),
     navRow(lang, true),
@@ -449,34 +493,15 @@ async function personaStep(settings: UserSettings): Promise<FlexMessage> {
 async function memoryStep(settings: UserSettings): Promise<FlexMessage> {
   const lang = tutorialLang(settings);
   const t = T[lang];
-  const intervals = [
-    { label: "5", value: "5", on: settings.memoryCompactAt === 5 },
-    { label: "10", value: "10", on: settings.memoryCompactAt === 10 },
-    { label: "20", value: "20", on: settings.memoryCompactAt === 20 },
-    { label: "50", value: "50", on: settings.memoryCompactAt === 50 },
-  ];
   return tutorialBubble(6, 6, t.memoryTitle, t.memoryDescription, [
+    hint(t.memoryFactHint),
     {
       type: "box",
       layout: "horizontal",
       margin: "md",
-      spacing: "md",
-      alignItems: "center",
-      contents: [
-        {
-          type: "box",
-          layout: "vertical",
-          flex: 1,
-          contents: [
-            { type: "text", text: t.autoExtractFacts, weight: "bold", size: "sm", color: TEXT },
-            { type: "text", text: settings.memoryEnabled ? t.on : "Off", size: "xs", color: settings.memoryEnabled ? OK : MUTED },
-          ],
-        },
-        postbackButton(settings.memoryEnabled ? "Turn off" : "Turn on", `tutorial:set:memoryEnabled:${settings.memoryEnabled ? "false" : "true"}`, "primary"),
-      ],
+      spacing: "sm",
+      contents: [postbackButton(t.skip, "tutorial:skipFact", "secondary")],
     },
-    chipRow(`${t.tidyUpMemory} N ${t.messages}`, intervals.map((o) => optionButton(o.label, `tutorial:set:memoryCompactAt:${o.value}`, o.on)), 4),
-    finishNavRow(lang),
   ]);
 }
 
@@ -506,14 +531,14 @@ export async function setTutorialWaiting(userId: string, field: string | null): 
   else await redis().del(TUTORIAL_WAITING_KEY(userId));
 }
 
-async function bubbleForStep(settings: UserSettings, step: number): Promise<FlexMessage | null> {
+async function bubbleForStep(userId: string, settings: UserSettings, step: number): Promise<FlexMessage | null> {
   const section = TUTORIAL_SECTIONS[step];
   if (!section) return null;
   if (section === "language") return languageStep(settings);
   if (section === "locale") return localeStep(settings);
   if (section === "briefing") return briefingStep(settings);
   if (section === "tools") return toolsStep(settings);
-  if (section === "persona") return personaStep(settings);
+  if (section === "persona") return personaStep(settings, userId);
   if (section === "memory") return memoryStep(settings);
   return null;
 }
@@ -521,14 +546,18 @@ async function bubbleForStep(settings: UserSettings, step: number): Promise<Flex
 export async function sendTutorialStep(userId: string, replyToken: string, step: number): Promise<void> {
   await setTutorialStep(userId, step);
   const settings = await getSettings(userId);
-  const bubble = await bubbleForStep(settings, step);
+  const bubble = await bubbleForStep(userId, settings, step);
   if (bubble) {
     await replyOrPush(userId, replyToken, [bubble]);
   }
+  // On the memory step, expect the user to type one fact as their next message.
+  const section = TUTORIAL_SECTIONS[step];
+  if (section === "memory") await setTutorialWaiting(userId, "memoryFact");
 }
 
 export async function startTutorial(userId: string, replyToken: string, displayName = ""): Promise<void> {
   await setTutorialStep(userId, 0);
+  await setTutorialDisplayName(userId, displayName);
   if (!replyToken) {
     const welcome = displayName
       ? `Hi ${displayName}! Welcome to Lekha 👋\n\nLet's set up your account in 30 seconds.\n\nสวัสดี ${displayName}! ยินดีต้อนรับสู่ Lekha 👋\n\nมาตั้งค่าบัญชีของคุณใน 30 วินาทีกัน`
@@ -553,14 +582,19 @@ export async function startTutorial(userId: string, replyToken: string, displayN
   await sendTutorialStep(userId, replyToken, 0);
 }
 
-async function finishTutorial(userId: string, replyToken: string): Promise<void> {
+async function finishTutorial(userId: string, replyToken: string, seedFact?: string): Promise<void> {
   await clearTutorialStep(userId);
   await setTutorialWaiting(userId, null);
   await redis().set(`user:${userId}:onboarded`, 1);
   const settings = await getSettings(userId);
   const t = T[tutorialLang(settings)];
+  const displayName = await getTutorialDisplayName(userId);
+  const name = settings.personaPreferredName?.trim() || displayName || (tutorialLang(settings) === "th" ? "คุณ" : "there");
+  const greeting = seedFact?.trim()
+    ? t.finishGreeting.replace("{name}", name).replace("{fact}", seedFact.trim())
+    : t.emptyFactGreeting.replace("{name}", name);
   await replyOrPush(userId, replyToken, [
-    textMsg(t.allSet),
+    textMsg(greeting),
     settingsMainFlex(settings),
   ]);
 }
@@ -624,6 +658,8 @@ async function applyTutorialSetting(
     if (["Warm", "Professional", "Playful"].includes(value)) patch.personaTone = value as UserSettings["personaTone"];
   } else if (key === "personaAddressing") {
     if (["First name", "Khun", "Sir / Madam", "No address"].includes(value)) patch.personaAddressing = value as UserSettings["personaAddressing"];
+  } else if (key === "personaPreferredName") {
+    patch.personaPreferredName = value.trim();
   } else if (key === "memoryEnabled") {
     patch.memoryEnabled = value === "true";
   } else if (key === "memoryCompactAt") {
@@ -648,7 +684,23 @@ function customPrompt(field: WaitingField, lang: Lang): string {
       return t.customEveningPrompt;
     case "checkin":
       return t.customCheckinPrompt;
+    case "preferredName":
+      return t.preferredNamePrompt;
   }
+}
+
+async function handleMemoryFactInput(userId: string, replyToken: string, input: string): Promise<void> {
+  const factText = input.trim();
+  if (factText.length < 2) {
+    const settings = await getSettings(userId);
+    const t = T[tutorialLang(settings)];
+    await replyOrPush(userId, replyToken, [textMsg(`${t.tryAgain}`)]);
+    return;
+  }
+  const existing = await loadFacts(userId);
+  const fact = _internalNewFact(factText, "other", { priority: 10 });
+  await saveFacts(userId, { facts: [...existing.facts, fact], updatedAt: Date.now() });
+  await finishTutorial(userId, replyToken, factText);
 }
 
 async function handleCustomInput(userId: string, replyToken: string, field: WaitingField, input: string): Promise<void> {
@@ -670,6 +722,10 @@ async function handleCustomInput(userId: string, replyToken: string, field: Wait
     const time = parseCustomTime(input);
     if (time) value = time;
     else error = t.timeError;
+  } else if (field === "preferredName") {
+    const name = input.trim();
+    if (name.length >= 1 && name.length <= 100) value = name;
+    else error = lang === "th" ? "กรุณาพิมพ์ชื่อ" : "Please type a name.";
   }
 
   if (error || !value) {
@@ -677,7 +733,11 @@ async function handleCustomInput(userId: string, replyToken: string, field: Wait
     return;
   }
 
-  await applyTutorialSetting(userId, field, value);
+  if (field === "preferredName") {
+    await applyTutorialSetting(userId, "personaPreferredName", value);
+  } else {
+    await applyTutorialSetting(userId, field, value);
+  }
   await setTutorialWaiting(userId, null);
   const step = await getTutorialStep(userId);
   if (step >= 0) await sendTutorialStep(userId, replyToken, step);
@@ -694,8 +754,12 @@ export async function handleTutorialText(userId: string, replyToken: string, use
   if (step < 0) return false;
 
   const waiting = await getTutorialWaiting(userId);
-  if (waiting && ["timezone", "location", "morning", "evening", "checkin"].includes(waiting)) {
+  if (waiting && ["timezone", "location", "morning", "evening", "checkin", "preferredName"].includes(waiting)) {
     await handleCustomInput(userId, replyToken, waiting as WaitingField, userText);
+    return true;
+  }
+  if (waiting === "memoryFact") {
+    await handleMemoryFactInput(userId, replyToken, userText);
     return true;
   }
 
@@ -739,6 +803,12 @@ export async function handleTutorialPostback(userId: string, replyToken: string,
     const lang = tutorialLang(settings);
     await setTutorialWaiting(userId, field);
     await replyOrPush(userId, replyToken, [textMsg(customPrompt(field, lang))]);
+    return;
+  }
+
+  if (action === "skipFact") {
+    await setTutorialWaiting(userId, null);
+    await finishTutorial(userId, replyToken);
     return;
   }
 
