@@ -55,6 +55,51 @@ function summarize(file: {
 
 export function buildDriveTools(userId: string) {
   return {
+    drive_create_folder: tool({
+      description:
+        "Create a new folder in the user's Google Drive. Returns the folder's id — pass it as folderId to drive_upload_recent_media to upload into it. If a folder with the same name already exists under the same parent, reuses it instead of creating a duplicate. Use this BEFORE drive_upload_recent_media when the user asks to upload into a NEW/named folder (e.g. 'create a folder called X and put it there').",
+      inputSchema: z.object({
+        name: z.string().min(1).max(200),
+        parentId: z.string().optional().describe("Parent Drive folder id to nest inside. Omit for Drive root."),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ name, parentId, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          const escaped = name.replace(/'/g, "\\'");
+          const q =
+            `name = '${escaped}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false` +
+            (parentId ? ` and '${parentId}' in parents` : "");
+          const existing = await drive.files.list({ q, fields: "files(id,name,webViewLink)", pageSize: 1 });
+          const found = existing.data.files?.[0];
+          if (found) {
+            return {
+              ok: true as const,
+              id: found.id,
+              name: found.name,
+              webViewLink: found.webViewLink ?? null,
+              reused: true,
+            };
+          }
+          const r = await drive.files.create({
+            requestBody: {
+              name,
+              mimeType: "application/vnd.google-apps.folder",
+              ...(parentId ? { parents: [parentId] } : {}),
+            },
+            fields: "id,name,webViewLink",
+          });
+          return {
+            ok: true as const,
+            id: r.data.id,
+            name: r.data.name,
+            webViewLink: r.data.webViewLink ?? null,
+            reused: false,
+          };
+        });
+      },
+    }),
+
     drive_search: tool({
       description:
         "Search the user's Google Drive. Pass a natural language query and it will be matched against file names AND full-text content. Returns metadata + share links. Use this when the user names a file by description ('that doc about X') or by full/partial filename.",
@@ -129,7 +174,7 @@ export function buildDriveTools(userId: string) {
 
     drive_upload_recent_media: tool({
       description:
-        "Upload one or all of the user's staged LINE media (image/video/audio/file) to their Google Drive. Use when the user says 'save this to my Drive'. Optional folderId places it inside a specific Drive folder.",
+        "Upload one or all of the user's staged LINE media (image/video/audio/file) to their Google Drive. Use when the user says 'save this to my Drive'. Optional folderId places it inside a specific EXISTING Drive folder — if the user names a NEW folder to create, call drive_create_folder first and pass its returned id here.",
       inputSchema: z.object({
         indexes: z
           .array(z.number().int().min(1))
