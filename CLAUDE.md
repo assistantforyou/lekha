@@ -9,7 +9,7 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated), per-u
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
 | Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
 | LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash, paid tier — no fallback) |
-| Embeddings | Gemini `text-embedding-004` (768 dims) |
+| Embeddings | Gemini `gemini-embedding-001` (truncated to 768 dims, L2-normalized) |
 | Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
 | Vector search | Upstash Vector — archive semantic search (substring fallback when unset) |
 | Scheduled jobs | Upstash QStash (one-shot reminders, deferred emails, recurring schedules, cron sweep) |
@@ -162,7 +162,9 @@ Timezone, location, language, connected Google accounts, staged media — all li
 Settings use versioning + migration: `CURRENT_VERSION` in `lib/memory/settings.ts` defines the schema. When a new schema is deployed, `applyMigrations()` runs on read and writes back once, never overriding explicit user choices tracked in `userConfigured` array.
 
 ### 12. Long-term memory via Upstash Vector (with substring fallback)
-Every fact-extraction cycle (every 10 turns) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `text-embedding-004` (768 dims) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries. At 100+ users with growing archives, semantic search materially beats substring on questions like "what did we discuss about that bird-themed project".
+Every fact-extraction cycle (every 10 turns) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `gemini-embedding-001` (truncated to 768 dims via `outputDimensionality`, L2-normalized manually since only the native 3072-dim output is auto-normalized) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries. At 100+ users with growing archives, semantic search materially beats substring on questions like "what did we discuss about that bird-themed project".
+
+**Note:** `text-embedding-004` (the original model this was built against) was retired by Google at some point — every embed call was silently 404ing and falling back to substring for an unknown period before this was caught (2026-07-06). Embed failures only `console.warn`, so this kind of outage produces no user-visible error — if semantic recall feels off, check runtime logs for `[archive] embed failed` before assuming the query itself is the problem.
 
 ### 13. Proactive layer via master sweep
 A single QStash schedule hits `/api/cron/sweep` every 15 min (legacy endpoint; forwards to `lib/sweep.ts` `runSweepForUser`). Iterates `users:active` set, decides per-user whether to push (morning briefing window check, evening summary window check, task check-in window check). **There are no per-user QStash schedules for briefings/summaries.**
@@ -266,7 +268,7 @@ Admin-only retrieval via `/audit <userId> [n]` (`lib/admin-commands.ts`, default
 - **Gemini timeout at 30s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`). Full Flash reasons a bit longer than Flash Lite; 30s gives multi-step turns room while still fail-fast-ing real hangs. Image-only `generateText` calls use the same constant.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
-- **Upstash Vector index must be dim 768, cosine** to match Gemini `text-embedding-004`. Mismatch surfaces as silent upsert failures.
+- **Upstash Vector index must be dim 768, cosine** to match Gemini `gemini-embedding-001` truncated via `outputDimensionality: 768`. Mismatch surfaces as silent upsert failures — as does any embedding-model 404/rename, which is exactly what happened when `text-embedding-004` was retired (see decision #12).
 - **LINE postback `data` capped at 300 chars** — pass IDs, never full content.
 - **LINE Flex Messages require `altText`** — without it the API call fails.
 

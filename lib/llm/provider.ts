@@ -44,9 +44,14 @@ export function extractorModel() {
   return client("gemini-2.5-flash-lite");
 }
 
-/** Embedding model — text-embedding-004, 768 dims. */
+/**
+ * Embedding model. text-embedding-004 was retired — Gemini now serves embeddings
+ * via gemini-embedding-001, which defaults to 3072 dims. Truncated to 768 (via
+ * outputDimensionality in the embed() call in lib/memory/archive.ts) to match
+ * the existing Upstash Vector index (dim 768, cosine).
+ */
 export function embeddingModel() {
-  return googleClient().textEmbeddingModel("text-embedding-004");
+  return googleClient().textEmbeddingModel("gemini-embedding-001");
 }
 
 /**
