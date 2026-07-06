@@ -204,6 +204,31 @@ describe("setup tutorial", () => {
     expect(json).toContain("ตำแหน่งที่ตั้ง");
   });
 
+  it("changing language on the locale step updates the current step without advancing", async () => {
+    await startTutorial("U1", "token");
+    await handleTutorialPostback("U1", "token", ["set", "language", "th"]);
+    expect(await getTutorialStep("U1")).toBe(1);
+
+    // Tapping a language button on the locale step should not advance.
+    await handleTutorialPostback("U1", "token", ["set", "language", "en"]);
+    expect(await getTutorialStep("U1")).toBe(1);
+    let s = await getSettings("U1");
+    expect(s.language).toBe("en");
+
+    // The re-rendered locale step should now be in English.
+    const lastFlex = sent.findLast((m) => (m.messages[0] as { type?: string }).type === "flex");
+    expect(lastFlex).toBeDefined();
+    const json = JSON.stringify(lastFlex!.messages[0]);
+    expect(json).toContain("Location");
+    expect(json).not.toContain("ตำแหน่งที่ตั้ง");
+
+    // Advancing manually should show the next step in the newly chosen language.
+    await handleTutorialPostback("U1", "token", ["next"]);
+    expect(await getTutorialStep("U1")).toBe(2);
+    const nextFlex = sent.findLast((m) => (m.messages[0] as { type?: string }).type === "flex");
+    expect(JSON.stringify(nextFlex!.messages[0])).toContain("Daily Briefings");
+  });
+
   it("covers all settings sections", () => {
     expect(TUTORIAL_SECTIONS).toEqual(["language", "locale", "briefing", "tools", "persona", "memory"]);
   });

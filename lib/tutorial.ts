@@ -784,9 +784,10 @@ export async function handleTutorialPostback(userId: string, replyToken: string,
     await applyTutorialSetting(userId, key, value);
     let step = await getTutorialStep(userId);
     if (step < 0) return;
-    // Selecting language should immediately advance so the rest of the setup
-    // is shown in the chosen language.
-    if (key === "language") {
+    // Selecting a language on the first (language) step immediately advances so
+    // the rest of the setup is shown in the chosen language. On later steps it
+    // only updates the setting and re-renders the current step.
+    if (key === "language" && step === 0) {
       step = step + 1;
       if (step >= TUTORIAL_SECTIONS.length) {
         await finishTutorial(userId, replyToken);
