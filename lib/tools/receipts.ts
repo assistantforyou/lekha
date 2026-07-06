@@ -1,9 +1,12 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { generateText } from "ai";
+import { google } from "googleapis";
+import { Readable } from "node:stream";
 import { extractorModel } from "@/lib/llm/provider";
 import { listRecentMedia } from "@/lib/memory/recent-media";
 import { getMessageContent } from "@/lib/line/client";
+import { withGoogleClient } from "./with-google";
 import {
   appendReceipt,
   listReceipts,
@@ -12,8 +15,57 @@ import {
   type Receipt,
 } from "@/lib/memory/receipts";
 
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
+const RECEIPTS_FOLDER_NAME = "Lekha Receipts";
+
 function randomId(): string {
   return crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+}
+
+/**
+ * Best-effort backup of the original receipt photo to the user's own Google
+ * Drive — free storage that's already theirs, no new infra needed. Failures
+ * (not connected, API error, etc.) are swallowed; the receipt still saves
+ * with extracted data only, just without a "View photo" link.
+ */
+async function backupReceiptPhoto(
+  userId: string,
+  bytes: Uint8Array,
+  mediaType: string,
+  merchant: string,
+  date: string,
+): Promise<{ driveFileId?: string; driveLink?: string }> {
+  try {
+    const result = await withGoogleClient(userId, undefined, [DRIVE_SCOPE], async ({ client }) => {
+      const drive = google.drive({ version: "v3", auth: client });
+      const existing = await drive.files.list({
+        q: `name = '${RECEIPTS_FOLDER_NAME}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+        fields: "files(id)",
+        pageSize: 1,
+      });
+      let folderId = existing.data.files?.[0]?.id;
+      if (!folderId) {
+        const created = await drive.files.create({
+          requestBody: { name: RECEIPTS_FOLDER_NAME, mimeType: "application/vnd.google-apps.folder" },
+          fields: "id",
+        });
+        folderId = created.data.id ?? undefined;
+      }
+      const ext = mediaType.includes("png") ? "png" : "jpg";
+      const name = `${date}_${merchant}`.replace(/[^\w\-. ]/g, "_").slice(0, 100) + `.${ext}`;
+      const r = await drive.files.create({
+        requestBody: { name, ...(folderId ? { parents: [folderId] } : {}) },
+        media: { mimeType: mediaType, body: Readable.from(Buffer.from(bytes)) },
+        fields: "id,webViewLink",
+      });
+      return { driveFileId: r.data.id ?? undefined, driveLink: r.data.webViewLink ?? undefined };
+    });
+    if (result && "driveFileId" in result) return result;
+    return {};
+  } catch (err) {
+    console.warn("[receipts] Drive photo backup failed", err);
+    return {};
+  }
 }
 
 const EXTRACT_PROMPT = `You are analyzing a receipt image. Extract the following and respond with ONLY valid JSON — no prose, no markdown fences.
@@ -39,7 +91,7 @@ export function buildReceiptTools(userId: string) {
   return {
     scan_receipt: tool({
       description:
-        "Scan a receipt photo the user sent in LINE. Extracts merchant, date, total, items, and category, then saves it to the user's receipt history. Call this when the user sends a receipt image and wants to log or record it.",
+        "Scan a receipt photo the user sent in LINE. Extracts merchant, date, total, items, and category, then saves it to the user's receipt history. If the user has Google connected, also backs up the original photo to a 'Lekha Receipts' folder in their Drive so it can be pulled up again later (a 'View photo' button appears on list_receipts/search_receipts results) — otherwise only the extracted data is kept, no photo. Call this when the user sends a receipt image and wants to log or record it.",
       inputSchema: z.object({
         index: z
           .number()
@@ -114,11 +166,15 @@ export function buildReceiptTools(userId: string) {
           return { ok: false as const, error: String(extracted["error"]) };
         }
 
+        const merchant = String(extracted["merchant"] ?? "Unknown");
+        const date = String(extracted["date"] ?? new Date().toISOString().slice(0, 10));
+        const { driveFileId, driveLink } = await backupReceiptPhoto(userId, bytes, mediaType, merchant, date);
+
         const receipt: Receipt = {
           id: randomId(),
           ts: Date.now(),
-          merchant: String(extracted["merchant"] ?? "Unknown"),
-          date: String(extracted["date"] ?? new Date().toISOString().slice(0, 10)),
+          merchant,
+          date,
           total: Number(extracted["total"] ?? 0),
           currency: String(extracted["currency"] ?? "THB"),
           category: String(extracted["category"] ?? "other"),
@@ -127,6 +183,7 @@ export function buildReceiptTools(userId: string) {
             : [],
           notes,
           imageMessageId: item.messageId,
+          ...(driveFileId ? { driveFileId, driveLink } : {}),
         };
 
         await appendReceipt(userId, receipt);

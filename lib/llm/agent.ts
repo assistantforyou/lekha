@@ -548,7 +548,7 @@ export async function runAgent(
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (opts?.hasStagedMedia && looksLikeMediaQuery(lastUserText)) {
-        const fb = await fallbackSummarizeDocument(userId, profile.displayName);
+        const fb = await fallbackSummarizeDocument(userId, profile.displayName, lastUserText);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
       } else if (looksLikeNewsQuery(lastUserText)) {
@@ -776,18 +776,22 @@ async function fallbackNewsSearch(query: string): Promise<{ text: string; flexMe
   }
 }
 
-async function fallbackSummarizeDocument(userId: string, displayName: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackSummarizeDocument(userId: string, displayName: string, question: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+  // Pass the user's actual question through — previously called with {} (index
+  // only), which silently discarded whatever they specifically asked and always
+  // returned a generic 4-8 bullet summary instead of an answer to their question.
+  const input = { question };
   try {
     const tools = buildMediaAiTools(userId);
-    const result = await tools.summarize_document!.execute!({} as unknown as { index?: number }, { toolCallId: "fallback", messages: [] });
+    const result = await tools.summarize_document!.execute!(input as unknown as { index?: number; question?: string }, { toolCallId: "fallback", messages: [] });
     const val = extractToolValue(result) as Record<string, unknown> | null;
     if (val && typeof val === "object" && val.ok === false && typeof val.error === "string") {
-      return { text: val.error, toolCalls: [{ toolName: "summarize_document", input: {} }] };
+      return { text: val.error, toolCalls: [{ toolName: "summarize_document", input }] };
     }
     const output = val && typeof val === "object" && typeof val.output === "string" ? val.output : String(result);
-    return { text: `${displayName}, here's what I found in the document:\n\n${output}`, toolCalls: [{ toolName: "summarize_document", input: {} }] };
+    return { text: `${displayName}, here's what I found in the document:\n\n${output}`, toolCalls: [{ toolName: "summarize_document", input }] };
   } catch (err) {
-    return { text: `I couldn't read that document, ${displayName}. Try sending it again.`, toolCalls: [{ toolName: "summarize_document", input: {} }] };
+    return { text: `I couldn't read that document, ${displayName}. Try sending it again.`, toolCalls: [{ toolName: "summarize_document", input }] };
   }
 }
 

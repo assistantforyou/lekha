@@ -1,7 +1,10 @@
 import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { env } from "@/lib/env";
 import { appendTurn } from "@/lib/memory/history";
-import { appendRecentMedia } from "@/lib/memory/recent-media";
+import { appendRecentMedia, listRecentMedia } from "@/lib/memory/recent-media";
+
+/** Items staged within this window count as "sent together" for ack wording. */
+const BATCH_WINDOW_MS = 10_000;
 import {
   guessMimeFromFilename,
   defaultMimeForKind,
@@ -69,13 +72,18 @@ export async function respondToOtherMedia(
   // stage_only: media+text arrived in same batch — text handler runs the agent.
   if (mode === "stage_only") return;
 
-  const ack = isArchive(contentType, fileName)
-    ? `Got your zip file${fileName ? ` (${fileName})` : ""} — I can attach it to emails but I can't open or extract the contents.`
-    : isDoc
-    ? `Got your document${fileName ? ` (${fileName})` : ""} — reading it now. What would you like to know?`
-    : kind === "audio"
-    ? `Got your voice memo — want me to transcribe or summarize it?`
-    : `Got your ${kind}${fileName ? ` (${fileName})` : ""} — it's ready. What would you like to do with it?`;
+  const staged = await listRecentMedia(userId);
+  const batchCount = staged.filter((m) => Date.now() - m.ts < BATCH_WINDOW_MS).length;
+  const ack =
+    batchCount > 1
+      ? `Got your ${batchCount} files. Ask me what you'd like to do with them.`
+      : isArchive(contentType, fileName)
+      ? `Got your zip file${fileName ? ` (${fileName})` : ""} — I can attach it to emails but I can't open or extract the contents.`
+      : isDoc
+      ? `Got your document${fileName ? ` (${fileName})` : ""} — reading it now. What would you like to know?`
+      : kind === "audio"
+      ? `Got your voice memo — want me to transcribe or summarize it?`
+      : `Got your ${kind}${fileName ? ` (${fileName})` : ""} — it's ready. What would you like to do with it?`;
 
   await replyOrPush(userId, replyToken, [textMsg(ack)]);
   await appendTurn(userId, {

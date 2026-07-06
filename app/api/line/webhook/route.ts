@@ -71,19 +71,22 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < events.length; i++) {
       const event = events[i];
       if (!event || event.type === "postback") continue;
-      // Media immediately followed by text in the same batch → stage only;
-      // the text handler runs the agent with the staged media in context.
+      // Media immediately followed by more media or by text in the same batch →
+      // stage only; whatever handles the LAST event in the run sends the single
+      // reply (either the text handler with all staged media in context, or the
+      // final media item's own ack). Without this, sending N media in one go
+      // produced N separate near-identical "Got your X" acks in a row.
       const nextEvent = events[i + 1];
-      const nextIsText =
+      const nextContinuesBatch =
         nextEvent?.type === "message" &&
         "message" in nextEvent &&
-        nextEvent.message.type === "text";
+        ["text", "image", "video", "audio", "file"].includes(nextEvent.message.type);
       const thisIsMedia =
         event.type === "message" &&
         "message" in event &&
         ["image", "video", "audio", "file"].includes(event.message.type);
       try {
-        const replied = await handleEvent(event, gate, thisIsMedia && nextIsText ? "stage_only" : "normal");
+        const replied = await handleEvent(event, gate, thisIsMedia && nextContinuesBatch ? "stage_only" : "normal");
         if (!replied) {
           console.warn("[webhook] event produced no reply", { type: event.type, userId: event.source?.userId });
         }

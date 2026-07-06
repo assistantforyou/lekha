@@ -106,7 +106,7 @@ lib/
     ├── calendar.ts                    # 8 tools: draft/search/update/delete/list_upcoming/today/week/find_free_time
     ├── drive.ts                       # search/list_recent/get_link/read_text/upload_recent_media/create_folder/delete/move/rename/share
     ├── media-ai.ts                    # ocr/summarize_image + summarize/read_document — staged-media only
-    ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt — staged-media only
+    ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt — staged-media only; backs up the photo to Drive ("Lekha Receipts" folder) when Google is connected
     ├── sent-history.ts                # query the audit log
     ├── export.ts                      # JSON dump of all user data
     ├── weather.ts                     # weather — wttr.in primary, Open-Meteo fallback (both keyless)
