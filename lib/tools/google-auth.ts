@@ -72,7 +72,11 @@ export async function buildConnectUrl(userId: string): Promise<string> {
 }
 
 export async function formatReconnectPrompt(userId: string): Promise<string> {
-  return `Your Google account needs to be reconnected (the authorization token has expired or been revoked). Tap the link to reconnect:\n${await buildConnectUrl(userId)}`;
+  // Not embedding the raw connect URL: it renders as dead text inside a text
+  // bubble (Flex `text` components aren't auto-linkified). Send the user
+  // back through the "connect google" shortcut, which replies with a real
+  // tappable button (see lib/shortcuts.ts + lib/line/flex/google-connect.ts).
+  return `Your Google account needs to be reconnected (the authorization token has expired or been revoked). Type "connect google" and I'll send you a button to reconnect.`;
 }
 
 /**
