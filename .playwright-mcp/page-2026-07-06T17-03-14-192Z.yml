@@ -1,0 +1,648 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - img [ref=e6]
+        - generic [ref=e9]: LEKHA
+      - list [ref=e10]:
+        - listitem [ref=e11]:
+          - link "Features" [ref=e12] [cursor=pointer]:
+            - /url: "#features"
+        - listitem [ref=e13]:
+          - link "Operations Layer" [ref=e14] [cursor=pointer]:
+            - /url: "#operations"
+        - listitem [ref=e15]:
+          - link "Use Cases" [ref=e16] [cursor=pointer]:
+            - /url: "#builtfor"
+        - listitem [ref=e17]:
+          - link "Pricing" [ref=e18] [cursor=pointer]:
+            - /url: "#pricing"
+        - listitem [ref=e19]:
+          - link "FAQ" [ref=e20] [cursor=pointer]:
+            - /url: "#faq"
+      - generic [ref=e21]:
+        - link "Sign in" [ref=e22] [cursor=pointer]:
+          - /url: /api/auth/line/dashboard-start
+        - link "Book a 1-on-1 session with us" [ref=e23] [cursor=pointer]:
+          - /url: https://forms.gle/6qu52TxR4sYHWymX7
+          - text: Book a 1-on-1 session with us
+          - img [ref=e24]
+  - group "Language" [ref=e27]:
+    - button "EN" [ref=e28] [cursor=pointer]
+    - button "ไทย" [ref=e29] [cursor=pointer]
+  - generic [ref=e30]:
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - generic [ref=e33]: AI Executive Assistant · Bilingual EN / ไทย
+        - heading "Meet เลขา your AI Chief of Operations (COO)." [level=1] [ref=e35]:
+          - generic [ref=e36]: Meet
+          - generic [ref=e37]: เลขา
+          - generic [ref=e38]: your AI Chief of Operations (COO).
+        - paragraph [ref=e39]: LEKHA, a LLM trained by GOOGLE, briefs you twice a day, runs your to-do list, watches your calendar, drafts replies, analyses stock markets, daily news brief, and a personal secretary that you can talk to - all in one chat. Built for executives and high performance workers who want their day on autopilot.
+        - generic [ref=e40]:
+          - button "Contact us on LINE QR" [ref=e41] [cursor=pointer]:
+            - text: Contact us on LINE
+            - img [ref=e42]
+            - generic [ref=e44]: QR
+          - button "Our Instagram QR" [ref=e45] [cursor=pointer]:
+            - img [ref=e46]
+            - text: Our Instagram
+            - generic [ref=e48]: QR
+      - generic [ref=e51]:
+        - img "LEKHA avatar" [ref=e52]
+        - generic [ref=e53]: Online
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - img [ref=e58]
+            - generic [ref=e61]:
+              - generic [ref=e62]: Reminder
+              - generic [ref=e63]: Morning Meeting · 10:00 AM
+          - generic [ref=e64]:
+            - img [ref=e66]
+            - generic [ref=e68]:
+              - generic [ref=e69]: Chat
+              - generic [ref=e70]: สวัสดีค่ะ วันนี้ให้คุณเลขาช่วยอะไรได้บ้างคะ
+          - generic [ref=e71]:
+            - img [ref=e73]
+            - generic [ref=e75]:
+              - generic [ref=e76]: Chat
+              - generic [ref=e77]: Good morning. What can LEKHA help you with today?
+    - generic [ref=e81]:
+      - generic [ref=e82]:
+        - generic [ref=e83]: <5s
+        - generic [ref=e84]: Response Time
+      - generic [ref=e85]:
+        - generic [ref=e86]: 2×
+        - generic [ref=e87]: Daily Briefings
+      - generic [ref=e88]:
+        - generic [ref=e89]: 24/7
+        - generic [ref=e90]: Task Monitoring
+      - generic [ref=e91]:
+        - generic [ref=e92]: 12+
+        - generic [ref=e93]: Tools Connected
+      - generic [ref=e94]:
+        - generic [ref=e95]: 2 langs
+        - generic [ref=e96]: EN / ไทย Bilingual
+    - generic [ref=e100]: "\"OUR PRODUCT HAS BEEN USED AND TRUSTED BY BUSINESS EXECUTIVES, DOCTORS, AND OTHER HIGH PERFORMANCE FIELDS\" - LEKHA ADMINS"
+  - generic [ref=e102]:
+    - generic [ref=e103]:
+      - generic [ref=e104]: Live Operations Layer
+      - heading "Always on. Always watching." [level=2] [ref=e105]:
+        - text: Always on.
+        - emphasis [ref=e106]: Always watching.
+      - paragraph [ref=e107]: A continuous intelligence loop across every stream that matters.
+    - generic [ref=e108]:
+      - generic [ref=e109]:
+        - generic [ref=e110]: MARKETS
+        - generic [ref=e112]:
+          - generic [ref=e113]:
+            - generic [ref=e114]: NVDA
+            - generic [ref=e115]: 1,184.20
+            - generic [ref=e116]: +2.14%
+          - generic [ref=e117]:
+            - generic [ref=e118]: AAPL
+            - generic [ref=e119]: "189.45"
+            - generic [ref=e120]: "-0.32%"
+          - generic [ref=e121]:
+            - generic [ref=e122]: TSLA
+            - generic [ref=e123]: "178.20"
+            - generic [ref=e124]: +1.85%
+          - generic [ref=e125]:
+            - generic [ref=e126]: MSFT
+            - generic [ref=e127]: "422.80"
+            - generic [ref=e128]: +0.55%
+          - generic [ref=e129]:
+            - generic [ref=e130]: GOOG
+            - generic [ref=e131]: "174.30"
+            - generic [ref=e132]: "-0.18%"
+          - generic [ref=e133]:
+            - generic [ref=e134]: META
+            - generic [ref=e135]: "510.60"
+            - generic [ref=e136]: +0.92%
+          - generic [ref=e137]:
+            - generic [ref=e138]: AMZN
+            - generic [ref=e139]: "190.15"
+            - generic [ref=e140]: +1.23%
+          - generic [ref=e141]:
+            - generic [ref=e142]: SET
+            - generic [ref=e143]: 1,342
+            - generic [ref=e144]: +0.62%
+          - generic [ref=e145]:
+            - generic [ref=e146]: BTC
+            - generic [ref=e147]: 68,420
+            - generic [ref=e148]: +3.45%
+          - generic [ref=e149]:
+            - generic [ref=e150]: ETH
+            - generic [ref=e151]: 3,820
+            - generic [ref=e152]: +2.10%
+          - generic [ref=e153]:
+            - generic [ref=e154]: JPY
+            - generic [ref=e155]: "157.32"
+            - generic [ref=e156]: "-0.14%"
+          - generic [ref=e157]:
+            - generic [ref=e158]: GOLD
+            - generic [ref=e159]: 2,341
+            - generic [ref=e160]: +0.28%
+          - generic [ref=e161]:
+            - generic [ref=e162]: NVDA
+            - generic [ref=e163]: 1,184.20
+            - generic [ref=e164]: +2.14%
+          - generic [ref=e165]:
+            - generic [ref=e166]: AAPL
+            - generic [ref=e167]: "189.45"
+            - generic [ref=e168]: "-0.32%"
+          - generic [ref=e169]:
+            - generic [ref=e170]: TSLA
+            - generic [ref=e171]: "178.20"
+            - generic [ref=e172]: +1.85%
+          - generic [ref=e173]:
+            - generic [ref=e174]: MSFT
+            - generic [ref=e175]: "422.80"
+            - generic [ref=e176]: +0.55%
+          - generic [ref=e177]:
+            - generic [ref=e178]: GOOG
+            - generic [ref=e179]: "174.30"
+            - generic [ref=e180]: "-0.18%"
+          - generic [ref=e181]:
+            - generic [ref=e182]: META
+            - generic [ref=e183]: "510.60"
+            - generic [ref=e184]: +0.92%
+          - generic [ref=e185]:
+            - generic [ref=e186]: AMZN
+            - generic [ref=e187]: "190.15"
+            - generic [ref=e188]: +1.23%
+          - generic [ref=e189]:
+            - generic [ref=e190]: SET
+            - generic [ref=e191]: 1,342
+            - generic [ref=e192]: +0.62%
+          - generic [ref=e193]:
+            - generic [ref=e194]: BTC
+            - generic [ref=e195]: 68,420
+            - generic [ref=e196]: +3.45%
+          - generic [ref=e197]:
+            - generic [ref=e198]: ETH
+            - generic [ref=e199]: 3,820
+            - generic [ref=e200]: +2.10%
+          - generic [ref=e201]:
+            - generic [ref=e202]: JPY
+            - generic [ref=e203]: "157.32"
+            - generic [ref=e204]: "-0.14%"
+          - generic [ref=e205]:
+            - generic [ref=e206]: GOLD
+            - generic [ref=e207]: 2,341
+            - generic [ref=e208]: +0.28%
+      - generic [ref=e209]:
+        - generic [ref=e210]:
+          - generic [ref=e211]:
+            - img [ref=e212]
+            - generic [ref=e215]: Calendar
+            - generic [ref=e216]: Mon 26 May
+          - generic [ref=e217]:
+            - generic [ref=e218]:
+              - generic [ref=e219]: 09:00
+              - generic [ref=e221]:
+                - generic [ref=e222]: Board Prep
+                - generic [ref=e223]: Internal
+            - generic [ref=e224]:
+              - generic [ref=e225]: 10:00
+              - generic [ref=e227]:
+                - generic [ref=e228]: Helix Labs Call
+                - generic [ref=e229]: External
+              - generic [ref=e230]: NOW
+            - generic [ref=e231]:
+              - generic [ref=e232]: 13:00
+              - generic [ref=e234]:
+                - generic [ref=e235]: Lunch — David
+                - generic [ref=e236]: Client
+            - generic [ref=e237]:
+              - generic [ref=e238]: 14:30
+              - generic [ref=e240]:
+                - generic [ref=e241]: Q3 Review
+                - generic [ref=e242]: Internal
+            - generic [ref=e243]:
+              - generic [ref=e244]: 16:00
+              - generic [ref=e246]:
+                - generic [ref=e247]: Deep Work Block
+                - generic [ref=e248]: Protected
+        - generic [ref=e251]: LEKHA Intelligence Network
+        - generic [ref=e252]:
+          - generic [ref=e253]:
+            - img [ref=e254]
+            - generic [ref=e256]: Tasks
+            - generic [ref=e257]: 3 pending
+          - generic [ref=e258]:
+            - generic [ref=e259]:
+              - img [ref=e261]
+              - generic [ref=e263]: Send term sheet to David
+            - generic [ref=e264]:
+              - img [ref=e266]
+              - generic [ref=e268]: Review legal MSA
+            - generic [ref=e271]: Q3 board deck review
+            - generic [ref=e274]: Call Khun Anan · before 5pm
+            - generic [ref=e277]: Market brief — SET opening
+          - generic [ref=e278]:
+            - generic [ref=e281]: Email · 23 unread
+            - generic [ref=e284]: Docs · Q3 deck updated
+            - generic [ref=e287]: Reminders · 5 pending
+  - generic [ref=e289]:
+    - generic [ref=e290]:
+      - generic [ref=e291]: What LEKHA does
+      - heading "One chat. Endless superpowers." [level=2] [ref=e292]
+      - paragraph [ref=e293]: Pick a capability. Watch LEKHA work. Every reply below is a real interaction pattern from the product.
+    - generic [ref=e295]:
+      - generic [ref=e296]:
+        - button "Daily Briefing News tuned to you" [ref=e297] [cursor=pointer]:
+          - img [ref=e299]
+          - generic [ref=e302]:
+            - generic [ref=e303]: Daily Briefing
+            - generic [ref=e304]: News tuned to you
+        - button "Tasks & Reminders Todos that actually get done" [ref=e305] [cursor=pointer]:
+          - img [ref=e307]
+          - generic [ref=e309]:
+            - generic [ref=e310]: Tasks & Reminders
+            - generic [ref=e311]: Todos that actually get done
+        - button "Stock Analysis Market read in plain English" [ref=e312] [cursor=pointer]:
+          - img [ref=e314]
+          - generic [ref=e317]:
+            - generic [ref=e318]: Stock Analysis
+            - generic [ref=e319]: Market read in plain English
+        - button "Email · Send & Receive Writes & answers for you" [ref=e320] [cursor=pointer]:
+          - img [ref=e322]
+          - generic [ref=e325]:
+            - generic [ref=e326]: Email · Send & Receive
+            - generic [ref=e327]: Writes & answers for you
+        - button "Research & Insights Deep-dive in minutes" [ref=e328] [cursor=pointer]:
+          - img [ref=e330]
+          - generic [ref=e333]:
+            - generic [ref=e334]: Research & Insights
+            - generic [ref=e335]: Deep-dive in minutes
+        - button "Calendar Scheduling on autopilot" [ref=e336] [cursor=pointer]:
+          - img [ref=e338]
+          - generic [ref=e341]:
+            - generic [ref=e342]: Calendar
+            - generic [ref=e343]: Scheduling on autopilot
+        - button "Image Analysis Drop a photo, get answers" [ref=e344] [cursor=pointer]:
+          - img [ref=e346]
+          - generic [ref=e350]:
+            - generic [ref=e351]: Image Analysis
+            - generic [ref=e352]: Drop a photo, get answers
+      - generic [ref=e353]:
+        - generic [ref=e354]:
+          - generic [ref=e355]: Morning intel
+          - heading "Wake up to what actually matters — to you." [level=3] [ref=e356]
+          - paragraph [ref=e357]: Choose your categories — innovation, technology, wellness, self-care, markets, world. LEKHA scans 200+ trusted sources overnight and assembles a briefing only on the topics you care about, read in 90 seconds.
+          - list [ref=e358]:
+            - listitem [ref=e359]: Pick & re-mix categories anytime — innovation, tech, wellness, self-care, markets, world
+            - listitem [ref=e360]: Cited sources, no hallucinated facts
+            - listitem [ref=e361]: Delivered to chat, email, or Line at the time you wake
+        - generic [ref=e362]:
+          - generic [ref=e363]:
+            - generic [ref=e364]: L
+            - generic [ref=e365]:
+              - generic [ref=e366]: LEKHA
+              - generic [ref=e367]: Online
+            - text: ☎ ⋮
+          - generic [ref=e370]:
+            - img [ref=e371]
+            - textbox "Brief me on today..." [ref=e373]
+            - button [ref=e374] [cursor=pointer]:
+              - img [ref=e375]
+          - generic [ref=e378]: —Chatting via LINE—
+  - generic [ref=e380]:
+    - generic [ref=e381]:
+      - generic [ref=e382]: Capabilities
+      - heading "Everything an assistant should do, but more." [level=2] [ref=e383]
+    - generic [ref=e384]:
+      - generic [ref=e385]:
+        - img [ref=e387]
+        - heading "Customisable news brief" [level=4] [ref=e390]
+        - generic [ref=e391]: ข่าวตามความสนใจ
+        - paragraph [ref=e392]: Pick your categories — innovation, technology, wellness, self-care, markets, world. Re-mix anytime.
+      - generic [ref=e393]:
+        - img [ref=e395]
+        - heading "Tasks & todos" [level=4] [ref=e397]
+        - generic [ref=e398]: งานและสิ่งที่ต้องทำ
+        - paragraph [ref=e399]: Capture, prioritise and follow through. Recurring, snoozeable, accountable.
+      - generic [ref=e400]:
+        - img [ref=e402]
+        - heading "Smart reminders" [level=4] [ref=e405]
+        - generic [ref=e406]: เตือนความจำ
+        - paragraph [ref=e407]: Time, location and event-based nudges — never another missed birthday or board call.
+      - generic [ref=e408]:
+        - img [ref=e410]
+        - heading "Stock & market analysis" [level=4] [ref=e413]
+        - generic [ref=e414]: วิเคราะห์หุ้น
+        - paragraph [ref=e415]: Live quotes, fundamentals and sentiment for any ticker — explained simply.
+      - generic [ref=e416]:
+        - img [ref=e418]
+        - heading "Calendar & scheduling" [level=4] [ref=e421]
+        - generic [ref=e422]: จัดตารางนัด
+        - paragraph [ref=e423]: Cross-timezone booking, deep-work protection, automatic meeting briefs.
+      - generic [ref=e424]:
+        - img [ref=e426]
+        - heading "Email · send & receive" [level=4] [ref=e429]
+        - generic [ref=e430]: รับส่งอีเมลแทนคุณ
+        - paragraph [ref=e431]: Receives, triages and replies on your behalf — or writes & sends new emails on command.
+      - generic [ref=e432]:
+        - img [ref=e434]
+        - heading "Image analysis" [level=4] [ref=e438]
+        - generic [ref=e439]: วิเคราะห์รูปภาพ
+        - paragraph [ref=e440]: Drop a photo — receipts, whiteboards, screenshots, menus. She reads, extracts and files.
+      - generic [ref=e441]:
+        - img [ref=e443]
+        - heading "Deep research" [level=4] [ref=e446]
+        - generic [ref=e447]: ค้นคว้าเชิงลึก
+        - paragraph [ref=e448]: Multi-source synthesis with citations. From competitor scan to policy brief.
+      - generic [ref=e449]:
+        - img [ref=e451]
+        - heading "Document drafting" [level=4] [ref=e454]
+        - generic [ref=e455]: ร่างเอกสาร
+        - paragraph [ref=e456]: Memos, emails, proposals, board updates — drafted in seconds, polished in minutes.
+      - generic [ref=e457]:
+        - img [ref=e459]
+        - heading "Customisable to you" [level=4] [ref=e464]
+        - generic [ref=e465]: ปรับได้ตามต้องการ
+        - paragraph [ref=e466]: Pick the categories, channels, briefing times and tone that fit your life. Change anything, anytime.
+      - generic [ref=e467]:
+        - img [ref=e469]
+        - heading "Bilingual fluency" [level=4] [ref=e471]
+        - generic [ref=e472]: สองภาษา
+        - paragraph [ref=e473]: Switch between English and ภาษาไทย mid-conversation. Translation and culture-aware.
+  - generic [ref=e475]:
+    - generic [ref=e476]:
+      - generic [ref=e477]: How it works
+      - heading "Set up in three minutes." [level=2] [ref=e478]
+      - paragraph [ref=e479]: No prompt-crafting. No tutorials. Tell LEKHA what your day looks like... she takes it from there.
+    - generic [ref=e480]:
+      - generic [ref=e481]:
+        - generic [ref=e482]: "01"
+        - heading "Connect your tools" [level=4] [ref=e483]
+        - paragraph [ref=e484]: Plug in Line and your Google account. Takes 90 seconds.
+      - generic [ref=e485]:
+        - generic [ref=e486]: "02"
+        - heading "Tell her your context" [level=4] [ref=e487]
+        - paragraph [ref=e488]: "A short onboarding chat: your role, your watchlist, your priorities, your day-to-day routine."
+      - generic [ref=e489]:
+        - generic [ref=e490]: "03"
+        - heading "Let her run the day" [level=4] [ref=e491]
+        - paragraph [ref=e492]: LEKHA keeps you updated with two daily briefings at 7 AM and 9 PM. Chat with LEKHA to stay on top of your tasks, receive timely reminders, and get the information you need—when you need it.
+  - generic [ref=e494]:
+    - generic [ref=e495]:
+      - generic [ref=e496]: Built for
+      - heading "However you run your day, LEKHA adapts." [level=2] [ref=e497]:
+        - text: However you run your day,
+        - text: LEKHA adapts.
+    - generic [ref=e498]:
+      - generic [ref=e500]:
+        - generic [ref=e501]: For founders
+        - heading "Your one-person chief of staff." [level=4] [ref=e502]
+        - paragraph [ref=e503]: Brief on competitors before every call. Draft investor updates. Never drop a follow-up again.
+      - generic [ref=e505]:
+        - generic [ref=e506]: For executives
+        - heading "Reclaim the first hour of every day." [level=4] [ref=e507]
+        - paragraph [ref=e508]: Wake up to a briefing tuned to your portfolio, your team and your blockers.
+      - generic [ref=e510]:
+        - generic [ref=e511]: For analysts
+        - heading "Markets, news and research in one chat." [level=4] [ref=e512]
+        - paragraph [ref=e513]: Live data, sentiment and instant deep-dives — show your working with cited sources.
+      - generic [ref=e515]:
+        - generic [ref=e516]: For busy people
+        - heading "A todo list that finally sticks." [level=4] [ref=e517]
+        - paragraph [ref=e518]: Plain-language input, smart prioritisation, polite but persistent nudges.
+  - generic [ref=e520]:
+    - generic [ref=e521]:
+      - generic [ref=e522]: Pricing
+      - heading "Simple, honest pricing." [level=2] [ref=e523]
+      - paragraph [ref=e524]: Start free. Upgrade when LEKHA has saved you more time than the monthly fee — usually week one.
+    - generic [ref=e525]:
+      - generic [ref=e526]:
+        - generic [ref=e527]: MONTHLY
+        - generic [ref=e528]:
+          - generic [ref=e529]: ฿
+          - generic [ref=e530]: "599"
+          - generic [ref=e531]: /month
+        - generic [ref=e532]: Pay as you go. Cancel any time.
+        - list [ref=e533]:
+          - listitem [ref=e534]:
+            - img [ref=e535]
+            - text: Personalised briefing and much more
+          - listitem [ref=e537]:
+            - img [ref=e538]
+            - text: Unlimited tasks & smart reminders
+          - listitem [ref=e540]:
+            - img [ref=e541]
+            - text: Live stock & market analysis
+          - listitem [ref=e543]:
+            - img [ref=e544]
+            - text: Inbox triage & drafted replies
+          - listitem [ref=e546]:
+            - img [ref=e547]
+            - text: Deep research with citations
+        - link "Start 7-day trial" [ref=e549] [cursor=pointer]:
+          - /url: /signup?plan=monthly
+      - generic [ref=e550]:
+        - generic [ref=e551]: SAVE 17%
+        - generic [ref=e552]: YEARLY
+        - generic [ref=e553]:
+          - generic [ref=e554]: ฿
+          - generic [ref=e555]: 5,990
+          - generic [ref=e556]: /year
+        - generic [ref=e557]: Two months free. Best for daily users.
+        - list [ref=e558]:
+          - listitem [ref=e559]:
+            - img [ref=e560]
+            - text: Everything in Monthly
+          - listitem [ref=e562]:
+            - img [ref=e563]
+            - text: Equivalent to ฿499/month — 2 months free
+          - listitem [ref=e565]:
+            - img [ref=e566]
+            - text: Priority response · under 3s average
+          - listitem [ref=e568]:
+            - img [ref=e569]
+            - text: Early access to new capabilities
+          - listitem [ref=e571]:
+            - img [ref=e572]
+            - text: Dedicated onboarding session
+        - link "Start 7-day trial" [ref=e574] [cursor=pointer]:
+          - /url: /signup?plan=yearly
+  - generic [ref=e576]:
+    - generic [ref=e577]:
+      - generic [ref=e578]: FAQ
+      - heading "Questions, answered." [level=2] [ref=e579]
+    - generic [ref=e581]:
+      - generic [ref=e582] [cursor=pointer]:
+        - generic [ref=e583]:
+          - generic [ref=e584]: Does LEKHA speak Thai?
+          - generic [ref=e585]: +
+        - generic [ref=e586]: Yes — fully bilingual in English and ภาษาไทย. You can switch languages mid-conversation, and briefings can be delivered in either.
+      - generic [ref=e588] [cursor=pointer]:
+        - generic [ref=e589]: What tools does LEKHA connect to?
+        - generic [ref=e590]: +
+      - generic [ref=e592] [cursor=pointer]:
+        - generic [ref=e593]: Where does my data live?
+        - generic [ref=e594]: +
+      - generic [ref=e596] [cursor=pointer]:
+        - generic [ref=e597]: Can I use LEKHA on mobile?
+        - generic [ref=e598]: +
+      - generic [ref=e600] [cursor=pointer]:
+        - generic [ref=e601]: How is this different from ChatGPT?
+        - generic [ref=e602]: +
+  - generic [ref=e604]:
+    - generic [ref=e605]:
+      - generic [ref=e606]: About us
+      - heading "Built by people who’ve had no margin for error." [level=2] [ref=e607]
+    - generic [ref=e608]:
+      - paragraph [ref=e609]: LEKHA is an AI executive assistant built to help normal to high-performance people run their day with less friction. Created by a team with backgrounds in aerospace and defense engineering, medicine, and business leadership, we understand the pressure of fast decisions, packed schedules, and constant information flow.
+      - paragraph [ref=e610]: LEKHA helps manage daily briefings, tasks, reminders, emails, calendar planning, research, document drafting, image analysis, and market insights — all in one chat.
+      - paragraph [ref=e611]: "Our mission is simple: give busy professionals a reliable AI Chief of Operations that keeps life organised, focused, and moving forward."
+  - generic [ref=e613]:
+    - generic [ref=e614]:
+      - generic [ref=e615]: Ready when you are
+      - heading "Hand off your day to LEKHA." [level=2] [ref=e617]
+      - paragraph [ref=e618]: Free for 7 days. Cancel anytime — she won’t take it personally.
+      - generic [ref=e619]:
+        - link "Start now" [ref=e620] [cursor=pointer]:
+          - /url: "#start"
+          - text: Start now
+          - img [ref=e621]
+        - link "Book a 1-on-1 session with the team" [ref=e623] [cursor=pointer]:
+          - /url: "#demo"
+          - img [ref=e624]
+          - text: Book a 1-on-1 session with the team
+    - generic [ref=e626]:
+      - generic [ref=e627]: Good morning. S&P500 opened green, you have 3 meetings today, and Pim is asking about the Q3 deck. Where do you want to start?
+      - generic [ref=e628]: Show me the deck and reschedule my 11am to 2pm.
+      - generic [ref=e629]: On it — moving Andrew to Thursday 2pm. Deck opening now.
+  - generic [ref=e631]:
+    - generic [ref=e632]:
+      - generic [ref=e633]: Legal
+      - heading "Terms and Conditions" [level=2] [ref=e634]
+      - paragraph [ref=e635]: "Last updated: 20 May 2026 · By accessing or using LEKHA, you agree to these terms. If you do not agree, please do not use our service."
+    - generic [ref=e636]:
+      - paragraph [ref=e637]: Welcome to LEKHA. These Terms and Conditions govern your access to and use of LEKHA, an AI-powered chatbot and executive assistant service operated by Assistantforyou (“LEKHA,” “we,” “us,” or “our”).
+      - generic [ref=e638]:
+        - generic [ref=e639]:
+          - heading "1. About LEKHA" [level=4] [ref=e640]
+          - paragraph [ref=e641]: LEKHA is an AI automated chatbot designed to assist users with daily tasks, including daily briefings, tasks and reminders, calendar support, email drafting, document drafting, image analysis, stock and market analysis, research summaries, and general productivity support. LEKHA is intended to help users organize information, save time, and improve workflow efficiency. However, LEKHA does not replace human judgment, professional advice, or personal responsibility.
+        - generic [ref=e642]:
+          - heading "2. User Responsibility" [level=4] [ref=e643]
+          - paragraph [ref=e644]: You are responsible for how you use LEKHA and for reviewing all outputs before relying on them. AI-generated responses may be inaccurate, incomplete, outdated, or unsuitable for your specific situation. You agree to independently verify important information before making decisions, especially in areas involving finance, medicine, law, business, employment, safety, or personal matters.
+        - generic [ref=e645]:
+          - heading "3. No Professional Advice" [level=4] [ref=e646]
+          - paragraph [ref=e647]: LEKHA may provide information related to finance, markets, health, business, productivity, or other topics. This information is provided for general informational purposes only. LEKHA does not provide financial, investment, legal, medical, tax, or other professional advice. You should consult a qualified professional before making decisions in these areas. Stock analysis, market summaries, and investment-related content are not investment recommendations and should not be treated as a guarantee of performance, return, or outcome.
+        - generic [ref=e648]:
+          - heading "4. Account and Access" [level=4] [ref=e649]
+          - paragraph [ref=e650]: Some features may require you to create an account, provide contact information, or connect third-party services such as email, calendar, cloud storage, messaging platforms, or payment systems. You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account. You agree to notify us immediately if you suspect unauthorized access.
+        - generic [ref=e651]:
+          - heading "5. Third-Party Integrations" [level=4] [ref=e652]
+          - paragraph [ref=e653]: LEKHA may connect with third-party services, including but not limited to email providers, calendar platforms, messaging applications, cloud storage providers, payment processors, and market data providers. Your use of third-party services is also subject to their own terms, privacy policies, and rules. We are not responsible for failures, interruptions, errors, data loss, or policy changes caused by third-party platforms.
+        - generic [ref=e654]:
+          - heading "6. Email, Calendar, and Task Automation" [level=4] [ref=e655]
+          - paragraph [ref=e656]: LEKHA may help draft emails, summarize messages, create reminders, manage tasks, or assist with calendar scheduling. You remain responsible for reviewing, approving, sending, editing, deleting, or acting on any communication or scheduled item. We are not responsible for missed reminders, incorrect schedules, delayed notifications, wrongly drafted messages, failed delivery, or actions taken based on AI-generated outputs.
+        - generic [ref=e657]:
+          - heading "7. Image and Document Analysis" [level=4] [ref=e658]
+          - paragraph [ref=e659]: LEKHA may allow users to upload images, screenshots, receipts, documents, or other files for analysis, summarization, extraction, or organization. You confirm that you have the right to upload and process any content you submit. You should not upload confidential, sensitive, illegal, or third-party content unless you have permission to do so. AI extraction from images or documents may contain errors. You are responsible for verifying all extracted information before using it.
+        - generic [ref=e660]:
+          - heading "8. User Content" [level=4] [ref=e661]
+          - paragraph [ref=e662]: You retain ownership of content you submit to LEKHA, including messages, files, images, prompts, documents, and other materials. By using LEKHA, you grant Assistantforyou permission to process your content as necessary to provide the service, improve functionality, troubleshoot issues, ensure security, and comply with legal obligations. You agree not to submit content that is illegal, harmful, abusive, defamatory, infringing, misleading, or violates the rights of others.
+        - generic [ref=e663]:
+          - heading "9. Acceptable Use" [level=4] [ref=e664]
+          - paragraph [ref=e665]: "You agree not to use LEKHA to: break any law or regulation; violate another person’s privacy or intellectual property rights; generate spam, fraud, phishing, impersonation, or deceptive content; upload malware, harmful code, or unauthorized data; harass, threaten, abuse, or harm others; make automated decisions that may significantly affect another person without proper human review; or use LEKHA for high-risk activities where failure could cause injury, death, financial loss, or legal harm. We reserve the right to suspend or terminate access if we believe you have violated these Terms."
+        - generic [ref=e666]:
+          - heading "10. Payments and Subscriptions" [level=4] [ref=e667]
+          - paragraph [ref=e668]: Some LEKHA features may be free, while others may require payment or subscription. Prices, billing cycles, available features, and subscription plans may change over time. By purchasing a paid plan, you agree to pay all applicable fees. Unless stated otherwise, subscription fees are billed in advance and may renew automatically. Refunds, cancellations, and billing disputes will be handled according to our published refund policy or applicable law.
+        - generic [ref=e669]:
+          - heading "11. Service Availability" [level=4] [ref=e670]
+          - paragraph [ref=e671]: We aim to provide a reliable service, but we do not guarantee that LEKHA will always be available, uninterrupted, secure, or error-free. The service may be temporarily unavailable due to maintenance, updates, technical issues, third-party failures, security events, or circumstances beyond our control.
+        - generic [ref=e672]:
+          - heading "12. AI Limitations" [level=4] [ref=e673]
+          - paragraph [ref=e674]: LEKHA uses artificial intelligence and automated systems. AI outputs may be inaccurate, biased, incomplete, outdated, or unsuitable for your intended purpose. You agree not to rely solely on LEKHA for critical decisions. Human review is required before using LEKHA outputs for professional, legal, financial, medical, business, or safety-related purposes.
+        - generic [ref=e675]:
+          - heading "13. Intellectual Property" [level=4] [ref=e676]
+          - paragraph [ref=e677]: All rights, title, and interest in LEKHA, including the platform, software, design, branding, logo, interface, features, and related materials, belong to Assistantforyou or its licensors. You may not copy, modify, reverse engineer, sell, rent, distribute, or create derivative works from LEKHA without our written permission.
+        - generic [ref=e678]:
+          - heading "14. Privacy" [level=4] [ref=e679]
+          - paragraph [ref=e680]: Your privacy is important to us. Our collection, use, storage, and protection of personal data are described in our Privacy Policy. By using LEKHA, you agree that we may process your data in accordance with our Privacy Policy.
+        - generic [ref=e681]:
+          - heading "15. Security" [level=4] [ref=e682]
+          - paragraph [ref=e683]: We take reasonable measures to protect user data and platform security. However, no digital service can be guaranteed to be completely secure. You agree not to bypass security systems, access unauthorized accounts, scrape data, overload the system, or interfere with normal platform operation.
+        - generic [ref=e684]:
+          - heading "16. Termination" [level=4] [ref=e685]
+          - paragraph [ref=e686]: We may suspend or terminate your access to LEKHA at any time if you violate these Terms, misuse the service, create risk for other users, or if continued service becomes commercially, legally, or technically impractical. You may stop using LEKHA at any time. Termination does not remove obligations that arose before termination, including payment obligations or restrictions on misuse of intellectual property.
+        - generic [ref=e687]:
+          - heading "17. Disclaimer of Warranties" [level=4] [ref=e688]
+          - paragraph [ref=e689]: LEKHA is provided on an “as is” and “as available” basis. We do not guarantee that the service will meet your expectations, produce accurate outputs, be uninterrupted, or be free from errors. To the maximum extent permitted by law, we disclaim all warranties, whether express or implied, including warranties of accuracy, reliability, fitness for a particular purpose, merchantability, and non-infringement.
+        - generic [ref=e690]:
+          - heading "18. Limitation of Liability" [level=4] [ref=e691]
+          - paragraph [ref=e692]: To the maximum extent permitted by law, Assistantforyou shall not be liable for any indirect, incidental, consequential, special, punitive, or exemplary damages, including loss of profits, loss of data, missed opportunities, business interruption, financial loss, or reliance on AI-generated outputs. Our total liability for any claim related to the service shall not exceed the amount you paid to us in the six months before the claim arose.
+        - generic [ref=e693]:
+          - heading "19. Indemnification" [level=4] [ref=e694]
+          - paragraph [ref=e695]: You agree to indemnify and hold harmless LEKHA, Assistantforyou, its founders, employees, partners, contractors, and affiliates from any claims, damages, losses, liabilities, costs, or expenses arising from your use of the service, violation of these Terms, misuse of AI outputs, or infringement of third-party rights.
+        - generic [ref=e696]:
+          - heading "20. Changes to These Terms" [level=4] [ref=e697]
+          - paragraph [ref=e698]: We may update these Terms from time to time. When we make changes, we will update the “Last updated” date above. Your continued use of LEKHA after changes are posted means you accept the updated Terms.
+        - generic [ref=e699]:
+          - heading "21. Governing Law" [level=4] [ref=e700]
+          - paragraph [ref=e701]: These Terms shall be governed by the laws of Thailand, without regard to conflict of law principles. Any disputes shall be resolved in the courts or appropriate dispute resolution forum located in Bangkok, Thailand, unless otherwise required by applicable law.
+        - generic [ref=e702]:
+          - heading "22. Contact Us" [level=4] [ref=e703]
+          - paragraph [ref=e704]: "For questions about these Terms, please contact us at: Assistantforyou Email: assistantforyou999@gmail.com Address: Bangkok, Thailand"
+      - button "Read full terms" [ref=e706] [cursor=pointer]
+  - contentinfo [ref=e707]:
+    - generic [ref=e708]:
+      - generic [ref=e709]:
+        - generic [ref=e710]:
+          - generic [ref=e711]:
+            - img [ref=e713]
+            - generic [ref=e716]: LEKHA
+          - paragraph [ref=e717]: "\"I have been using Lekha and it has helped me organize my calendars and to-do list very well\" - a Doctor"
+        - generic [ref=e718]:
+          - heading "Product" [level=5] [ref=e719]
+          - list [ref=e720]:
+            - listitem [ref=e721]:
+              - link "Features" [ref=e722] [cursor=pointer]:
+                - /url: "#features"
+            - listitem [ref=e723]:
+              - link "Pricing" [ref=e724] [cursor=pointer]:
+                - /url: "#pricing"
+            - listitem [ref=e725]:
+              - link "Integrations" [ref=e726] [cursor=pointer]:
+                - /url: "#caps"
+            - listitem [ref=e727]:
+              - link "FAQ" [ref=e728] [cursor=pointer]:
+                - /url: "#faq"
+        - generic [ref=e729]:
+          - heading "Company" [level=5] [ref=e730]
+          - list [ref=e731]:
+            - listitem [ref=e732]:
+              - link "About" [ref=e733] [cursor=pointer]:
+                - /url: "#about"
+            - listitem [ref=e734]:
+              - link "Contact" [ref=e735] [cursor=pointer]:
+                - /url: https://lin.ee/NuCuel7
+            - listitem [ref=e736]:
+              - link "Use cases" [ref=e737] [cursor=pointer]:
+                - /url: "#use"
+            - listitem [ref=e738]:
+              - link "How it works" [ref=e739] [cursor=pointer]:
+                - /url: "#how"
+        - generic [ref=e740]:
+          - heading "Resources" [level=5] [ref=e741]
+          - list [ref=e742]:
+            - listitem [ref=e743]:
+              - link "Terms of Service" [ref=e744] [cursor=pointer]:
+                - /url: /terms
+            - listitem [ref=e745]:
+              - link "Privacy Policy" [ref=e746] [cursor=pointer]:
+                - /url: /privacy
+            - listitem [ref=e747]:
+              - link "Help center" [ref=e748] [cursor=pointer]:
+                - /url: https://lin.ee/NuCuel7
+      - generic [ref=e749]:
+        - generic [ref=e750]: © 2026 LEKHA · เลขา. All rights reserved.
+        - generic [ref=e751]: Made with care in Bangkok
+  - group "Currency" [ref=e752]:
+    - button "THB" [pressed] [ref=e753] [cursor=pointer]
+    - button "USD" [ref=e754] [cursor=pointer]
+  - alert [ref=e755]
