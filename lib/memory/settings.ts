@@ -70,7 +70,7 @@ export type UserSettings = {
 };
 
 // Bump this and add a migration entry below every time you change a default value.
-const CURRENT_VERSION = 6;
+const CURRENT_VERSION = 7;
 
 export const DEFAULTS: UserSettings = {
   timezone: "Asia/Bangkok",
@@ -98,7 +98,7 @@ export const DEFAULTS: UserSettings = {
     entertain: false,
   },
   briefingLength: "Headlines",
-  briefingLanguage: "EN + ไทย",
+  briefingLanguage: "English",
   briefingChannels: { line: true, email: false, push: true },
   briefingTopicSources: {},
   tools: {
@@ -189,6 +189,13 @@ const MIGRATIONS: Array<(s: StoredSettings, configured: Set<string>) => Partial<
   (_s, configured) => {
     const patch: Partial<UserSettings> = {};
     if (!configured.has("taskCheckInTime")) patch.taskCheckInTime = null;
+    return patch;
+  },
+
+  // v6 → v7: default briefings to English; reply language stays auto so Thai input still gets Thai replies.
+  (_s, configured) => {
+    const patch: Partial<UserSettings> = {};
+    if (!configured.has("briefingLanguage")) patch.briefingLanguage = "English";
     return patch;
   },
 ];

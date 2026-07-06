@@ -10,6 +10,7 @@ import { toolsForUser } from "@/lib/tools";
 import { fastClassify } from "@/lib/fast-classify";
 import { enrichReply } from "../enrich-reply";
 import { span, timed } from "@/lib/timing";
+import { handleTutorialText } from "@/lib/tutorial";
 
 export async function respondToText(
   replyToken: string,
@@ -18,6 +19,9 @@ export async function respondToText(
   userText: string,
   traceId?: string,
 ): Promise<void> {
+  // Tutorial command / in-progress setup takes precedence over normal chat.
+  if (await handleTutorialText(userId, replyToken, userText)) return;
+
   const endHandler = span("text:respondToText", traceId);
   showLoading(userId, 60).catch(() => {}); // fire-and-forget
 

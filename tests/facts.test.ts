@@ -149,4 +149,26 @@ describe("structured facts", () => {
     expect(narrow).toContain("fact9");
     expect(narrow).not.toContain("fact0");
   });
+
+  it("priority facts are injected before regular facts within the same limit", async () => {
+    await appendFact("U1", "regular old", { category: "other" });
+    await new Promise((r) => setTimeout(r, 5));
+    await appendFact("U1", "priority upload", { category: "context", priority: 1 });
+    await new Promise((r) => setTimeout(r, 5));
+    await appendFact("U1", "regular new", { category: "other" });
+
+    const f = await loadFacts("U1");
+    const block = factsToPromptBlock(f, 2);
+    const lines = block.split("\n").filter((l) => l.startsWith("- "));
+    expect(lines.length).toBe(2);
+    expect(lines[0]).toContain("priority upload");
+    expect(lines[1]).toContain("regular new");
+  });
+
+  it("appendFact upgrades priority on duplicate", async () => {
+    await appendFact("U1", "uploaded doc", { category: "context" });
+    await appendFact("U1", "uploaded doc", { category: "context", priority: 1 });
+    const f = await loadFacts("U1");
+    expect(f.facts[0]!.priority).toBe(1);
+  });
 });

@@ -89,7 +89,7 @@ lib/
 ├── handlers/
 │   ├── text.ts                             # text message → runAgent
 │   ├── image.ts                            # image message → vision + staging
-│   └── other-media.ts                      # video/audio/file staging
+│   └── other-media.ts                      # video/audio/file staging + audio auto-transcription
 ├── line/
 │   ├── verify.ts                           # HMAC-SHA256 signature verification
 │   ├── client.ts                           # REST client for reply/push/loading
@@ -214,10 +214,12 @@ OAuth tokens AES-256-GCM with `TOKEN_ENCRYPTION_KEY` (64 hex chars). `OAUTH_STAT
 Upstash sliding window, **500/hr/user**. Paid Gemini RPM absorbs the burst; the cap exists to bound LINE push quota cost and provide an abuse circuit-breaker at 100+ user scale.
 
 ### 11. Settings injected into every system prompt
-Timezone, location, language, connected Google accounts, staged media — all live in the system prompt so the model behaves correctly without needing to call lookup tools. Settings use versioning + migration: `CURRENT_VERSION = 6` in `lib/memory/settings.ts` defines the schema. When a new schema is deployed, `applyMigrations()` runs on read and writes back once, never overriding explicit user choices tracked in `userConfigured` array.
+Timezone, location, language, connected Google accounts, staged media — all live in the system prompt so the model behaves correctly without needing to call lookup tools. Settings use versioning + migration: `CURRENT_VERSION = 7` in `lib/memory/settings.ts` defines the schema. When a new schema is deployed, `applyMigrations()` runs on read and writes back once, never overriding explicit user choices tracked in `userConfigured` array.
 
 ### 12. Long-term memory via Upstash Vector (with substring fallback)
 Every fact-extraction cycle (every `memoryCompactAt` turns, default 10) writes a 2–4 sentence chunk summary to `archive`. The summary is also embedded via Gemini `text-embedding-004` (768 dims) and upserted to Upstash Vector with metadata `{ userId, archiveId, ts, summary }`. `search_archived_memory` embeds the query and runs a top-K similarity search filtered by `userId`. If `UPSTASH_VECTOR_REST_*` env vars aren't set, or any vector op fails, the search falls back to substring match against the Redis-stored summaries.
+
+Uploaded documents and audio transcripts are indexed separately (`lib/memory/documents.ts`) so the full content remains searchable long after the ~30 min LINE staged-media window closes. Documents are indexed on first read; voice memos are transcribed and indexed automatically on arrival. `search_documents` searches across both kinds.
 
 ### 13. Proactive layer via master sweep
 A single QStash schedule hits `/api/cron/sweep` every 15 min (legacy endpoint; forwards to `lib/sweep.ts` `runSweepForUser`). The current endpoint is `/api/cron/sweep/fire`. It iterates `users:active` set and decides per-user whether to push (morning briefing window check, evening summary window check, task check-in window check). **There are no per-user QStash schedules for briefings/summaries.**
@@ -252,6 +254,8 @@ Failure mode is always safe: `undefined` → all tools. The classifier never cau
 Facts are stored at `user:{userId}:facts:v2` as JSON with shape `{ facts: Fact[], updatedAt }`. Each `Fact` has `id`, `category` (preferences|people|habits|deadlines|context|health|work|other), `content`, `createdAt`, `updatedAt`, optional `confidence`. Cap at **500 facts/user** with LRU eviction by `updatedAt`. Reads are selective (only the needed recent facts are deserialized for prompt injection). Content capped at 1000 chars.
 
 History uses a rolling **35 turns** in Redis. `historyForPrompt` summarizes the oldest chunk to ~200 tokens via the extractor model if the rolling history exceeds ~3000 tokens (script-weighted heuristic). Summary is cached by SHA1 content hash for **30 days** and also accumulated into `history:running_summary:{userId}`. Placeholder assistant replies are filtered out before storage and before prompt building.
+
+Facts support an optional `priority` field. Higher-priority facts (e.g., markers for uploaded documents or voice memos) are injected into the prompt before regular facts, within the same per-hint fact limit. This gives uploaded content prominence without shrinking the general conversation fact budget.
 
 ### 20. LINE Flex Messages + postback routing
 Draft confirmations, task lists, and other high-signal interactions render as Flex bubbles with tap-to-act postback buttons. Module: `lib/line/flex/` (one file per template + `index.ts` + `parsePostbackData` helper + `validate.ts` for runtime sanitization). Templates always include a meaningful `altText` so old LINE clients still see something useful. Model-generated Flex via `render_flex` is schema-validated and sanitized before it reaches LINE (altText clamped, postback data ≤ 300 chars, carousel capped at 10 bubbles, markdown stripped from altText); invalid cards fall back to a plain text bubble.
@@ -290,7 +294,7 @@ Idempotency relies on the existing `seen:{webhookEventId}` dedup.
 - **Settings command:** Typing `=settings=` in LINE opens a rich, LLM-free Flex menu. Users can toggle briefings, tools, persona, memory, facts, language, location, and timezone via `postback` buttons. The menu is built in `lib/line/flex/settings.ts` and handled in `lib/settings-menu.ts`.
 - **Typed settings commands:** Users can also type `=set <key> <value>` (e.g. `=set timezone Asia/Tokyo`, `=set language th`, `=set morning off`) or `=remember <fact>` to edit settings without invoking the LLM.
 - **Postback verbs:** `settings:main`, `settings:section:<name>`, `settings:set:<key>:<value>`, `settings:toggle:<target>:off`, `settings:facts:del:<id>`.
-- **Onboarding:** New users (follow event or admin approval) receive a 4-step onboarding wizard if they haven't completed it. Postback verb is `onboard:<step>:<choice>`. Onboarding state is stored at `user:{userId}:onboarded`.
+- **Onboarding:** New users (follow event or admin approval) receive a one-time welcome push with a "Start setup" button. Tapping it starts an interactive tutorial (`lib/tutorial.ts`) that walks through each settings section one by one: Language & Location → Briefings → Tools → Persona → Memory. Each step explains what the setting does and lets the user choose. Postback verbs are `tutorial:start`, `tutorial:set:<key>:<value>`, `tutorial:next`, `tutorial:back`. Users can restart the tutorial anytime by typing `=tutorial`. Onboarding state is stored at `user:{userId}:onboarded`; tutorial progress is stored at `user:{userId}:tutorial:step`.
 
 ## Swapping the LLM
 

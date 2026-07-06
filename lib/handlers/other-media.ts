@@ -2,6 +2,8 @@ import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { env } from "@/lib/env";
 import { appendTurn } from "@/lib/memory/history";
 import { appendRecentMedia, listRecentMedia } from "@/lib/memory/recent-media";
+import { autoProcessAudio } from "@/lib/tools/media-ai";
+import { maybeExtractFacts } from "@/lib/maybe-extract";
 
 /** Items staged within this window count as "sent together" for ack wording. */
 const BATCH_WINDOW_MS = 10_000;
@@ -67,6 +69,39 @@ export async function respondToOtherMedia(
   // For readable docs: kick off background pre-read so the first question answers instantly.
   if (isDoc) {
     prereadDoc(userId, messageId, fileName, env().LINE_CHANNEL_ACCESS_TOKEN).catch(() => {});
+  }
+
+  // Audio: auto-transcribe and save the full transcript for later recall. When
+  // batched with text, the text handler leads the reply and we just transcribe in
+  // the background; when standalone, we send a brief ack.
+  if (kind === "audio") {
+    if (mode === "stage_only") {
+      autoProcessAudio(userId, messageId, fileName).catch((err) =>
+        console.warn("[other-media] background audio transcription failed", err),
+      );
+    } else {
+      try {
+        const { transcript } = await autoProcessAudio(userId, messageId, fileName);
+        const durationHint = durationMs && durationMs > 0 ? ` (${Math.round(durationMs / 1000)}s)` : "";
+        const reply = transcript && transcript !== "No speech detected."
+          ? `🎙 Got your voice memo${durationHint}. I've transcribed and saved it — just ask me to summarize, search, or pull quotes from it.`
+          : `🎙 Got your voice memo${durationHint}, but I didn't detect any speech.`;
+        await replyOrPush(userId, replyToken, [textMsg(reply)]);
+        await appendTurn(userId, {
+          role: "user",
+          content: transcript && transcript !== "No speech detected."
+            ? `[sent a voice memo, transcribed and saved]`
+            : "[sent a voice memo, no speech detected]",
+          ts: Date.now(),
+        });
+        await appendTurn(userId, { role: "assistant", content: reply, ts: Date.now() });
+        maybeExtractFacts(userId).catch(() => {});
+        return;
+      } catch (err) {
+        console.warn("[other-media] auto audio processing failed", err);
+        // Fall through to the generic ack below.
+      }
+    }
   }
 
   // stage_only: media+text arrived in same batch — text handler runs the agent.

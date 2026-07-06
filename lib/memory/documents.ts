@@ -52,6 +52,7 @@ export async function indexDocument(
   docId: string,
   fileName: string,
   fullText: string,
+  kind: "document" | "audio" = "document",
 ): Promise<void> {
   const vec = getVectorIndex();
   if (!vec) return;
@@ -68,7 +69,7 @@ export async function indexDocument(
     vectors.push({
       id: `doc:${userId}:${docId}:${i}`,
       vector: v,
-      metadata: { userId, docId, fileName, chunkIndex: i, text: chunks[i], kind: "document", ts: Date.now() },
+      metadata: { userId, docId, fileName, chunkIndex: i, text: chunks[i], kind, ts: Date.now() },
     });
   }
   if (!vectors.length) return;
@@ -120,8 +121,8 @@ export async function searchDocuments(userId: string, query: string, docId?: str
   const qv = await embedText(query);
   if (!qv) return [];
   const filter = docId
-    ? `userId = '${userId}' and kind = 'document' and docId = '${docId}'`
-    : `userId = '${userId}' and kind = 'document'`;
+    ? `userId = '${userId}' and docId = '${docId}'`
+    : `userId = '${userId}'`;
   try {
     const hits = await vec.query({ vector: qv, topK: 8, includeMetadata: true, filter });
     const out: DocChunkHit[] = [];

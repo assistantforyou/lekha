@@ -1,7 +1,8 @@
 import { replyOrPush, text as textMsg, getProfile } from "@/lib/line/client";
 import { parsePostbackData, curatedDemoAnswer } from "@/lib/line/flex";
 import { handleSettingsPostback } from "@/lib/settings-menu";
-import { handleOnboardingPostback, isOnboarded, startOnboarding } from "@/lib/onboarding";
+import { isOnboarded, startOnboarding } from "@/lib/onboarding";
+import { handleTutorialPostback } from "@/lib/tutorial";
 import { loadFacts, displayOrder } from "@/lib/memory/facts";
 import { clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
@@ -252,14 +253,14 @@ async function handleSettings({ userId, replyToken, args }: Ctx): Promise<void> 
   await handleSettingsPostback(userId, replyToken, args);
 }
 
-async function handleOnboard({ userId, replyToken, args }: Ctx): Promise<void> {
-  await handleOnboardingPostback(userId, replyToken, args);
+async function handleTutorial({ userId, replyToken, args }: Ctx): Promise<void> {
+  await handleTutorialPostback(userId, replyToken, args);
 }
 
 const HANDLERS: Record<string, ((ctx: Ctx) => Promise<void>) | undefined> = {
   confirm: handleConfirm,
   settings: handleSettings,
-  onboard: handleOnboard,
+  tutorial: handleTutorial,
   task: handleTask,
   checkin: handleCheckin,
   gmail: handleGmail,

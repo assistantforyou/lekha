@@ -6,6 +6,7 @@ import { listRecentMedia, touchRecentMedia } from "@/lib/memory/recent-media";
 import { getMessageContent } from "@/lib/line/client";
 import { getDocContent, setDocContent } from "@/lib/memory/doc-cache";
 import { indexDocument } from "@/lib/memory/documents";
+import { appendFact } from "@/lib/memory/facts";
 import { createHash } from "crypto";
 
 // Lazy-load heavy conversion/parser modules so cold starts without media don't pay.
@@ -100,6 +101,45 @@ export function buildMediaAiTools(userId: string) {
   };
 }
 
+/**
+ * Auto-process a standalone voice memo: transcribe, index the FULL verbatim transcript
+ * for long-term search, and store a lightweight priority fact so the content is easy
+ * to recall. We do NOT extract key facts or summaries here — the full transcript is
+ * preserved and searchable via search_documents.
+ */
+export async function autoProcessAudio(
+  userId: string,
+  messageId: string,
+  fileName?: string,
+): Promise<{ transcript: string }> {
+  const transcriptResult = await runMediaPromptById(
+    userId,
+    messageId,
+    "audio",
+    "Transcribe every word spoken in this audio. Output the verbatim transcript, preserving punctuation and speaker turns if there are multiple people. If inaudible, write '[inaudible]'. If no speech is detected, say 'No speech detected.'",
+    { model: "extractor" },
+  );
+  const transcript =
+    transcriptResult && typeof transcriptResult === "object" && "ok" in transcriptResult && transcriptResult.ok === true &&
+    "output" in transcriptResult && typeof transcriptResult.output === "string"
+      ? transcriptResult.output
+      : "";
+
+  // Store the full transcript as a searchable document so the user can ask about it later.
+  if (transcript && transcript.length > 20 && transcript !== "No speech detected.") {
+    const docName = fileName && fileName !== "undefined" ? fileName : `Voice memo ${new Date().toISOString().slice(0, 10)}`;
+    indexDocument(userId, messageId, docName, transcript, "audio").catch((err) =>
+      console.warn("[media-ai] index audio transcript failed", err),
+    );
+    // Lightweight priority fact so the model knows a voice memo exists.
+    appendFact(userId, `Voice memo uploaded: ${docName}`, { category: "context", priority: 1 }).catch((err) =>
+      console.warn("[media-ai] append audio fact failed", err),
+    );
+  }
+
+  return { transcript };
+}
+
 const mediaResultCache = new Map<string, { output: string; ts: number }>();
 const MEDIA_CACHE_TTL_MS = 2 * 60 * 60 * 1000;
 
@@ -182,8 +222,14 @@ async function runDocPrompt(
       setDocContent(userId, item.messageId, { summary: text, fileName: item.fileName, mediaType, ts: Date.now() }).catch(() => {});
       // Index the FULL untruncated text (not `output`, which may be capped for display)
       // for long-term recall — best-effort, doesn't block the reply.
-      indexDocument(userId, item.messageId, item.fileName ?? "document", text).catch((err) =>
+      indexDocument(userId, item.messageId, item.fileName ?? "document", text, "document").catch((err) =>
         console.warn("[media-ai] indexDocument failed", err),
+      );
+      // Priority fact so uploaded documents are prominent in memory without
+      // evicting general conversation facts (same prompt budget, sorted to top).
+      const docFact = item.fileName ? `Uploaded document: ${item.fileName}` : "Uploaded document";
+      appendFact(userId, docFact, { category: "context", priority: 1 }).catch((err) =>
+        console.warn("[media-ai] append document fact failed", err),
       );
     }
     setCached(userId, item.messageId, instruction, output);
@@ -204,6 +250,53 @@ async function runDocPrompt(
         return { ok: true as const, kind: item.kind, mediaType, output, fallback: true };
       }
     }
+    return docGeminiError(err, mediaType);
+  }
+}
+
+/** Run a media prompt against a specific LINE messageId instead of resolving from the staged list. */
+async function runMediaPromptById(
+  userId: string,
+  messageId: string,
+  expectedKind: "audio" | "image" | "video" | "file",
+  instruction: string,
+  opts: { maxChars?: number; model?: "chat" | "extractor" } = {},
+) {
+  const cached = getCached(userId, messageId, instruction);
+  if (cached) return { ok: true as const, kind: expectedKind, mediaType: "audio/m4a", output: cached, cached: true };
+
+  let bytes: Uint8Array;
+  let mediaType: string;
+  try {
+    const fetched = await getMessageContent(messageId);
+    bytes = fetched.bytes;
+    mediaType = normalizeMediaTypeFromBytes(fetched.bytes, fetched.contentType, undefined, expectedKind);
+  } catch (err) {
+    return { ok: false as const, error: `Couldn't fetch file from LINE: ${err instanceof Error ? err.message : String(err)}` };
+  }
+
+  if (mediaType === "image/heic" || mediaType === "image/heif") {
+    try {
+      const conv = await getHeicConvert();
+      bytes = await conv.default({ buffer: bytes, format: "JPEG" });
+      mediaType = "image/jpeg";
+    } catch (err) {
+      console.warn("[media-ai] HEIC conversion failed", err);
+      return { ok: false as const, error: "Couldn't convert this HEIC image. Try sending it as JPEG." };
+    }
+  }
+
+  const model = opts.model === "chat" ? chatModel() : extractorModel();
+  try {
+    const r = await generateText({
+      model,
+      messages: [{ role: "user", content: [{ type: "text", text: instruction }, { type: "file", data: bytes, mediaType }] }],
+    });
+    const text = r.text.trim();
+    const output = opts.maxChars && text.length > opts.maxChars ? text.slice(0, opts.maxChars) + "\n--- truncated ---" : text;
+    setCached(userId, messageId, instruction, output);
+    return { ok: true as const, kind: expectedKind, mediaType, output };
+  } catch (err) {
     return docGeminiError(err, mediaType);
   }
 }

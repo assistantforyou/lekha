@@ -43,14 +43,16 @@ function factLimitForHint(hint: string | undefined): number {
     case "finance":
     case "news":
       return 5;
-    // Tool-focused queries — moderate context
+    // Tool-focused queries — moderate context. Media needs extra room because
+    // upload-derived priority facts (documents, voice memos) compete for slots.
     case "reminder":
     case "task":
     case "lists":
     case "settings":
-    case "media":
     case "receipts":
       return 12;
+    case "media":
+      return 20;
     // Relational queries — need people, context, preferences
     case "email":
     case "calendar":
@@ -382,7 +384,7 @@ export async function runAgent(
               ];
               return parts.filter(Boolean).join(" ");
             })
-            .join("\n")}\nIf the user asks about an image, call \`ocr_image\` or \`summarize_image\` with the index. If they ask about a PDF/document, call \`summarize_document\` or \`read_document\`. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
+            .join("\n")}\nIf the user asks about an image, call \`ocr_image\` or \`summarize_image\` with the index. If they ask about a PDF/document, call \`summarize_document\` or \`read_document\`. If they ask about a voice memo/meeting/lecture, the full transcript is already saved — use \`search_documents\` to find it and summarize or quote from it. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
       : "";
     const tz = settings.timezone ?? "Asia/Bangkok";
     const factsBlock = factsToPromptBlock(facts, factLimitForHint(opts?.hint));

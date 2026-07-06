@@ -37,6 +37,8 @@ export type Fact = {
   createdAt: number;
   updatedAt: number;
   confidence?: "high" | "medium" | "low";
+  /** Higher priority facts are injected first in the prompt (within the same limit). */
+  priority?: number;
 };
 
 export type UserFacts = {
@@ -111,11 +113,19 @@ function newFact(content: string, category: FactCategory = "other", opts?: Parti
   };
 }
 
+/** Sort key: priority desc, then updatedAt desc. */
+function prioritySort(a: Fact, b: Fact): number {
+  const pa = a.priority ?? 0;
+  const pb = b.priority ?? 0;
+  if (pb !== pa) return pb - pa;
+  return b.updatedAt - a.updatedAt;
+}
+
 /** Add a single fact. Dedupe on lowercase content match within the same category. */
 export async function appendFact(
   userId: string,
   content: string,
-  opts?: { category?: FactCategory; sourceTurnId?: string; confidence?: Fact["confidence"] },
+  opts?: { category?: FactCategory; sourceTurnId?: string; confidence?: Fact["confidence"]; priority?: number },
 ): Promise<void> {
   const norm = content.trim();
   if (!norm) return;
@@ -125,8 +135,11 @@ export async function appendFact(
     (f) => f.category === category && f.content.toLowerCase() === norm.toLowerCase(),
   );
   if (dupIdx >= 0) {
-    // Bump updatedAt so LRU keeps it.
+    // Bump updatedAt so LRU keeps it. Upgrade priority if the new instance is higher.
     facts.facts[dupIdx]!.updatedAt = Date.now();
+    const newPriority = opts?.priority ?? 0;
+    const oldPriority = facts.facts[dupIdx]!.priority ?? 0;
+    if (newPriority > oldPriority) facts.facts[dupIdx]!.priority = newPriority;
   } else {
     facts.facts.push(
       newFact(norm, category, {
@@ -180,6 +193,11 @@ export function displayOrder(facts: Fact[]): Fact[] {
   return [...facts].sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
+/** Prompt order = priority first, then newest-updated. */
+export function promptOrder(facts: Fact[]): Fact[] {
+  return [...facts].sort(prioritySort);
+}
+
 /**
  * Render facts for the system prompt: group by category, newest-first within
  * category. Keeps the prompt scannable for the model and stable for caching
@@ -191,7 +209,7 @@ export function displayOrder(facts: Fact[]): Fact[] {
 export function factsToPromptBlock(facts: UserFacts, limit = PROMPT_FACTS_MAX): string {
   if (!facts.facts.length) return "";
   const byCat = new Map<FactCategory, Fact[]>();
-  const recent = displayOrder(facts.facts).slice(0, limit);
+  const recent = promptOrder(facts.facts).slice(0, limit);
   for (const f of recent) {
     if (!byCat.has(f.category)) byCat.set(f.category, []);
     byCat.get(f.category)!.push(f);
