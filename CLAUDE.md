@@ -101,10 +101,10 @@ lib/
     ├── google-accounts.ts             # list/connect/switch/disconnect Google accounts
     ├── with-google.ts                 # auth/api-disabled/quota error → structured marker
     ├── email.ts                       # draft_email (multi-recip, Drive + LINE attach, Gmail threading)
-    ├── gmail-inbox.ts                 # gmail_search/read/summarize_recent + draft_gmail_reply
+    ├── gmail-inbox.ts                 # gmail_search/read/summarize_recent/draft_gmail_reply + archive/trash/mark_read/apply_label
     ├── scheduled-email.ts             # schedule_email/list/cancel — QStash-deferred sends
     ├── calendar.ts                    # 8 tools: draft/search/update/delete/list_upcoming/today/week/find_free_time
-    ├── drive.ts                       # search/list_recent/get_link/read_text/upload_recent_media
+    ├── drive.ts                       # search/list_recent/get_link/read_text/upload_recent_media/create_folder/delete/move/rename/share
     ├── media-ai.ts                    # ocr/summarize_image + summarize/read_document — staged-media only
     ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt — staged-media only
     ├── sent-history.ts                # query the audit log

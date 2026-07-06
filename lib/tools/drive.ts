@@ -55,6 +55,51 @@ function summarize(file: {
 
 export function buildDriveTools(userId: string) {
   return {
+    drive_create_folder: tool({
+      description:
+        "Create a new folder in the user's Google Drive. Returns the folder's id — pass it as folderId to drive_upload_recent_media to upload into it. If a folder with the same name already exists under the same parent, reuses it instead of creating a duplicate. Use this BEFORE drive_upload_recent_media when the user asks to upload into a NEW/named folder (e.g. 'create a folder called X and put it there').",
+      inputSchema: z.object({
+        name: z.string().min(1).max(200),
+        parentId: z.string().optional().describe("Parent Drive folder id to nest inside. Omit for Drive root."),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ name, parentId, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          const escaped = name.replace(/'/g, "\\'");
+          const q =
+            `name = '${escaped}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false` +
+            (parentId ? ` and '${parentId}' in parents` : "");
+          const existing = await drive.files.list({ q, fields: "files(id,name,webViewLink)", pageSize: 1 });
+          const found = existing.data.files?.[0];
+          if (found) {
+            return {
+              ok: true as const,
+              id: found.id,
+              name: found.name,
+              webViewLink: found.webViewLink ?? null,
+              reused: true,
+            };
+          }
+          const r = await drive.files.create({
+            requestBody: {
+              name,
+              mimeType: "application/vnd.google-apps.folder",
+              ...(parentId ? { parents: [parentId] } : {}),
+            },
+            fields: "id,name,webViewLink",
+          });
+          return {
+            ok: true as const,
+            id: r.data.id,
+            name: r.data.name,
+            webViewLink: r.data.webViewLink ?? null,
+            reused: false,
+          };
+        });
+      },
+    }),
+
     drive_search: tool({
       description:
         "Search the user's Google Drive. Pass a natural language query and it will be matched against file names AND full-text content. Returns metadata + share links. Use this when the user names a file by description ('that doc about X') or by full/partial filename.",
@@ -129,7 +174,7 @@ export function buildDriveTools(userId: string) {
 
     drive_upload_recent_media: tool({
       description:
-        "Upload one or all of the user's staged LINE media (image/video/audio/file) to their Google Drive. Use when the user says 'save this to my Drive'. Optional folderId places it inside a specific Drive folder.",
+        "Upload one or all of the user's staged LINE media (image/video/audio/file) to their Google Drive. Use when the user says 'save this to my Drive'. Optional folderId places it inside a specific EXISTING Drive folder — if the user names a NEW folder to create, call drive_create_folder first and pass its returned id here.",
       inputSchema: z.object({
         indexes: z
           .array(z.number().int().min(1))
@@ -234,6 +279,95 @@ export function buildDriveTools(userId: string) {
             mimeType: mime,
             truncated,
             text: text.slice(0, 50_000),
+          };
+        });
+      },
+    }),
+
+    drive_delete_file: tool({
+      description:
+        "Move a Drive file or folder to Trash — recoverable within Google's default retention, same as deleting in the Drive UI (not a permanent delete). Use when the user says 'delete that file from my drive'. Call drive_search first if you need the fileId.",
+      inputSchema: z.object({
+        fileId: z.string().min(1),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ fileId, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          await drive.files.update({ fileId, requestBody: { trashed: true } });
+          return { ok: true as const, fileId, trashed: true };
+        });
+      },
+    }),
+
+    drive_move_file: tool({
+      description:
+        "Move a Drive file into a different folder. Pass the target folderId — use drive_search to find an existing folder or drive_create_folder to make a new one first.",
+      inputSchema: z.object({
+        fileId: z.string().min(1),
+        folderId: z.string().min(1),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ fileId, folderId, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          const meta = await drive.files.get({ fileId, fields: "parents" });
+          const prevParents = (meta.data.parents ?? []).join(",");
+          const r = await drive.files.update({
+            fileId,
+            addParents: folderId,
+            removeParents: prevParents || undefined,
+            fields: "id,name,parents",
+          });
+          return { ok: true as const, fileId: r.data.id, name: r.data.name };
+        });
+      },
+    }),
+
+    drive_rename_file: tool({
+      description: "Rename a Drive file or folder.",
+      inputSchema: z.object({
+        fileId: z.string().min(1),
+        name: z.string().min(1).max(200),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ fileId, name, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          const r = await drive.files.update({ fileId, requestBody: { name }, fields: "id,name" });
+          return { ok: true as const, fileId: r.data.id, name: r.data.name };
+        });
+      },
+    }),
+
+    drive_share_file: tool({
+      description:
+        "Share a Drive file/folder with a specific email address, or enable link-sharing for 'anyone with the link'. Returns the share link. Set anyone=true for link-sharing instead of passing an email.",
+      inputSchema: z.object({
+        fileId: z.string().min(1),
+        email: z.string().email().optional().describe("Grant access to this specific email. Omit and set anyone=true for link-sharing instead."),
+        role: z.enum(["reader", "commenter", "writer"]).default("reader"),
+        anyone: z.boolean().default(false).describe("Share with 'anyone with the link' instead of a specific email."),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ fileId, email, role, anyone, fromEmail }) => {
+        if (!email && !anyone) {
+          return { ok: false as const, error: "Provide an email to share with, or set anyone=true for link-sharing." };
+        }
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          await drive.permissions.create({
+            fileId,
+            requestBody: anyone ? { type: "anyone", role } : { type: "user", role, emailAddress: email },
+            sendNotificationEmail: false,
+          });
+          const meta = await drive.files.get({ fileId, fields: "webViewLink" });
+          return {
+            ok: true as const,
+            fileId,
+            sharedWith: anyone ? "anyone with the link" : email,
+            role,
+            link: meta.data.webViewLink ?? null,
           };
         });
       },
