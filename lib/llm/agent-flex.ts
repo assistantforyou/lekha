@@ -53,7 +53,7 @@ function fmtDateTime(isoOrMs: string | number, tz = "UTC"): string {
 export function buildSimpleCardFlex(
   title: string,
   headerColor: string,
-  items: Array<{ primary: string; secondary?: string }>,
+  items: Array<{ primary: string; secondary?: string; link?: string; linkLabel?: string }>,
   emptyText = "Nothing here.",
 ): LineMessage {
   const rows = items.slice(0, 15);
@@ -91,6 +91,17 @@ export function buildSimpleCardFlex(
                   color: "#888888",
                   wrap: true,
                   margin: "xs",
+                },
+              ]
+            : []),
+          ...(item.link
+            ? [
+                {
+                  type: "button",
+                  style: "link",
+                  height: "sm",
+                  margin: "sm",
+                  action: { type: "uri", label: (item.linkLabel ?? "View photo").slice(0, 40), uri: item.link },
                 },
               ]
             : []),
@@ -1124,6 +1135,8 @@ export function buildFlexFromToolResults(
           return {
             primary: `${String(r.merchant ?? "Unknown")}${amount ? "  ·  " + amount : ""}`,
             secondary: r.date ? String(r.date).slice(0, 10) : undefined,
+            link: typeof r.photoUrl === "string" ? r.photoUrl : undefined,
+            linkLabel: "View photo",
           };
         });
         out.push(buildSimpleCardFlex("🧾 Receipts", "#FDCB6E", items, "No receipts found."));

@@ -52,10 +52,20 @@ export function buildMediaAiTools(userId: string) {
 
     summarize_document: tool({
       description:
-        "Summarize or answer questions about a PDF or document the user sent. Returns a pre-read extraction if available (instant), otherwise reads the file live. Uses the strong model for charts, tables, and dense documents.",
-      inputSchema: z.object({ index: z.number().int().min(1).optional() }),
-      execute: async ({ index }) =>
-        runDocPrompt(userId, index, "Summarize this document in 4-8 bullets. Highlight: purpose, key facts, dates, names, action items, conclusion.", { model: "chat" }),
+        "Summarize or answer a SPECIFIC question about a PDF or document the user sent (e.g. 'how many shares do I have per this doc', 'what's the deadline'). Pass `question` whenever the user asked something specific — omitting it only gives a generic summary, not an answer to their actual question. Uses the strong model for charts, tables, and dense documents.",
+      inputSchema: z.object({
+        index: z.number().int().min(1).optional(),
+        question: z.string().max(500).optional().describe("The user's specific question about the document. Omit only for a generic 'summarize this' request."),
+      }),
+      execute: async ({ index, question }) =>
+        runDocPrompt(
+          userId,
+          index,
+          question
+            ? `Answer this question about the document, using specific facts, figures, and quotes from it: "${question}". If the document doesn't contain the answer, say so plainly.`
+            : "Summarize this document in 4-8 bullets. Highlight: purpose, key facts, dates, names, action items, conclusion.",
+          { model: "chat", skipCache: !!question },
+        ),
     }),
 
     read_document: tool({
@@ -114,7 +124,7 @@ async function runDocPrompt(
   userId: string,
   index: number | undefined,
   instruction: string,
-  opts: { maxChars?: number; model?: "chat" | "extractor" } = {},
+  opts: { maxChars?: number; model?: "chat" | "extractor"; skipCache?: boolean } = {},
 ) {
   const item = await resolveStagedItem(userId, index, "file");
   if (!item || "error" in item) return item ?? { ok: false as const, error: "No staged document." };
@@ -122,8 +132,11 @@ async function runDocPrompt(
   // Refresh staged media TTL on every doc access.
   touchRecentMedia(userId).catch(() => {});
 
-  // Cache hit — instant answer.
-  const cached = await getDocContent(userId, item.messageId);
+  // A specific question needs a live, targeted answer — the doc-cache holds one
+  // canonical generic extraction per file, which would either miss the question
+  // entirely (if built for a different ask) or get overwritten with an answer
+  // too narrow to serve as "comprehensive extraction" for whatever's asked next.
+  const cached = opts.skipCache ? null : await getDocContent(userId, item.messageId);
   if (cached) {
     const cachedOutput = opts.maxChars && cached.summary.length > opts.maxChars
       ? cached.summary.slice(0, opts.maxChars) + "\n--- truncated ---"
@@ -162,8 +175,11 @@ async function runDocPrompt(
     });
     const text = r.text.trim();
     const output = opts.maxChars && text.length > opts.maxChars ? text.slice(0, opts.maxChars) + "\n--- truncated ---" : text;
-    // Cache so future questions are instant.
-    setDocContent(userId, item.messageId, { summary: text, fileName: item.fileName, mediaType, ts: Date.now() }).catch(() => {});
+    // Cache so future generic questions are instant — but a targeted question's
+    // answer isn't a "comprehensive extraction" and shouldn't overwrite that slot.
+    if (!opts.skipCache) {
+      setDocContent(userId, item.messageId, { summary: text, fileName: item.fileName, mediaType, ts: Date.now() }).catch(() => {});
+    }
     setCached(userId, item.messageId, instruction, output);
     return { ok: true as const, kind: item.kind, mediaType, output };
   } catch (err) {
