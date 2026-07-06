@@ -47,6 +47,15 @@ describe("fastClassify", () => {
     expect(fastClassify("connect my google account")).toBe("connect");
     expect(fastClassify("list my connected google accounts")).toBe("connect");
   });
+
+  it("classifies 'list my reminders' as 'reminder', matching the 'my' the task pattern already allows", () => {
+    // Regression: the pattern required "list" immediately followed by
+    // "reminder(s)" with no "my" in between, unlike the task pattern
+    // (list\s+(my\s+)?tasks?) which already handled this. Fell through to
+    // the full tool registry and Gemini blanked on live testing.
+    expect(fastClassify("list my reminders")).toBe("reminder");
+    expect(fastClassify("list reminders")).toBe("reminder");
+  });
 });
 
 describe("search-first prompt rules", () => {

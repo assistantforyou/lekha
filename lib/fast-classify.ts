@@ -26,7 +26,7 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
     intent: "reminder",
     patterns: [
       // "remind me", "set a reminder", "set a recurring reminder", etc.
-      /\b(remind\s+me|set\s+(a\s+)?(recurring\s+)?reminder|what\s+reminders?\s+(do\s+i\s+have|are\s+there)|cancel.*\breminder\b|delete.*\breminder\b|list\s+reminders?)\b/i,
+      /\b(remind\s+me|set\s+(a\s+)?(recurring\s+)?reminder|what\s+reminders?\s+(do\s+i\s+have|are\s+there)|cancel.*\breminder\b|delete.*\breminder\b|list\s+(my\s+)?reminders?)\b/i,
     ],
   },
   {
