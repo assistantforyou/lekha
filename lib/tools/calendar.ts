@@ -357,12 +357,23 @@ export async function createCalendarEvent(
     if (eventId) {
       const settings = await getSettings(userId);
       if (settings.preMeetingLeads.length > 0) {
-        await schedulePreMeetingAlerts(
-          userId,
-          eventId,
-          args.startISO,
-          settings.preMeetingLeads,
-        );
+        // The event already exists at this point — a reminder-scheduling
+        // failure (e.g. QStash outage/misconfiguration) must not be reported
+        // to the user as "couldn't create the event" when it actually was.
+        try {
+          await schedulePreMeetingAlerts(
+            userId,
+            eventId,
+            args.startISO,
+            settings.preMeetingLeads,
+          );
+        } catch (err) {
+          console.error("[calendar] pre-meeting alert scheduling failed (event still created)", {
+            userId,
+            eventId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
       }
     }
     return { htmlLink: r.data.htmlLink ?? null, from, eventId };

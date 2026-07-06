@@ -112,7 +112,7 @@ export async function respondToText(
     // Image already staged — give Gemini vision + response steps more time
     timeoutMs: imageData ? 55_000 : undefined,
   });
-  const { text: replyText, hints } = result;
+  const { text: replyText, hints, historyText } = result;
 
   const endReply = span("text:reply", traceId);
   // Always use the replyToken for the actual answer. The earlier ack was sent via
@@ -132,7 +132,7 @@ export async function respondToText(
   const endAppend = span("text:appendTurns", traceId);
   await Promise.all([
     appendTurn(userId, { role: "user", content: userText, ts: Date.now() }),
-    appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() }),
+    appendTurn(userId, { role: "assistant", content: historyText, ts: Date.now() }),
   ]);
   endAppend();
 

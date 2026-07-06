@@ -294,6 +294,16 @@ export type AgentResult = {
   hints: AgentHints;
   /** Tool calls made during the turn (for eval/debug). */
   toolCalls?: { toolName: string; input: unknown }[];
+  /**
+   * What to store in conversation history for this turn. Usually equal to
+   * `text`, EXCEPT when `text` was suppressed to "" for display because a
+   * Flex card (inbox carousel, draft confirmation, task list, ...) already
+   * carries the content — history still needs a textual trace of what
+   * happened, or the model loses track of its own prior action (e.g. what a
+   * pending draft said, or that a search already ran) and redundantly
+   * redoes tool calls on the next turn.
+   */
+  historyText: string;
 };
 
 export async function runAgent(
@@ -582,7 +592,8 @@ export async function runAgent(
       toolCalls: flattenToolCallsForAudit(result.steps),
       durationMs: Math.round(performance.now() - agentStart),
     }).catch((e) => console.error("[audit] append failed", e));
-    return { text: finalText, hints, toolCalls: extraToolCalls };
+    const historyText = finalText.trim().length > 0 ? finalText : (text.trim().length > 0 ? text : "Done.");
+    return { text: finalText, hints, toolCalls: extraToolCalls, historyText };
   } catch (err) {
     const errText = await handleAgentError(err, userId, traceId);
     endAgent({ error: err instanceof Error ? err.message : String(err) });
@@ -604,6 +615,7 @@ export async function runAgent(
         needsGoogleConnect: unwrapAuthRequired(err) !== undefined,
       },
       toolCalls: [],
+      historyText: errText,
     };
   }
 }
@@ -863,7 +875,7 @@ async function handleAgentError(err: unknown, userId: string, traceId?: string):
   }
   if (err instanceof AgentTimeoutError) {
     console.warn("[agent] timeout", { seconds: err.seconds, traceId });
-    return "That took longer than I expected. Try again in a moment, or crop the image to the relevant area.";
+    return "That took longer than I expected — try again in a moment.";
   }
   const msg = err instanceof Error ? err.message : String(err);
   // AI_RetryError wraps the 503: its .message is "Failed after N attempts. Last error: ..."

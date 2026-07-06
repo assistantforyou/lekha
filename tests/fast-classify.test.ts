@@ -39,6 +39,14 @@ describe("fastClassify", () => {
     expect(fastClassify("summarize this file", { hasStagedMedia: true })).toBe("media");
     expect(fastClassify("what's in this image", { hasStagedMedia: true })).toBe("media");
   });
+
+  it("classifies google account queries as 'connect' for both singular and plural phrasing", () => {
+    // Regression: \b doesn't match mid-word, so "google\s+account\b" alone
+    // never matched the plural "accounts" — the query fell through to the
+    // full tool registry instead of narrowing.
+    expect(fastClassify("connect my google account")).toBe("connect");
+    expect(fastClassify("list my connected google accounts")).toBe("connect");
+  });
 });
 
 describe("search-first prompt rules", () => {

@@ -314,7 +314,7 @@ export async function POST(req: NextRequest) {
 
   const endAppend = span("dev:appendTurns", traceId);
   await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
-  await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
+  await appendTurn(userId, { role: "assistant", content: result.historyText, ts: Date.now() });
   endAppend();
 
   const msgs: import("@/lib/line/client").LineMessage[] = [];
