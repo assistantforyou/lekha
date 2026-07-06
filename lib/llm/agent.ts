@@ -166,6 +166,14 @@ type ProcessedResult = {
   authNeeded: { connectUrl: string; reason: string } | null;
   apiDisabled: { api: string; enableUrl: string | null; message: string } | null;
   googleErr: { status: number | null; message: string } | null;
+  /**
+   * Set when a real tool error was detected and the model didn't already
+   * relay it (decision #17). A Flex card from some OTHER successful tool call
+   * in the same turn must never suppress this — otherwise a failure like
+   * "delete_receipt: not found" silently vanishes behind an unrelated
+   * list_receipts card, and the user has no idea the action didn't happen.
+   */
+  hadUnrelayedToolError: boolean;
 };
 
 function processResult(
@@ -206,9 +214,9 @@ function processResult(
     }
   }
 
-  if (authNeeded) return { reply: "", authNeeded, apiDisabled: null, googleErr: null };
-  if (apiDisabled) return { reply: "", authNeeded: null, apiDisabled, googleErr: null };
-  if (googleErr) return { reply: "", authNeeded: null, apiDisabled: null, googleErr };
+  if (authNeeded) return { reply: "", authNeeded, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
+  if (apiDisabled) return { reply: "", authNeeded: null, apiDisabled, googleErr: null, hadUnrelayedToolError: false };
+  if (googleErr) return { reply: "", authNeeded: null, apiDisabled: null, googleErr, hadUnrelayedToolError: false };
 
   const draftBlock = renderDraftsBlock(allCalls, activeEmail, timezone);
   const modelText = result.text?.trim() ?? "";
@@ -217,30 +225,30 @@ function processResult(
     const allErrorsPresent = toolErrors.every((e) => modelText.includes(e.split(": ").slice(1).join(": ")));
     if (!allErrorsPresent) {
       console.warn("[agent] model soft-apologized — overriding with real tool errors", toolErrors);
-      return { reply: toolErrors.join("\n"), authNeeded: null, apiDisabled: null, googleErr: null };
+      return { reply: toolErrors.join("\n"), authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: true };
     }
   }
 
   if (draftBlock) {
     const intro = modelText.length > 0 && modelText.length < 240 ? `${modelText}\n\n` : "";
-    return { reply: `${intro}${draftBlock}`, authNeeded: null, apiDisabled: null, googleErr: null };
+    return { reply: `${intro}${draftBlock}`, authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
   }
 
-  if (modelText.length > 0) return { reply: modelText, authNeeded: null, apiDisabled: null, googleErr: null };
+  if (modelText.length > 0) return { reply: modelText, authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
   if (allCalls.length > 0) {
     for (const step of result.steps) {
       for (const tr of step.toolResults) {
         const toolName = (tr as { toolName?: string }).toolName ?? "";
         if (toolName === "get_morning_briefing" || toolName === "get_evening_summary") {
-          return { reply: "", authNeeded: null, apiDisabled: null, googleErr: null };
+          return { reply: "", authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
         }
       }
     }
     const labels = allCalls.map((c) => ACTION_LABELS[c.toolName]).filter((l): l is string => l != null);
     const unique = [...new Set(labels)];
-    return { reply: unique.length ? unique.join(" • ") + " ✓" : "Done.", authNeeded: null, apiDisabled: null, googleErr: null };
+    return { reply: unique.length ? unique.join(" • ") + " ✓" : "Done.", authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
   }
-  return { reply: "I didn't catch that — could you rephrase?", authNeeded: null, apiDisabled: null, googleErr: null };
+  return { reply: "I didn't catch that — could you rephrase?", authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
 }
 
 
@@ -520,7 +528,12 @@ export async function runAgent(
       }
     }
     // NEVER suppress text when auth is needed — the connect message is critical.
-    let finalText = suppressText && !processed.authNeeded ? "" : text;
+    // NEVER suppress a real tool error either — a Flex card from some OTHER
+    // successful tool call in the same turn must not hide it (see decision #17
+    // and hadUnrelayedToolError's own doc comment for the exact failure mode
+    // this guards: e.g. list_receipts renders fine while a sibling
+    // delete_receipt call silently fails, and the user never finds out).
+    let finalText = suppressText && !processed.authNeeded && !processed.hadUnrelayedToolError ? "" : text;
     let extraToolCalls = tracker.allCalls;
     const looksBlankOrUnhelpful = finalText === "I didn't catch that — could you rephrase?" ||
       (finalText.length < 60 && !processed.authNeeded && !processed.apiDisabled && !processed.googleErr && tracker.successfulCalls.length === 0);

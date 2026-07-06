@@ -41,15 +41,10 @@ export async function respondToText(
       ).catch(() => null)
     : Promise.resolve(null);
 
-  // If we're about to read a bundled image, acknowledge immediately so the chat
-  // doesn't look blank while Gemini processes the bytes. Use PUSH for the ack so
-  // the single-use replyToken stays available for the actual answer (push is
-  // best-effort on the free LINE plan; reply is guaranteed within the 1-min window).
-  let ackPromise: Promise<"reply" | "push" | "failed"> | undefined;
-  if (freshImage && imageLooksReferenced) {
-    ackPromise = replyOrPush(userId, undefined, [textMsg("Reading the image, one sec…")]);
-  }
-
+  // No separate "reading the image" push ack here — showLoading() above already
+  // gives free, native LINE typing-indicator feedback while Gemini processes the
+  // bytes. A push message costs against the account's push quota; this ack was
+  // pure UX filler with no information the user needed, so it wasn't worth it.
   const hint = fastClassify(userText, { hasStagedMedia });
 
   const endPreload = span("text:preload", traceId);

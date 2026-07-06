@@ -5,6 +5,7 @@ import { extractorModel, chatModel } from "@/lib/llm/provider";
 import { listRecentMedia, touchRecentMedia } from "@/lib/memory/recent-media";
 import { getMessageContent } from "@/lib/line/client";
 import { getDocContent, setDocContent } from "@/lib/memory/doc-cache";
+import { indexDocument } from "@/lib/memory/documents";
 import { createHash } from "crypto";
 
 // Lazy-load heavy conversion/parser modules so cold starts without media don't pay.
@@ -62,8 +63,8 @@ export function buildMediaAiTools(userId: string) {
           userId,
           index,
           question
-            ? `Answer this question about the document, using specific facts, figures, and quotes from it: "${question}". If the document doesn't contain the answer, say so plainly.`
-            : "Summarize this document in 4-8 bullets. Highlight: purpose, key facts, dates, names, action items, conclusion.",
+            ? `Answer this question about the document, using specific facts, figures, and quotes from it: "${question}". If the document contains tables relevant to the answer, reproduce the relevant rows as a markdown table (preserve every column and row exactly — do not collapse or average values). If the document doesn't contain the answer, say so plainly.`
+            : "Summarize this document in 4-8 bullets. Highlight: purpose, key facts, dates, names, action items, conclusion. If the document contains tables, include a compact markdown table for the most important one instead of prose.",
           { model: "chat", skipCache: !!question },
         ),
     }),
@@ -76,7 +77,7 @@ export function buildMediaAiTools(userId: string) {
         runDocPrompt(
           userId,
           index,
-          "Extract the full text of this document. Preserve headings, section numbers, and paragraph breaks. Do not summarize or skip anything. If the document is very long and you must truncate, say '--- truncated ---' at the end.",
+          "Extract the full text of this document. Preserve headings, section numbers, and paragraph breaks. Reproduce every table as a markdown table — one row per source row, one column per source column, header row intact — do not paraphrase, merge, or drop cells. Do not summarize or skip anything. If the document is very long and you must truncate, say '--- truncated ---' at the end.",
           { maxChars: 8000, model: "chat" },
         ),
     }),
@@ -179,6 +180,11 @@ async function runDocPrompt(
     // answer isn't a "comprehensive extraction" and shouldn't overwrite that slot.
     if (!opts.skipCache) {
       setDocContent(userId, item.messageId, { summary: text, fileName: item.fileName, mediaType, ts: Date.now() }).catch(() => {});
+      // Index the FULL untruncated text (not `output`, which may be capped for display)
+      // for long-term recall — best-effort, doesn't block the reply.
+      indexDocument(userId, item.messageId, item.fileName ?? "document", text).catch((err) =>
+        console.warn("[media-ai] indexDocument failed", err),
+      );
     }
     setCached(userId, item.messageId, instruction, output);
     return { ok: true as const, kind: item.kind, mediaType, output };
@@ -189,6 +195,11 @@ async function runDocPrompt(
       if (fallback) {
         const output = opts.maxChars && fallback.length > opts.maxChars ? fallback.slice(0, opts.maxChars) + "\n--- truncated ---" : fallback;
         setDocContent(userId, item.messageId, { summary: fallback, fileName: item.fileName, mediaType, ts: Date.now() }).catch(() => {});
+        if (!opts.skipCache) {
+          indexDocument(userId, item.messageId, item.fileName ?? "document", fallback).catch((err) =>
+            console.warn("[media-ai] indexDocument failed", err),
+          );
+        }
         setCached(userId, item.messageId, instruction, output);
         return { ok: true as const, kind: item.kind, mediaType, output, fallback: true };
       }
