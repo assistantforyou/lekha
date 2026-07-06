@@ -136,6 +136,47 @@ describe("setup tutorial", () => {
     expect(last.text).toContain("Tap the buttons");
   });
 
+  it("accepts custom timezone input in English and Thai", async () => {
+    await startTutorial("U1", "token");
+    await handleTutorialPostback("U1", "token", ["custom", "timezone"]);
+    const prompt = sent[sent.length - 1]!.messages[0] as { text?: string };
+    expect(prompt.text).toContain("What timezone");
+
+    await handleTutorialText("U1", "token", "Tokyo");
+    let s = await getSettings("U1");
+    expect(s.timezone).toBe("Asia/Tokyo");
+
+    await handleTutorialPostback("U1", "token", ["custom", "timezone"]);
+    await handleTutorialText("U1", "token", "โตเกียว");
+    s = await getSettings("U1");
+    expect(s.timezone).toBe("Asia/Tokyo");
+  });
+
+  it("accepts custom time and location input", async () => {
+    await startTutorial("U1", "token");
+    await handleTutorialPostback("U1", "token", ["custom", "morning"]);
+    await handleTutorialText("U1", "token", "9:30 AM");
+    let s = await getSettings("U1");
+    expect(s.morningBriefingTime).toBe("09:30");
+
+    await handleTutorialPostback("U1", "token", ["custom", "location"]);
+    await handleTutorialText("U1", "token", "New York");
+    s = await getSettings("U1");
+    expect(s.location).toBe("New York");
+  });
+
+  it("supports new tool presets", async () => {
+    await startTutorial("U1", "token");
+    await handleTutorialPostback("U1", "token", ["set", "timezone", "Asia/Bangkok"]);
+    await handleTutorialPostback("U1", "token", ["next"]);
+    await handleTutorialPostback("U1", "token", ["set", "morning", "08:00"]);
+    await handleTutorialPostback("U1", "token", ["next"]);
+
+    await handleTutorialPostback("U1", "token", ["set", "tools", "communication"]);
+    const s = await getSettings("U1");
+    expect(s.tools).toEqual({ todo: false, reminders: false, calendar: true, email: true, drive: false });
+  });
+
   it("covers all settings sections", () => {
     expect(TUTORIAL_SECTIONS).toEqual(["locale", "briefing", "tools", "persona", "memory"]);
   });
