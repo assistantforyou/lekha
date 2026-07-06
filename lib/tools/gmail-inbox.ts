@@ -7,6 +7,7 @@ import { headerMap } from "./gmail-helpers";
 
 const GMAIL_RO = "https://www.googleapis.com/auth/gmail.readonly";
 const GMAIL_SEND = "https://www.googleapis.com/auth/gmail.send";
+const GMAIL_MODIFY = "https://www.googleapis.com/auth/gmail.modify";
 
 function decodeBody(part: {
   body?: { data?: string | null; size?: number | null } | null;
@@ -235,6 +236,92 @@ export function buildGmailInboxTools(userId: string) {
             fromEmail,
           },
         };
+      },
+    }),
+    gmail_archive: tool({
+      description:
+        "Archive a Gmail message — removes it from the inbox but keeps it searchable/readable. Use when the user says 'archive that email'. Pass the id from gmail_search/gmail_read.",
+      inputSchema: z.object({
+        id: z.string().min(1),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ id, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [GMAIL_MODIFY], async ({ client }) => {
+          const gmail = google.gmail({ version: "v1", auth: client });
+          await gmail.users.messages.modify({ userId: "me", id, requestBody: { removeLabelIds: ["INBOX"] } });
+          return { ok: true as const, id, archived: true };
+        });
+      },
+    }),
+
+    gmail_trash: tool({
+      description:
+        "Move a Gmail message to Trash — recoverable for ~30 days, same as trashing in the Gmail UI (not a permanent delete). Use when the user says 'delete that email'. If multiple messages could match, call gmail_search first and confirm which one before trashing.",
+      inputSchema: z.object({
+        id: z.string().min(1),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ id, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [GMAIL_MODIFY], async ({ client }) => {
+          const gmail = google.gmail({ version: "v1", auth: client });
+          await gmail.users.messages.trash({ userId: "me", id });
+          return { ok: true as const, id, trashed: true };
+        });
+      },
+    }),
+
+    gmail_mark_read: tool({
+      description: "Mark a Gmail message as read or unread.",
+      inputSchema: z.object({
+        id: z.string().min(1),
+        read: z.boolean().default(true),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ id, read, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [GMAIL_MODIFY], async ({ client }) => {
+          const gmail = google.gmail({ version: "v1", auth: client });
+          await gmail.users.messages.modify({
+            userId: "me",
+            id,
+            requestBody: read ? { removeLabelIds: ["UNREAD"] } : { addLabelIds: ["UNREAD"] },
+          });
+          return { ok: true as const, id, read };
+        });
+      },
+    }),
+
+    gmail_apply_label: tool({
+      description:
+        "Add or remove a Gmail label on a message. Creates the label automatically if it doesn't exist yet (only when adding). Use for 'label that as X' / 'tag this email'.",
+      inputSchema: z.object({
+        id: z.string().min(1),
+        label: z.string().min(1).max(100),
+        action: z.enum(["add", "remove"]).default("add"),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ id, label, action, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [GMAIL_MODIFY], async ({ client }) => {
+          const gmail = google.gmail({ version: "v1", auth: client });
+          const labels = await gmail.users.labels.list({ userId: "me" });
+          let labelId = labels.data.labels?.find((l) => l.name?.toLowerCase() === label.toLowerCase())?.id;
+          if (!labelId) {
+            if (action === "remove") {
+              return { ok: false as const, error: `Label "${label}" doesn't exist.` };
+            }
+            const created = await gmail.users.labels.create({
+              userId: "me",
+              requestBody: { name: label, labelListVisibility: "labelShow", messageListVisibility: "show" },
+            });
+            labelId = created.data.id ?? undefined;
+          }
+          if (!labelId) return { ok: false as const, error: "Could not resolve label id." };
+          await gmail.users.messages.modify({
+            userId: "me",
+            id,
+            requestBody: action === "add" ? { addLabelIds: [labelId] } : { removeLabelIds: [labelId] },
+          });
+          return { ok: true as const, id, label, action };
+        });
       },
     }),
   };

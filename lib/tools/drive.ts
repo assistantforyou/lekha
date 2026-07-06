@@ -283,5 +283,94 @@ export function buildDriveTools(userId: string) {
         });
       },
     }),
+
+    drive_delete_file: tool({
+      description:
+        "Move a Drive file or folder to Trash — recoverable within Google's default retention, same as deleting in the Drive UI (not a permanent delete). Use when the user says 'delete that file from my drive'. Call drive_search first if you need the fileId.",
+      inputSchema: z.object({
+        fileId: z.string().min(1),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ fileId, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          await drive.files.update({ fileId, requestBody: { trashed: true } });
+          return { ok: true as const, fileId, trashed: true };
+        });
+      },
+    }),
+
+    drive_move_file: tool({
+      description:
+        "Move a Drive file into a different folder. Pass the target folderId — use drive_search to find an existing folder or drive_create_folder to make a new one first.",
+      inputSchema: z.object({
+        fileId: z.string().min(1),
+        folderId: z.string().min(1),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ fileId, folderId, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          const meta = await drive.files.get({ fileId, fields: "parents" });
+          const prevParents = (meta.data.parents ?? []).join(",");
+          const r = await drive.files.update({
+            fileId,
+            addParents: folderId,
+            removeParents: prevParents || undefined,
+            fields: "id,name,parents",
+          });
+          return { ok: true as const, fileId: r.data.id, name: r.data.name };
+        });
+      },
+    }),
+
+    drive_rename_file: tool({
+      description: "Rename a Drive file or folder.",
+      inputSchema: z.object({
+        fileId: z.string().min(1),
+        name: z.string().min(1).max(200),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ fileId, name, fromEmail }) => {
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          const r = await drive.files.update({ fileId, requestBody: { name }, fields: "id,name" });
+          return { ok: true as const, fileId: r.data.id, name: r.data.name };
+        });
+      },
+    }),
+
+    drive_share_file: tool({
+      description:
+        "Share a Drive file/folder with a specific email address, or enable link-sharing for 'anyone with the link'. Returns the share link. Set anyone=true for link-sharing instead of passing an email.",
+      inputSchema: z.object({
+        fileId: z.string().min(1),
+        email: z.string().email().optional().describe("Grant access to this specific email. Omit and set anyone=true for link-sharing instead."),
+        role: z.enum(["reader", "commenter", "writer"]).default("reader"),
+        anyone: z.boolean().default(false).describe("Share with 'anyone with the link' instead of a specific email."),
+        fromEmail: z.string().email().optional(),
+      }),
+      execute: async ({ fileId, email, role, anyone, fromEmail }) => {
+        if (!email && !anyone) {
+          return { ok: false as const, error: "Provide an email to share with, or set anyone=true for link-sharing." };
+        }
+        return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
+          const drive = google.drive({ version: "v3", auth: client });
+          await drive.permissions.create({
+            fileId,
+            requestBody: anyone ? { type: "anyone", role } : { type: "user", role, emailAddress: email },
+            sendNotificationEmail: false,
+          });
+          const meta = await drive.files.get({ fileId, fields: "webViewLink" });
+          return {
+            ok: true as const,
+            fileId,
+            sharedWith: anyone ? "anyone with the link" : email,
+            role,
+            link: meta.data.webViewLink ?? null,
+          };
+        });
+      },
+    }),
   };
 }

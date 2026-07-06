@@ -15,6 +15,10 @@ export const ACTION_LABELS: Record<string, string> = {
   summarize_recent_emails: "Inbox summarized",
   draft_gmail_reply: "Reply drafted",
   sent_history: "Sent history loaded",
+  gmail_archive: "Email archived",
+  gmail_trash: "Email deleted",
+  gmail_mark_read: "Email marked",
+  gmail_apply_label: "Label updated",
   // Tasks
   add_task: "Task added",
   complete_task: "Task done",
@@ -66,6 +70,11 @@ export const ACTION_LABELS: Record<string, string> = {
   drive_get_link: "Drive link fetched",
   drive_read_text: "Drive file read",
   drive_upload_recent_media: "File uploaded to Drive",
+  drive_create_folder: "Drive folder created",
+  drive_delete_file: "Drive file deleted",
+  drive_move_file: "Drive file moved",
+  drive_rename_file: "Drive file renamed",
+  drive_share_file: "Drive file shared",
   // Media AI
   ocr_image: "Image read",
   summarize_image: "Image summarized",
