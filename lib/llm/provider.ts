@@ -28,10 +28,18 @@ export function chatModelForTier(tier: "free" | "paid") {
   return createGoogleGenerativeAI({ apiKey })("gemini-2.5-flash");
 }
 
-/** Main chat model — Gemini 2.5 Flash. Full Flash is required for reliable
- *  agentic tool use; Flash Lite caused blank/panicked replies. */
+/**
+ * Main chat model — Gemini 2.5 Flash. Full Flash is required for reliable
+ * agentic tool use; Flash Lite caused blank/panicked replies.
+ *
+ * Prefers paid over free — unlike the agentic path in agent.ts, callers of
+ * this function (image analysis, media-ai, preread-doc, health check) make a
+ * single generateText call with no tier fallback, so a free-tier quota
+ * failure here is a hard user-facing failure, not just added latency. Free
+ * tier RPM is too low for this workload (see CLAUDE.md gotchas).
+ */
 export function chatModel() {
-  return chatModelForTier(hasFreeKey() ? "free" : "paid");
+  return chatModelForTier(hasPaidKey() ? "paid" : "free");
 }
 
 /** Background extraction / summarization model. Flash-Lite is sufficient for
