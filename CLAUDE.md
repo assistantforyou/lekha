@@ -177,7 +177,7 @@ The bot is private by default. Every event hits the gate before any other logic.
 
 **Self-serve signup:** non-allowed, non-admin users are silently added to `users:pending` (set) with profile metadata at `pending:{userId}` hash (`displayName`, `requestedAt`, optional first message). They receive a friendly "you're in the queue" reply instead of a wall. The admin is push-notified about new requests, rate-limited 1/min/user via `pending_notif:{userId}` NX+TTL key to avoid notification spam.
 
-**Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome message), `/deny <id>` (remove from pending). Anyone can `/myid` to get their own LINE userId.
+**Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome message), `/deny <id>` (remove from pending), `/status <id>` (diagnostic snapshot), `/force-briefing <id> [morning|evening]` (manual trigger), `/audit <id> [n]` (compliance trace — see decision #22). Anyone can `/myid` to get their own LINE userId.
 
 ### 16. Single LLM provider — Gemini 2.5 Flash (paid), 30s timeout
 `runAgent` calls Gemini directly with the full tool registry. No cascade, no fallback. We moved off Flash Lite because it blanked/panicked on agentic tool use; full Flash handles the same workload reliably. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 30s, giving multi-step turns room without burning function time on real hangs. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
@@ -214,6 +214,13 @@ Future verbs (`draft:send:<idx>`, `reminder:cancel:<id>`) wire into the same bra
 
 ### 17. Orchestrator-level error relay enforcement
 After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
+
+### 22. Per-user compliance audit log
+`lib/memory/audit-log.ts` (`audit:{userId}`, RPUSH-capped at 5000 entries, 1-year TTL — matches the receipts retention window) records one `AuditEntry` per agent turn: full user message text, the `fastClassify` hint that was active, every tool call's name/input/output verbatim (not redacted — this is a compliance/debug trail, not a user-facing feature), success/error status per tool, the final reply, and total duration. Written from both the success and error paths of `runAgent` (`lib/llm/agent.ts`), fire-and-forget (`.catch(console.error)`) so a Redis hiccup never blocks the user's reply.
+
+Admin-only retrieval via `/audit <userId> [n]` (`lib/admin-commands.ts`, default 5 / max 15 entries) — dumps a verbose per-turn trace (tool name, truncated input/output JSON, hint, duration, error) so a reported bug is traceable from the log alone. This is how the Drive-upload-under-`media`-hint bug (tools silently absent from the registry, not a model hallucination) would be diagnosed without needing to reproduce it live.
+
+**Gotcha this log exists to catch:** `fastClassify`'s staged-media early-return (`"this"/"that"/"the file"` → `hint="media"`) fires on phrasing that isn't actually media-only, e.g. "upload **this** to my drive" — narrowing away tools whose `hints` don't include `"media"` even though the request needs them. When adding a new hint-gated tool that can plausibly be invoked in the same breath as a staged-media reference, include `"media"` in its `hints` array (see `buildDriveTools` in `lib/tools/index.ts`).
 
 ## Conventions
 

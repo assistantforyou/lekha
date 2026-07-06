@@ -12,6 +12,7 @@ import {
 import { getSettings } from "@/lib/memory/settings";
 import { listAllUsers } from "@/lib/memory/user-registry";
 import { redis } from "@/lib/memory/redis";
+import { listAuditLog, type AuditEntry } from "@/lib/memory/audit-log";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
 import { briefingFlex, newsFlex, gmailResultsFlex, pendingUsersFlex } from "@/lib/line/flex";
@@ -151,6 +152,20 @@ export async function handleAdminCommand(
     return true;
   }
 
+  // ─── /audit <id> [n] ─── compliance trace: full per-turn tool-call log
+  const auditMatch = userText.match(new RegExp(`^/audit\\s+(${LINE_ID_RE.source})(?:\\s+(\\d+))?$`, "i"));
+  if (auditMatch) {
+    const target = auditMatch[1]!;
+    const count = Math.min(Math.max(Number(auditMatch[2] ?? 5), 1), 15);
+    const entries = await listAuditLog(target, { limit: count });
+    if (entries.length === 0) {
+      await replyOrPush(userId, replyToken, [textMsg(`No audit entries for ${target}.`)]);
+      return true;
+    }
+    await replyOrPush(userId, replyToken, [textMsg(formatAuditEntries(target, entries))]);
+    return true;
+  }
+
   // ─── /force-briefing <id> [morning|evening] ─── manual trigger
   const forceMatch = userText.match(new RegExp(`^/force-briefing\\s+(${LINE_ID_RE.source})(?:\\s+(morning|evening))?$`, "i"));
   if (forceMatch) {
@@ -198,6 +213,37 @@ export async function handleAdminCommand(
   }
 
   return false;
+}
+
+/** Verbose, per-turn technical trace for `/audit` — one block per entry with
+ *  full tool call inputs/outputs so a reported bug is traceable from the log
+ *  alone. Truncates long JSON blobs to keep each entry scannable in LINE. */
+function formatAuditEntries(target: string, entries: AuditEntry[]): string {
+  const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
+  const blocks = entries.map((e, idx) => {
+    const when = new Date(e.ts).toISOString();
+    const lines = [
+      `── #${idx + 1} • ${when} • ${e.durationMs ?? "?"}ms${e.traceId ? ` • trace=${e.traceId}` : ""}`,
+      `hint: ${e.hint ?? "(none — full registry)"}`,
+      `user: ${clip(e.userMessage, 300)}`,
+    ];
+    if (e.toolCalls.length === 0) {
+      lines.push("tools: (none called)");
+    } else {
+      lines.push(`tools (${e.toolCalls.length}):`);
+      for (const tc of e.toolCalls) {
+        lines.push(
+          `  • ${tc.toolName} [${tc.ok ? "ok" : "ERROR"}]`,
+          `    in:  ${clip(JSON.stringify(tc.input), 200)}`,
+          `    out: ${clip(JSON.stringify(tc.output), 200)}`,
+        );
+      }
+    }
+    if (e.error) lines.push(`error: ${clip(e.error, 300)}`);
+    lines.push(`reply: ${clip(e.reply, 300)}`);
+    return lines.join("\n");
+  });
+  return `📜 Audit trail for ${target} (${entries.length} entries, newest first)\n\n${blocks.join("\n\n")}`;
 }
 
 /** `/myid` — anyone can look up their own LINE userId (to request access). */
