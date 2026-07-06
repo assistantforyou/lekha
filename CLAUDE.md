@@ -79,6 +79,8 @@ lib/
 │   ├── history.ts                     # rolling 20-msg history + turn counter (TTL 90d)
 │   ├── facts.ts                       # extracted facts blob + edit/delete/clear
 │   ├── archive.ts                     # long-term compressed conversation chunks (200 max)
+│   ├── embeddings.ts                  # shared Gemini embed + Upstash Vector client (archive.ts + documents.ts)
+│   ├── documents.ts                   # RAG-style long-term recall for uploaded PDFs/docs — chunk+embed full text once, search later without resending
 │   ├── profile.ts                     # display name + first-contact tracking
 │   ├── recent-media.ts                # staged LINE media list (RPUSH, 10 max, TTL 30 min)
 │   ├── settings.ts                    # per-user tz/locale/loc/briefing prefs
@@ -106,7 +108,8 @@ lib/
     ├── scheduled-email.ts             # schedule_email/list/cancel — QStash-deferred sends
     ├── calendar.ts                    # 8 tools: draft/search/update/delete/list_upcoming/today/week/find_free_time
     ├── drive.ts                       # search/list_recent/get_link/read_text/upload_recent_media/create_folder/delete/move/rename/share
-    ├── media-ai.ts                    # ocr/summarize_image + summarize/read_document — staged-media only
+    ├── media-ai.ts                    # ocr/summarize_image + summarize/read_document — staged-media only; read/summarize_document also indexes full text into lib/memory/documents.ts for later recall
+    ├── documents.ts                   # list_documents/search_documents/forget_document — long-term recall of previously-uploaded documents, gated on Upstash Vector being configured
     ├── receipts.ts                    # scan_receipt/list_receipts/search_receipts/delete_receipt — staged-media only; backs up the photo to Drive ("Lekha Receipts" folder) or, if Google isn't connected, Vercel Blob (WebP-compressed)
     ├── sent-history.ts                # query the audit log
     ├── export.ts                      # JSON dump of all user data
@@ -226,6 +229,15 @@ After `generateText`, `runAgent` scans all tool results for `{ ok: false, error:
 Admin-only retrieval via `/audit <userId> [n]` (`lib/admin-commands.ts`, default 5 / max 15 entries) — dumps a verbose per-turn trace (tool name, truncated input/output JSON, hint, duration, error) so a reported bug is traceable from the log alone. This is how the Drive-upload-under-`media`-hint bug (tools silently absent from the registry, not a model hallucination) would be diagnosed without needing to reproduce it live.
 
 **Gotcha this log exists to catch:** `fastClassify`'s staged-media early-return (`"this"/"that"/"the file"` → `hint="media"`) fires on phrasing that isn't actually media-only, e.g. "upload **this** to my drive" — narrowing away tools whose `hints` don't include `"media"` even though the request needs them. When adding a new hint-gated tool that can plausibly be invoked in the same breath as a staged-media reference, include `"media"` in its `hints` array (see `buildDriveTools` in `lib/tools/index.ts`).
+
+### 23. Long-term document recall (RAG over uploaded PDFs/docs)
+`summarize_document` / `read_document` (`lib/tools/media-ai.ts`) extract a document's full text via Gemini (falling back to `pdf-parse` if Gemini rejects the file). On every successful *comprehensive* extraction (i.e. `read_document`, or `summarize_document` with no specific `question` — a targeted question's answer isn't the full document and must not be indexed as if it were), the full untruncated text is fire-and-forget indexed via `indexDocument()` in `lib/memory/documents.ts`: chunked (1800 chars, 200 overlap, capped at 40 chunks/doc), embedded with the same shared Gemini `gemini-embedding-001` pipeline as decision #12 (`lib/memory/embeddings.ts`, extracted this session so `archive.ts` and `documents.ts` share one embed/vector-client implementation instead of duplicating it), and upserted into the **same** Upstash Vector index used for conversation archive, discriminated by `kind: "document"` metadata rather than a second index. Redis hash `doc_index:{userId}` tracks per-document metadata (fileName, ts, chunkCount) for listing and a 100-doc/user LRU cap.
+
+Three tools in `lib/tools/documents.ts` expose this to the model: `list_documents`, `search_documents` (semantic search, optionally scoped to one `fileName`), `forget_document`. Registered in `lib/tools/index.ts` gated on `hasUpstashVector()` (no vector index configured → tools omitted entirely, degrading to "can't recall old uploads" rather than erroring). This is what lets the bot answer a question about a PDF sent days ago — after the ~30 min staged-media window and the 2h `doc-cache.ts` cache both expire — without the user resending the file, and without re-sending the whole document's tokens on every follow-up question.
+
+`read_document`'s and `summarize_document`'s prompts were also strengthened to explicitly require markdown-table reproduction (header + every row/column intact, no paraphrasing) rather than prose, since dense documents with tables were the original complaint that motivated this feature.
+
+**Do not add a `kind = 'document'` requirement to `archive.ts`'s search filter** — that index has pre-existing vector entries from before the `kind` field existed, and an over-strict filter would silently exclude them (see decision #12's fallback-to-substring note). `documents.ts` can safely require `kind = 'document'` in its own filter since no legacy untagged document data exists.
 
 ## Conventions
 

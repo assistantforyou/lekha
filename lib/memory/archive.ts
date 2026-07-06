@@ -1,11 +1,7 @@
 import { redis } from "./redis";
-import { env, hasUpstashVector } from "@/lib/env";
-import { Index } from "@upstash/vector";
-import { embed } from "ai";
-import { embeddingModel } from "@/lib/llm/provider";
 import { createHash } from "crypto";
+import { embedText, getVectorIndex, isValidUserId } from "./embeddings";
 
-const EMBED_CACHE_TTL_SEC = 24 * 60 * 60;
 const SEARCH_CACHE_TTL_SEC = 10 * 60;
 
 function sha1(s: string): string {
@@ -25,53 +21,6 @@ export type ArchivedSummary = {
 const key = (userId: string) => `user:${userId}:archive`;
 const MAX = 200;
 
-let vectorClient: Index | null = null;
-function vector(): Index | null {
-  if (!hasUpstashVector()) return null;
-  if (!vectorClient) {
-    vectorClient = new Index({
-      url: env().UPSTASH_VECTOR_REST_URL!,
-      token: env().UPSTASH_VECTOR_REST_TOKEN!,
-    });
-  }
-  return vectorClient;
-}
-
-const EMBED_DIMS = 768;
-
-function l2Normalize(v: number[]): number[] {
-  const norm = Math.sqrt(v.reduce((sum, x) => sum + x * x, 0));
-  return norm > 0 ? v.map((x) => x / norm) : v;
-}
-
-async function embedText(text: string): Promise<number[] | null> {
-  // Keyed by model too — a future model/dimension swap must not silently mix
-  // incompatible cached vectors in with the new ones (this is exactly the kind
-  // of silent failure that let the old text-embedding-004 outage go unnoticed).
-  const cacheKey = `archive:embed:gemini-embedding-001:${sha1(text)}`;
-  const cached = await redis().get<number[]>(cacheKey);
-  if (cached) return cached;
-
-  try {
-    const { embedding } = await embed({
-      model: embeddingModel(),
-      value: text,
-      providerOptions: {
-        google: { outputDimensionality: EMBED_DIMS, taskType: "SEMANTIC_SIMILARITY" },
-      },
-    });
-    // gemini-embedding-001 only auto-normalizes its native 3072-dim output —
-    // truncated dimensions (768 here) must be normalized manually for cosine
-    // similarity to behave correctly.
-    const v = l2Normalize(embedding as number[]);
-    await redis().set(cacheKey, v, { ex: EMBED_CACHE_TTL_SEC }).catch(() => {});
-    return v;
-  } catch (err) {
-    console.warn("[archive] embed failed", err);
-    return null;
-  }
-}
-
 export async function appendArchive(
   userId: string,
   entry: Omit<ArchivedSummary, "id" | "createdAt">,
@@ -84,7 +33,7 @@ export async function appendArchive(
   await tx.exec();
 
   // Best-effort vector upsert. Failures don't block the user.
-  const vec = vector();
+  const vec = getVectorIndex();
   if (vec) {
     const v = await embedText(e.summary);
     if (v) {
@@ -92,7 +41,7 @@ export async function appendArchive(
         await vec.upsert({
           id: `${userId}:${e.id}`,
           vector: v,
-          metadata: { userId, archiveId: e.id, ts: e.createdAt, summary: e.summary },
+          metadata: { userId, archiveId: e.id, ts: e.createdAt, summary: e.summary, kind: "archive" },
         });
       } catch (err) {
         console.warn("[archive] vector upsert failed", err);
@@ -122,17 +71,19 @@ export async function searchArchive(userId: string, query: string): Promise<Arch
   const cached = await redis().get<ArchivedSummary[]>(cacheKey);
   if (cached) return cached;
 
-  const vec = vector();
+  const vec = getVectorIndex();
   if (vec) {
-    // Validate userId format before interpolating into the filter string.
-    // LINE userIds are always U[a-f0-9]{32}; anything else is a bug or injection attempt.
-    if (!/^U[a-f0-9]{32}$/i.test(userId)) {
+    if (!isValidUserId(userId)) {
       console.warn("[archive] invalid userId format, skipping vector search", userId);
       return searchArchiveFallback(userId, query);
     }
     const qv = await embedText(query);
     if (qv) {
       try {
+        // Filtered by userId only, not kind='archive' — entries upserted before
+        // that field existed have no kind at all, and an over-strict filter
+        // would silently exclude them. md.archiveId presence below (only ever
+        // set on archive entries) already excludes document chunks correctly.
         const hits = await vec.query({
           vector: qv,
           topK: 10,

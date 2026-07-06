@@ -24,11 +24,12 @@ import { buildMorningBriefingTool } from "./morning-briefing";
 import { buildEveningSummaryTool } from "./evening-summary";
 import { buildReceiptTools } from "./receipts";
 import { buildContactsTools } from "./contacts";
+import { buildDocumentMemoryTools } from "./documents";
 import { listAccounts } from "./google-auth";
-import { hasGoogleOAuth, hasQStash, env } from "@/lib/env";
+import { hasGoogleOAuth, hasQStash, hasUpstashVector, env } from "@/lib/env";
 import type { ToolSet } from "ai";
 
-type Need = "google_oauth_env" | "google_user_connected" | "qstash" | "tavily";
+type Need = "google_oauth_env" | "google_user_connected" | "qstash" | "tavily" | "upstash_vector";
 
 // In-memory cache per user × google-state × disabled-categories × staged-media. TTL = 5 min.
 const toolCache = new Map<string, { tools: ToolSet; ts: number }>();
@@ -92,6 +93,7 @@ const REGISTRY: Entry[] = [
   { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email", hints: ["email", "calendar"] },
   { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email", hints: ["email"] },
   { build: (u) => buildListTools(u), hints: ["lists"] },
+  { build: (u) => buildDocumentMemoryTools(u), needs: ["upstash_vector"], hints: ["media", "memory"] },
 ];
 
 function envHas(need: Need, userHasGoogle: boolean): boolean {
@@ -107,6 +109,8 @@ function envHas(need: Need, userHasGoogle: boolean): boolean {
       return hasQStash();
     case "tavily":
       return Boolean(env().TAVILY_API_KEY);
+    case "upstash_vector":
+      return hasUpstashVector();
   }
 }
 
