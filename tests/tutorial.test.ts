@@ -60,7 +60,10 @@ describe("setup tutorial", () => {
     await startOnboarding("U1", "token", "James");
     expect(await getTutorialStep("U1")).toBe(0);
     expect(sent.length).toBe(1);
-    expect(sent[0]!.messages[0]).toMatchObject({ type: "flex" });
+    const msg = sent[0]!.messages[0];
+    expect(msg).toMatchObject({ type: "flex" });
+    // LINE rejects rgba() colors in Flex messages.
+    expect(JSON.stringify(msg)).not.toContain("rgba(");
   });
 
   it("moves through tutorial steps and applies settings", async () => {

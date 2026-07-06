@@ -22,7 +22,7 @@ function header(title: string, step: string): object {
     paddingAll: "14px",
     contents: [
       { type: "text", text: title, color: "#FFFFFF", weight: "bold", size: "lg" },
-      { type: "text", text: step, color: "rgba(255,255,255,0.75)", size: "xs" },
+      { type: "text", text: step, color: "#BFC4F7", size: "xs" },
     ],
   };
 }
