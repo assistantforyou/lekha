@@ -10,8 +10,14 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --exclude 'tests/chat.integration.test.ts'",
     "test:integration": "vitest run tests/chat.integration.test.ts",
+    "test:eval": "vitest run eval/layer1 eval/layer2",
     "test:watch": "vitest --exclude 'tests/chat.integration.test.ts'",
-    "test:coverage": "vitest run --coverage --exclude 'tests/chat.integration.test.ts'"
+    "test:coverage": "vitest run --coverage --exclude 'tests/chat.integration.test.ts'",
+    "eval:small": "tsx eval/layer3/run.ts --suite=small",
+    "eval:medium": "tsx eval/layer3/run.ts --suite=medium",
+    "eval:full": "tsx eval/layer3/run.ts --suite=full",
+    "eval:stress": "tsx eval/layer3/run.ts --suite=stress",
+    "eval:list": "tsx eval/layer3/run.ts --suite=small --list"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",
@@ -48,6 +54,7 @@
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "9.39.4",
     "eslint-config-next": "^16.2.6",
+    "tsx": "^4.19.0",
     "typescript": "^6.0.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.8"

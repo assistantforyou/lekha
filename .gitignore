@@ -10,4 +10,5 @@ next-env.d.ts
 .claude/settings.local.json
 graphify-out/
 for_video/
+eval/results/
 .env*

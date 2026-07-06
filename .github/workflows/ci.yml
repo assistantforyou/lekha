@@ -42,3 +42,13 @@ jobs:
           APP_BASE_URL: "https://test.example.com"
           LINE_CHANNEL_SECRET: "test"
           LINE_CHANNEL_ACCESS_TOKEN: "test"
+
+      - name: Run eval framework (Layer 1 + Layer 2)
+        run: npm run test:eval
+        env:
+          TOKEN_ENCRYPTION_KEY: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          OAUTH_STATE_SECRET: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          APP_BASE_URL: "https://test.example.com"
+          LINE_CHANNEL_SECRET: "test"
+          LINE_CHANNEL_ACCESS_TOKEN: "test"
+          GEMINI_API_KEY: "test"
