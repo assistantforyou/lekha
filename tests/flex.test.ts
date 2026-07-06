@@ -10,6 +10,7 @@ import {
   newsFlex,
   taskCheckinFlex,
   googleConnectFlex,
+  factsListFlex,
 } from "@/lib/line/flex";
 import { validateFlexMessage } from "@/lib/line/flex/validate";
 
@@ -216,6 +217,38 @@ describe("parsePostbackData", () => {
 
   it("empty string yields empty verb", () => {
     expect(parsePostbackData("")).toEqual({ verb: "", args: [] });
+  });
+});
+
+describe("factsListFlex", () => {
+  it("renders empty state", () => {
+    const msg = factsListFlex([]);
+    expect(msg.type).toBe("flex");
+    expect(msg.altText).toMatch(/nothing saved yet/i);
+  });
+
+  it("groups facts by category and includes timestamps", () => {
+    const msg = factsListFlex([
+      { content: "Likes espresso", category: "preferences", updatedAt: Date.now() - 60_000 },
+      { content: "Mom = mom@gmail.com", category: "people", updatedAt: Date.now() - 120_000 },
+    ]);
+    const json = JSON.stringify(msg.contents);
+    expect(json).toContain("PREFERENCES");
+    expect(json).toContain("PEOPLE");
+    expect(json).toContain("Likes espresso");
+    expect(json).toContain("mom@gmail.com");
+    expect(json).toContain("1m ago");
+  });
+
+  it("caps displayed facts and notes the total", () => {
+    const facts = Array.from({ length: 25 }, (_, i) => ({
+      content: `fact ${i}`,
+      category: "other" as const,
+      updatedAt: Date.now() - i * 1000,
+    }));
+    const msg = factsListFlex(facts);
+    const json = JSON.stringify(msg.contents);
+    expect(json).toContain("Showing 15 of 25 memories");
   });
 });
 

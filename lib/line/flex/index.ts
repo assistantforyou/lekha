@@ -10,6 +10,7 @@ export { newsFlex, type NewsRow } from "./news";
 export { taskCheckinFlex, type CheckInRow } from "./task-checkin";
 export { pendingUsersFlex, type PendingUserRow } from "./pending-users";
 export { helpFlex, curatedDemoAnswer, HELP_CATEGORIES, type HelpCategory } from "./help";
+export { factsListFlex, type FactsListItem } from "./facts-list";
 
 /**
  * Parse a LINE postback `data` payload. Convention:

@@ -8,6 +8,8 @@ import {
   newsFlex,
   briefingFlex,
   googleConnectFlex,
+  factsListFlex,
+  type FactsListItem,
 } from "@/lib/line/flex";
 import { buildPlacesFlex, type PlaceItem } from "@/lib/line/places-flex";
 import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
@@ -1058,12 +1060,12 @@ export function buildFlexFromToolResults(
 
       // ── Memories ───────────────────────────────────────────────────────
       if (toolName === "list_memories" && Array.isArray(value.facts)) {
-        const facts = value.facts as Array<Record<string, unknown>>;
-        const items = facts.map((f) => ({
-          primary: String(f.display ?? f.content ?? f.text ?? ""),
-          secondary: f.category ? String(f.category) : undefined,
+        const facts = (value.facts as Array<Record<string, unknown>>).map<FactsListItem>((f) => ({
+          content: String(f.content ?? f.text ?? f.display ?? ""),
+          category: String(f.category ?? "other") as FactsListItem["category"],
+          updatedAt: typeof f.updatedAt === "number" ? f.updatedAt : undefined,
         }));
-        out.push(buildSimpleCardFlex("🧠 What I Remember", "#A29BFE", items, "No memories saved yet."));
+        out.push(factsListFlex(facts));
         suppressText = true;
         seen.add(toolName);
         continue;

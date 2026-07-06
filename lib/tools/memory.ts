@@ -32,7 +32,7 @@ export function buildMemoryTools(userId: string) {
     }),
 
     list_memories: tool({
-      description: "List the durable facts you currently remember about the user. 1-indexed, newest-updated first, grouped by category.",
+      description: "List every durable fact you remember about the user as a full memory page. Only use when the user explicitly asks to see all memories (e.g. 'what do you remember', 'list my memories'). For specific questions like 'what's my name', answer from the stored facts in the prompt instead.",
       inputSchema: z.object({}),
       execute: async () => {
         const f = await loadFacts(userId);

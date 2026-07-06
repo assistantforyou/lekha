@@ -15,7 +15,7 @@ import type { ToolSet } from "ai";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapCause, unwrapAuthRequired } from "@/lib/errors";
 import type { LineMessage } from "@/lib/line/client";
 import { buildFlexFromToolResults, buildFollowUps, buildSimpleCardFlex, buildDraftFlexCards } from "@/lib/llm/agent-flex";
-import { taskListFlex, newsFlex } from "@/lib/line/flex";
+import { taskListFlex, newsFlex, factsListFlex, type FactsListItem } from "@/lib/line/flex";
 import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
 import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
 import { stripMarkdown } from "@/lib/format";
@@ -178,7 +178,7 @@ type ProcessedResult = {
   hadUnrelayedToolError: boolean;
 };
 
-function processResult(
+export function processResult(
   result: any,
   activeEmail: string | null,
   allCalls: { toolName: string; input: unknown }[],
@@ -647,11 +647,11 @@ const MEMORY_RECALL_TRIGGERS = [
   /\b(my\s+memories|my\s+remembered\s+facts)\b/i,
 ];
 
-function looksLikeMemoryRecall(text: string): boolean {
+export function looksLikeMemoryRecall(text: string): boolean {
   return MEMORY_RECALL_TRIGGERS.some((r) => r.test(text));
 }
 
-function looksLikeTaskList(text: string): boolean {
+export function looksLikeTaskList(text: string): boolean {
   const lower = text.toLowerCase().trim();
   // Thai task-list phrases
   if (/มีงาน|งานที่ต้องทำ|รายการงาน|งานเหลือ|งานของ(ฉัน|ผม|ดิฉัน)|แสดงงาน/.test(text)) return true;
@@ -670,26 +670,23 @@ function looksLikeTaskList(text: string): boolean {
 async function fallbackListMemories(userId: string, _displayName: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const f = await loadFacts(userId);
   const ordered = displayOrder(f.facts);
-  if (ordered.length === 0) {
-    return {
-      text: "",
-      flexMessages: [buildSimpleCardFlex("🧠 What I Remember", "#A29BFE", [{ primary: "Nothing saved yet." }])],
-      toolCalls: [{ toolName: "list_memories", input: {} }],
-    };
-  }
-  const items = ordered.map((fact) => ({ primary: fact.content, secondary: fact.category }));
+  const items: FactsListItem[] = ordered.map((fact) => ({
+    content: fact.content,
+    category: fact.category,
+    updatedAt: fact.updatedAt,
+  }));
   return {
     text: "",
-    flexMessages: [buildSimpleCardFlex("🧠 What I Remember", "#A29BFE", items)],
+    flexMessages: [factsListFlex(items)],
     toolCalls: [{ toolName: "list_memories", input: {} }],
   };
 }
 
-function looksLikeWeather(text: string): boolean {
+export function looksLikeWeather(text: string): boolean {
   return /\b(weather|forecast|temperature|temp)\b/i.test(text);
 }
 
-function looksLikeFinance(text: string): { type: "crypto"; coin: string } | { type: "stock"; ticker: string } | null {
+export function looksLikeFinance(text: string): { type: "crypto"; coin: string } | { type: "stock"; ticker: string } | null {
   // Trading pairs: "btc/usdt", "eth/usd"
   const pairMatch = text.match(/\b(btc|eth|sol|bnb|xrp|doge|ada|dot|link|avax)\s*\/\s*\w+\b/i);
   if (pairMatch?.[1]) return { type: "crypto", coin: pairMatch[1] };

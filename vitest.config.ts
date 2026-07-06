@@ -6,5 +6,6 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    exclude: ["**/node_modules/**", "**/dist/**", "**/.next/**", ".claude/**", "eval/layer3/**", "eval/results/**"],
   },
 });

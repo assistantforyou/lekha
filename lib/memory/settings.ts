@@ -72,7 +72,7 @@ export type UserSettings = {
 };
 
 // Bump this and add a migration entry below every time you change a default value.
-const CURRENT_VERSION = 8;
+export const CURRENT_VERSION = 8;
 
 export const DEFAULTS: UserSettings = {
   timezone: "Asia/Bangkok",
