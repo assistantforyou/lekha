@@ -132,7 +132,7 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
   {
     intent: "connect",
     patterns: [
-      /\b(connect\s+(my\s+)?google|link\s+(my\s+)?google|google\s+account)\b/i,
+      /\b(connect\s+(my\s+)?google|link\s+(my\s+)?google|google\s+accounts?)\b/i,
     ],
   },
   {

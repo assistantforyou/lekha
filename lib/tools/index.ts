@@ -85,10 +85,10 @@ const REGISTRY: Entry[] = [
   { build: (u) => buildReceiptTools(u),  alwaysWithStagedMedia: true, hints: ["media", "receipts"] },
   { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders", hints: ["reminder", "calendar"] },
   // Feature tools: only for users who have actually connected Google.
-  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email", hints: ["email"] },
+  { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email", hints: ["email", "media"] },
   { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar", hints: ["calendar", "task", "reminder"] },
   { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive", hints: ["email", "search", "media"] },
-  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email", hints: ["email"] },
+  { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email", hints: ["email", "media"] },
   { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email", hints: ["email", "calendar"] },
   { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email", hints: ["email"] },
   { build: (u) => buildListTools(u), hints: ["lists"] },

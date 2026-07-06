@@ -201,31 +201,49 @@ export function buildDriveTools(userId: string) {
           return { ok: false, error: `Index ${badIndex} out of range (only ${staged.length} staged).` };
         }
         const targets = (indexes ?? staged.map((_, i) => i + 1)).map((i) => staged[i - 1]!);
+
+        // Fetch LINE media bytes BEFORE opening the Google client — a LINE-side
+        // fetch failure (staged content expired, LINE API hiccup) is not a Google
+        // error and must not be mislabeled as one by withGoogleClient's catch-all
+        // (mirrors the fetch-then-send split already used in email.ts's sendEmail).
+        let fetched: { bytes: Uint8Array; contentType: string; name: string }[];
+        try {
+          fetched = await Promise.all(
+            targets.map(async (item, i) => {
+              const { bytes, contentType } = await getMessageContent(item.messageId);
+              const overrideName = filenames?.[i];
+              const name =
+                (overrideName && overrideName.length > 0 ? overrideName : null) ??
+                item.fileName ??
+                defaultDriveName(item.kind, contentType);
+              return { bytes, contentType, name };
+            }),
+          );
+        } catch (err) {
+          return {
+            ok: false as const,
+            error: `Couldn't fetch the staged LINE file(s): ${err instanceof Error ? err.message : String(err)}. Ask the user to resend if it's been a while.`,
+          };
+        }
+
         return withGoogleClient(userId, fromEmail, [DRIVE_SCOPE], async ({ client }) => {
           const drive = google.drive({ version: "v3", auth: client });
           const uploaded: { id: string; name: string; webViewLink: string | null }[] = [];
-          for (let i = 0; i < targets.length; i++) {
-            const item = targets[i]!;
-            const { bytes, contentType } = await getMessageContent(item.messageId);
-            const overrideName = filenames?.[i];
-            const name =
-              (overrideName && overrideName.length > 0 ? overrideName : null) ??
-              item.fileName ??
-              defaultDriveName(item.kind, contentType);
+          for (const item of fetched) {
             const r = await drive.files.create({
               requestBody: {
-                name,
+                name: item.name,
                 ...(folderId ? { parents: [folderId] } : {}),
               },
               media: {
-                mimeType: contentType,
-                body: Readable.from(Buffer.from(bytes)),
+                mimeType: item.contentType,
+                body: Readable.from(Buffer.from(item.bytes)),
               },
               fields: "id,name,webViewLink",
             });
             uploaded.push({
               id: r.data.id ?? "",
-              name: r.data.name ?? name,
+              name: r.data.name ?? item.name,
               webViewLink: r.data.webViewLink ?? null,
             });
           }
