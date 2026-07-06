@@ -26,13 +26,13 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
     intent: "reminder",
     patterns: [
       // "remind me", "set a reminder", "set a recurring reminder", etc.
-      /\b(remind\s+me|set\s+(a\s+)?(recurring\s+)?reminder|what\s+reminders?\s+(do\s+i\s+have|are\s+there)|cancel.*\breminder\b|delete.*\breminder\b|list\s+(my\s+)?reminders?)\b/i,
+      /\b(remind\s+me|set\s+(a\s+)?(recurring\s+)?reminders?|what\s+reminders?\s+(do\s+i\s+have|are\s+there)|cancel.*\breminders?\b|delete.*\breminders?\b|list\s+(my\s+)?reminders?)\b/i,
     ],
   },
   {
     intent: "task",
     patterns: [
-      /\b(add\s+(a\s+)?task|create\s+(a\s+)?task|new\s+task|my\s+tasks?|list\s+(my\s+)?tasks?|what\s+tasks?|complete\s+task|done\s+task|delete\s+task|everything\s+i\s+need\s+to\s+do|anything\s+left\s+to\s+do|overdue\s+tasks?|open\s+tasks?)\b/i,
+      /\b(add\s+(a\s+)?tasks?|create\s+(a\s+)?tasks?|new\s+tasks?|my\s+tasks?|list\s+(my\s+)?tasks?|what\s+tasks?|complete\s+(my\s+)?tasks?|done\s+tasks?|delete\s+(my\s+)?tasks?|everything\s+i\s+need\s+to\s+do|anything\s+left\s+to\s+do|overdue\s+tasks?|open\s+tasks?)\b/i,
       /\bwhat\s+do\s+i\s+(have|need)\s+to\s+do\b/i,
     ],
   },
@@ -61,8 +61,8 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
     patterns: [
       // removed "what's on" — too ambiguous ("what's on Netflix")
       // removed standalone "upcoming" — too broad ("upcoming flights")
-      /\b(my\s+calendar|check\s+(my\s+)?calendar|add\s+to\s+(my\s+)?calendar|calendar\s+event)\b/i,
-      /\b(schedule\s+(a\s+)?(meeting|call|appointment|event)|reschedule\s+meeting|book\s+(a\s+)?(meeting|call|slot))\b/i,
+      /\b(my\s+calendar|check\s+(my\s+)?calendar|add\s+to\s+(my\s+)?calendar|calendar\s+events?)\b/i,
+      /\b(schedule\s+(a\s+)?(meetings?|calls?|appointments?|events?)|reschedule\s+meetings?|book\s+(a\s+)?(meetings?|calls?|slots?))\b/i,
       /\b(upcoming\s+(meeting|event|appointment|call)s?|what\s+(meeting|event)s?\s+(do\s+i\s+have|are\s+(there|scheduled)))\b/i,
       /\b(am\s+i\s+(free|busy|available)|when\s+am\s+i\s+free|find\s+(a\s+)?free\s+slot)\b/i,
     ],
@@ -70,13 +70,13 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
   {
     intent: "email",
     patterns: [
-      /\b(email|gmail|draft\s+an?\s+email|send\s+an?\s+email|inbox|unread\s+(emails?|messages?)|reply\s+to)\b/i,
+      /\b(emails?|gmail|draft\s+an?\s+email|send\s+an?\s+email|inbox|unread\s+(emails?|messages?)|reply\s+to)\b/i,
     ],
   },
   {
     intent: "memory",
     patterns: [
-      /\b(what\s+do\s+you\s+remember|search\s+(my\s+)?memory|archived\s+memory|list\s+(my\s+)?memories)\b/i,
+      /\b(what\s+do\s+you\s+remember|search\s+(my\s+)?memor(y|ies)|archived\s+memor(y|ies)|list\s+(my\s+)?memories)\b/i,
       // "remember X" only when it looks like storing a fact, not "remember to do X"
       /^\s*remember\s+(that|my|i|this)\b/i,
     ],

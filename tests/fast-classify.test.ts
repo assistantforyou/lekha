@@ -56,6 +56,21 @@ describe("fastClassify", () => {
     expect(fastClassify("list my reminders")).toBe("reminder");
     expect(fastClassify("list reminders")).toBe("reminder");
   });
+
+  it("handles plural nouns across all intents — \\b doesn't match mid-word", () => {
+    // Same bug class as the google-accounts and list-my-reminders regressions
+    // above, audited across the whole KEYWORD_MAP after finding it a third
+    // time live ("list my scheduled emails" blanked the model on production).
+    expect(fastClassify("cancel my reminders")).toBe("reminder");
+    expect(fastClassify("delete my reminders")).toBe("reminder");
+    expect(fastClassify("add tasks: buy milk, walk the dog")).toBe("task");
+    expect(fastClassify("delete my tasks")).toBe("task");
+    expect(fastClassify("what calendar events do I have")).toBe("calendar");
+    expect(fastClassify("schedule calls for next week")).toBe("calendar");
+    expect(fastClassify("list my scheduled emails")).toBe("email");
+    expect(fastClassify("send emails to the team")).toBe("email");
+    expect(fastClassify("search my memories for that")).toBe("memory");
+  });
 });
 
 describe("search-first prompt rules", () => {
