@@ -50,10 +50,13 @@ export function embeddingModel() {
 }
 
 /**
- * Default agent call timeout. Full Flash reasons a bit longer than Flash Lite;
- * 30s gives multi-step turns room without burning function time on real hangs.
+ * Default agent call timeout. Multi-step tool turns (search + update + confirm,
+ * chained Drive/Gmail/Calendar calls) routinely take 30-45s end to end — 30s was
+ * cutting those off mid-flight and reporting a false "timed out" even though the
+ * call kept running server-side and completed moments later. 55s matches the
+ * value already used for image-bundled turns below.
  */
-export const AGENT_TIMEOUT_MS = 30_000;
+export const AGENT_TIMEOUT_MS = 55_000;
 
 /**
  * Shared Gemini provider options. Safety thresholds use BLOCK_NONE (not OFF —

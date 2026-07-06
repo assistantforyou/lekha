@@ -91,9 +91,9 @@ export function buildCalendarTools(userId: string) {
 
     search_calendar_events: tool({
       description:
-        "Search the user's Google Calendar by keyword/title across any date range. Use before creating an event to check for duplicates (search by title), or when the user references an event by name and you need its ID for update/delete.",
+        "Look up the user's Google Calendar by date range, optionally filtered by keyword/title. Omit query to list EVERYTHING in the range — use this for 'what's on my calendar tomorrow' / 'on July 10th' / any specific day that isn't covered by calendar_today or calendar_week (pass that day's startISO/endISO, no query). Pass query to search by title/description/location instead — e.g. before creating an event to check for duplicates, or when the user references an event by name and you need its ID for update/delete.",
       inputSchema: z.object({
-        query: z.string().min(1).max(200).describe("Text to search for in event title, description, or location"),
+        query: z.string().min(1).max(200).optional().describe("Text to search for in event title, description, or location. Omit to list all events in the date range instead."),
         startISO: z.string().optional().describe("Search from this date (ISO 8601). Defaults to now."),
         endISO: z.string().optional().describe("Search until this date (ISO 8601). Defaults to 30 days from now."),
         maxResults: z.number().int().min(1).max(20).default(10),
@@ -106,7 +106,7 @@ export function buildCalendarTools(userId: string) {
           const timeMax = endISO ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
           const r = await calendar.events.list({
             calendarId: "primary",
-            q: query,
+            ...(query ? { q: query } : {}),
             timeMin,
             timeMax,
             singleEvents: true,
