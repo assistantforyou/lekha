@@ -4,6 +4,7 @@ import { push, text as textMsg } from "@/lib/line/client";
 import { clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
 import { isAllowed } from "@/lib/memory/allowlist";
+import { buildGate } from "@/lib/gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +33,11 @@ export async function GET(req: NextRequest) {
   }
   const { userId, email } = result;
 
-  if (!(await isAllowed(userId))) {
+  // Mirror the webhook's allowlist gate (lib/gate.ts): admins always pass,
+  // even if their id was never explicitly sadd'ed into the users:allowed set.
+  // This route previously checked isAllowed() alone, which rejected the admin.
+  const gate = buildGate();
+  if (!gate.isAdmin(userId) && !(await isAllowed(userId))) {
     return NextResponse.json({ ok: false, error: "not allowed" }, { status: 403 });
   }
 
