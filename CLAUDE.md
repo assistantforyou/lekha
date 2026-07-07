@@ -344,7 +344,7 @@ Two developers (James + Claude Code), one repo (`assistantforyou/lekha`), one Ve
 **Production:** `https://lekha-iota.vercel.app`
 
 **Workflow:**
-- Claude Code works on feature branches and opens PRs; James reviews and merges
+- Claude Code commits directly to `main` with descriptive conventional-commit messages and pushes; no feature branches or PRs
 - Always `git pull origin main` before starting work
 - Vercel auto-deploys on every merge to `main`
 - No force pushes to main
