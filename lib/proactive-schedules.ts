@@ -25,11 +25,16 @@ export async function scheduleTaskDeadlineWarning(
   // For tasks due within the lead window, fire after a small delay so the
   // user isn't bombarded immediately after creation.
   const effectiveDelay = Math.max(60, delaySec);
-  return await scheduleOneShot(
-    "/api/cron/sweep/fire",
-    { userId, type: "task_deadline", taskId, title },
-    effectiveDelay,
-  );
+  try {
+    return await scheduleOneShot(
+      "/api/cron/sweep/fire",
+      { userId, type: "task_deadline", taskId, title },
+      effectiveDelay,
+    );
+  } catch (err) {
+    console.error("[proactive-schedules] failed to schedule task deadline warning", err);
+    return null;
+  }
 }
 
 export async function cancelTaskDeadlineWarning(messageId: string | null | undefined): Promise<void> {
@@ -66,12 +71,16 @@ export async function schedulePreMeetingAlerts(
     const fireAt = startTs - lead * 60_000;
     const delaySec = Math.floor((fireAt - now) / 1000);
     if (delaySec < 1) continue;
-    const id = await scheduleOneShot(
-      "/api/cron/sweep/fire",
-      { userId, type: "pre_meeting", eventId, lead, eventStartISO },
-      delaySec,
-    );
-    ids.push(id);
+    try {
+      const id = await scheduleOneShot(
+        "/api/cron/sweep/fire",
+        { userId, type: "pre_meeting", eventId, lead, eventStartISO },
+        delaySec,
+      );
+      ids.push(id);
+    } catch (err) {
+      console.error("[proactive-schedules] failed to schedule pre-meeting alert", err);
+    }
   }
   if (ids.length > 0) {
     const { redis } = await import("./memory/redis");
