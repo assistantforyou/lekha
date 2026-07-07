@@ -86,11 +86,17 @@ export function buildSystemPrompt(
     personaAddressing?: string;
     personaPrimaryLang?: string;
     personaVoiceMatch?: boolean;
+    personaPreferredName?: string | null;
     toolSettings?: Record<string, Record<string, unknown>>;
   },
 ): string {
-  const intro = profile.displayName
-    ? `\n\nThe user's LINE display name is "${sanitizePromptValue(profile.displayName)}".`
+  const preferredName = settings?.personaPreferredName?.trim();
+  const lineName = profile.displayName;
+  const displayName = preferredName || lineName;
+  const intro = displayName
+    ? preferredName && preferredName !== lineName
+      ? `\n\nThe user's preferred name is "${sanitizePromptValue(preferredName)}" (LINE display name: "${sanitizePromptValue(lineName)}").`
+      : `\n\nThe user's LINE display name is "${sanitizePromptValue(displayName)}".`
     : "";
   const loc = settings?.location ? `\nLocation (user-stated): ${sanitizePromptValue(settings.location)}.` : "";
   const lang = settings?.language ? `\nReply in: ${settings.language} (override the auto-match rule).` : "";

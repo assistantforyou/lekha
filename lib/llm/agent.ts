@@ -387,8 +387,9 @@ export async function runAgent(
             .join("\n")}\nIf the user asks about an image, call \`ocr_image\` or \`summarize_image\` with the index. If they ask about a PDF/document, call \`summarize_document\` or \`read_document\`. If they ask about a voice memo/meeting/lecture, the full transcript is already saved — use \`search_documents\` to find it and summarize or quote from it. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
       : "";
     const tz = settings.timezone ?? "Asia/Bangkok";
+    const displayName = settings.personaPreferredName?.trim() || profile.displayName;
     const factsBlock = factsToPromptBlock(facts, factLimitForHint(opts?.hint));
-    const system = buildSystemPrompt(factsBlock, profile, settings);
+    const system = buildSystemPrompt(factsBlock, { displayName }, settings);
 
     // Volatile per-request context goes into a synthetic first message pair so
     // the system prompt stays stable and Gemini's implicit prefix cache can hit.
@@ -543,12 +544,12 @@ export async function runAgent(
       // Deterministic fallbacks: if the model blanks on an unambiguous query,
       // execute the canonical tool ourselves and return a Flex card.
       if (looksLikeMemoryRecall(lastUserText)) {
-        const fb = await fallbackListMemories(userId, profile.displayName);
+        const fb = await fallbackListMemories(userId, displayName);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (looksLikeTaskList(lastUserText)) {
-        const fb = await fallbackListTasks(userId, profile.displayName, settings?.timezone);
+        const fb = await fallbackListTasks(userId, displayName, settings?.timezone);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
@@ -563,7 +564,7 @@ export async function runAgent(
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (opts?.hasStagedMedia && looksLikeMediaQuery(lastUserText)) {
-        const fb = await fallbackSummarizeDocument(userId, profile.displayName, lastUserText);
+        const fb = await fallbackSummarizeDocument(userId, displayName, lastUserText);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
       } else if (looksLikeNewsQuery(lastUserText)) {
