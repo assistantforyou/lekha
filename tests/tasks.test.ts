@@ -21,7 +21,9 @@ describe("buildTaskTools error handling", () => {
   it("add_task returns structured error when persistence throws", async () => {
     vi.mocked(addTask).mockRejectedValueOnce(new Error("QStash region mismatch"));
     const tools = buildTaskTools("U1");
-    const result = await tools.add_task!.execute(
+    const addTaskTool = tools?.add_task;
+    if (!addTaskTool?.execute) throw new Error("add_task tool missing");
+    const result = await addTaskTool.execute(
       { title: "Download file" },
       { toolCallId: "t1", messages: [] },
     );
