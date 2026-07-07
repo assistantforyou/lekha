@@ -302,10 +302,10 @@ LINE groups/rooms are first-class conversation targets but do not pollute the 1:
 
 ## LINE settings menu & onboarding
 
-- **Settings command:** Typing `=settings=` in LINE opens a rich, LLM-free Flex menu. Users can toggle briefings, tools, persona, memory, facts, language, location, and timezone via `postback` buttons. The menu is built in `lib/line/flex/settings.ts` and handled in `lib/settings-menu.ts`.
-- **Typed settings commands:** Users can also type `=set <key> <value>` (e.g. `=set timezone Asia/Tokyo`, `=set language th`, `=set morning off`) or `=remember <fact>` to edit settings without invoking the LLM.
+- **Settings command:** Typing `/settings` in LINE opens a rich, LLM-free Flex menu. Users can toggle briefings, tools, persona, memory, facts, language, location, and timezone via `postback` buttons. The menu is built in `lib/line/flex/settings.ts` and handled in `lib/settings-menu.ts`.
+- **Typed settings commands:** Users can also type `/set <key> <value>` (e.g. `/set timezone Asia/Tokyo`, `/set language th`, `/set morning off`) or `/remember <fact>` to edit settings without invoking the LLM.
 - **Postback verbs:** `settings:main`, `settings:section:<name>`, `settings:set:<key>:<value>`, `settings:toggle:<target>:off`, `settings:facts:del:<id>`.
-- **Onboarding:** New users (follow event or admin approval) receive a one-time welcome push with a "Start setup" button. Tapping it starts an interactive tutorial (`lib/tutorial.ts`) that walks through each settings section one by one: Language & Location → Briefings → Tools → Persona → Memory. Each step explains what the setting does and lets the user choose. Postback verbs are `tutorial:start`, `tutorial:set:<key>:<value>`, `tutorial:next`, `tutorial:back`. Users can restart the tutorial anytime by typing `=tutorial`. Onboarding state is stored at `user:{userId}:onboarded`; tutorial progress is stored at `user:{userId}:tutorial:step`.
+- **Onboarding:** New users (follow event or admin approval) receive a one-time welcome push with a "Start setup" button. Tapping it starts an interactive tutorial (`lib/tutorial.ts`) that walks through each settings section one by one: Language & Location → Briefings → Tools → Persona → Memory. Each step explains what the setting does and lets the user choose. Postback verbs are `tutorial:start`, `tutorial:set:<key>:<value>`, `tutorial:next`, `tutorial:back`. Users can restart the tutorial anytime by typing `/tutorial`. Onboarding state is stored at `user:{userId}:onboarded`; tutorial progress is stored at `user:{userId}:tutorial:step`.
 
 ## Swapping the LLM
 

@@ -144,11 +144,11 @@ const T = {
     memoryDescription: "Tell me one thing I should remember about you.",
     memoryFactHint: "Anything — a preference, a person, a deadline, a habit.",
     finishGreeting: "Hi {name}! You're all set. I've remembered: {fact}",
-    emptyFactGreeting: "Hi {name}! You're all set. Just start chatting, or type =settings= anytime.",
+    emptyFactGreeting: "Hi {name}! You're all set. Just start chatting, or type /settings anytime.",
     finish: "Finish",
     back: "← Back",
     next: "Next →",
-    allSet: "You're all set! I'll remember your choices. Type =settings= anytime to change them, or just start chatting.",
+    allSet: "You're all set! I'll remember your choices. Type /settings anytime to change them, or just start chatting.",
     customTimezonePrompt: "What timezone are you in? Type a city or country (e.g. Tokyo, London).",
     customLocationPrompt: "Where are you based? Type a city or country (e.g. New York).",
     customMorningPrompt: "What time for your morning briefing? (e.g. 07:30 or 7:30 AM)",
@@ -158,7 +158,7 @@ const T = {
     locationError: "Please type a real location (at least 2 characters).",
     timeError: "I didn't catch the time. Try something like 07:30, 7:30 AM, 21:00, or 9 PM.",
     tryAgain: "Please try again.",
-    tapButtonsOrRestart: "Tap the buttons above to finish setup, or type =tutorial to restart.",
+    tapButtonsOrRestart: "Tap the buttons above to finish setup, or type /tutorial to restart.",
     step: "Setup step {step} of {total}",
   },
 
@@ -212,11 +212,11 @@ const T = {
     memoryDescription: "บอกฉันสักเรื่องที่ควรจำเกี่ยวกับคุณ",
     memoryFactHint: "อะไรก็ได้ — ความชอบ คนรู้จัก กำหนดเวลา หรือนิสัย",
     finishGreeting: "สวัสดี {name}! ตั้งค่าเสร็จแล้ว ฉันจำไว้แล้ว: {fact}",
-    emptyFactGreeting: "สวัสดี {name}! ตั้งค่าเสร็จแล้ว เริ่มแชทได้เลย หรือพิมพ์ =settings= เพื่อเปลี่ยนการตั้งค่า",
+    emptyFactGreeting: "สวัสดี {name}! ตั้งค่าเสร็จแล้ว เริ่มแชทได้เลย หรือพิมพ์ /settings เพื่อเปลี่ยนการตั้งค่า",
     finish: "เสร็จสิ้น",
     back: "← กลับ",
     next: "ต่อไป →",
-    allSet: "ตั้งค่าเสร็จแล้ว! ฉันจะจำการตั้งค่าของคุณ พิมพ์ =settings= เพื่อเปลี่ยน หรือเริ่มแชทได้เลย",
+    allSet: "ตั้งค่าเสร็จแล้ว! ฉันจะจำการตั้งค่าของคุณ พิมพ์ /settings เพื่อเปลี่ยน หรือเริ่มแชทได้เลย",
     customTimezonePrompt: "คุณอยู่ในเขตเวลาใด? พิมพ์ชื่อเมืองหรือประเทศ (เช่น โตเกียว ลอนดอน)",
     customLocationPrompt: "คุณอยู่ที่ไหน? พิมพ์ชื่อเมืองหรือประเทศ (เช่น นิวยอร์ก)",
     customMorningPrompt: "สรุปตอนเช้ากี่โมง? (เช่น 07:30 หรือ 7:30 AM)",
@@ -226,7 +226,7 @@ const T = {
     locationError: "กรุณาพิมพ์สถานที่จริง (อย่างน้อย 2 ตัวอักษร)",
     timeError: "ฉันไม่เข้าใจเวลา ลองเช่น 07:30, 7:30 AM, 21:00 หรือ 9 PM",
     tryAgain: "กรุณาลองอีกครั้ง",
-    tapButtonsOrRestart: "แตะปุ่มด้านบนเพื่อตั้งค่าต่อ หรือพิมพ์ =tutorial เพื่อเริ่มใหม่",
+    tapButtonsOrRestart: "แตะปุ่มด้านบนเพื่อตั้งค่าต่อ หรือพิมพ์ /tutorial เพื่อเริ่มใหม่",
     step: "ขั้นตอนที่ {step} จาก {total}",
   },
 };
@@ -777,7 +777,7 @@ async function handleCustomInput(userId: string, replyToken: string, field: Wait
 
 export async function handleTutorialText(userId: string, replyToken: string, userText: string): Promise<boolean> {
   const lower = userText.trim().toLowerCase();
-  if (lower === "=tutorial") {
+  if (lower === "/tutorial") {
     await setTutorialWaiting(userId, null);
     await startTutorial(userId, replyToken);
     return true;

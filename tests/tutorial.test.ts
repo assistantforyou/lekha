@@ -137,8 +137,8 @@ describe("setup tutorial", () => {
     expect(await getTutorialStep("U1")).toBe(1);
   });
 
-  it("restarts tutorial on =tutorial text", async () => {
-    await handleTutorialText("U1", "token", "=tutorial");
+  it("restarts tutorial on /tutorial text", async () => {
+    await handleTutorialText("U1", "token", "/tutorial");
     expect(await getTutorialStep("U1")).toBe(0);
   });
 

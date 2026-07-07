@@ -269,7 +269,7 @@ async function handleTrial({ userId, replyToken, args }: Ctx): Promise<void> {
     return;
   }
   if (await isOnTrial(userId)) {
-    await mkReply(userId, replyToken)("Your free trial is already active. Type =tutorial to restart setup.");
+    await mkReply(userId, replyToken)("Your free trial is already active. Type /tutorial to restart setup.");
     return;
   }
   await startTrial(userId, replyToken);

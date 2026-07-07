@@ -22,7 +22,7 @@ type Shortcut = {
   run: (ctx: Ctx) => Promise<void>;
 };
 
-const settingsTrigger = /^=settings\b|^=set\s|^=remember\s/i;
+const settingsTrigger = /^\/settings\b|^\/set\s|^\/remember\s/i;
 const helpTrigger = /^\/?(help|what can you do|capabilities)$/i;
 const briefingTrigger =
   /\b(morning briefing|daily briefing|daily summary|morning brief)\b|^(give me|show me|what'?s|send me|can you give me|can you show me)?\s*(my\s*)?(morning|daily)\s*(briefing|summary|brief)[\s?!.]*$/i;

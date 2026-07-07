@@ -90,7 +90,7 @@ export async function redeemPromoCode(userId: string, code: string): Promise<Red
   return { ok: true, grant: promo.grant, message: `Redeemed! You now have ${label}.` };
 }
 
-const PROMO_RE = /^=promo\s+(\S+)$/i;
+const PROMO_RE = /^\/promo\s+(\S+)$/i;
 
 export async function handlePromoCommand(userId: string, userText: string, replyToken: string): Promise<boolean> {
   const match = userText.match(PROMO_RE);

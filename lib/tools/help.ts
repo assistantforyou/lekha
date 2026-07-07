@@ -3,13 +3,27 @@ import { tool } from "ai";
 
 const HELP_TEXT = `Here's what I can do:
 
+🤖 *How to talk to me*
+- In a 1:1 chat: just send a message.
+- In a group: mention me (@Lekha), say my name ("Lekha, …"), reply to my message, or use an admin slash command.
+
+⚡ *Slash commands*
+- /settings — open the settings menu
+- /settings <section> — jump to a section (briefing, tools, persona, memory, facts, locale)
+- /set <key> <value> — quick setting change (e.g. /set timezone Asia/Bangkok, /set language th, /set morning 07:30, /set morning off)
+- /remember <fact> — save a fact to memory
+- /tutorial — restart onboarding
+- /promo <code> — redeem a free-access code (e.g. /promo FREETRIAL100)
+- /myid — get your LINE user ID
+- /help — show this help
+
 🧠 *Memory*
 - "remember that I prefer espresso"
 - "what do you know about me?"
 - "forget that" / "update memory #3 to say…"
 - "search my old conversations for X"
 
-✅ *Tasks* (stay open until you mark them done)
+✅ *Tasks*
 - "add a task to ship the cert PDF"
 - "list my open tasks" / "mark task #3 done"
 
@@ -24,7 +38,7 @@ const HELP_TEXT = `Here's what I can do:
 - "list my reminders" / "cancel that 8 AM reminder"
 
 📧 *Email & Inbox* (Google account needed)
-- "email mom the receipt" — looks up Mom in your Contacts
+- "email mom the receipt"
 - "draft to bob@x.com cc'ing alice with the cert PDF attached"
 - "summarize today's inbox"
 - "reply to Bob's last email saying I'll be there"
@@ -64,19 +78,16 @@ const HELP_TEXT = `Here's what I can do:
 - "give me my briefing now"
 - "send me an evening summary at 9 PM"
 
-⚙️ *Settings*
-- "set my timezone to Asia/Bangkok"
-- "set my location to Bangkok, Thailand"
-- "remind me 15 min before each meeting"
-- "set my language to Thai"
-
 🔌 *Google Accounts*
 - "connect my Google account"
 - "list my Google accounts" / "use my work account"
 
-🛠 *Advanced*
-- "what did I send to Bob today?"
-- "export all my data"`;
+🛠 *Admin commands* (admin users only)
+- /allow <userId> / /remove <userId>
+- /users / /pending / /approve <userId> / /deny <userId>
+- /allowgroup <groupId> / /removegroup <groupId> / /groups
+- /promo create <code> [allowed|team] [uses] [days] / /promos / /promo delete <code>
+- /status <userId> / /audit <userId> [n] / /force-briefing <userId> [morning|evening]`;
 
 export function buildHelpTools() {
   return {

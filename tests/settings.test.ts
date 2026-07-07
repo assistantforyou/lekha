@@ -196,7 +196,7 @@ describe("settings postback handlers", () => {
   });
 
   it("deletes a fact", async () => {
-    await handleSettingsCommand("U1", "token", "=remember I prefer espresso");
+    await handleSettingsCommand("U1", "token", "/remember I prefer espresso");
     const before = await loadFacts("U1");
     expect(before.facts.length).toBe(1);
     const id = before.facts[0]!.id;
@@ -210,9 +210,9 @@ describe("settings typed commands", () => {
   beforeEach(() => reset());
 
   it("sets timezone, location, language", async () => {
-    await handleSettingsCommand("U1", "token", "=set timezone America/New_York");
-    await handleSettingsCommand("U1", "token", "=set location Singapore");
-    await handleSettingsCommand("U1", "token", "=set language th");
+    await handleSettingsCommand("U1", "token", "/set timezone America/New_York");
+    await handleSettingsCommand("U1", "token", "/set location Singapore");
+    await handleSettingsCommand("U1", "token", "/set language th");
     const s = await getSettings("U1");
     expect(s.timezone).toBe("America/New_York");
     expect(s.location).toBe("Singapore");
@@ -220,17 +220,17 @@ describe("settings typed commands", () => {
   });
 
   it("sets and turns off briefing times", async () => {
-    await handleSettingsCommand("U1", "token", "=set morning 07:30");
-    await handleSettingsCommand("U1", "token", "=set evening 21:30");
-    await handleSettingsCommand("U1", "token", "=set checkin 20:00");
+    await handleSettingsCommand("U1", "token", "/set morning 07:30");
+    await handleSettingsCommand("U1", "token", "/set evening 21:30");
+    await handleSettingsCommand("U1", "token", "/set checkin 20:00");
     let s = await getSettings("U1");
     expect(s.morningBriefingTime).toBe("07:30");
     expect(s.eveningSummaryTime).toBe("21:30");
     expect(s.taskCheckInTime).toBe("20:00");
 
-    await handleSettingsCommand("U1", "token", "=set morning off");
-    await handleSettingsCommand("U1", "token", "=set evening off");
-    await handleSettingsCommand("U1", "token", "=set checkin off");
+    await handleSettingsCommand("U1", "token", "/set morning off");
+    await handleSettingsCommand("U1", "token", "/set evening off");
+    await handleSettingsCommand("U1", "token", "/set checkin off");
     s = await getSettings("U1");
     expect(s.morningBriefingTime).toBeNull();
     expect(s.eveningSummaryEnabled).toBe(false);
@@ -238,7 +238,7 @@ describe("settings typed commands", () => {
   });
 
   it("rejects invalid time values", async () => {
-    await handleSettingsCommand("U1", "token", "=set morning 25:00");
+    await handleSettingsCommand("U1", "token", "/set morning 25:00");
     const last = lastMessages()[0] as { text?: string };
     expect(last.text).toContain("HH:MM");
     const s = await getSettings("U1");
@@ -254,11 +254,11 @@ describe("settings typed commands", () => {
   });
 
   it("sets compact interval with validation", async () => {
-    await handleSettingsCommand("U1", "token", "=set compact 15");
+    await handleSettingsCommand("U1", "token", "/set compact 15");
     let s = await getSettings("U1");
     expect(s.memoryCompactAt).toBe(15);
 
-    await handleSettingsCommand("U1", "token", "=set compact abc");
+    await handleSettingsCommand("U1", "token", "/set compact abc");
     const last = lastMessages()[0] as { text?: string };
     expect(last.text).toContain("whole number");
     s = await getSettings("U1");
@@ -277,7 +277,7 @@ describe("time postback colon handling", () => {
   });
 
   it("reconstructs evening time from typed command", async () => {
-    await handleSettingsCommand("U1", "token", "=settings:briefing:set:eveningTime:21:30");
+    await handleSettingsCommand("U1", "token", "/settings:briefing:set:eveningTime:21:30");
     const s = await getSettings("U1");
     expect(s.eveningSummaryTime).toBe("21:30");
   });

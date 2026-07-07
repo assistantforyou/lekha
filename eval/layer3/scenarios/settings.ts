@@ -8,7 +8,7 @@ export const settingsScenarios = [
     layer: 3,
     suite: ["small", "medium", "full"],
     state: noState(),
-    userText: "=settings=",
+    userText: "/settings",
     expected: {
       // Settings command is handled by shortcut, not the agent.
       requiredTools: [],
@@ -23,7 +23,7 @@ export const settingsScenarios = [
     layer: 3,
     suite: ["medium", "full"],
     state: noState(),
-    userText: "=set timezone Asia/Tokyo",
+    userText: "/set timezone Asia/Tokyo",
     expected: {
       requiredTools: ["set_timezone"],
     },

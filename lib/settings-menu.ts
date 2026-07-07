@@ -392,7 +392,7 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
       await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "cancelled"))]);
       return true;
     }
-    if (!text.startsWith("=")) {
+    if (!text.startsWith("/")) {
       await clearPendingPrompt(userId);
       if (pending === "fact") {
         if (text) {
@@ -416,13 +416,13 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
     // fall through to process the = command normally
   }
 
-  if (lower === "=settings=") {
+  if (lower === "/settings") {
     showLoading(userId, 5).catch(() => {});
     await sendMenu(userId, replyToken, "main");
     return true;
   }
 
-  const sectionMatch = text.match(/^=settings:section:(\w+)$/i);
+  const sectionMatch = text.match(/^\/settings\s+(\w+)$/i);
   if (sectionMatch) {
     const section = sectionMatch[1];
     if (section && VALID_SECTIONS.has(section)) {
@@ -432,8 +432,8 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
   }
 
   // Allow any postback-style settings command to be typed directly, e.g.
-  // =settings:persona:set:personaTone:Professional
-  const settingsCmdMatch = text.match(/^=settings:(.+)$/i);
+  // /settings:persona:set:personaTone:Professional
+  const settingsCmdMatch = text.match(/^\/settings:(.+)$/i);
   if (settingsCmdMatch) {
     const inner = settingsCmdMatch[1];
     if (inner) {
@@ -443,13 +443,13 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
     }
   }
 
-  const setMatch = text.match(/^=set\s+(\S+)\s+(.+)$/i);
+  const setMatch = text.match(/^\/set\s+(\S+)\s+(.+)$/i);
   if (setMatch) {
     await applyTypedSet(userId, replyToken, setMatch[1]!, setMatch[2]!);
     return true;
   }
 
-  const rememberMatch = text.match(/^=remember\s+(.+)$/i);
+  const rememberMatch = text.match(/^\/remember\s+(.+)$/i);
   if (rememberMatch) {
     const settings = await getSettings(userId);
     const fact = rememberMatch[1]!.trim();
