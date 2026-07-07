@@ -26,6 +26,7 @@ import { getSettings } from "@/lib/memory/settings";
 import { t } from "@/lib/i18n";
 
 import { handleAdminCommand, handleMyId } from "@/lib/admin-commands";
+import { handlePromoCommand } from "@/lib/promo-codes";
 import { dispatchShortcut } from "@/lib/shortcuts";
 import { respondToText } from "@/lib/handlers/text";
 import { respondToImage } from "@/lib/handlers/image";
@@ -322,6 +323,10 @@ async function handleEvent(
     }
     if (await handleAdminCommand(userId, gate.isAdmin(userId), userText, event.replyToken)) {
       endEvent({ type: "admin" });
+      return true;
+    }
+    if (await handlePromoCommand(userId, userText, event.replyToken)) {
+      endEvent({ type: "promo" });
       return true;
     }
     if (await dispatchShortcut({ userId, replyToken: event.replyToken, userText })) {

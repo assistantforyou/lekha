@@ -14,6 +14,8 @@ import { listAllUsers } from "@/lib/memory/user-registry";
 import { removeFromTrial, isOnTrial } from "@/lib/trial";
 import { redis } from "@/lib/memory/redis";
 import { listAuditLog, type AuditEntry } from "@/lib/memory/audit-log";
+import { addAllowedGroup, removeAllowedGroup, listAllowedGroups } from "@/lib/group-access";
+import { createPromoCode, listPromoCodes, deletePromoCode } from "@/lib/promo-codes";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
 import { briefingFlex, newsFlex, gmailResultsFlex, pendingUsersFlex } from "@/lib/line/flex";
@@ -109,6 +111,61 @@ export async function handleAdminCommand(
     await replyOrPush(userId, replyToken, [
       textMsg(wasPending ? `🗑 Removed ${target} from the pending queue.` : `⚠️ ${target} was not in the pending queue.`),
     ]);
+    return true;
+  }
+
+  const allowGroupMatch = userText.match(/^\/allowgroup\s+([CR][a-zA-Z0-9]{20,})$/i);
+  if (allowGroupMatch) {
+    const groupId = allowGroupMatch[1]!;
+    await addAllowedGroup(groupId);
+    await replyOrPush(userId, replyToken, [textMsg(`✅ Added ${groupId} to allowed groups.`)])
+    return true;
+  }
+
+  const removeGroupMatch = userText.match(/^\/removegroup\s+([CR][a-zA-Z0-9]{20,})$/i);
+  if (removeGroupMatch) {
+    const groupId = removeGroupMatch[1]!;
+    await removeAllowedGroup(groupId);
+    await replyOrPush(userId, replyToken, [textMsg(`🗑 Removed ${groupId} from allowed groups.`)])
+    return true;
+  }
+
+  if (/^\/groups$/i.test(userText)) {
+    const groups = await listAllowedGroups();
+    await replyOrPush(userId, replyToken, [textMsg(groups.length ? `Allowed groups (${groups.length}):\n\n${groups.join("\n")}` : "Allowed groups (0):\n\n(none yet)")]);
+    return true;
+  }
+
+  const promoCreateMatch = userText.match(/^\/promo\s+create\s+(\S+)(?:\s+(allowed|team))?(?:\s+(\d+))?(?:\s+(\d+))?$/i);
+  if (promoCreateMatch) {
+    const code = promoCreateMatch[1]!;
+    const grant = (promoCreateMatch[2] as "allowed" | "team") ?? "team";
+    const uses = Math.max(1, Number(promoCreateMatch[3] ?? 100));
+    const days = Math.max(1, Number(promoCreateMatch[4] ?? 30));
+    const expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
+    await createPromoCode(code, grant, uses, expiresAt, userId);
+    await replyOrPush(userId, replyToken, [textMsg(`✅ Created promo code \`${code.toUpperCase()}\` → ${grant}, ${uses} use${uses === 1 ? "" : "s"}, expires in ${days} day${days === 1 ? "" : "s"}.`)]);
+    return true;
+  }
+
+  if (/^\/promos$/i.test(userText)) {
+    const promos = await listPromoCodes();
+    if (!promos.length) {
+      await replyOrPush(userId, replyToken, [textMsg("No promo codes yet.")]);
+      return true;
+    }
+    const lines = promos.map((p) => {
+      const exp = p.expiresAt ? new Date(p.expiresAt).toISOString().slice(0, 10) : "never";
+      return `\`${p.code}\` → ${p.grant}, ${p.usesLeft} left, expires ${exp}`;
+    });
+    await replyOrPush(userId, replyToken, [textMsg(`Promo codes (${promos.length}):\n\n${lines.join("\n")}`)]);
+    return true;
+  }
+
+  const promoDeleteMatch = userText.match(/^\/promo\s+delete\s+(\S+)$/i);
+  if (promoDeleteMatch) {
+    await deletePromoCode(promoDeleteMatch[1]!);
+    await replyOrPush(userId, replyToken, [textMsg(`🗑 Deleted promo code \`${promoDeleteMatch[1]!.toUpperCase()}\`.`)]);
     return true;
   }
 
