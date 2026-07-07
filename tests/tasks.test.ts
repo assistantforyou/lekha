@@ -19,7 +19,7 @@ import { addTask } from "@/lib/memory/tasks";
 
 describe("buildTaskTools error handling", () => {
   it("add_task returns structured error when persistence throws", async () => {
-    vi.mocked(addTask).mockRejectedValueOnce(new Error("QStash region mismatch"));
+    vi.mocked(addTask).mockRejectedValueOnce(new Error("Redis unavailable"));
     const tools = buildTaskTools("U1");
     const addTaskTool = tools?.add_task;
     if (!addTaskTool?.execute) throw new Error("add_task tool missing");

@@ -84,6 +84,17 @@ export function signupGateFlex(baseUrl: string): FlexMessage {
               uri: `${baseUrl}/signup?plan=yearly`,
             },
           },
+          {
+            type: "button",
+            style: "secondary",
+            color: "#5B8DEF",
+            height: "sm",
+            action: {
+              type: "uri",
+              label: "Team — ฿800/mo",
+              uri: `${baseUrl}/signup?plan=team_monthly`,
+            },
+          },
         ],
         backgroundColor: "#071124",
       },

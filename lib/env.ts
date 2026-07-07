@@ -50,6 +50,12 @@ const Env = z.object({
   LINE_LOGIN_CHANNEL_ID: z.string().optional(),
   LINE_LOGIN_CHANNEL_SECRET: z.string().optional(),
 
+  // LINE Group chat
+  // The bot's own LINE user ID (used for mention detection and leave detection in groups).
+  LINE_BOT_USER_ID: z.string().optional(),
+  // Comma-separated group/room IDs that are pre-authorised without needing /allowgroup.
+  ADMIN_GROUP_IDS: z.string().optional(),
+
   // Stripe (live)
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
@@ -61,6 +67,10 @@ const Env = z.object({
   STRIPE_TEST_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_TEST_MONTHLY_PRICE_ID: z.string().optional(),
   STRIPE_TEST_YEARLY_PRICE_ID: z.string().optional(),
+  STRIPE_TEAM_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_TEAM_YEARLY_PRICE_ID: z.string().optional(),
+  STRIPE_TEST_TEAM_MONTHLY_PRICE_ID: z.string().optional(),
+  STRIPE_TEST_TEAM_YEARLY_PRICE_ID: z.string().optional(),
 
   // App
   APP_BASE_URL: z.string().url(),

@@ -5,6 +5,8 @@ import { redis } from "@/lib/memory/redis";
 import { createTtlCache } from "@/lib/memory/cache";
 import { env, hasQStash } from "@/lib/env";
 import { localTimeToUtcCron } from "@/lib/cron";
+import { getSettings } from "@/lib/memory/settings";
+import { t } from "@/lib/i18n";
 
 const reminderCache = createTtlCache<StoredReminder[]>(5_000);
 
@@ -287,10 +289,8 @@ export function buildReminderTools(userId: string) {
           return { ok: true, id, cron: cronUtc, days };
         } catch (err) {
           console.error("[reminder] recurring schedule failed", err);
-          return {
-            ok: false,
-            error: err instanceof Error ? err.message : "Failed to schedule recurring reminder",
-          };
+          const lang = (await getSettings(userId).then((s) => s.language).catch(() => undefined)) ?? "en";
+          return { ok: false, error: t(lang, "reminderScheduleError") };
         }
       },
     }),

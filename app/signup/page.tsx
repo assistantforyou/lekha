@@ -20,6 +20,21 @@ const PLANS = {
     note: "Save 17% · 2 months free",
     featured: true,
   },
+  team_monthly: {
+    label: "Team Monthly",
+    price: "฿800",
+    priceUSD: "$25",
+    period: "/month",
+    note: "Use Lekha in LINE groups",
+  },
+  team_yearly: {
+    label: "Team Yearly",
+    price: "฿8,000",
+    priceUSD: "$249",
+    period: "/year",
+    note: "Save 17% · 2 months free",
+    featured: true,
+  },
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -52,7 +67,9 @@ function SignupInner() {
   const params = useSearchParams();
   const planParam = params.get("plan");
   const errorParam = params.get("error");
-  const plan: "monthly" | "yearly" = planParam === "yearly" ? "yearly" : "monthly";
+  const validPlans = ["monthly", "yearly", "team_monthly", "team_yearly"] as const;
+  type PlanKey = (typeof validPlans)[number];
+  const plan: PlanKey = validPlans.includes(planParam as PlanKey) ? (planParam as PlanKey) : "monthly";
   const p = PLANS[plan];
   const errorMsg = errorParam ? (ERROR_MESSAGES[errorParam] ?? "Something went wrong. Please try again.") : null;
 
@@ -94,10 +111,10 @@ function SignupInner() {
             fontFamily: "Sora, sans-serif", fontSize: 24, fontWeight: 700,
             color: "white", margin: "0 0 6px", textAlign: "center",
           }}>
-            Start your free trial
+            {plan.startsWith("team_") ? "Get Lekha for your team" : "Start your free trial"}
           </h1>
           <p style={{ color: "rgba(200,215,240,0.6)", fontSize: 14, margin: "0 0 28px", textAlign: "center" }}>
-            7 days free · then {p.price}{p.period}
+            {plan.startsWith("team_") ? `${p.price}${p.period} · ${p.note}` : `7 days free · then ${p.price}${p.period}`}
           </p>
 
           {/* Error */}
@@ -168,16 +185,16 @@ function SignupInner() {
 
         {/* Switch plan */}
         <p style={{ textAlign: "center", fontSize: 13, color: "rgba(200,215,240,0.4)", marginTop: 16 }}>
-          {plan === "monthly" ? (
-            <>Want to save 17%?{" "}
-              <Link href="/signup?plan=yearly" style={{ color: "rgba(96,165,250,0.75)", textDecoration: "none" }}>
-                Switch to yearly
+          {plan.startsWith("team_") ? (
+            <>Personal plans instead?{" "}
+              <Link href="/signup?plan=monthly" style={{ color: "rgba(96,165,250,0.75)", textDecoration: "none" }}>
+                View personal plans
               </Link>
             </>
           ) : (
-            <>Prefer monthly?{" "}
-              <Link href="/signup?plan=monthly" style={{ color: "rgba(96,165,250,0.75)", textDecoration: "none" }}>
-                Switch to monthly
+            <>Need group chat?{" "}
+              <Link href="/signup?plan=team_monthly" style={{ color: "rgba(96,165,250,0.75)", textDecoration: "none" }}>
+                View Team plans
               </Link>
             </>
           )}

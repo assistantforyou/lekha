@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { env } from "@/lib/env";
 import { addToAllowlist, removeFromAllowlist } from "@/lib/memory/allowlist";
+import { addToTeam, removeFromTeam } from "@/lib/group-access";
 import { removeFromTrial } from "@/lib/trial";
 import { push, text as textMsg, getProfile } from "@/lib/line/client";
 import { redis } from "@/lib/memory/redis";
@@ -44,15 +45,23 @@ export async function POST(req: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     const lineUserId = session.metadata?.line_user_id;
     const customerEmail = session.customer_details?.email;
+    const plan = session.metadata?.plan;
+    const isTeam = typeof plan === "string" && plan.startsWith("team_");
     if (lineUserId) {
-      await addToAllowlist(lineUserId);
+      if (isTeam) {
+        await addToTeam(lineUserId);
+      } else {
+        await addToAllowlist(lineUserId);
+      }
       await removeFromTrial(lineUserId).catch(() => {});
-      console.log(`[stripe-webhook] granted access to ${lineUserId} (checkout completed)`);
+      console.log(`[stripe-webhook] granted ${isTeam ? "team" : "personal"} access to ${lineUserId} (checkout completed)`);
       const profile = await getProfile(lineUserId);
       const name = profile?.displayName ? ` ${profile.displayName}` : "";
       await push(lineUserId, [
         textMsg(
-          `You're in! 🎉 Welcome to Lekha${name}!\n\nI'm your personal AI assistant. I can set reminders, search the web, check weather and stocks, read photos, and much more.\n\nType "help" to see everything I can do, or "connect google" to link Gmail, Calendar, and Drive.`,
+          isTeam
+            ? `You're in! 🎉 Welcome to Lekha Team${name}!\n\nYou can now add me to LINE groups. Mention me (@Lekha) or reply to my messages when you want my help.`
+            : `You're in! 🎉 Welcome to Lekha${name}!\n\nI'm your personal AI assistant. I can set reminders, search the web, check weather and stocks, read photos, and much more.\n\nType "help" to see everything I can do, or "connect google" to link Gmail, Calendar, and Drive.`,
         ),
       ]);
     }
@@ -74,10 +83,16 @@ export async function POST(req: NextRequest) {
   if (event.type === "customer.subscription.deleted") {
     const subscription = event.data.object as Stripe.Subscription;
     const lineUserId = (subscription.metadata as Record<string, string>)?.line_user_id;
+    const plan = (subscription.metadata as Record<string, string>)?.plan;
+    const isTeam = typeof plan === "string" && plan.startsWith("team_");
     if (lineUserId) {
-      await removeFromAllowlist(lineUserId);
-      unregisterUser(lineUserId).catch(() => {});
-      console.log(`[stripe-webhook] revoked access for ${lineUserId} (subscription deleted)`);
+      if (isTeam) {
+        await removeFromTeam(lineUserId);
+      } else {
+        await removeFromAllowlist(lineUserId);
+        unregisterUser(lineUserId).catch(() => {});
+      }
+      console.log(`[stripe-webhook] revoked ${isTeam ? "team" : "personal"} access for ${lineUserId} (subscription deleted)`);
     }
   }
 

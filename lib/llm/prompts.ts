@@ -88,6 +88,8 @@ export function buildSystemPrompt(
     personaVoiceMatch?: boolean;
     personaPreferredName?: string | null;
     toolSettings?: Record<string, Record<string, unknown>>;
+    isGroupChat?: boolean;
+    speakerName?: string;
   },
 ): string {
   const preferredName = settings?.personaPreferredName?.trim();
@@ -189,5 +191,8 @@ export function buildSystemPrompt(
   const finalReminders = facts
     ? "\n\nFinal reminder: if the user asks for the full list of what you remember, ALWAYS call list_memories. For specific questions, use the stored facts above to answer directly; if the answer isn't in the facts, say you don't know and ask the user to tell you."
     : "";
-  return `${BASE_PERSONALITY}${intro}${loc}${lang}${personaInstructions ? "\n\nPersona settings:" + personaInstructions : ""}${toolInstructions ? "\n\nTool preferences:" + toolInstructions : ""}${factsBlock}${finalReminders}`;
+  const groupInstructions = settings?.isGroupChat
+    ? `\n\nYou are currently in a LINE group chat. Only respond when explicitly addressed. Be concise so you don't dominate the conversation. Address the speaker by their first name${settings.speakerName ? ` (${settings.speakerName})` : ""}. Use the recent group conversation provided as context to resolve references like 'this', 'that', or 'the second idea'.`
+    : "";
+  return `${BASE_PERSONALITY}${intro}${loc}${lang}${personaInstructions ? "\n\nPersona settings:" + personaInstructions : ""}${toolInstructions ? "\n\nTool preferences:" + toolInstructions : ""}${factsBlock}${finalReminders}${groupInstructions}`;
 }
