@@ -1,12 +1,11 @@
 import { type ModelMessage } from "ai";
 import { replyOrPush, showLoading, getMessageContent, text as textMsg } from "@/lib/line/client";
-import { runAgent } from "@/lib/llm/agent";
-import { appendTurn, historyForPrompt } from "@/lib/memory/history";
+import { runMastraAgent } from "@/mastra/run";
+import { appendTurn } from "@/lib/memory/history";
 import { loadFacts } from "@/lib/memory/facts";
 import { listRecentMedia } from "@/lib/memory/recent-media";
 import { getSettings } from "@/lib/memory/settings";
 import { listAccounts } from "@/lib/tools/google-auth";
-import { toolsForUser } from "@/lib/tools";
 import { fastClassify } from "@/lib/fast-classify";
 import { enrichReply } from "../enrich-reply";
 import { span, timed } from "@/lib/timing";
@@ -71,8 +70,7 @@ export async function respondToText(
   const groupContextPromise = opts?.groupContext
     ? groupContextForPrompt(opts.groupContext.conversationId, getBotUserId())
     : Promise.resolve([]);
-  const [rawHistoryMsgs, groupMsgs, facts, accounts, settings, imageData] = await Promise.all([
-    historyForPrompt(userId),
+  const [groupMsgs, facts, accounts, settings, imageData] = await Promise.all([
     groupContextPromise,
     loadFacts(userId, 30),
     listAccounts(userId),
@@ -80,15 +78,7 @@ export async function respondToText(
     imagePromise,
   ]);
 
-  // Stateless lookups don't benefit from a long history window — skip everything
-  // except the last 5 pairs to keep the prompt lean.
-  const STATELESS_HINTS = new Set(["weather", "finance", "news"]);
-  const historyMsgs = hint && STATELESS_HINTS.has(hint)
-    ? rawHistoryMsgs.slice(-10)
-    : rawHistoryMsgs;
-
   endPreload({
-    historyTurns: historyMsgs.length,
     facts: facts.facts.length,
     staged: staged.length,
     accounts: accounts.accounts.length,
@@ -107,36 +97,23 @@ export async function respondToText(
     userContent = userText;
   }
 
-  const messages: ModelMessage[] = opts?.groupContext
-    ? [
-        ...groupMsgs,
-        { role: "user", content: userContent },
-      ]
-    : [
-        ...historyMsgs,
-        { role: "user", content: userContent },
-      ];
+  const messages: ModelMessage[] = [{ role: "user", content: userContent }];
 
-  const userHasGoogle = accounts.accounts.length > 0;
-  const tools = await toolsForUser(userId, {
-    userHasGoogle,
-    disabledCategories: settings.disabledCategories,
-    hasStagedMedia,
-    hint,
-  });
-
-  const result = await runAgent(userId, profile, facts, messages, traceId, {
+  const result = await runMastraAgent(messages, {
+    userId,
+    profile,
+    facts,
     accounts,
     staged,
-    tools,
     hasStagedMedia,
     settings,
     hint,
     imageBundled: !!imageData,
     isGroupChat: Boolean(opts?.groupContext),
     speakerName: opts?.groupContext?.speakerName,
-    // Image already staged — give Gemini vision + response steps more time
+    groupContext: groupMsgs,
     timeoutMs: imageData ? 55_000 : undefined,
+    traceId,
   });
   const { text: replyText, hints, historyText } = result;
 

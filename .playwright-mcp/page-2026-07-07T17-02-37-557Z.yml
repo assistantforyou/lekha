@@ -1,0 +1,864 @@
+- generic [active] [ref=e1]:
+  - heading "Lekha Admin & Command Manual" [level=1] [ref=e2]
+  - blockquote [ref=e3]:
+    - paragraph [ref=e4]:
+      - strong [ref=e5]: "Last updated:"
+      - text: 2026-07-07
+      - strong [ref=e6]: "Bot version:"
+      - text: matches
+      - code [ref=e7]: main
+      - text: branch
+      - strong [ref=e8]: "How to keep this alive:"
+      - text: when you add a new
+      - code [ref=e9]: /
+      - text: command, new settings key, new admin flow, or new group behaviour, add a row/section here and bump the
+      - strong [ref=e10]: Last updated
+      - text: line. Treat this file as part of the shipped feature.
+  - separator [ref=e11]
+  - 'heading "1. The one thing admins do most: let someone in" [level=2] [ref=e12]'
+  - paragraph [ref=e13]:
+    - text: You do
+    - strong [ref=e14]: not
+    - text: need a user to paste their LINE ID.
+    - code [ref=e15]: /myid
+    - text: replies with the ID as plain text, so they can select, copy, and paste it to an admin.
+  - heading "Approval options (pick any)" [level=3] [ref=e16]
+  - table [ref=e17]:
+    - rowgroup [ref=e18]:
+      - row "Method How Best for" [ref=e19]:
+        - columnheader "Method" [ref=e20]
+        - columnheader "How" [ref=e21]
+        - columnheader "Best for" [ref=e22]
+    - rowgroup [ref=e23]:
+      - row "Tap buttons in /pending Type /pending → tap ✓ Allow on the user's card Cleanest; no IDs needed" [ref=e24]:
+        - cell "Tap buttons in /pending" [ref=e25]:
+          - strong [ref=e26]:
+            - text: Tap buttons in
+            - code [ref=e27]: /pending
+        - cell "Type /pending → tap ✓ Allow on the user's card" [ref=e28]:
+          - text: Type
+          - code [ref=e29]: /pending
+          - text: → tap
+          - strong [ref=e30]: ✓ Allow
+          - text: on the user's card
+        - cell "Cleanest; no IDs needed" [ref=e31]
+      - 'row "`/approve `` Approve by ID + auto-send welcome They already sent you their ID" [ref=e32]':
+        - 'cell "`/approve ``" [ref=e33]':
+          - strong [ref=e34]: "`/approve ``"
+        - cell "Approve by ID + auto-send welcome" [ref=e35]
+        - cell "They already sent you their ID" [ref=e36]
+      - 'row "`/allow `` Add directly to allowlist (bypasses pending queue) You sourced the ID yourself" [ref=e37]':
+        - 'cell "`/allow ``" [ref=e38]':
+          - strong [ref=e39]: "`/allow ``"
+        - cell "Add directly to allowlist (bypasses pending queue)" [ref=e40]
+        - cell "You sourced the ID yourself" [ref=e41]
+      - row "/promo <code> (user side) User redeems FREETRIAL100 → gets Team/allowed access automatically Self-serve free trials" [ref=e42]:
+        - cell "/promo <code> (user side)" [ref=e43]:
+          - strong [ref=e44]:
+            - code [ref=e45]: /promo <code>
+          - text: (user side)
+        - cell "User redeems FREETRIAL100 → gets Team/allowed access automatically" [ref=e46]:
+          - text: User redeems
+          - code [ref=e47]: FREETRIAL100
+          - text: → gets Team/allowed access automatically
+        - cell "Self-serve free trials" [ref=e48]
+  - paragraph [ref=e49]:
+    - text: When you tap
+    - strong [ref=e50]: Allow
+    - text: "on a pending card, the bot:"
+  - list [ref=e51]:
+    - listitem [ref=e52]:
+      - text: moves them from
+      - code [ref=e53]: users:pending
+      - text: →
+      - code [ref=e54]: users:allowed
+    - listitem [ref=e55]: removes any trial flag
+    - listitem [ref=e56]: sends a welcome push if they weren't already allowed
+    - listitem [ref=e57]:
+      - text: logs
+      - code [ref=e58]: "[admin] pending action via postback { admin, action, targetId }"
+  - separator [ref=e59]
+  - heading "2. User-facing / slash commands" [level=2] [ref=e60]:
+    - text: 2. User-facing
+    - code [ref=e61]: /
+    - text: slash commands
+  - table [ref=e62]:
+    - rowgroup [ref=e63]:
+      - row "Command Who What it does" [ref=e64]:
+        - columnheader "Command" [ref=e65]
+        - columnheader "Who" [ref=e66]
+        - columnheader "What it does" [ref=e67]
+    - rowgroup [ref=e68]:
+      - row "/help anyone Help card and command list (also works as help)" [ref=e69]:
+        - cell "/help" [ref=e70]:
+          - code [ref=e71]: /help
+        - cell "anyone" [ref=e72]
+        - cell "Help card and command list (also works as help)" [ref=e73]:
+          - text: Help card and command list (also works as
+          - code [ref=e74]: help
+          - text: )
+      - row "/myid anyone Sends your LINE user ID as plain text" [ref=e75]:
+        - cell "/myid" [ref=e76]:
+          - code [ref=e77]: /myid
+        - cell "anyone" [ref=e78]
+        - cell "Sends your LINE user ID as plain text" [ref=e79]
+      - row "/settings allowed/trial/admin Opens settings menu" [ref=e80]:
+        - cell "/settings" [ref=e81]:
+          - code [ref=e82]: /settings
+        - cell "allowed/trial/admin" [ref=e83]
+        - cell "Opens settings menu" [ref=e84]
+      - 'row "/settings <section> allowed/trial/admin Jumps to section: briefing, tools, persona, memory, facts, locale" [ref=e85]':
+        - cell "/settings <section>" [ref=e86]:
+          - code [ref=e87]: /settings <section>
+        - cell "allowed/trial/admin" [ref=e88]
+        - 'cell "Jumps to section: briefing, tools, persona, memory, facts, locale" [ref=e89]':
+          - text: "Jumps to section:"
+          - code [ref=e90]: briefing
+          - text: ","
+          - code [ref=e91]: tools
+          - text: ","
+          - code [ref=e92]: persona
+          - text: ","
+          - code [ref=e93]: memory
+          - text: ","
+          - code [ref=e94]: facts
+          - text: ","
+          - code [ref=e95]: locale
+      - row "/settings:section:<section> allowed/trial/admin Postback-style section jump" [ref=e96]:
+        - cell "/settings:section:<section>" [ref=e97]:
+          - code [ref=e98]: /settings:section:<section>
+        - cell "allowed/trial/admin" [ref=e99]
+        - cell "Postback-style section jump" [ref=e100]
+      - row "/settings:<section>:set:<key>:<value> allowed/trial/admin Direct setting change, e.g. /settings:briefing:set:morningTime:07:30" [ref=e101]:
+        - cell "/settings:<section>:set:<key>:<value>" [ref=e102]:
+          - code [ref=e103]: /settings:<section>:set:<key>:<value>
+        - cell "allowed/trial/admin" [ref=e104]
+        - cell "Direct setting change, e.g. /settings:briefing:set:morningTime:07:30" [ref=e105]:
+          - text: Direct setting change, e.g.
+          - code [ref=e106]: /settings:briefing:set:morningTime:07:30
+      - row "/settings:toggle:<target>:off allowed/trial/admin Disable morning, evening, or checkin" [ref=e107]:
+        - cell "/settings:toggle:<target>:off" [ref=e108]:
+          - code [ref=e109]: /settings:toggle:<target>:off
+        - cell "allowed/trial/admin" [ref=e110]
+        - cell "Disable morning, evening, or checkin" [ref=e111]:
+          - text: Disable
+          - code [ref=e112]: morning
+          - text: ","
+          - code [ref=e113]: evening
+          - text: ", or"
+          - code [ref=e114]: checkin
+      - row "/settings:facts:del:<id> allowed/trial/admin Delete a saved fact" [ref=e115]:
+        - cell "/settings:facts:del:<id>" [ref=e116]:
+          - code [ref=e117]: /settings:facts:del:<id>
+        - cell "allowed/trial/admin" [ref=e118]
+        - cell "Delete a saved fact" [ref=e119]
+      - row "/set <key> <value> allowed/trial/admin Quick typed setting change" [ref=e120]:
+        - cell "/set <key> <value>" [ref=e121]:
+          - code [ref=e122]: /set <key> <value>
+        - cell "allowed/trial/admin" [ref=e123]
+        - cell "Quick typed setting change" [ref=e124]
+      - row "/remember <fact> allowed/trial/admin Save a fact to memory" [ref=e125]:
+        - cell "/remember <fact>" [ref=e126]:
+          - code [ref=e127]: /remember <fact>
+        - cell "allowed/trial/admin" [ref=e128]
+        - cell "Save a fact to memory" [ref=e129]
+      - row "/tutorial anyone Restart onboarding tutorial" [ref=e130]:
+        - cell "/tutorial" [ref=e131]:
+          - code [ref=e132]: /tutorial
+        - cell "anyone" [ref=e133]
+        - cell "Restart onboarding tutorial" [ref=e134]
+      - row "/promo <code> anyone Redeem a promo code" [ref=e135]:
+        - cell "/promo <code>" [ref=e136]:
+          - code [ref=e137]: /promo <code>
+        - cell "anyone" [ref=e138]
+        - cell "Redeem a promo code" [ref=e139]
+  - heading "/set keys and accepted values" [level=3] [ref=e140]:
+    - code [ref=e141]: /set
+    - text: keys and accepted values
+  - table [ref=e142]:
+    - rowgroup [ref=e143]:
+      - row "Key Aliases Value Example" [ref=e144]:
+        - columnheader "Key" [ref=e145]
+        - columnheader "Aliases" [ref=e146]
+        - columnheader "Value" [ref=e147]
+        - columnheader "Example" [ref=e148]
+    - rowgroup [ref=e149]:
+      - row "timezone tz IANA timezone /set timezone Asia/Tokyo" [ref=e150]:
+        - cell "timezone" [ref=e151]:
+          - code [ref=e152]: timezone
+        - cell "tz" [ref=e153]:
+          - code [ref=e154]: tz
+        - cell "IANA timezone" [ref=e155]
+        - cell "/set timezone Asia/Tokyo" [ref=e156]:
+          - code [ref=e157]: /set timezone Asia/Tokyo
+      - row "location loc free text /set location Bangkok" [ref=e158]:
+        - cell "location" [ref=e159]:
+          - code [ref=e160]: location
+        - cell "loc" [ref=e161]:
+          - code [ref=e162]: loc
+        - cell "free text" [ref=e163]
+        - cell "/set location Bangkok" [ref=e164]:
+          - code [ref=e165]: /set location Bangkok
+      - row "language lang en, th, auto /set language th" [ref=e166]:
+        - cell "language" [ref=e167]:
+          - code [ref=e168]: language
+        - cell "lang" [ref=e169]:
+          - code [ref=e170]: lang
+        - cell "en, th, auto" [ref=e171]:
+          - code [ref=e172]: en
+          - text: ","
+          - code [ref=e173]: th
+          - text: ","
+          - code [ref=e174]: auto
+        - cell "/set language th" [ref=e175]:
+          - code [ref=e176]: /set language th
+      - row "morning — HH:MM or off /set morning 07:30" [ref=e177]:
+        - cell "morning" [ref=e178]:
+          - code [ref=e179]: morning
+        - cell "—" [ref=e180]
+        - cell "HH:MM or off" [ref=e181]:
+          - code [ref=e182]: HH:MM
+          - text: or
+          - code [ref=e183]: "off"
+        - cell "/set morning 07:30" [ref=e184]:
+          - code [ref=e185]: /set morning 07:30
+      - row "evening — HH:MM or off /set evening 21:30" [ref=e186]:
+        - cell "evening" [ref=e187]:
+          - code [ref=e188]: evening
+        - cell "—" [ref=e189]
+        - cell "HH:MM or off" [ref=e190]:
+          - code [ref=e191]: HH:MM
+          - text: or
+          - code [ref=e192]: "off"
+        - cell "/set evening 21:30" [ref=e193]:
+          - code [ref=e194]: /set evening 21:30
+      - row "checkin — HH:MM or off /set checkin 18:00" [ref=e195]:
+        - cell "checkin" [ref=e196]:
+          - code [ref=e197]: checkin
+        - cell "—" [ref=e198]
+        - cell "HH:MM or off" [ref=e199]:
+          - code [ref=e200]: HH:MM
+          - text: or
+          - code [ref=e201]: "off"
+        - cell "/set checkin 18:00" [ref=e202]:
+          - code [ref=e203]: /set checkin 18:00
+      - row "compact compactat, memorycompactat integer 1–1000 /set compact 15" [ref=e204]:
+        - cell "compact" [ref=e205]:
+          - code [ref=e206]: compact
+        - cell "compactat, memorycompactat" [ref=e207]:
+          - code [ref=e208]: compactat
+          - text: ","
+          - code [ref=e209]: memorycompactat
+        - cell "integer 1–1000" [ref=e210]:
+          - text: integer
+          - code [ref=e211]: 1–1000
+        - cell "/set compact 15" [ref=e212]:
+          - code [ref=e213]: /set compact 15
+      - row "preferredname personapreferredname free text /set preferredname Jim" [ref=e214]:
+        - cell "preferredname" [ref=e215]:
+          - code [ref=e216]: preferredname
+        - cell "personapreferredname" [ref=e217]:
+          - code [ref=e218]: personapreferredname
+        - cell "free text" [ref=e219]
+        - cell "/set preferredname Jim" [ref=e220]:
+          - code [ref=e221]: /set preferredname Jim
+  - heading "Settings sections and the keys inside them" [level=3] [ref=e222]
+  - heading "briefing" [level=4] [ref=e223]:
+    - code [ref=e224]: briefing
+  - list [ref=e225]:
+    - listitem [ref=e226]:
+      - code [ref=e227]: morningBriefingTime
+      - text: —
+      - code [ref=e228]: HH:MM
+      - text: or
+      - code [ref=e229]: "null"
+    - listitem [ref=e230]:
+      - code [ref=e231]: eveningSummaryEnabled
+      - text: — boolean
+    - listitem [ref=e232]:
+      - code [ref=e233]: eveningSummaryTime
+      - text: —
+      - code [ref=e234]: HH:MM
+    - listitem [ref=e235]:
+      - code [ref=e236]: taskCheckInEnabled
+      - text: — boolean
+    - listitem [ref=e237]:
+      - code [ref=e238]: taskCheckInTime
+      - text: —
+      - code [ref=e239]: HH:MM
+      - text: or derived from evening −30 min
+    - listitem [ref=e240]:
+      - code [ref=e241]: inboxBriefingEnabled
+      - text: — boolean
+    - listitem [ref=e242]:
+      - code [ref=e243]: briefingTopics
+      - text: — object of topic IDs → boolean (stocks, wellness, politics, crime, sports, business, entertain)
+    - listitem [ref=e244]:
+      - code [ref=e245]: briefingLength
+      - text: —
+      - code [ref=e246]: "\"Headlines\""
+      - text: ","
+      - code [ref=e247]: "\"Bullets\""
+      - text: ","
+      - code [ref=e248]: "\"Full\""
+    - listitem [ref=e249]:
+      - code [ref=e250]: briefingLanguage
+      - text: —
+      - code [ref=e251]: "\"English\""
+      - text: ","
+      - code [ref=e252]: "\"ไทย\""
+      - text: ","
+      - code [ref=e253]: "\"EN + ไทย\""
+    - listitem [ref=e254]:
+      - code [ref=e255]: briefingChannels
+      - text: —
+      - code [ref=e256]: "{ line, email, push }"
+      - text: booleans
+  - heading "tools" [level=4] [ref=e257]:
+    - code [ref=e258]: tools
+  - list [ref=e259]:
+    - listitem [ref=e260]:
+      - code [ref=e261]: tools
+      - text: —
+      - code [ref=e262]: "{ todo, reminders, calendar, email, drive }"
+      - text: booleans
+    - listitem [ref=e263]:
+      - code [ref=e264]: disabledCategories
+      - text: — derived array; do not edit directly
+  - heading "persona" [level=4] [ref=e265]:
+    - code [ref=e266]: persona
+  - list [ref=e267]:
+    - listitem [ref=e268]:
+      - code [ref=e269]: personaTone
+      - text: —
+      - code [ref=e270]: "\"Warm\""
+      - text: ","
+      - code [ref=e271]: "\"Professional\""
+      - text: ","
+      - code [ref=e272]: "\"Playful\""
+    - listitem [ref=e273]:
+      - code [ref=e274]: personaAddressing
+      - text: —
+      - code [ref=e275]: "\"First name\""
+      - text: ","
+      - code [ref=e276]: "\"Khun\""
+      - text: ","
+      - code [ref=e277]: "\"Sir / Madam\""
+      - text: ","
+      - code [ref=e278]: "\"No address\""
+    - listitem [ref=e279]:
+      - code [ref=e280]: personaPrimaryLang
+      - text: —
+      - code [ref=e281]: "\"English\""
+      - text: ","
+      - code [ref=e282]: "\"Thai\""
+    - listitem [ref=e283]:
+      - code [ref=e284]: personaVoiceMatch
+      - text: — boolean
+    - listitem [ref=e285]:
+      - code [ref=e286]: personaPreferredName
+      - text: — string or null
+  - heading "memory" [level=4] [ref=e287]:
+    - code [ref=e288]: memory
+  - list [ref=e289]:
+    - listitem [ref=e290]:
+      - code [ref=e291]: memoryEnabled
+      - text: — boolean
+    - listitem [ref=e292]:
+      - code [ref=e293]: memoryCompactAt
+      - text: — integer, messages between compactions
+  - heading "locale" [level=4] [ref=e294]:
+    - code [ref=e295]: locale
+  - list [ref=e296]:
+    - listitem [ref=e297]:
+      - code [ref=e298]: timezone
+      - text: — IANA string
+    - listitem [ref=e299]:
+      - code [ref=e300]: location
+      - text: — free text
+    - listitem [ref=e301]:
+      - code [ref=e302]: language
+      - text: —
+      - code [ref=e303]: en
+      - text: ","
+      - code [ref=e304]: th
+      - text: ", or null (auto)"
+  - heading "facts" [level=4] [ref=e305]:
+    - code [ref=e306]: facts
+  - list [ref=e307]:
+    - listitem [ref=e308]:
+      - text: Displays saved facts with
+      - strong [ref=e309]: Delete
+      - text: buttons.
+    - listitem [ref=e310]:
+      - text: "Facts have:"
+      - code [ref=e311]: id
+      - text: (short hex),
+      - code [ref=e312]: category
+      - text: ","
+      - code [ref=e313]: content
+      - text: ","
+      - code [ref=e314]: createdAt
+      - text: ","
+      - code [ref=e315]: updatedAt
+      - text: ", optional"
+      - code [ref=e316]: confidence
+      - text: ", optional"
+      - code [ref=e317]: priority
+      - text: .
+    - listitem [ref=e318]:
+      - text: Default category when added via
+      - code [ref=e319]: /remember
+      - text: is
+      - code [ref=e320]: other
+      - text: .
+    - listitem [ref=e321]:
+      - text: "Categories used internally:"
+      - code [ref=e322]: preferences
+      - text: ","
+      - code [ref=e323]: people
+      - text: ","
+      - code [ref=e324]: habits
+      - text: ","
+      - code [ref=e325]: deadlines
+      - text: ","
+      - code [ref=e326]: context
+      - text: ","
+      - code [ref=e327]: health
+      - text: ","
+      - code [ref=e328]: work
+      - text: ","
+      - code [ref=e329]: other
+      - text: .
+  - separator [ref=e330]
+  - heading "3. Admin-only / slash commands" [level=2] [ref=e331]:
+    - text: 3. Admin-only
+    - code [ref=e332]: /
+    - text: slash commands
+  - table [ref=e333]:
+    - rowgroup [ref=e334]:
+      - row "Command Arguments What it does" [ref=e335]:
+        - columnheader "Command" [ref=e336]
+        - columnheader "Arguments" [ref=e337]
+        - columnheader "What it does" [ref=e338]
+    - rowgroup [ref=e339]:
+      - row "/allow <LINE_USER_ID> full LINE ID Adds to allowlist, removes trial" [ref=e340]:
+        - cell "/allow <LINE_USER_ID>" [ref=e341]:
+          - code [ref=e342]: /allow <LINE_USER_ID>
+        - cell "full LINE ID" [ref=e343]
+        - cell "Adds to allowlist, removes trial" [ref=e344]
+      - row "/remove <LINE_USER_ID> full LINE ID Removes from allowlist" [ref=e345]:
+        - cell "/remove <LINE_USER_ID>" [ref=e346]:
+          - code [ref=e347]: /remove <LINE_USER_ID>
+        - cell "full LINE ID" [ref=e348]
+        - cell "Removes from allowlist" [ref=e349]
+      - 'row "/users — Lists every known user with status tags: ADMIN, allowed, trial, team" [ref=e350]':
+        - cell "/users" [ref=e351]:
+          - code [ref=e352]: /users
+        - cell "—" [ref=e353]
+        - 'cell "Lists every known user with status tags: ADMIN, allowed, trial, team" [ref=e354]':
+          - text: "Lists every known user with status tags:"
+          - code [ref=e355]: ADMIN
+          - text: ","
+          - code [ref=e356]: allowed
+          - text: ","
+          - code [ref=e357]: trial
+          - text: ","
+          - code [ref=e358]: team
+      - row "/pending — Shows pending queue as Flex cards with Allow / Deny buttons" [ref=e359]:
+        - cell "/pending" [ref=e360]:
+          - code [ref=e361]: /pending
+        - cell "—" [ref=e362]
+        - cell "Shows pending queue as Flex cards with Allow / Deny buttons" [ref=e363]:
+          - text: Shows pending queue as Flex cards with
+          - strong [ref=e364]: Allow / Deny
+          - text: buttons
+      - row "/approve <LINE_USER_ID> full LINE ID Approve from pending + send welcome" [ref=e365]:
+        - cell "/approve <LINE_USER_ID>" [ref=e366]:
+          - code [ref=e367]: /approve <LINE_USER_ID>
+        - cell "full LINE ID" [ref=e368]
+        - cell "Approve from pending + send welcome" [ref=e369]
+      - row "/deny <LINE_USER_ID> full LINE ID Remove from pending queue" [ref=e370]:
+        - cell "/deny <LINE_USER_ID>" [ref=e371]:
+          - code [ref=e372]: /deny <LINE_USER_ID>
+        - cell "full LINE ID" [ref=e373]
+        - cell "Remove from pending queue" [ref=e374]
+      - row "/allowgroup <GROUP/ROOM_ID> C… or R… ID Allow a group/room" [ref=e375]:
+        - cell "/allowgroup <GROUP/ROOM_ID>" [ref=e376]:
+          - code [ref=e377]: /allowgroup <GROUP/ROOM_ID>
+        - cell "C… or R… ID" [ref=e378]:
+          - code [ref=e379]: C…
+          - text: or
+          - code [ref=e380]: R…
+          - text: ID
+        - cell "Allow a group/room" [ref=e381]
+      - row "/removegroup <GROUP/ROOM_ID> C… or R… ID Remove group/room from allowed list" [ref=e382]:
+        - cell "/removegroup <GROUP/ROOM_ID>" [ref=e383]:
+          - code [ref=e384]: /removegroup <GROUP/ROOM_ID>
+        - cell "C… or R… ID" [ref=e385]:
+          - code [ref=e386]: C…
+          - text: or
+          - code [ref=e387]: R…
+          - text: ID
+        - cell "Remove group/room from allowed list" [ref=e388]
+      - row "/groups — Shows allowed + discovered groups with Allow / Remove buttons" [ref=e389]:
+        - cell "/groups" [ref=e390]:
+          - code [ref=e391]: /groups
+        - cell "—" [ref=e392]
+        - cell "Shows allowed + discovered groups with Allow / Remove buttons" [ref=e393]:
+          - text: Shows allowed + discovered groups with
+          - strong [ref=e394]: Allow / Remove
+          - text: buttons
+      - row "/promo create <code> [allowed|team] [uses] [days] e.g. /promo create DEMO team 10 7 Creates a promo code" [ref=e395]:
+        - cell "/promo create <code> [allowed|team] [uses] [days]" [ref=e396]:
+          - code [ref=e397]: /promo create <code> [allowed|team] [uses] [days]
+        - cell "e.g. /promo create DEMO team 10 7" [ref=e398]:
+          - text: e.g.
+          - code [ref=e399]: /promo create DEMO team 10 7
+        - cell "Creates a promo code" [ref=e400]
+      - row "/promos — Lists all promo codes" [ref=e401]:
+        - cell "/promos" [ref=e402]:
+          - code [ref=e403]: /promos
+        - cell "—" [ref=e404]
+        - cell "Lists all promo codes" [ref=e405]
+      - row "/promo delete <code> code Deletes a promo code" [ref=e406]:
+        - cell "/promo delete <code>" [ref=e407]:
+          - code [ref=e408]: /promo delete <code>
+        - cell "code" [ref=e409]
+        - cell "Deletes a promo code" [ref=e410]
+      - 'row "/status <LINE_USER_ID> full LINE ID Full diagnostic: admin/allowed/trial/team, settings, locks, last activity" [ref=e411]':
+        - cell "/status <LINE_USER_ID>" [ref=e412]:
+          - code [ref=e413]: /status <LINE_USER_ID>
+        - cell "full LINE ID" [ref=e414]
+        - 'cell "Full diagnostic: admin/allowed/trial/team, settings, locks, last activity" [ref=e415]'
+      - row "/audit <LINE_USER_ID> [n] full LINE ID, optional count 1–100 Last n tool-call audit entries (default 5, max 100)" [ref=e416]:
+        - cell "/audit <LINE_USER_ID> [n]" [ref=e417]:
+          - code [ref=e418]: /audit <LINE_USER_ID> [n]
+        - cell "full LINE ID, optional count 1–100" [ref=e419]:
+          - text: full LINE ID, optional count
+          - code [ref=e420]: 1–100
+        - cell "Last n tool-call audit entries (default 5, max 100)" [ref=e421]:
+          - text: Last
+          - code [ref=e422]: "n"
+          - text: tool-call audit entries (default 5, max 100)
+      - row "/force-briefing <LINE_USER_ID> [morning|evening] full LINE ID, kind Manually push a briefing/summary" [ref=e423]:
+        - cell "/force-briefing <LINE_USER_ID> [morning|evening]" [ref=e424]:
+          - code [ref=e425]: /force-briefing <LINE_USER_ID> [morning|evening]
+        - cell "full LINE ID, kind" [ref=e426]
+        - cell "Manually push a briefing/summary" [ref=e427]
+  - heading "Why /users now shows more than just \"allowed\"" [level=3] [ref=e428]:
+    - text: Why
+    - code [ref=e429]: /users
+    - text: now shows more than just "allowed"
+  - paragraph [ref=e430]: "A user can be in several states at once:"
+  - list [ref=e431]:
+    - listitem [ref=e432]:
+      - strong [ref=e433]: ADMIN
+      - text: — in
+      - code [ref=e434]: ADMIN_LINE_USER_ID
+      - text: env var; bypasses all gates.
+    - listitem [ref=e435]:
+      - strong [ref=e436]: allowed
+      - text: — in
+      - code [ref=e437]: users:allowed
+      - text: Redis set.
+    - listitem [ref=e438]:
+      - strong [ref=e439]: trial
+      - text: — in
+      - code [ref=e440]: users:trial
+      - text: (e.g. started a free trial but hasn't redeemed a promo).
+    - listitem [ref=e441]:
+      - strong [ref=e442]: team
+      - text: — in
+      - code [ref=e443]: users:team
+      - text: (e.g. redeemed
+      - code [ref=e444]: FREETRIAL100
+      - text: or paid Team plan).
+  - paragraph [ref=e445]: "So you will now see lines like:"
+  - code [ref=e447]: James (U9b7…) [ADMIN] Keno (U4e1…) [allowed] dang (Ue00…) [trial] SKY~💕 (U898…) [trial] Pol (U7c4…) [ADMIN] pang (Ub81…) [allowed]
+  - paragraph [ref=e448]:
+    - text: This is why Keno and Pang show
+    - code [ref=e449]: allowed
+    - text: — they explicitly used
+    - code [ref=e450]: /promo FREETRIAL100
+    - text: ", which writes them into"
+    - code [ref=e451]: users:allowed
+    - text: (or
+    - code [ref=e452]: users:team
+    - text: depending on the code grant). James and Pol are
+    - code [ref=e453]: ADMIN
+    - text: . Dang and Sky are on free trial (
+    - code [ref=e454]: trial
+    - text: ).
+  - separator [ref=e455]
+  - heading "4. Group management" [level=2] [ref=e456]
+  - heading "How the bot knows about groups" [level=3] [ref=e457]
+  - list [ref=e458]:
+    - listitem [ref=e459]:
+      - text: When the bot is
+      - strong [ref=e460]: added to any group or room
+      - text: ", it stores the ID in"
+      - code [ref=e461]: groups:discovered
+      - text: .
+    - listitem [ref=e462]:
+      - text: If the inviter is an
+      - strong [ref=e463]: admin
+      - text: ", the group is automatically added to"
+      - code [ref=e464]: groups:allowed
+      - text: .
+    - listitem [ref=e465]:
+      - text: If the inviter is
+      - strong [ref=e466]: not an admin
+      - text: ", the group sees the Team paywall, and every admin gets a push notification with"
+      - strong [ref=e467]: Allow / Ignore
+      - text: buttons.
+    - listitem [ref=e468]:
+      - text: When the bot leaves or is removed, the group is removed from
+      - code [ref=e469]: groups:allowed
+      - text: and
+      - code [ref=e470]: groups:discovered
+      - text: .
+  - heading "How to allow a group for free" [level=3] [ref=e471]
+  - table [ref=e472]:
+    - rowgroup [ref=e473]:
+      - row "Method Steps" [ref=e474]:
+        - columnheader "Method" [ref=e475]
+        - columnheader "Steps" [ref=e476]
+    - rowgroup [ref=e477]:
+      - row "Tap the admin notification When a non-admin adds the bot, admins get a Flex card. Tap ✓ Allow." [ref=e478]:
+        - cell "Tap the admin notification" [ref=e479]:
+          - strong [ref=e480]: Tap the admin notification
+        - cell "When a non-admin adds the bot, admins get a Flex card. Tap ✓ Allow." [ref=e481]:
+          - text: When a non-admin adds the bot, admins get a Flex card. Tap
+          - strong [ref=e482]: ✓ Allow
+          - text: .
+      - row "/groups Type /groups → see discovered groups → tap ✓ Allow." [ref=e483]:
+        - cell "/groups" [ref=e484]:
+          - strong [ref=e485]:
+            - code [ref=e486]: /groups
+        - cell "Type /groups → see discovered groups → tap ✓ Allow." [ref=e487]:
+          - text: Type
+          - code [ref=e488]: /groups
+          - text: → see discovered groups → tap
+          - strong [ref=e489]: ✓ Allow
+          - text: .
+      - 'row "`/allowgroup `` Type the exact group/room ID." [ref=e490]':
+        - 'cell "`/allowgroup ``" [ref=e491]':
+          - strong [ref=e492]: "`/allowgroup ``"
+        - cell "Type the exact group/room ID." [ref=e493]
+      - row "Add to ADMIN_GROUP_IDS Vercel env var; permanent, survives restarts." [ref=e494]:
+        - cell "Add to ADMIN_GROUP_IDS" [ref=e495]:
+          - strong [ref=e496]:
+            - text: Add to
+            - code [ref=e497]: ADMIN_GROUP_IDS
+        - cell "Vercel env var; permanent, survives restarts." [ref=e498]
+  - heading "How users talk to the bot in a group" [level=3] [ref=e499]
+  - paragraph [ref=e500]:
+    - text: LINE does
+    - strong [ref=e501]: not
+    - text: show bots in the group
+    - code [ref=e502]: "@"
+    - text: "autocomplete, so members cannot pick Lekha from the mention picker. They can still invoke the bot with:"
+  - list [ref=e503]:
+    - listitem [ref=e504]:
+      - strong [ref=e505]:
+        - code [ref=e506]: "@Lekha"
+        - text: typed manually
+      - text: at the start of a message (case-insensitive).
+    - listitem [ref=e507]:
+      - strong [ref=e508]: The name at the start
+      - text: — e.g.
+      - code [ref=e509]: Lekha, what's the weather?
+      - text: .
+    - listitem [ref=e510]:
+      - strong [ref=e511]: A reply to any of the bot's messages
+      - text: — swipe/right-click the bot's message and hit reply; the bot treats that as a direct invocation, no
+      - code [ref=e512]: "@"
+      - text: needed.
+  - blockquote [ref=e513]:
+    - paragraph [ref=e514]:
+      - text: "Tip: the bot's join message already tells members they can mention"
+      - code [ref=e515]: "@Lekha"
+      - text: or reply to its messages.
+  - heading "/groups output" [level=3] [ref=e516]:
+    - code [ref=e517]: /groups
+    - text: output
+  - list [ref=e518]:
+    - listitem [ref=e519]:
+      - strong [ref=e520]: ✅ Allowed groups
+      - text: — already authorised (
+      - code [ref=e521]: groups:allowed
+      - text: +
+      - code [ref=e522]: ADMIN_GROUP_IDS
+      - text: ).
+    - listitem [ref=e523]:
+      - strong [ref=e524]: ⏳ Discovered, not allowed
+      - text: — bot is in the group but it cannot respond yet. Tap
+      - strong [ref=e525]: Allow
+      - text: to activate.
+    - listitem [ref=e526]: Each card shows the full group/room ID and a short prefix, plus an action button.
+  - separator [ref=e527]
+  - heading "5. Promo codes" [level=2] [ref=e528]
+  - paragraph [ref=e529]:
+    - text: Promo codes live in Redis at
+    - code [ref=e530]: promo:<CODE>
+    - text: .
+  - table [ref=e531]:
+    - rowgroup [ref=e532]:
+      - row "Field Meaning" [ref=e533]:
+        - columnheader "Field" [ref=e534]
+        - columnheader "Meaning" [ref=e535]
+    - rowgroup [ref=e536]:
+      - row "grant \"allowed\" (personal access) or \"team\" (Team access)" [ref=e537]:
+        - cell "grant" [ref=e538]:
+          - code [ref=e539]: grant
+        - cell "\"allowed\" (personal access) or \"team\" (Team access)" [ref=e540]:
+          - code [ref=e541]: "\"allowed\""
+          - text: (personal access) or
+          - code [ref=e542]: "\"team\""
+          - text: (Team access)
+      - row "usesLeft how many redemptions remain" [ref=e543]:
+        - cell "usesLeft" [ref=e544]:
+          - code [ref=e545]: usesLeft
+        - cell "how many redemptions remain" [ref=e546]
+      - row "expiresAt epoch ms expiration" [ref=e547]:
+        - cell "expiresAt" [ref=e548]:
+          - code [ref=e549]: expiresAt
+        - cell "epoch ms expiration" [ref=e550]
+      - row "createdBy admin LINE ID" [ref=e551]:
+        - cell "createdBy" [ref=e552]:
+          - code [ref=e553]: createdBy
+        - cell "admin LINE ID" [ref=e554]
+      - row "usedBy set of user IDs who already redeemed" [ref=e555]:
+        - cell "usedBy" [ref=e556]:
+          - code [ref=e557]: usedBy
+        - cell "set of user IDs who already redeemed" [ref=e558]
+  - paragraph [ref=e559]:
+    - code [ref=e560]: /promo FREETRIAL100
+    - text: "is the current self-serve code. When a user redeems, the bot logs:"
+  - code [ref=e562]: "[promo] redeem attempt { userId, code, ok, grant, error }"
+  - separator [ref=e563]
+  - heading "6. Audit & status" [level=2] [ref=e564]
+  - heading "/audit <id> [n]" [level=3] [ref=e565]:
+    - code [ref=e566]: /audit <id> [n]
+  - list [ref=e567]:
+    - listitem [ref=e568]:
+      - text: Shows the last
+      - code [ref=e569]: "n"
+      - text: turns for a user (default 5, max
+      - strong [ref=e570]: "100"
+      - text: ).
+    - listitem [ref=e571]: "Each entry includes: timestamp, hint, user message, every tool call (input/output), errors, and the final reply."
+    - listitem [ref=e572]: Use this to trace exactly what the bot did and why.
+  - heading "/status <id>" [level=3] [ref=e573]:
+    - code [ref=e574]: /status <id>
+  - list [ref=e575]:
+    - listitem [ref=e576]: Admin / allowed / trial / team flags
+    - listitem [ref=e577]: Timezone, morning/evening/check-in times
+    - listitem [ref=e578]: Whether LINE pushes are enabled
+    - listitem [ref=e579]: Last briefing/summary timestamps
+    - listitem [ref=e580]: Today's push locks
+    - listitem [ref=e581]: Last activity relative time
+  - separator [ref=e582]
+  - 'heading "7. Push vs reply: when the bot uses each" [level=2] [ref=e583]'
+  - table [ref=e584]:
+    - rowgroup [ref=e585]:
+      - row "Scenario Method Counts against push quota?" [ref=e586]:
+        - columnheader "Scenario" [ref=e587]
+        - columnheader "Method" [ref=e588]
+        - columnheader "Counts against push quota?" [ref=e589]
+    - rowgroup [ref=e590]:
+      - row "Answering a message you just sent reply (uses replyToken) No" [ref=e591]:
+        - cell "Answering a message you just sent" [ref=e592]
+        - cell "reply (uses replyToken)" [ref=e593]:
+          - strong [ref=e594]: reply
+          - text: (uses replyToken)
+        - cell "No" [ref=e595]
+      - row "Proactive briefings, reminders, alerts push Yes" [ref=e596]:
+        - cell "Proactive briefings, reminders, alerts" [ref=e597]
+        - cell "push" [ref=e598]:
+          - strong [ref=e599]: push
+        - cell "Yes" [ref=e600]
+      - row "Admin notifications for new groups push Yes" [ref=e601]:
+        - cell "Admin notifications for new groups" [ref=e602]
+        - cell "push" [ref=e603]:
+          - strong [ref=e604]: push
+        - cell "Yes" [ref=e605]
+      - row "Welcome message after /approve push Yes" [ref=e606]:
+        - cell "Welcome message after /approve" [ref=e607]:
+          - text: Welcome message after
+          - code [ref=e608]: /approve
+        - cell "push" [ref=e609]:
+          - strong [ref=e610]: push
+        - cell "Yes" [ref=e611]
+      - row "/myid reply No" [ref=e612]:
+        - cell "/myid" [ref=e613]:
+          - code [ref=e614]: /myid
+        - cell "reply" [ref=e615]:
+          - strong [ref=e616]: reply
+        - cell "No" [ref=e617]
+      - row "/pending, /users, /groups reply No" [ref=e618]:
+        - cell "/pending, /users, /groups" [ref=e619]:
+          - code [ref=e620]: /pending
+          - text: ","
+          - code [ref=e621]: /users
+          - text: ","
+          - code [ref=e622]: /groups
+        - cell "reply" [ref=e623]:
+          - strong [ref=e624]: reply
+        - cell "No" [ref=e625]
+  - paragraph [ref=e626]: We prefer replies whenever there is a reply token, to save push quota.
+  - separator [ref=e627]
+  - heading "8. Fact storage deep reference" [level=2] [ref=e628]
+  - paragraph [ref=e629]:
+    - text: Facts are stored per user at
+    - code [ref=e630]: "user:{userId}:facts:v2"
+    - text: .
+  - heading "Fact shape" [level=3] [ref=e631]
+  - code [ref=e633]: "{ id: string; // short hex, e.g. \"a1b2c3d4e5f6\" category: \"preferences\" | \"people\" | \"habits\" | \"deadlines\" | \"context\" | \"health\" | \"work\" | \"other\"; content: string; // max 1000 chars createdAt: number; updatedAt: number; confidence?: number; // optional 0–1 priority?: number; // optional; higher = shown first in prompt }"
+  - heading "How facts are added" [level=3] [ref=e634]
+  - list [ref=e635]:
+    - listitem [ref=e636]:
+      - code [ref=e637]: /remember <fact>
+      - text: → category
+      - code [ref=e638]: other
+    - listitem [ref=e639]:
+      - text: Background extraction after every
+      - code [ref=e640]: memoryCompactAt
+      - text: turns → categorized automatically
+    - listitem [ref=e641]:
+      - text: Document / image analysis can create facts with higher
+      - code [ref=e642]: priority
+  - heading "How facts are removed" [level=3] [ref=e643]
+  - list [ref=e644]:
+    - listitem [ref=e645]:
+      - text: Settings →
+      - strong [ref=e646]: Facts
+      - text: section → tap
+      - strong [ref=e647]: Delete
+      - text: on a fact card (
+      - code [ref=e648]: /settings:facts:del:<id>
+      - text: )
+    - listitem [ref=e649]: There is no bulk-delete command by design
+  - separator [ref=e650]
+  - heading "9. Changelog / future additions" [level=2] [ref=e651]
+  - paragraph [ref=e652]: Use this section as a running log. Add a bullet every time the manual is updated.
+  - list [ref=e653]:
+    - listitem [ref=e654]:
+      - strong [ref=e655]: 2026-07-07
+      - text: — Converted
+      - code [ref=e656]: =
+      - text: commands to
+      - code [ref=e657]: /
+      - text: commands; added
+      - code [ref=e658]: /myid
+      - text: plain-text reply; added group discovery and admin
+      - code [ref=e659]: /groups
+      - text: Flex cards; increased
+      - code [ref=e660]: /audit
+      - text: max to 100; improved
+      - code [ref=e661]: /users
+      - text: status logging; created this manual.
+  - separator [ref=e662]
+  - heading "10. Quick admin cheat sheet" [level=2] [ref=e663]
+  - code [ref=e665]: /users → see everyone and their tags /pending → approve/deny with buttons /allow <id> → add someone directly /approve <id> → approve from pending + welcome /groups → see/allow discovered groups /allowgroup <id> → allow a group by ID /promos → list promo codes /promo create X team 50 30 /status <id> → full user diagnostic /audit <id> 20 → last 20 turns /force-briefing <id> morning

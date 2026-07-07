@@ -6,10 +6,10 @@ import { appendTurn, loadHistory, turnCounter, historyForPrompt } from "@/lib/me
 import { loadFacts } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
 import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
-import { runAgent } from "@/lib/llm/agent";
+import { runMastraAgent } from "@/mastra/run";
 import { generateText } from "ai";
 import { chatModel, extractorModel, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
-import { toolsForUser } from "@/lib/tools";
+
 import { fastClassify } from "@/lib/fast-classify";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { buildSystemPrompt } from "@/lib/llm/prompts";
@@ -284,31 +284,30 @@ export async function POST(req: NextRequest) {
   }
 
   const endPreload = span("dev:preload", traceId);
-  const [historyMsgs, facts, profile, settings] = await Promise.all([
-    historyForPrompt(userId),
+  const [facts, profile, settings] = await Promise.all([
     loadFacts(userId),
     getOrCreateProfile(userId),
     getSettings(userId),
   ]);
-  endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
+  endPreload({ facts: facts.facts.length });
 
-  const messages: ModelMessage[] = [
-    ...historyMsgs,
-    { role: "user", content: text },
-  ];
+  const messages: ModelMessage[] = [{ role: "user", content: text }];
 
   const staged = await listRecentMedia(userId);
   const hasStagedMedia = staged.length > 0;
   const accounts = await listAccounts(userId);
-  const userHasGoogle = accounts.accounts.length > 0;
   const hint = fastClassify(text, { hasStagedMedia });
-  const tools = await toolsForUser(userId, {
-    userHasGoogle,
-    disabledCategories: settings.disabledCategories,
+  const result = await runMastraAgent(messages, {
+    userId,
+    profile,
+    facts,
+    accounts,
+    staged,
     hasStagedMedia,
+    settings,
     hint,
+    traceId,
   });
-  const result = await runAgent(userId, profile, facts, messages, traceId, { tools, hasStagedMedia });
   const replyText = result.text;
   const hints = result.hints;
 

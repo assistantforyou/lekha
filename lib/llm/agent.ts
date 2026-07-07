@@ -36,7 +36,7 @@ import { appendAuditEntry, type AuditToolCall } from "@/lib/memory/audit-log";
  * memory/email/calendar queries benefit from fuller context.
  * undefined hint (ambiguous/multi-topic) gets a moderate default.
  */
-function factLimitForHint(hint: string | undefined): number {
+export function factLimitForHint(hint: string | undefined): number {
   if (!hint) return 20;
   switch (hint) {
     // Stateless lookups — only inject location/context facts (top 5)
@@ -78,7 +78,7 @@ export function extractToolValue(output: unknown): unknown {
 }
 
 /** Full tool call + result pairs (name/input/output/ok) for the compliance audit log. */
-function flattenToolCallsForAudit(steps: {
+export function flattenToolCallsForAudit(steps: {
   toolCalls: { toolName: string; input: unknown }[];
   toolResults: { output?: unknown }[];
 }[]): AuditToolCall[] {
@@ -96,7 +96,7 @@ function flattenToolCallsForAudit(steps: {
   return out;
 }
 
-function classifyResultType(val: unknown): string {
+export function classifyResultType(val: unknown): string {
   if (val && typeof val === "object") {
     const v = val as Record<string, unknown>;
     if (v.ok === false) return "error";
@@ -108,7 +108,7 @@ function classifyResultType(val: unknown): string {
 }
 
 /** Tracks step timing, tool calls, and successful tool results across agent steps. */
-function createStepTracker(traceId: string | undefined) {
+export function createStepTracker(traceId: string | undefined) {
   const stepTimes: number[] = [];
   const allCalls: { toolName: string; input: unknown }[] = [];
   const successfulCalls: { toolName: string; input: unknown }[] = [];
@@ -257,7 +257,7 @@ export function processResult(
 }
 
 
-function formatProcessed(processed: ProcessedResult, language?: string | null): string {
+export function formatProcessed(processed: ProcessedResult, language?: string | null): string {
   if (processed.authNeeded) {
     const isReauth = processed.authNeeded.reason.includes("scopes") || processed.authNeeded.reason.includes("reconnect") || processed.authNeeded.reason.includes("no longer valid");
     const intro = isReauth ? t(language, "connectGoogleReauth") : t(language, "connectGoogleNeeded");
@@ -675,7 +675,7 @@ export function looksLikeTaskList(text: string): boolean {
   return false;
 }
 
-async function fallbackListMemories(userId: string, _displayName: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+export async function fallbackListMemories(userId: string, _displayName: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const f = await loadFacts(userId);
   const ordered = displayOrder(f.facts);
   const items: FactsListItem[] = ordered.map((fact) => ({
@@ -707,7 +707,7 @@ export function looksLikeFinance(text: string): { type: "crypto"; coin: string }
   return null;
 }
 
-async function fallbackFinance(query: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+export async function fallbackFinance(query: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const finInfo = looksLikeFinance(query);
   if (!finInfo || finInfo.type !== "crypto") return { text: "I couldn't look that up right now.", toolCalls: [] };
   const coin = finInfo.coin;
@@ -729,22 +729,22 @@ async function fallbackFinance(query: string): Promise<{ text: string; flexMessa
   }
 }
 
-function looksLikeMediaQuery(text: string): boolean {
+export function looksLikeMediaQuery(text: string): boolean {
   return /\b(read|summarize|analyze|ocr|tell\s+me\s+about|what('s|s|\s+is)|extract)\s+(this|that|it|the\s+(file|pdf|doc|document|image|photo|picture))\b/i.test(text);
 }
 
-function looksLikeNewsQuery(text: string): boolean {
+export function looksLikeNewsQuery(text: string): boolean {
   return /\b(news|headlines?|breaking|latest\s+news|current events|what'?s happening|top\s+news|news\s+today|today'?s\s+news)\b/i.test(text);
 }
 
-function looksLikeHelpQuery(text: string): boolean {
+export function looksLikeHelpQuery(text: string): boolean {
   const lower = text.toLowerCase().trim();
   return /^\/?(help|start)$/.test(lower) || /\bwhat\s+can\s+you\s+do\b/i.test(lower) || /\bwhat\s+are\s+your\s+(feature|capabilities|function)/i.test(lower);
 }
 
 // Catch-all: does this look like a factual or research question worth searching?
 // Excludes casual chat, single-word utterances, and pure commands.
-function looksLikeFactualQuery(text: string): boolean {
+export function looksLikeFactualQuery(text: string): boolean {
   const t = text.trim();
   // Too short to be a real question
   if (t.length < 8) return false;
@@ -757,7 +757,7 @@ function looksLikeFactualQuery(text: string): boolean {
   );
 }
 
-async function fallbackWeather(
+export async function fallbackWeather(
   query: string,
   _timezone = "Asia/Bangkok",
   language?: string | null,
@@ -781,7 +781,7 @@ async function fallbackWeather(
   }
 }
 
-async function fallbackNewsSearch(
+export async function fallbackNewsSearch(
   query: string,
   language?: string | null,
 ): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
@@ -803,7 +803,7 @@ async function fallbackNewsSearch(
   }
 }
 
-async function fallbackSummarizeDocument(
+export async function fallbackSummarizeDocument(
   userId: string,
   displayName: string,
   question: string,
@@ -827,7 +827,7 @@ async function fallbackSummarizeDocument(
   }
 }
 
-async function fallbackWebSearch(
+export async function fallbackWebSearch(
   query: string,
   language?: string | null,
 ): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
@@ -853,7 +853,7 @@ async function fallbackWebSearch(
   }
 }
 
-async function fallbackListTasks(
+export async function fallbackListTasks(
   userId: string,
   _displayName: string,
   timezone = "Asia/Bangkok",
@@ -877,7 +877,7 @@ async function fallbackListTasks(
   };
 }
 
-function getLastUserText(messages: ModelMessage[]): string {
+export function getLastUserText(messages: ModelMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
     if (m?.role !== "user") continue;
@@ -898,7 +898,7 @@ function getLastUserText(messages: ModelMessage[]): string {
   return "";
 }
 
-async function handleAgentError(err: unknown, userId: string, language?: string | null, traceId?: string): Promise<string> {
+export async function handleAgentError(err: unknown, userId: string, language?: string | null, traceId?: string): Promise<string> {
   try {
     const authErr = unwrapAuthRequired(err);
     if (authErr) {

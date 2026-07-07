@@ -1,7 +1,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { env } from "@/lib/env";
 
-function googleClient() {
+export function googleClient() {
   const e = env();
   const apiKey = e.GEMINI_API_KEY ?? e.AI_GATEWAY_API_KEY;
   if (!apiKey) {
