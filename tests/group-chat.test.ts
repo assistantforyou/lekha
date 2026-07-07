@@ -289,9 +289,11 @@ describe("group chat support", () => {
     const r = await handleMemberJoined(event as MemberJoinedEvent, gate);
     expect(r).toBe(true);
     expect(await isGroupAllowed(groupId)).toBe(false);
-    expect(sent.length).toBe(1);
-    const msg = JSON.stringify(sent[0]!.messages[0]);
-    expect(msg).toContain("Team");
+    // Group gets the paywall; admins also get a notification with allow/ignore buttons.
+    expect(sent.length).toBe(2);
+    const groupMsg = sent.find((s) => s.to === groupId);
+    expect(groupMsg).toBeDefined();
+    expect(JSON.stringify(groupMsg!.messages[0])).toContain("Team");
   });
 
   it("removes group access on leave", async () => {

@@ -321,7 +321,7 @@ async function handleEvent(
       endEvent({ type: "myid" });
       return true;
     }
-    if (await handleAdminCommand(userId, gate.isAdmin(userId), userText, event.replyToken)) {
+    if (await handleAdminCommand(userId, gate, userText, event.replyToken)) {
       endEvent({ type: "admin" });
       return true;
     }

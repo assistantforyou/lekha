@@ -4,6 +4,7 @@ import type { Gate } from "@/lib/gate";
 
 const TEAM_KEY = "users:team";
 const ALLOWED_GROUPS_KEY = "groups:allowed";
+const DISCOVERED_GROUPS_KEY = "groups:discovered";
 
 export async function isTeamMember(userId: string): Promise<boolean> {
   return (await redis().sismember(TEAM_KEY, userId)) === 1;
@@ -38,6 +39,18 @@ export async function listAllowedGroups(): Promise<string[]> {
   return redis().smembers(ALLOWED_GROUPS_KEY);
 }
 
+export async function registerDiscoveredGroup(groupId: string): Promise<void> {
+  await redis().sadd(DISCOVERED_GROUPS_KEY, groupId);
+}
+
+export async function listDiscoveredGroups(): Promise<string[]> {
+  return redis().smembers(DISCOVERED_GROUPS_KEY);
+}
+
+export async function removeDiscoveredGroup(groupId: string): Promise<void> {
+  await redis().srem(DISCOVERED_GROUPS_KEY, groupId);
+}
+
 export function getAdminGroupIds(): Set<string> {
   return new Set(
     (env().ADMIN_GROUP_IDS ?? "")
@@ -45,6 +58,13 @@ export function getAdminGroupIds(): Set<string> {
       .map((s) => s.trim())
       .filter(Boolean),
   );
+}
+
+export function getAdminUserIds(): string[] {
+  return (env().ADMIN_LINE_USER_ID ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export type GroupAccessCheck = {

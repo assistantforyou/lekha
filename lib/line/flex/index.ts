@@ -11,6 +11,8 @@ export { taskCheckinFlex, type CheckInRow } from "./task-checkin";
 export { pendingUsersFlex, type PendingUserRow } from "./pending-users";
 export { helpFlex, curatedDemoAnswer, HELP_CATEGORIES, type HelpCategory } from "./help";
 export { factsListFlex, type FactsListItem } from "./facts-list";
+export { myIdFlex } from "./my-id";
+export { groupsListFlex } from "./groups-list";
 
 /**
  * Parse a LINE postback `data` payload. Convention:

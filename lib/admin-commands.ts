@@ -14,11 +14,26 @@ import { listAllUsers } from "@/lib/memory/user-registry";
 import { removeFromTrial, isOnTrial } from "@/lib/trial";
 import { redis } from "@/lib/memory/redis";
 import { listAuditLog, type AuditEntry } from "@/lib/memory/audit-log";
-import { addAllowedGroup, removeAllowedGroup, listAllowedGroups } from "@/lib/group-access";
+import {
+  addAllowedGroup,
+  removeAllowedGroup,
+  listAllowedGroups,
+  listDiscoveredGroups,
+  isTeamMember,
+  getAdminGroupIds,
+} from "@/lib/group-access";
 import { createPromoCode, listPromoCodes, deletePromoCode } from "@/lib/promo-codes";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
 import { buildEveningSummary } from "@/lib/llm/evening-summary";
-import { briefingFlex, newsFlex, gmailResultsFlex, pendingUsersFlex } from "@/lib/line/flex";
+import {
+  briefingFlex,
+  newsFlex,
+  gmailResultsFlex,
+  pendingUsersFlex,
+  groupsListFlex,
+  myIdFlex,
+} from "@/lib/line/flex";
+import type { Gate } from "@/lib/gate";
 import type { LineMessage } from "@/lib/line/client";
 
 /** LINE user ids are `U` + 32 lowercase hex chars. Tighter than `U\w+`. */
@@ -30,46 +45,64 @@ const LINE_ID_RE = /U[a-f0-9]{32}/i;
  */
 export async function handleAdminCommand(
   userId: string,
-  isAdmin: boolean,
+  gate: Gate,
   userText: string,
   replyToken: string,
 ): Promise<boolean> {
-  if (!isAdmin) return false;
+  if (!gate.isAdmin(userId)) return false;
 
   const addMatch = userText.match(new RegExp(`^/allow\\s+(${LINE_ID_RE.source})$`, "i"));
   if (addMatch) {
     const target = addMatch[1]!;
     await addToAllowlist(target);
     await removeFromTrial(target).catch(() => {});
+    console.warn("[admin] /allow", { admin: userId, target });
     await replyOrPush(userId, replyToken, [textMsg(`✅ Added ${target} to the allowlist.`)]);
     return true;
   }
 
   const remMatch = userText.match(new RegExp(`^/remove\\s+(${LINE_ID_RE.source})$`, "i"));
   if (remMatch) {
-    await removeFromAllowlist(remMatch[1]!);
-    await replyOrPush(userId, replyToken, [textMsg(`🗑 Removed ${remMatch[1]} from the allowlist.`)]);
+    const target = remMatch[1]!;
+    await removeFromAllowlist(target);
+    console.warn("[admin] /remove", { admin: userId, target });
+    await replyOrPush(userId, replyToken, [textMsg(`🗑 Removed ${target} from the allowlist.`)]);
     return true;
   }
 
   if (/^\/users$/i.test(userText)) {
-    const list = await listAllowed();
+    const list = await listAllUsers();
     if (!list.length) {
-      await replyOrPush(userId, replyToken, [textMsg("Allowed users (0):\n\n(nobody yet)")]);
+      await replyOrPush(userId, replyToken, [textMsg("Known users (0):\n\n(nobody yet)")]);
+      console.warn("[admin] /users listed 0 users", { admin: userId });
       return true;
     }
     const entries = await Promise.all(
       list.map(async (id) => {
-        const p = await getProfile(id).catch(() => null);
-        return p?.displayName ? `${p.displayName} (${id})` : id;
+        const [p, allowed, onTrial, team] = await Promise.all([
+          getProfile(id).catch(() => null),
+          isAllowed(id),
+          isOnTrial(id),
+          isTeamMember(id),
+        ]);
+        const tags: string[] = [];
+        if (gate.isAdmin(id)) tags.push("ADMIN");
+        if (allowed) tags.push("allowed");
+        if (onTrial) tags.push("trial");
+        if (team) tags.push("team");
+        const tagStr = tags.length ? ` [${tags.join(", ")}]` : "";
+        const display = p?.displayName ? `${p.displayName} (${id})` : id;
+        return `${display}${tagStr}`;
       }),
     );
-    await replyOrPush(userId, replyToken, [textMsg(`Allowed users (${list.length}):\n\n${entries.join("\n")}`)]);
+    console.warn("[admin] /users listed users", { admin: userId, count: list.length });
+    await replyOrPush(userId, replyToken, [textMsg(`Known users (${list.length}):\n\n${entries.join("\n")}`)]);
     return true;
   }
 
   if (/^\/pending$/i.test(userText)) {
     const list = await listPending();
+    console.warn("[admin] /pending", { admin: userId, count: list.length });
     if (!list.length) {
       await replyOrPush(userId, replyToken, [textMsg("Pending queue is empty.")]);
       return true;
@@ -93,6 +126,7 @@ export async function handleAdminCommand(
     const wasPending = await approvePending(target);
     await removeFromTrial(target).catch(() => {});
     const name = (await getProfile(target).catch(() => null))?.displayName ?? "";
+    console.warn("[admin] /approve", { admin: userId, target, wasPending, alreadyAllowed });
     await replyOrPush(userId, replyToken, [
       textMsg(wasPending ? `✅ Approved ${name ? `${name} ` : ""}${target}. Welcome message sent.` : `⚠️ ${target} was not in the pending queue, but is now allowed.`),
     ]);
@@ -108,6 +142,7 @@ export async function handleAdminCommand(
   if (denyMatch) {
     const target = denyMatch[1]!;
     const wasPending = await denyPending(target);
+    console.warn("[admin] /deny", { admin: userId, target, wasPending });
     await replyOrPush(userId, replyToken, [
       textMsg(wasPending ? `🗑 Removed ${target} from the pending queue.` : `⚠️ ${target} was not in the pending queue.`),
     ]);
@@ -118,6 +153,7 @@ export async function handleAdminCommand(
   if (allowGroupMatch) {
     const groupId = allowGroupMatch[1]!;
     await addAllowedGroup(groupId);
+    console.warn("[admin] /allowgroup", { admin: userId, groupId });
     await replyOrPush(userId, replyToken, [textMsg(`✅ Added ${groupId} to allowed groups.`)])
     return true;
   }
@@ -126,13 +162,22 @@ export async function handleAdminCommand(
   if (removeGroupMatch) {
     const groupId = removeGroupMatch[1]!;
     await removeAllowedGroup(groupId);
+    console.warn("[admin] /removegroup", { admin: userId, groupId });
     await replyOrPush(userId, replyToken, [textMsg(`🗑 Removed ${groupId} from allowed groups.`)])
     return true;
   }
 
   if (/^\/groups$/i.test(userText)) {
-    const groups = await listAllowedGroups();
-    await replyOrPush(userId, replyToken, [textMsg(groups.length ? `Allowed groups (${groups.length}):\n\n${groups.join("\n")}` : "Allowed groups (0):\n\n(none yet)")]);
+    const [allowed, discovered] = await Promise.all([listAllowedGroups(), listDiscoveredGroups()]);
+    const adminGroupIds = getAdminGroupIds();
+    const allIds = Array.from(new Set([...adminGroupIds, ...allowed, ...discovered]));
+    const rows = allIds.map((groupId) => ({
+      groupId,
+      allowed: allowed.includes(groupId) || adminGroupIds.has(groupId),
+      admin: adminGroupIds.has(groupId),
+    }));
+    console.warn("[admin] /groups", { admin: userId, total: rows.length, allowed: allowed.length, discovered: discovered.length });
+    await replyOrPush(userId, replyToken, [groupsListFlex(rows)]);
     return true;
   }
 
@@ -144,11 +189,13 @@ export async function handleAdminCommand(
     const days = Math.max(1, Number(promoCreateMatch[4] ?? 30));
     const expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
     await createPromoCode(code, grant, uses, expiresAt, userId);
+    console.warn("[admin] /promo create", { admin: userId, code, grant, uses, days });
     await replyOrPush(userId, replyToken, [textMsg(`✅ Created promo code \`${code.toUpperCase()}\` → ${grant}, ${uses} use${uses === 1 ? "" : "s"}, expires in ${days} day${days === 1 ? "" : "s"}.`)]);
     return true;
   }
 
   if (/^\/promos$/i.test(userText)) {
+    console.warn("[admin] /promos", { admin: userId });
     const promos = await listPromoCodes();
     if (!promos.length) {
       await replyOrPush(userId, replyToken, [textMsg("No promo codes yet.")]);
@@ -164,8 +211,10 @@ export async function handleAdminCommand(
 
   const promoDeleteMatch = userText.match(/^\/promo\s+delete\s+(\S+)$/i);
   if (promoDeleteMatch) {
-    await deletePromoCode(promoDeleteMatch[1]!);
-    await replyOrPush(userId, replyToken, [textMsg(`🗑 Deleted promo code \`${promoDeleteMatch[1]!.toUpperCase()}\`.`)]);
+    const code = promoDeleteMatch[1]!;
+    await deletePromoCode(code);
+    console.warn("[admin] /promo delete", { admin: userId, code });
+    await replyOrPush(userId, replyToken, [textMsg(`🗑 Deleted promo code \`${code.toUpperCase()}\`.`)]);
     return true;
   }
 
@@ -173,13 +222,15 @@ export async function handleAdminCommand(
   const statusMatch = userText.match(new RegExp(`^/status\\s+(${LINE_ID_RE.source})$`, "i"));
   if (statusMatch) {
     const target = statusMatch[1]!;
-    const [allowed, onTrial, registered, settings] = await Promise.all([
+    console.warn("[admin] /status", { admin: userId, target });
+    const [allowed, onTrial, registered, team, settings] = await Promise.all([
       isAllowed(target),
       isOnTrial(target),
       (async () => {
         const all = await listAllUsers();
         return all.includes(target);
       })(),
+      isTeamMember(target),
       getSettings(target).catch(() => null),
     ]);
     const today = new Date().toISOString().slice(0, 10);
@@ -196,10 +247,12 @@ export async function handleAdminCommand(
     const lines = [
       `📊 Status for ${profile?.displayName ?? target}`,
       ``,
+      `Admin: ${gate.isAdmin(target) ? "✅ yes" : "❌ no"}`,
       `Allowed: ${allowed ? "✅ yes" : "❌ no"}`,
       `Trial: ${onTrial ? "✅ yes" : "❌ no"}`,
+      `Team: ${team ? "✅ yes" : "❌ no"}`,
       `In sweep registry: ${registered ? "✅ yes" : "❌ no"}`,
-      ``,
+      `=`,
       `Timezone: ${settings?.timezone ?? "(default)"}`,
       `Morning: ${settings?.morningBriefingTime ?? "(disabled)"}`,
       `Evening: ${settings?.eveningSummaryEnabled ? settings.eveningSummaryTime : "(disabled)"}`,
@@ -219,7 +272,8 @@ export async function handleAdminCommand(
   const auditMatch = userText.match(new RegExp(`^/audit\\s+(${LINE_ID_RE.source})(?:\\s+(\\d+))?$`, "i"));
   if (auditMatch) {
     const target = auditMatch[1]!;
-    const count = Math.min(Math.max(Number(auditMatch[2] ?? 5), 1), 15);
+    console.warn("[admin] /audit", { admin: userId, target, requested: auditMatch[2] });
+    const count = Math.min(Math.max(Number(auditMatch[2] ?? 5), 1), 100);
     const entries = await listAuditLog(target, { limit: count });
     if (entries.length === 0) {
       await replyOrPush(userId, replyToken, [textMsg(`No audit entries for ${target}.`)]);
@@ -234,6 +288,7 @@ export async function handleAdminCommand(
   if (forceMatch) {
     const target = forceMatch[1]!;
     const kind = (forceMatch[2] ?? "morning").toLowerCase() as "morning" | "evening";
+    console.warn("[admin] /force-briefing", { admin: userId, target, kind });
     if (!(await isAllowed(target))) {
       await replyOrPush(userId, replyToken, [textMsg(`❌ ${target} is not allowed.`)]);
       return true;
@@ -309,9 +364,13 @@ function formatAuditEntries(target: string, entries: AuditEntry[]): string {
   return `📜 Audit trail for ${target} (${entries.length} entries, newest first)\n\n${blocks.join("\n\n")}`;
 }
 
-/** `/myid` — anyone can look up their own LINE userId (to request access). */
+/** `/myid` — anyone can look up their own LINE userId (to request access).
+ *  Sends a Flex card with a one-tap "Copy my ID" button plus a plain-text
+ *  fallback so the ID can always be selected and pasted to an admin.
+ */
 export async function handleMyId(userId: string, userText: string, replyToken: string): Promise<boolean> {
   if (!/^\/myid$/i.test(userText)) return false;
-  await replyOrPush(userId, replyToken, [textMsg(`Your LINE ID:\n${userId}`)]);
+  console.warn("[myid] replied", { userId });
+  await replyOrPush(userId, replyToken, [myIdFlex(userId), textMsg(userId)]);
   return true;
 }

@@ -97,6 +97,7 @@ export async function handlePromoCommand(userId: string, userText: string, reply
   if (!match) return false;
   const code = match[1]!;
   const result = await redeemPromoCode(userId, code);
+  console.warn("[promo] redeem attempt", { userId, code, ok: result.ok, detail: result.ok ? result.grant : result.error });
   await replyOrPush(userId, replyToken, [textMsg(result.ok ? result.message : `❌ ${result.error}`)]);
   return true;
 }

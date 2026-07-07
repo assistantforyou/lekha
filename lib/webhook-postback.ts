@@ -15,6 +15,7 @@ import { google } from "googleapis";
 import type { LineEvent } from "@/lib/line/types";
 import { buildGate } from "@/lib/gate";
 import { approvePending, denyPending, isAllowed } from "@/lib/memory/allowlist";
+import { addAllowedGroup, removeAllowedGroup, getAdminGroupIds } from "@/lib/group-access";
 import { isOnTrial, startTrial } from "@/lib/trial";
 
 const GMAIL_MODIFY = "https://www.googleapis.com/auth/gmail.modify";
@@ -198,6 +199,7 @@ async function handlePending({ userId, replyToken, args }: Ctx): Promise<void> {
     await reply("Invalid user ID.");
     return;
   }
+  console.warn("[admin] pending action via postback", { admin: userId, action, targetId });
   if (action === "allow") {
     await approvePending(targetId);
     const profile = await getProfile(targetId).catch(() => null);
@@ -220,6 +222,38 @@ async function handlePending({ userId, replyToken, args }: Ctx): Promise<void> {
     const name = profile?.displayName ?? targetId.slice(0, 10);
     await reply(`🗑 Denied ${name}.`);
   }
+}
+
+async function handleGroup({ userId, replyToken, args }: Ctx): Promise<void> {
+  const reply = mkReply(userId, replyToken);
+  const gate = buildGate();
+  if (!gate.isAdmin(userId)) {
+    await reply("Admin only.");
+    return;
+  }
+  const action = args[0];
+  const groupId = args[1];
+  if (!groupId) {
+    await reply("Missing group ID.");
+    return;
+  }
+  if (action === "allow") {
+    await addAllowedGroup(groupId);
+    console.warn("[admin] group:allow via postback", { admin: userId, groupId });
+    await reply(`✅ Allowed group ${groupId.slice(0, 16)}…`);
+    return;
+  }
+  if (action === "remove") {
+    await removeAllowedGroup(groupId);
+    if (getAdminGroupIds().has(groupId)) {
+      await reply(`⚠️ ${groupId.slice(0, 16)}… is an admin group in ADMIN_GROUP_IDS — removed from Redis cache but still allowed by env.`);
+      return;
+    }
+    console.warn("[admin] group:remove via postback", { admin: userId, groupId });
+    await reply(`🗑 Removed group ${groupId.slice(0, 16)}…`);
+    return;
+  }
+  await reply("Unknown group action.");
 }
 
 async function handleHelpDemo({ userId, replyToken, args }: Ctx): Promise<void> {
@@ -286,6 +320,7 @@ const HANDLERS: Record<string, ((ctx: Ctx) => Promise<void>) | undefined> = {
   list: handleList,
   event: handleEvent,
   pending: handlePending,
+  group: handleGroup,
   "help-demo": handleHelpDemo,
   drive: handleFallback,
   contact: handleFallback,
