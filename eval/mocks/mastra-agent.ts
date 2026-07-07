@@ -117,7 +117,7 @@ function buildMastraStep(step: MockMastraStep, index: number): Record<string, un
 }
 
 function buildUsage(base?: LanguageModelUsage): LanguageModelUsage {
-  const usage: LanguageModelUsage = {
+  return {
     inputTokens: base?.inputTokens ?? 100,
     outputTokens: base?.outputTokens ?? 20,
     totalTokens: base?.totalTokens ?? 120,
@@ -125,63 +125,58 @@ function buildUsage(base?: LanguageModelUsage): LanguageModelUsage {
     outputTokenDetails: base?.outputTokenDetails ?? { textTokens: 20, reasoningTokens: 0 },
     reasoningTokens: 0,
   };
-  return usage;
 }
 
-vi.mock("@/mastra/index", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/mastra/index")>();
+vi.mock("@/mastra/agents/lekha-agent", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@/mastra/agents/lekha-agent")>();
+  const mockAgent = {
+    generate: async (messages: unknown, options: Record<string, unknown>) => {
+      const params: MockMastraGenerateParams = {
+        messages: messages as MockMastraGenerateParams["messages"],
+        ...options,
+      };
+      const scenarios = getScenarios();
+      const scenario = scenarios.find((s) => !s.match || s.match(params));
+      if (!scenario) {
+        const preview = lastUserText(params) || JSON.stringify(params.messages.at(-1)).slice(0, 120);
+        throw new Error(`[eval] no Mastra scenario matched for message: ${preview}`);
+      }
+      const res = scenario.result(params);
+      const onStepFinish = options.onStepFinish as ((step: unknown) => void) | undefined;
+      const usage = buildUsage(res.usage);
+      const totalUsage: LanguageModelUsage = {
+        ...usage,
+        inputTokens: res.steps.reduce((sum, s) => sum + (s.toolCalls?.length ? 10 : 0), usage.inputTokens ?? 0),
+        outputTokens: res.steps.reduce((sum, s) => sum + (s.text?.length ? 1 : 0), usage.outputTokens ?? 0),
+      };
+      const steps = res.steps.map((s, i) => {
+        const step = buildMastraStep(s, i);
+        onStepFinish?.(step);
+        return step;
+      });
+      return {
+        text: res.text,
+        usage,
+        totalUsage,
+        steps,
+        finishReason: "stop",
+        rawFinishReason: "stop",
+        warnings: undefined,
+        request: {},
+        response: { messages: [] },
+        providerMetadata: undefined,
+        toolCalls: [],
+        toolResults: [],
+        files: [],
+        sources: [],
+        reasoning: [],
+        reasoningText: undefined,
+        content: [{ type: "text", text: res.text }],
+      } as unknown as Record<string, unknown>;
+    },
+  };
   return {
     ...original,
-    mastra: {
-      ...original.mastra,
-      getAgent: (id: string) => {
-        if (id !== "lekha") {
-          return original.mastra.getAgent(id);
-        }
-        return {
-          generate: async (messages: unknown, options: Record<string, unknown>) => {
-            const params: MockMastraGenerateParams = { messages: messages as MockMastraGenerateParams["messages"], ...options };
-            const scenarios = getScenarios();
-            const scenario = scenarios.find((s) => !s.match || s.match(params));
-            if (!scenario) {
-              const preview = lastUserText(params) || JSON.stringify(params.messages.at(-1)).slice(0, 120);
-              throw new Error(`[eval] no Mastra scenario matched for message: ${preview}`);
-            }
-            const res = scenario.result(params);
-            const onStepFinish = options.onStepFinish as ((step: unknown) => void) | undefined;
-            const usage = buildUsage(res.usage);
-            const totalUsage: LanguageModelUsage = {
-              ...usage,
-              inputTokens: res.steps.reduce((sum, s) => sum + (s.toolCalls?.length ? 10 : 0), usage.inputTokens ?? 0),
-              outputTokens: res.steps.reduce((sum, s) => sum + (s.text?.length ? 1 : 0), usage.outputTokens ?? 0),
-            };
-            const steps = res.steps.map((s, i) => {
-              const step = buildMastraStep(s, i);
-              onStepFinish?.(step);
-              return step;
-            });
-            return {
-              text: res.text,
-              usage,
-              totalUsage,
-              steps,
-              finishReason: "stop",
-              rawFinishReason: "stop",
-              warnings: undefined,
-              request: {},
-              response: { messages: [] },
-              providerMetadata: undefined,
-              toolCalls: [],
-              toolResults: [],
-              files: [],
-              sources: [],
-              reasoning: [],
-              reasoningText: undefined,
-              content: [{ type: "text", text: res.text }],
-            } as unknown as Record<string, unknown>;
-          },
-        };
-      },
-    },
+    getLekhaAgent: () => mockAgent,
   };
 });

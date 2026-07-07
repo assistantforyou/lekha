@@ -3,6 +3,7 @@ import { hasQStash } from "@/lib/env";
 import { verifyQStashSignature, unauthorized, notConfigured, isManualCronTrigger } from "@/lib/qstash-verify";
 import { runSweepForUser } from "@/lib/sweep";
 import { listAllUsers } from "@/lib/memory/user-registry";
+import { runWithConcurrency } from "@/lib/concurrency";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,12 +26,13 @@ export async function POST(req: NextRequest) {
   console.warn("[sweep] LEGACY /api/cron/sweep triggered — forwarding to sweep logic. Consider updating the schedule to /api/cron/sweep/fire");
 
   const users = await listAllUsers();
-  await Promise.allSettled(
-    users.map((uid) =>
+  await runWithConcurrency(
+    users,
+    (uid) =>
       runSweepForUser(uid).catch((err) =>
         console.error("[sweep] legacy sweep failed for user", uid, err),
       ),
-    ),
+    5,
   );
   return NextResponse.json({ ok: true, usersChecked: users.length, note: "legacy endpoint — consider updating schedule to /api/cron/sweep/fire" });
 }

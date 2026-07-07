@@ -55,7 +55,9 @@ const FACTS_CACHE_TTL_MS = 30_000;
 const key = (userId: string) => `user:${userId}:facts:v2`;
 const legacyKey = (userId: string) => `user:${userId}:facts`;
 
-const factsCache = new Map<string, { facts: UserFacts; ts: number }>();
+import { LruMap } from "@/lib/lru-cache";
+
+const factsCache = new LruMap<string, { facts: UserFacts; ts: number }>(500);
 
 function invalidateFactsCache(userId: string) {
   factsCache.delete(userId);

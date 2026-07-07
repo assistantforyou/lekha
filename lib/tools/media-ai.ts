@@ -275,7 +275,9 @@ export async function autoProcessAudio(
   return { transcript };
 }
 
-const mediaResultCache = new Map<string, { output: string; ts: number }>();
+import { LruMap } from "@/lib/lru-cache";
+
+const mediaResultCache = new LruMap<string, { output: string; ts: number }>(200);
 const MEDIA_CACHE_TTL_MS = 2 * 60 * 60 * 1000;
 
 function cacheKey(userId: string, messageId: string, prompt: string): string {

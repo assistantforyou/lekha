@@ -5,7 +5,7 @@ import {
   looksLikeWeather,
   looksLikeMemoryRecall,
   looksLikeFinance,
-} from "@/lib/llm/agent";
+} from "@/lib/llm/agent-helpers";
 
 describe("processResult", () => {
   it("renders draft block for draft_email", () => {

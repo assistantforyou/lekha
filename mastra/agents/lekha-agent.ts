@@ -45,19 +45,31 @@ function createMemory() {
   });
 }
 
-export const lekhaAgent = new Agent({
-  id: "lekha",
-  name: "Lekha",
-  instructions:
-    "You are Lekha, a personal AI assistant living in LINE. " +
-    "You help the user with tasks, reminders, email, calendar, memory, web search, " +
-    "weather, finance, news, and documents. Be concise, helpful, and accurate.",
-  model: googleClient()("gemini-2.5-flash"),
-  memory: createMemory(),
-  maxRetries: 3,
-  requestContextSchema: lekhaRequestContextSchema,
-  tools: async ({ requestContext }) => {
-    const ctx = requestContext.all;
-    return buildLekhaTools(ctx as any);
-  },
-});
+function buildAgent() {
+  return new Agent({
+    id: "lekha",
+    name: "Lekha",
+    instructions:
+      "You are Lekha, a personal AI assistant living in LINE. " +
+      "You help the user with tasks, reminders, email, calendar, memory, web search, " +
+      "weather, finance, news, and documents. Be concise, helpful, and accurate.",
+    model: googleClient()("gemini-2.5-flash"),
+    memory: createMemory(),
+    maxRetries: 3,
+    requestContextSchema: lekhaRequestContextSchema,
+    tools: async ({ requestContext }) => {
+      const ctx = requestContext.all;
+      return buildLekhaTools(ctx as any);
+    },
+  });
+}
+
+type LekhaAgent = ReturnType<typeof buildAgent>;
+
+let agent: LekhaAgent | undefined;
+
+/** Lazy agent singleton — avoids validating env / instantiating memory at import time. */
+export function getLekhaAgent(): LekhaAgent {
+  if (!agent) agent = buildAgent();
+  return agent;
+}

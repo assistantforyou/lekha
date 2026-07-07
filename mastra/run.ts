@@ -1,7 +1,7 @@
 import type { ModelMessage } from "ai";
 import type { LLMStepResult } from "@mastra/core/stream";
 import { RequestContext } from "@mastra/core/request-context";
-import { mastra } from "./index";
+import { getLekhaAgent } from "./agents/lekha-agent";
 import {
   processResult,
   formatProcessed,
@@ -27,7 +27,7 @@ import {
   fallbackWebSearch,
   type AgentResult,
   type AgentHints,
-} from "@/lib/llm/agent";
+} from "@/lib/llm/agent-helpers";
 import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
 import { factsToPromptBlock, type UserFacts } from "@/lib/memory/facts";
 import { appendAuditEntry, type AuditToolCall } from "@/lib/memory/audit-log";
@@ -183,7 +183,7 @@ export async function runMastraAgent(
 
     const tracker = createStepTracker(traceId);
 
-    const agent = mastra.getAgent("lekha");
+    const agent = getLekhaAgent();
     const endGenerate = span("mastra:generate", traceId);
 
     const result = await withTimeout(

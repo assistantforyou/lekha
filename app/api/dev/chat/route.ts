@@ -2,20 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { push, text as textMsg } from "@/lib/line/client";
 import { env } from "@/lib/env";
-import { appendTurn, loadHistory, turnCounter, historyForPrompt } from "@/lib/memory/history";
 import { loadFacts } from "@/lib/memory/facts";
 import { getOrCreateProfile } from "@/lib/memory/profile";
-import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
 import { runMastraAgent } from "@/mastra/run";
-import { generateText } from "ai";
-import { chatModel, extractorModel, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
 
 import { fastClassify } from "@/lib/fast-classify";
 import { listAccounts } from "@/lib/tools/google-auth";
-import { buildSystemPrompt } from "@/lib/llm/prompts";
-import { factsToPromptBlock } from "@/lib/memory/facts";
 import { getSettings } from "@/lib/memory/settings";
-import { appendRecentMedia, listRecentMedia } from "@/lib/memory/recent-media";
+import { listRecentMedia } from "@/lib/memory/recent-media";
 import type { ModelMessage } from "ai";
 import { span } from "@/lib/timing";
 import { classify, clearPending, getPending } from "@/lib/confirm";
@@ -123,12 +117,14 @@ export async function POST(req: NextRequest) {
     try {
       const bytes = Uint8Array.from(Buffer.from(imageBase64, "base64"));
       const endPreload = span("dev:preload", traceId);
-      const [historyMsgs, facts, settings] = await Promise.all([
-        historyForPrompt(userId),
+      const [facts, profile, settings, accounts, staged] = await Promise.all([
         loadFacts(userId),
+        getOrCreateProfile(userId),
         getSettings(userId),
+        listAccounts(userId),
+        listRecentMedia(userId),
       ]);
-      endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
+      endPreload({ facts: facts.facts.length, staged: staged.length });
 
       const mediaType = imageMediaType || detectImageMediaType(imageBase64);
       let imageBytes: Uint8Array = bytes;
@@ -142,7 +138,6 @@ export async function POST(req: NextRequest) {
       }
 
       const messages: ModelMessage[] = [
-        ...historyMsgs,
         {
           role: "user",
           content: [
@@ -152,20 +147,23 @@ export async function POST(req: NextRequest) {
         },
       ];
 
-      const result = await generateText({
-        model: chatModel(),
-        system: buildSystemPrompt(factsToPromptBlock(facts), { displayName: "" }, settings),
-        messages,
-        maxRetries: 3,
-        providerOptions: GEMINI_PROVIDER_OPTIONS,
+      const result = await runMastraAgent(messages, {
+        userId,
+        profile,
+        facts,
+        accounts,
+        staged,
+        hasStagedMedia: false,
+        settings,
+        hint: "media",
+        imageBundled: true,
+        traceId,
+        timeoutMs: 55_000,
       });
-      const replyText = result.text?.trim() || "I couldn't read that image.";
 
-      await appendTurn(userId, { role: "user", content: `[sent an image] ${text}`, ts: Date.now() });
-      await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
-      endImage({ replyLength: replyText.length });
-      endRequest({ replyLength: replyText.length });
-      return NextResponse.json({ reply: replyText, hints: { confirmDraft: false } });
+      endImage({ replyLength: result.text.length, toolCalls: result.toolCalls?.length ?? 0 });
+      endRequest({ replyLength: result.text.length, toolCalls: result.toolCalls?.length ?? 0 });
+      return NextResponse.json({ reply: result.text, hints: result.hints, toolCalls: result.toolCalls ?? [] });
     } catch (err) {
       endImage({ error: err instanceof Error ? err.message : String(err) });
       return NextResponse.json({ error: "Image processing failed" }, { status: 500 });
@@ -191,56 +189,54 @@ export async function POST(req: NextRequest) {
             ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             : "application/pdf";
 
-      // Stage in Redis so summarize_document / read_document tools can find it
-      await appendRecentMedia(userId, {
-        kind: "file",
-        messageId: `dev_${Date.now()}`,
-        contentType,
-        fileName: fileName || "document.pdf",
-        sizeBytes: bytes.byteLength,
-        ts: Date.now(),
-      });
-
       const endPreload = span("dev:preload", traceId);
-      const [historyMsgs, facts, profile] = await Promise.all([
-        historyForPrompt(userId),
+      const [facts, profile, settings, accounts, staged] = await Promise.all([
         loadFacts(userId),
         getOrCreateProfile(userId),
+        getSettings(userId),
+        listAccounts(userId),
+        listRecentMedia(userId),
       ]);
-      endPreload({ historyTurns: historyMsgs.length, facts: facts.facts.length });
+      endPreload({ facts: facts.facts.length, staged: staged.length });
 
-      let resultText: string;
+      let messages: ModelMessage[];
       if (isPptx) {
         // Gemini doesn't accept PPTX directly — extract text server-side.
         const extracted = await extractPptxText(fileBase64);
-        const prompt = `${text || "Summarize this presentation."}\n\n--- Extracted slide text ---\n\n${extracted}`;
-        const result = await generateText({
-          model: extractorModel(),
-          messages: [{ role: "user", content: prompt }],
-        });
-        resultText = result.text.trim();
+        messages = [
+          {
+            role: "user",
+            content: `${text || "Summarize this presentation."}\n\n--- Extracted slide text ---\n\n${extracted}`,
+          },
+        ];
       } else {
-        const result = await generateText({
-          model: extractorModel(),
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: text || "Summarize this document." },
-                { type: "file", data: bytes, mediaType: contentType },
-              ],
-            },
-          ],
-        });
-        resultText = result.text.trim();
+        messages = [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: text || "Summarize this document." },
+              { type: "file", data: bytes, mediaType: contentType },
+            ],
+          },
+        ];
       }
-      const replyText = resultText || "I couldn't read that document.";
 
-      await appendTurn(userId, { role: "user", content: `[sent a file: ${fileName || "document.pdf"}] ${text}`, ts: Date.now() });
-      await appendTurn(userId, { role: "assistant", content: replyText, ts: Date.now() });
-      endFile({ replyLength: replyText.length });
-      endRequest({ replyLength: replyText.length });
-      return NextResponse.json({ reply: replyText, hints: { confirmDraft: false } });
+      const result = await runMastraAgent(messages, {
+        userId,
+        profile,
+        facts,
+        accounts,
+        staged,
+        hasStagedMedia: false,
+        settings,
+        hint: "media",
+        traceId,
+        timeoutMs: 55_000,
+      });
+
+      endFile({ replyLength: result.text.length, toolCalls: result.toolCalls?.length ?? 0 });
+      endRequest({ replyLength: result.text.length, toolCalls: result.toolCalls?.length ?? 0 });
+      return NextResponse.json({ reply: result.text, hints: result.hints, toolCalls: result.toolCalls ?? [] });
     } catch (err) {
       endFile({ error: err instanceof Error ? err.message : String(err) });
       return NextResponse.json({ error: "File processing failed" }, { status: 500 });
@@ -263,8 +259,6 @@ export async function POST(req: NextRequest) {
     if (decision === "yes") {
       const result = await executePendingAll(userId, pending);
       await clearPending(userId);
-      await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
-      await appendTurn(userId, { role: "assistant", content: result, ts: Date.now() });
       const msgs: import("@/lib/line/client").LineMessage[] = [textMsg(result)];
       push(userId, msgs).catch(() => {});
       endRequest({ replyLength: result.length, pendingExecuted: pending.length });
@@ -273,8 +267,6 @@ export async function POST(req: NextRequest) {
     if (decision === "no") {
       await clearPending(userId);
       const msg = `Cancelled ${pending.length === 1 ? "that" : `all ${pending.length}`}.`;
-      await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
-      await appendTurn(userId, { role: "assistant", content: msg, ts: Date.now() });
       const msgs: import("@/lib/line/client").LineMessage[] = [textMsg(msg)];
       push(userId, msgs).catch(() => {});
       endRequest({ replyLength: msg.length, pendingCancelled: pending.length });
@@ -311,21 +303,10 @@ export async function POST(req: NextRequest) {
   const replyText = result.text;
   const hints = result.hints;
 
-  const endAppend = span("dev:appendTurns", traceId);
-  await appendTurn(userId, { role: "user", content: text, ts: Date.now() });
-  await appendTurn(userId, { role: "assistant", content: result.historyText, ts: Date.now() });
-  endAppend();
-
   const msgs: import("@/lib/line/client").LineMessage[] = [];
   if (replyText.trim()) msgs.push(textMsg(replyText));
   if (hints.flexMessages?.length) msgs.push(...hints.flexMessages);
   if (msgs.length) push(userId, msgs).catch(() => {});
-
-  const count = await turnCounter(userId);
-  if (count % 10 === 0) {
-    const freshHistory = await loadHistory(userId);
-    extractAndMergeFacts(userId, freshHistory).catch(() => {});
-  }
 
   endRequest({ replyLength: replyText.length, toolCalls: result.toolCalls?.length ?? 0 });
   return NextResponse.json({ reply: replyText, hints, toolCalls: result.toolCalls ?? [] });

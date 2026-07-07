@@ -1,5 +1,5 @@
 import type { ModelMessage } from "ai";
-import type { AgentResult } from "@/lib/llm/agent";
+import type { AgentResult } from "@/lib/llm/agent-helpers";
 
 export type SuiteTag = "small" | "medium" | "full" | "stress";
 

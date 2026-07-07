@@ -32,7 +32,9 @@ import type { ToolSet } from "ai";
 type Need = "google_oauth_env" | "google_user_connected" | "qstash" | "tavily" | "upstash_vector";
 
 // In-memory cache per user × google-state × disabled-categories × staged-media. TTL = 5 min.
-const toolCache = new Map<string, { tools: ToolSet; ts: number }>();
+import { LruMap } from "@/lib/lru-cache";
+
+const toolCache = new LruMap<string, { tools: ToolSet; ts: number }>(1000);
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 // Each builder returns a partial ToolSet keyed by tool name. We accept loose

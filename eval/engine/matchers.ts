@@ -1,4 +1,4 @@
-import type { AgentResult } from "@/lib/llm/agent";
+import type { AgentResult } from "@/lib/llm/agent-helpers";
 import type { EvalResult, ToolArgCheck } from "./types";
 
 export function calledToolNames(result: AgentResult): string[] {

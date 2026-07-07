@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { redis } from "@/lib/memory/redis";
 import { env, hasQStash } from "@/lib/env";
-import { generateText } from "ai";
-import { chatModel } from "@/lib/llm/provider";
+import { chatModel, hasFreeKey, hasPaidKey } from "@/lib/llm/provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,13 +34,13 @@ export async function GET() {
     checks.qstash = { ok: true, error: "not configured" };
   }
 
-  // Gemini API (lightweight ping)
+  // Gemini API (config + instantiation check only — don't burn quota on health pings)
   const geminiStart = Date.now();
   try {
-    await generateText({
-      model: chatModel(),
-      messages: [{ role: "user", content: "ping" }],
-    });
+    if (!hasPaidKey() && !hasFreeKey()) {
+      throw new Error("no Gemini API key configured");
+    }
+    chatModel(); // instantiation is local; no network call
     checks.gemini = { ok: true, ms: Date.now() - geminiStart };
   } catch (e) {
     checks.gemini = { ok: false, error: e instanceof Error ? e.message : String(e) };

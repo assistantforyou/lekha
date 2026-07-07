@@ -12,6 +12,8 @@ import {
 } from "@/lib/memory/facts";
 import type { StoredTurn } from "@/lib/memory/history";
 import { appendArchive } from "@/lib/memory/archive";
+import { Memory } from "@mastra/memory";
+import { getLekhaAgent } from "@/mastra/agents/lekha-agent";
 
 const ExtractedFact = z.object({
   content: z.string().min(5).max(1000),
@@ -119,5 +121,48 @@ export async function extractAndMergeFacts(userId: string, recent: StoredTurn[])
     }
   } catch (err) {
     console.warn("[archive] summary failed", err);
+  }
+}
+
+type MastraMessage = {
+  role: "user" | "assistant" | "system" | "signal";
+  threadId?: string;
+  createdAt: Date;
+  content: { parts?: Array<{ type?: string; text?: string }> };
+};
+
+/** Read the user's Mastra Memory thread and extract durable facts. */
+export async function extractAndMergeFactsFromMastra(userId: string, threadId?: string): Promise<void> {
+  const memory = (await getLekhaAgent().getMemory()) as Memory | undefined;
+  if (!memory) return;
+
+  const targetThreadId = threadId ?? userId;
+
+  try {
+    const { messages } = await memory.listMessagesByResourceId({
+      resourceId: userId,
+      perPage: 40,
+      orderBy: { field: "createdAt", direction: "DESC" },
+    });
+
+    const recent = (messages as MastraMessage[])
+      .filter((m) => (m.role === "user" || m.role === "assistant") && m.threadId === targetThreadId)
+      .map((m) => {
+        const text = (m.content?.parts ?? [])
+          .filter((p) => p.type === "text" && typeof p.text === "string")
+          .map((p) => p.text)
+          .filter((t): t is string => Boolean(t))
+          .join(" ");
+        return {
+          role: m.role as "user" | "assistant",
+          content: text || "[media]",
+          ts: m.createdAt.getTime(),
+        };
+      })
+      .reverse();
+
+    await extractAndMergeFacts(userId, recent);
+  } catch (err) {
+    console.warn("[facts] Mastra extraction failed", err);
   }
 }

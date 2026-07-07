@@ -1,7 +1,7 @@
 import { type ModelMessage } from "ai";
 import { replyOrPush, showLoading, getMessageContent, text as textMsg } from "@/lib/line/client";
 import { runMastraAgent } from "@/mastra/run";
-import { appendTurn } from "@/lib/memory/history";
+
 import { loadFacts } from "@/lib/memory/facts";
 import { listRecentMedia } from "@/lib/memory/recent-media";
 import { getSettings } from "@/lib/memory/settings";
@@ -136,14 +136,6 @@ export async function respondToText(
   endReply();
 
   const endAppend = span("text:appendTurns", traceId);
-  // TODO: remove appendTurn for DMs once fact extraction and dev chat are migrated
-  // to read from Mastra Memory instead of the legacy Redis history list.
-  const appendPersonal = opts?.groupContext
-    ? Promise.resolve()
-    : Promise.all([
-        appendTurn(userId, { role: "user", content: userText, ts: Date.now() }),
-        appendTurn(userId, { role: "assistant", content: historyText, ts: Date.now() }),
-      ]);
   const appendGroup = opts?.groupContext
     ? Promise.all([
         appendGroupTurn(opts.groupContext.conversationId, {
@@ -163,7 +155,7 @@ export async function respondToText(
         }),
       ])
     : Promise.resolve();
-  await Promise.all([appendPersonal, appendGroup]);
+  await appendGroup;
   endAppend();
 
   endHandler({ userTextLength: userText.length, replyLength: replyText.length });

@@ -1,28 +1,28 @@
 import { Mastra } from "@mastra/core";
 import { UpstashStore } from "@mastra/upstash";
 import { redisCreds } from "@/lib/env";
-import { lekhaAgent } from "./agents/lekha-agent";
+import { getLekhaAgent } from "./agents/lekha-agent";
+
+let mastra: Mastra | undefined;
 
 function createStorage() {
   try {
     const { url, token } = redisCreds();
-    return new UpstashStore({
-      id: "lekha-storage",
-      url,
-      token,
-    });
+    return new UpstashStore({ id: "lekha-storage", url, token });
   } catch {
     return undefined;
   }
 }
 
-/**
- * Mastra singleton for Lekha.
- *
- * Registers the main chat agent with Upstash-backed storage and memory.
- * Workflows will be added in later phases of the rewrite.
- */
-export const mastra = new Mastra({
-  storage: createStorage(),
-  agents: { lekha: lekhaAgent },
-});
+function buildMastra(): Mastra {
+  return new Mastra({
+    storage: createStorage(),
+    agents: { lekha: getLekhaAgent() },
+  });
+}
+
+/** Lazy Mastra singleton — avoids env validation and heavy instantiation at import time. */
+export function getMastra(): Mastra {
+  if (!mastra) mastra = buildMastra();
+  return mastra;
+}

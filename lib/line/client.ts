@@ -7,7 +7,9 @@ const DATA_API = "https://api-data.line.me/v2/bot";
 
 // LINE message content is immutable; cache fetches for a short window to avoid
 // re-downloading the same image/PDF when multiple tools use it in one turn.
-const contentCache = new Map<string, { promise: Promise<{ bytes: Uint8Array; contentType: string }>; ts: number }>();
+import { LruMap } from "@/lib/lru-cache";
+
+const contentCache = new LruMap<string, { promise: Promise<{ bytes: Uint8Array; contentType: string }>; ts: number }>(200);
 const CONTENT_CACHE_TTL_MS = 2 * 60 * 1000;
 
 function fetchWithTimeout(url: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {

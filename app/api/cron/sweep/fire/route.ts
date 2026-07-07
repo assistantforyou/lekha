@@ -11,6 +11,7 @@ import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/even
 import { sweepTaskCheckIn, isUserRecentlyActive, claimPushLock, runSweepForUser, isAllowedForProactive } from "@/lib/sweep";
 import { listTasks } from "@/lib/memory/tasks";
 import { listAllUsers } from "@/lib/memory/user-registry";
+import { runWithConcurrency } from "@/lib/concurrency";
 import { verifyQStashSignature, unauthorized, badRequest, notConfigured, isManualCronTrigger } from "@/lib/qstash-verify";
 
 export const runtime = "nodejs";
@@ -67,12 +68,13 @@ export async function POST(req: NextRequest) {
       console.error("[sweep] failed to list users", err);
       return NextResponse.json({ ok: false, error: "failed to list users" }, { status: 500 });
     }
-    await Promise.allSettled(
-      users.map((uid) =>
+    await runWithConcurrency(
+      users,
+      (uid) =>
         runSweepForUser(uid).catch((err) =>
           console.error("[sweep] master sweep failed for user", uid, err),
         ),
-      ),
+      5,
     );
     return NextResponse.json({ ok: true, usersChecked: users.length });
   }

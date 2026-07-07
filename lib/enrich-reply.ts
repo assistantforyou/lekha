@@ -1,6 +1,6 @@
 import { withQuickReplies, text as textMsg, type LineMessage } from "@/lib/line/client";
 import { confirmCancelFlex } from "@/lib/line/flex";
-import type { AgentHints } from "@/lib/llm/agent";
+import type { AgentHints } from "@/lib/llm/agent-helpers";
 
 /**
  * Turn an agent reply (text + structured hints) into a list of LINE messages.

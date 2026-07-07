@@ -1,9 +1,9 @@
-import { loadHistory, turnCounter } from "@/lib/memory/history";
-import { extractAndMergeFacts } from "@/lib/llm/extract-facts";
+import { turnCounter } from "@/lib/memory/history";
+import { extractAndMergeFactsFromMastra } from "@/lib/llm/extract-facts";
 import { getSettings } from "@/lib/memory/settings";
 
 /** Fire background fact extraction every N user turns. Never blocks the reply. */
-export async function maybeExtractFacts(userId: string): Promise<void> {
+export async function maybeExtractFacts(userId: string, threadId?: string): Promise<void> {
   const settings = await getSettings(userId);
   if (settings.memoryEnabled === false) {
     return;
@@ -13,8 +13,7 @@ export async function maybeExtractFacts(userId: string): Promise<void> {
     : 10;
   const n = await turnCounter(userId);
   if (n % interval !== 0) return;
-  const history = await loadHistory(userId);
-  extractAndMergeFacts(userId, history).catch((err) =>
+  extractAndMergeFactsFromMastra(userId, threadId).catch((err) =>
     console.warn("[facts] background extract failed", err),
   );
 }

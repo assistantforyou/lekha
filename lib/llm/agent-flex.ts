@@ -14,7 +14,7 @@ import {
 import { buildPlacesFlex, type PlaceItem } from "@/lib/line/places-flex";
 import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
 import { buildStockFlex, buildCryptoFlex, type StockResult, type CryptoResult } from "@/lib/line/finance-flex";
-import { extractToolValue } from "@/lib/llm/agent";
+import { extractToolValue } from "@/lib/llm/agent-helpers";
 
 type StepLike = {
   toolResults?: { toolCallId?: string; toolName?: string; output?: unknown }[];

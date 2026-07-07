@@ -6,8 +6,10 @@
 
 export type CacheEntry<T> = { value: T; ts: number };
 
-export function createTtlCache<T>(defaultTtlMs = 5_000) {
-  const map = new Map<string, CacheEntry<T>>();
+import { LruMap } from "@/lib/lru-cache";
+
+export function createTtlCache<T>(defaultTtlMs = 5_000, maxSize = 1000) {
+  const map = new LruMap<string, CacheEntry<T>>(maxSize);
 
   function key(userId: string, ...parts: string[]) {
     return [userId, ...parts].join(":");
