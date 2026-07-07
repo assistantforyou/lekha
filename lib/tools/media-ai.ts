@@ -3,6 +3,8 @@ import { tool, generateText } from "ai";
 import { extractorModel, chatModel } from "@/lib/llm/provider";
 import { listRecentMedia, touchRecentMedia } from "@/lib/memory/recent-media";
 import { getMessageContent } from "@/lib/line/client";
+import { env } from "@/lib/env";
+import { fetchCachedWebSearch } from "@/lib/search-cache";
 import { getDocContent, setDocContent } from "@/lib/memory/doc-cache";
 import { indexDocument } from "@/lib/memory/documents";
 import { appendFact } from "@/lib/memory/facts";
@@ -122,6 +124,63 @@ export function buildMediaAiTools(userId: string) {
       },
     }),
 
+    research_document_item: tool({
+      description:
+        "Research a product or item from a staged PDF/document against the web. Extracts the item's specs from the document, searches online for current prices/specs/reviews, and returns a comparison report. Use when the user asks to compare a PDF product to online listings, verify market prices, or 'what's online for X'.",
+      inputSchema: z.object({
+        index: z.number().int().min(1).optional(),
+        item: z.string().min(1).max(100).describe("The product model, name, or keyword to look up from the document, e.g. 'KX-340GB'."),
+        focus: z.enum(["price", "specs", "reviews", "all"]).default("all").describe("What to compare: price, specs, reviews, or everything."),
+      }),
+      execute: async ({ index, item, focus }) => {
+        const stagedItem = await resolveStagedItem(userId, index, "file");
+        if (!stagedItem || "error" in stagedItem) return stagedItem ?? { ok: false as const, error: "No staged document." };
+
+        touchRecentMedia(userId).catch(() => {});
+
+        try {
+          const fetched = await getMessageContent(stagedItem.messageId);
+          const doc = await extractStructuredDocument(
+            userId,
+            stagedItem.messageId,
+            stagedItem.fileName ?? "document",
+            fetched.bytes,
+          );
+          if (!doc.items.length) {
+            return { ok: false as const, error: "Couldn't extract any structured data from this document." };
+          }
+
+          const needle = item.trim().toLowerCase();
+          const matches = doc.items.filter((it) => Object.values(it).some((v) => v.toLowerCase().includes(needle)));
+          if (!matches.length) {
+            return { ok: false as const, error: `No item matching "${item}" found in the document.` };
+          }
+          const target = matches[0]!;
+
+          const apiKey = env().TAVILY_API_KEY;
+          if (!apiKey) {
+            return { ok: false as const, error: "Web search is not configured." };
+          }
+
+          const queries = [
+            `${target.model ?? item} ${target.name ?? ""} ${target.category ?? ""}`.trim(),
+            `${target.model ?? item} ราคา สเปค`,
+          ];
+          const webResults: { query: string; answer: string | null; results: { title: string; url: string; snippet: string }[] }[] = [];
+          for (const q of queries) {
+            const r = await fetchCachedWebSearch(q, apiKey, 5);
+            webResults.push({ query: q, answer: r.answer, results: r.results });
+          }
+
+          const report = await generateComparisonReport(target, focus, webResults);
+          return { ok: true as const, item: target, report };
+        } catch (err) {
+          console.error("[media-ai] research_document_item failed", err);
+          return { ok: false as const, error: "Couldn't research that item online. Try again later." };
+        }
+      },
+    }),
+
     transcribe_audio: tool({
       description:
         "Transcribe speech from a voice message or audio file the user sent in LINE. Returns the verbatim transcript.",
@@ -138,6 +197,43 @@ export function buildMediaAiTools(userId: string) {
         runMediaPrompt(userId, index, "audio", "Listen carefully and summarize what was said in 2-4 sentences. Capture the main topic, key points, and any action items or requests. If it's a question, state the question clearly.", { model: "chat" }),
     }),
   };
+}
+
+async function generateComparisonReport(
+  item: Record<string, string>,
+  focus: "price" | "specs" | "reviews" | "all",
+  webResults: { query: string; answer: string | null; results: { title: string; url: string; snippet: string }[] }[],
+): Promise<string> {
+  const itemText = Object.entries(item)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("\n");
+  const webText = webResults
+    .map(
+      (s) =>
+        `Query: ${s.query}\nAnswer: ${s.answer ?? "n/a"}\n` +
+        s.results.map((r) => `- ${r.title} (${r.url})\n  ${r.snippet}`).join("\n"),
+    )
+    .join("\n\n");
+
+  const focusText =
+    focus === "price"
+      ? "Focus on price comparison: document dealer price vs online prices. Note whether online prices include VAT."
+      : focus === "specs"
+        ? "Focus on specs comparison: confirm dimensions, capacity, and features against online sources."
+        : focus === "reviews"
+          ? "Focus on reviews, ratings, and common pros/cons from online sources."
+          : "Compare price, specs, and any reviews/mentions.";
+
+  const r = await generateText({
+    model: chatModel(),
+    messages: [
+      {
+        role: "user",
+        content: `You are writing a concise product comparison report for a LINE chat. Do not use markdown. Use short paragraphs and • bullets only if they improve clarity.\n\nDocument item:\n${itemText}\n\nOnline search results:\n${webText}\n\n${focusText}\n\nWrite a short report: (1) what the document says, (2) what online sources say, (3) key differences or confirmations, (4) source URLs. Keep it under 250 words. Reply in the same language as the document (Thai).`,
+      },
+    ],
+  });
+  return r.text.trim();
 }
 
 /**
