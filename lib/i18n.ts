@@ -138,6 +138,22 @@ const UI = {
     // Empty states
     noTasks: "Nothing on your list. 🎉",
     noFactsYet: "Nothing saved yet.",
+
+    // Tasks
+    taskAddError: "Couldn't save the task right now. Please try again in a moment.",
+    taskUpdateError: "Couldn't update the task right now. Please try again in a moment.",
+    taskDeleteError: "Couldn't delete the task right now. Please try again in a moment.",
+    taskNotFound: "Task not found.",
+    taskNoOpenMatch: 'No open task matching "{title}".',
+    taskNoCompletedMatch: 'No completed task matching "{title}".',
+    taskNoMatch: 'No task matching "{title}".',
+    taskInvalidDueAt: "Invalid dueAt date.",
+    taskAddItemError: 'Couldn\'t save "{title}" right now.',
+    dueToday: "today",
+    dueTomorrow: "tomorrow",
+
+    // Reminders
+    reminderScheduleError: "Couldn't schedule the reminder right now. Please try again in a moment.",
   },
 
   th: {
@@ -267,6 +283,22 @@ const UI = {
     // Empty states
     noTasks: "ไม่มีรายการค้าง 🎉",
     noFactsYet: "ยังไม่มีข้อมูล",
+
+    // Tasks
+    taskAddError: "บันทึกงานไม่ได้ตอนนี้ ลองใหม่ในอีกสักครู่",
+    taskUpdateError: "อัปเดตงานไม่ได้ตอนนี้ ลองใหม่ในอีกสักครู่",
+    taskDeleteError: "ลบงานไม่ได้ตอนนี้ ลองใหม่ในอีกสักครู่",
+    taskNotFound: "ไม่พบงาน",
+    taskNoOpenMatch: 'ไม่พบงานที่เปิดอยู่ตรงกับ "{title}"',
+    taskNoCompletedMatch: 'ไม่พบงานที่เสร็จแล้วตรงกับ "{title}"',
+    taskNoMatch: 'ไม่พบงานตรงกับ "{title}"',
+    taskInvalidDueAt: "วันที่กำหนดไม่ถูกต้อง",
+    taskAddItemError: 'บันทึก "{title}" ไม่ได้ตอนนี้',
+    dueToday: "วันนี้",
+    dueTomorrow: "พรุ่งนี้",
+
+    // Reminders
+    reminderScheduleError: "ตั้งเตือนความจำไม่ได้ตอนนี้ ลองใหม่ในอีกสักครู่",
   },
 };
 

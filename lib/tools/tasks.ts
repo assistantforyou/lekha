@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { tool } from "ai";
 import { getSettings } from "@/lib/memory/settings";
+import { t } from "@/lib/i18n";
 import {
   addTask,
   listTasks,
@@ -11,20 +12,21 @@ import {
   deleteTask,
 } from "@/lib/memory/tasks";
 
-function formatDueText(ts: number, timezone = "Asia/Bangkok"): string {
+function formatDueText(ts: number, timezone = "Asia/Bangkok", language?: string | null): string {
   const due = new Date(ts);
   const now = new Date();
+  const isTh = language === "th";
   const fmt = (d: Date, opts: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("en-US", { timeZone: timezone, ...opts }).format(d);
+    new Intl.DateTimeFormat(isTh ? "th-TH" : "en-US", { timeZone: timezone, ...opts }).format(d);
 
   const dueDate = fmt(due, { year: "numeric", month: "short", day: "numeric" });
   const nowDate = fmt(now, { year: "numeric", month: "short", day: "numeric" });
-  if (dueDate === nowDate) return "today";
+  if (dueDate === nowDate) return t(language, "dueToday");
 
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   if (fmt(tomorrow, { year: "numeric", month: "short", day: "numeric" }) === dueDate) {
-    return "tomorrow";
+    return t(language, "dueTomorrow");
   }
 
   const currentYear = fmt(now, { year: "numeric" });
@@ -68,16 +70,17 @@ export function buildTaskTools(userId: string) {
         let dueAtTs: number | undefined;
         if (dueAt) {
           if (!Number.isFinite(new Date(dueAt).getTime())) {
-            return { ok: false, error: "Invalid dueAt date" };
+            return { ok: false, error: t("en", "taskInvalidDueAt") };
           }
           dueAtTs = new Date(dueAt).getTime();
         }
         try {
-          const t = await addTask(userId, { title, notes, dueAt: dueAtTs });
-          return { ok: true, task: t };
+          const task = await addTask(userId, { title, notes, dueAt: dueAtTs });
+          return { ok: true, task };
         } catch (err) {
           console.error("[tasks] add_task failed", err);
-          return { ok: false, error: "Couldn't save the task right now. Please try again in a moment." };
+          const lang = (await getSettings(userId).then((s) => s.language).catch(() => undefined)) ?? "en";
+          return { ok: false, error: t(lang, "taskAddError") };
         }
       },
     }),
@@ -104,7 +107,7 @@ export function buildTaskTools(userId: string) {
           let dueAtTs: number | undefined;
           if (item.dueAt) {
             if (!Number.isFinite(new Date(item.dueAt).getTime())) {
-              errors.push(`Invalid dueAt for "${item.title}"`);
+              errors.push(t("en", "taskInvalidDueAt"));
               continue;
             }
             dueAtTs = new Date(item.dueAt).getTime();
@@ -114,7 +117,7 @@ export function buildTaskTools(userId: string) {
             created.push(t);
           } catch (err) {
             console.error("[tasks] add_tasks item failed", err);
-            errors.push(`Couldn't save "${item.title}" right now`);
+            errors.push(t("en", "taskAddItemError", { title: item.title }));
           }
         }
         return { ok: true, createdCount: created.length, created, errors: errors.length ? errors : undefined };
@@ -133,7 +136,7 @@ export function buildTaskTools(userId: string) {
         return {
           tasks: tasks.map((t) => ({
             ...t,
-            dueText: t.dueAt ? formatDueText(t.dueAt, settings.timezone) : null,
+            dueText: t.dueAt ? formatDueText(t.dueAt, settings.timezone, settings.language) : null,
           })),
         };
       },
@@ -143,14 +146,17 @@ export function buildTaskTools(userId: string) {
       description: "Mark a task done by id or title. Use this EVERY time the user says 'done', 'finished', 'complete it', or 'mark it done' after seeing tasks. If title is provided and id is omitted, finds the first open task matching the title. NEVER just confirm in text — always call this tool.",
       inputSchema: z.object({ id: z.string().optional(), title: z.string().optional() }),
       execute: async ({ id, title }) => {
+        const settings = await getSettings(userId).catch(() => ({ language: "en" as const }));
         try {
           const targetId = await resolveTaskId(userId, id, title);
-          if (!targetId) return { ok: false, error: title ? `No open task matching "${title}".` : "Task not found" };
-          const t = await completeTask(userId, targetId);
-          return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
+          if (!targetId) {
+            return { ok: false, error: title ? t(settings.language, "taskNoOpenMatch", { title }) : t(settings.language, "taskNotFound") };
+          }
+          const task = await completeTask(userId, targetId);
+          return task ? { ok: true, task } : { ok: false, error: t(settings.language, "taskNotFound") };
         } catch (err) {
           console.error("[tasks] complete_task failed", err);
-          return { ok: false, error: "Couldn't update the task right now. Please try again in a moment." };
+          return { ok: false, error: t(settings.language, "taskUpdateError") };
         }
       },
     }),
@@ -159,14 +165,17 @@ export function buildTaskTools(userId: string) {
       description: "Re-open a previously-completed task by id or title. If title is provided and id is omitted, finds the first done task matching the title.",
       inputSchema: z.object({ id: z.string().optional(), title: z.string().optional() }),
       execute: async ({ id, title }) => {
+        const settings = await getSettings(userId).catch(() => ({ language: "en" as const }));
         try {
           const targetId = await resolveTaskId(userId, id, title, "done");
-          if (!targetId) return { ok: false, error: title ? `No completed task matching "${title}".` : "Task not found" };
-          const t = await reopenTask(userId, targetId);
-          return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
+          if (!targetId) {
+            return { ok: false, error: title ? t(settings.language, "taskNoCompletedMatch", { title }) : t(settings.language, "taskNotFound") };
+          }
+          const task = await reopenTask(userId, targetId);
+          return task ? { ok: true, task } : { ok: false, error: t(settings.language, "taskNotFound") };
         } catch (err) {
           console.error("[tasks] reopen_task failed", err);
-          return { ok: false, error: "Couldn't update the task right now. Please try again in a moment." };
+          return { ok: false, error: t(settings.language, "taskUpdateError") };
         }
       },
     }),
@@ -181,23 +190,26 @@ export function buildTaskTools(userId: string) {
         dueAt: z.string().optional(),
       }),
       execute: async ({ id, title, new_title, notes, dueAt }) => {
+        const settings = await getSettings(userId).catch(() => ({ language: "en" as const }));
         try {
           const targetId = await resolveTaskId(userId, id, title);
-          if (!targetId) return { ok: false, error: title ? `No task matching "${title}".` : "Task not found" };
+          if (!targetId) {
+            return { ok: false, error: title ? t(settings.language, "taskNoMatch", { title }) : t(settings.language, "taskNotFound") };
+          }
           const patch: Parameters<typeof updateTask>[2] = {};
           if (new_title !== undefined) patch.title = new_title;
           if (notes !== undefined) patch.notes = notes;
           if (dueAt !== undefined) {
             if (!Number.isFinite(new Date(dueAt).getTime())) {
-              return { ok: false, error: "Invalid dueAt date" };
+              return { ok: false, error: t(settings.language, "taskInvalidDueAt") };
             }
             patch.dueAt = new Date(dueAt).getTime();
           }
-          const t = await updateTask(userId, targetId, patch);
-          return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
+          const task = await updateTask(userId, targetId, patch);
+          return task ? { ok: true, task } : { ok: false, error: t(settings.language, "taskNotFound") };
         } catch (err) {
           console.error("[tasks] update_task failed", err);
-          return { ok: false, error: "Couldn't update the task right now. Please try again in a moment." };
+          return { ok: false, error: t(settings.language, "taskUpdateError") };
         }
       },
     }),
@@ -207,12 +219,13 @@ export function buildTaskTools(userId: string) {
         "Mark EVERY currently-open task as done in one atomic call. Use when the user says 'clear all my tasks', 'mark them all done', 'all tasks done', 'wipe my open tasks', etc. Returns the list of tasks that were completed. Do NOT call list_tasks + complete_task individually for bulk clears — use this instead.",
       inputSchema: z.object({}),
       execute: async () => {
+        const settings = await getSettings(userId).catch(() => ({ language: "en" as const }));
         try {
           const completed = await completeAllOpenTasks(userId);
           return { ok: true, completedCount: completed.length, completed };
         } catch (err) {
           console.error("[tasks] complete_all_open_tasks failed", err);
-          return { ok: false, error: "Couldn't update the tasks right now. Please try again in a moment." };
+          return { ok: false, error: t(settings.language, "taskUpdateError") };
         }
       },
     }),
@@ -221,13 +234,16 @@ export function buildTaskTools(userId: string) {
       description: "Delete a task by id or title permanently. If title is provided and id is omitted, finds the first task matching the title.",
       inputSchema: z.object({ id: z.string().optional(), title: z.string().optional() }),
       execute: async ({ id, title }) => {
+        const settings = await getSettings(userId).catch(() => ({ language: "en" as const }));
         try {
           const targetId = await resolveTaskId(userId, id, title, "all");
-          if (!targetId) return { ok: false, error: title ? `No task matching "${title}".` : "Task not found" };
+          if (!targetId) {
+            return { ok: false, error: title ? t(settings.language, "taskNoMatch", { title }) : t(settings.language, "taskNotFound") };
+          }
           return { ok: await deleteTask(userId, targetId) };
         } catch (err) {
           console.error("[tasks] delete_task failed", err);
-          return { ok: false, error: "Couldn't delete the task right now. Please try again in a moment." };
+          return { ok: false, error: t(settings.language, "taskDeleteError") };
         }
       },
     }),
