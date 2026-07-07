@@ -11,4 +11,5 @@ next-env.d.ts
 graphify-out/
 for_video/
 eval/results/
+.playwright-mcp/
 .env*

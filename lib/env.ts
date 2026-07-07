@@ -17,6 +17,9 @@ const Env = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().url().optional(),
 
+  // Mastra Platform managed Postgres (injected at deploy time).
+  DATABASE_URL: z.string().url().optional(),
+
   // Upstash Redis — Marketplace integration uses KV_REST_API_*, direct Upstash uses UPSTASH_REDIS_REST_*
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),

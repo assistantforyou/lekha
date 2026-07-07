@@ -1,22 +1,16 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
-import { UpstashStore, UpstashVector } from "@mastra/upstash";
+import { UpstashVector } from "@mastra/upstash";
 import { googleClient } from "@/lib/llm/provider";
-import { env, redisCreds } from "@/lib/env";
+import { env } from "@/lib/env";
 import { buildLekhaTools, lekhaRequestContextSchema } from "../tools";
+import { getStorage } from "../storage";
 
 function createMemory() {
   const e = env();
+  const storage = getStorage();
 
-  let storage;
-  try {
-    const creds = redisCreds();
-    storage = new UpstashStore({
-      id: "lekha-memory",
-      url: creds.url,
-      token: creds.token,
-    });
-  } catch {
+  if (!storage) {
     return undefined;
   }
 

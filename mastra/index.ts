@@ -1,28 +1,19 @@
 import { Mastra } from "@mastra/core";
-import { UpstashStore } from "@mastra/upstash";
-import { redisCreds } from "@/lib/env";
 import { getLekhaAgent } from "./agents/lekha-agent";
+import { getStorage } from "./storage";
 
-let mastra: Mastra | undefined;
+/**
+ * Mastra instance exported for the Mastra Platform deployer.
+ *
+ * The Platform's build statically analyzes `mastra/index.ts` and expects a
+ * top-level `export const mastra = new Mastra({...})` entry point.
+ */
+export const mastra = new Mastra({
+  storage: getStorage(),
+  agents: { lekha: getLekhaAgent() },
+});
 
-function createStorage() {
-  try {
-    const { url, token } = redisCreds();
-    return new UpstashStore({ id: "lekha-storage", url, token });
-  } catch {
-    return undefined;
-  }
-}
-
-function buildMastra(): Mastra {
-  return new Mastra({
-    storage: createStorage(),
-    agents: { lekha: getLekhaAgent() },
-  });
-}
-
-/** Lazy Mastra singleton — avoids env validation and heavy instantiation at import time. */
+/** Lazy accessor used by Next.js routes (returns the same singleton). */
 export function getMastra(): Mastra {
-  if (!mastra) mastra = buildMastra();
   return mastra;
 }

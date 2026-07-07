@@ -5,6 +5,7 @@ const config: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  serverExternalPackages: ["@mastra/*", "googleapis"],
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
   },

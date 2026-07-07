@@ -7,7 +7,7 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated with se
 | | |
 |---|---|
 | Runtime | Next.js 16.2.6 App Router on Vercel Functions (Node.js, Fluid Compute), region `sin1` |
-| Language | TypeScript 6.0.3, strict, `noUncheckedIndexedAccess: true` |
+| Language | TypeScript ^5.9.3, strict, `noUncheckedIndexedAccess: true` |
 | React | React 19.2.6 |
 | Styling | Tailwind CSS 4.3.0, Framer Motion 12.40.0 |
 | LLM | Vercel AI SDK v6 (`ai` 6.0.193) + `@ai-sdk/google` 3.0.80 |
