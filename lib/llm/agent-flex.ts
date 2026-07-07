@@ -866,6 +866,7 @@ export function buildFlexFromToolResults(
   );
 
   let renderFlexCount = 0;
+  let webSearchAnswerForPlaces: string | null = null;
 
   for (const step of result.steps ?? []) {
     for (const tr of step.toolResults ?? []) {
@@ -1319,8 +1320,15 @@ export function buildFlexFromToolResults(
         }));
         const title = String(value.title ?? "Places");
         const headerColor = typeof value.headerColor === "string" ? value.headerColor : undefined;
-        const introText = typeof value.introText === "string" ? value.introText : undefined;
+        const modelIntro = typeof value.introText === "string" ? value.introText.trim() : undefined;
         const closingText = typeof value.closingText === "string" ? value.closingText : undefined;
+        // If web_search also ran, prepend its summary above the places list so the
+        // user gets the research context and the maps card in a single message.
+        const introText = webSearchAnswerForPlaces
+          ? modelIntro
+            ? `${webSearchAnswerForPlaces}\n\n${modelIntro}`
+            : webSearchAnswerForPlaces
+          : modelIntro;
         if (items.length > 0) {
           out.push(buildPlacesFlex(title, items, { headerColor, introText, closingText }));
           suppressText = true;
@@ -1360,14 +1368,17 @@ export function buildFlexFromToolResults(
 
       // ── Web search ─────────────────────────────────────────────────────
       if (toolName === "web_search") {
-        // If suggest_places already rendered a places card, the web-search card is redundant
-        // and would trigger a second push notification. The places card carries the answer.
+        const answer = typeof value.answer === "string" ? value.answer.trim() : null;
+        const results = Array.isArray(value.results) ? value.results : [];
+
+        // If suggest_places also ran, fold the web-search summary into the places
+        // card instead of sending a second message (and second push notification).
         if (hasPlacesResult) {
+          if (answer) webSearchAnswerForPlaces = answer;
           seen.add(toolName);
           continue;
         }
-        const answer = typeof value.answer === "string" ? value.answer.trim() : null;
-        const results = Array.isArray(value.results) ? value.results : [];
+
         if (answer || results.length > 0) {
           try {
             out.push(buildWebSearchFlex(value, userText));

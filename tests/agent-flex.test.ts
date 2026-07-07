@@ -154,7 +154,7 @@ describe("buildFlexFromToolResults document + drive cards", () => {
 });
 
 describe("buildFlexFromToolResults places consolidation", () => {
-  it("renders only the places card when both web_search and suggest_places are returned", () => {
+  it("combines web_search summary and places card into one message", () => {
     const result = {
       steps: [
         {
@@ -186,8 +186,9 @@ describe("buildFlexFromToolResults places consolidation", () => {
     expect(messages).toHaveLength(1);
     expect(suppressText).toBe(true);
     const json = JSON.stringify(messages);
+    expect(json).toContain("Here are some great restaurants in Sukhumvit.");
     expect(json).toContain("Soul Food Mahanakorn");
-    expect(json).not.toContain("Best Sukhumvit restaurants");
+    expect(json).not.toContain("🔍 Web Search");
   });
 
   it("still renders web_search card when there is no places card", () => {
