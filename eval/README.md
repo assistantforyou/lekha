@@ -45,6 +45,8 @@ They mock Redis/env/LINE where needed and never call Gemini.
 
 Location: `eval/layer2/`
 
+> **Note:** Layer 2 currently exercises the legacy `runAgent` path in `lib/llm/agent.ts`. The production agent now runs through `runMastraAgent` in `mastra/run.ts`, so these tests need to be migrated to mock Mastra's `agent.generate()` and assert against the new orchestrator.
+
 These tests exercise the full `runAgent` orchestrator with a deterministic mock of the `ai` SDK's `generateText`. They verify:
 
 - Correct tool selection per intent

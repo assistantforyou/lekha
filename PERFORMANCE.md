@@ -20,7 +20,7 @@ vercel env add DEBUG_TIMING
 Each log line is a JSON object with `_timing: true`:
 
 ```json
-{"_timing":true,"traceId":"Uxxabc_123","label":"agent:generateText","ms":2840,"steps":2,"toolCalls":3}
+{"_timing":true,"traceId":"Uxxabc_123","label":"mastra:generate","ms":2840,"steps":2,"toolCalls":3}
 ```
 
 **Key labels by subsystem:**
@@ -30,7 +30,7 @@ Each log line is a JSON object with `_timing: true`:
 | **Webhook** | `webhook:handleEvent`, `webhook:prelight`, `webhook:executePending` | Full request, parallel pre-flight, pending action execution |
 | **Text handler** | `text:respondToText`, `text:preload`, `text:getMessageContent`, `text:reply`, `text:appendTurns` | End-to-end text response, data loading, media download, LINE reply, history writes |
 | **Image handler** | `image:respondToImage`, `image:preload`, `image:generateText`, `image:reply` | End-to-end image response, data loading, vision LLM call, reply |
-| **Agent** | `agent:runAgent`, `agent:preload`, `agent:toolsForUser`, `agent:generateText`, `agent:step`, `agent:processResult` | Full agent run, internal preflight, tool registry building, LLM call, per-step breakdown, post-processing |
+| **Agent** | `mastra:runAgent`, `mastra:preload-done`, `mastra:generate`, `agent:step`, `mastra:processResult` | Full agent run, preflight, Mastra agent generation, per-step breakdown, post-processing |
 | **History** | `history:load`, `history:append`, `history:forPrompt`, `history:summarize` | Redis LRANGE, Redis MULTI LPUSH/LTRIM, token-cap check + summary fetch/generation |
 | **LINE API** | `line:reply`, `line:push`, `line:getMessageContent` | LINE Messaging API calls |
 | **Google** | `google:withGoogleClient` | Any Google API call (Gmail, Calendar, Drive, People) |
@@ -40,11 +40,10 @@ Each log line is a JSON object with `_timing: true`:
 ```
 {"_timing":true,"traceId":"Uabc_123","label":"webhook:prelight","ms":45,"pending":0}
 {"_timing":true,"traceId":"Uabc_123","label":"text:preload","ms":32,"historyTurns":8,"facts":12}
-{"_timing":true,"traceId":"Uabc_123","label":"agent:preload","ms":28,"accounts":1}
-{"_timing":true,"traceId":"Uabc_123","label":"agent:toolsForUser","ms":12,"toolCount":18}
+{"_timing":true,"traceId":"Uabc_123","label":"mastra:preload-done","ms":28,"accounts":1,"staged":0}
 {"_timing":true,"traceId":"Uabc_123","label":"agent:step","stepMs":890,"stepIndex":1,"toolCalls":["web_search"],"resultTypes":["ok"]}
 {"_timing":true,"traceId":"Uabc_123","label":"agent:step","stepMs":1950,"stepIndex":2,"toolCalls":[],"resultTypes":[],"textLength":340}
-{"_timing":true,"traceId":"Uabc_123","label":"agent:generateText","ms":2840,"steps":2,"toolCalls":1}
+{"_timing":true,"traceId":"Uabc_123","label":"mastra:generate","ms":2840,"steps":2,"toolCalls":1}
 {"_timing":true,"traceId":"Uabc_123","label":"agent:processResult","ms":2,"confirmDraft":false}
 {"_timing":true,"traceId":"Uabc_123","label":"text:reply","ms":180,"ok":true}
 {"_timing":true,"traceId":"Uabc_123","label":"text:appendTurns","ms":25}
@@ -75,7 +74,7 @@ Each log line is a JSON object with `_timing: true`:
 │  Pre-flight (Redis)          ████░░░░░░░░░░░░░░░░░░  30–80ms │
 │  Data loading (Redis)        ███░░░░░░░░░░░░░░░░░░░  20–60ms │
 │  Tool registry build         ██░░░░░░░░░░░░░░░░░░░░  10–30ms │
-│  LLM generateText            ████████████████████░  2–5s    │
+│  Mastra agent generation     ████████████████████░  2–5s    │
 │  ├─ Step 1: model thinks     ███░░░░░░░░░░░░░░░░░░  200–800ms│
 │  ├─ Step 2: tools execute    ██████░░░░░░░░░░░░░░░  500ms–3s│
 │  ├─ Step 3: model responds   ████████░░░░░░░░░░░░░  1–3s    │
@@ -100,31 +99,31 @@ Each log line is a JSON object with `_timing: true`:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Images are often **faster** than text because there's no tool execution loop — just a single `generateText` call.
+Images are often **faster** than text because there's no tool execution loop — just a single vision LLM call.
 
 ---
 
 ## Identified Bottlenecks
 
-### P0 — Critical (can cause 60s timeout or silent failure)
+### P0 — Critical (can cause 55s timeout or silent failure)
 
-#### 1. `generateText` is the single dominant cost (~70–95% of total time)
+#### 1. Mastra agent generation is the single dominant cost (~70–95% of total time)
 
-**What:** Every text request calls `generateText` with `maxRetries: 1` (was 3, reduced in R4) and `stopWhen: stepCountIs(8)`. The model can decide to call tools, wait for results, then decide again. Each step is sequential.
+**What:** Every text request calls `agent.generate()` via `runMastraAgent` with `maxRetries: 3` (set on `mastra/agents/lekha-agent.ts`) and `maxSteps: 8` (in `mastra/run.ts`). The model can decide to call tools, wait for results, then decide again. Each step is sequential.
 
-**Evidence from logs:** Look for `agent:generateText` — it's typically 2–5s but can spike to 15s+ if multiple tool steps are needed.
+**Evidence from logs:** Look for `mastra:generate` — it's typically 2–5s but can spike to 15s+ if multiple tool steps are needed.
 
-**Why it matters:** The 60s `AGENT_TIMEOUT_MS` is a last resort. In practice, users perceive slowness at >3s. There's no fallback LLM since Groq was removed.
+**Why it matters:** The 55s `AGENT_TIMEOUT_MS` (in `lib/llm/provider.ts`) is a last resort. In practice, users perceive slowness at >3s. There's no fallback LLM since Groq was removed.
 
 #### 2. No `replyOrPush` fallback on expired replyToken
 
-**What:** `reply()` uses a single-use token that expires in ~60s. If `runAgent` + processing takes >60s, the token is dead and `reply()` silently fails. The user sees nothing.
+**What:** `reply()` uses a single-use token that expires in ~60s. If `runMastraAgent` + processing takes >55s, the token is dead and `reply()` silently fails. The user sees nothing.
 
 **Evidence:** Look for `line:reply` with `ok: false` in logs. No subsequent `line:push` appears.
 
 **Why it matters:** Heavy requests (multiple Google API calls, large attachments) can exceed the token lifetime. The user thinks the bot is broken.
 
-#### 3. Tool execution happens sequentially inside `generateText`
+#### 3. Tool execution happens sequentially inside the Mastra agent generation
 
 **What:** When the model calls 3 tools in one step (e.g., `web_search`, `gmail_search`, `contacts_search`), the AI SDK executes them **in parallel within the step**, but each **step** is sequential. Step 1 → wait for all tools → feed results → Step 2.
 
@@ -138,9 +137,9 @@ Images are often **faster** than text because there's no tool execution loop —
 
 #### 4. Redundant `listAccounts` / `listRecentMedia` fetch
 
-**What:** `respondToText` already loads accounts and media in parallel. Then `runAgent` loads them **again**.
+**What:** `respondToText` already loads accounts and media in parallel. Then `runMastraAgent` loads them **again**.
 
-**Evidence:** Compare `text:preload` (already has accounts/media) with `agent:preload` (fetches again).
+**Evidence:** Compare `text:preload` (already has accounts/media) with `mastra:preload-done` (fetches again).
 
 **Impact:** ~20–60ms wasted + extra Redis round-trips per request.
 
@@ -152,13 +151,13 @@ Images are often **faster** than text because there's no tool execution loop —
 
 **Impact:** ~1–3s on long conversations (cached after first hit for 7 days).
 
-#### 6. `maxRetries: 1` on `generateText` — retry burn reduced (R4)
+#### 6. `maxRetries: 3` on the Mastra agent — retry burn
 
-**What:** If Gemini returns a 503, the AI SDK retries once. Each retry is a full LLM call.
+**What:** The Mastra agent (`mastra/agents/lekha-agent.ts`) retries up to 3 times on transient failures. Each retry is a full LLM call.
 
-**Evidence:** `agent:generateText` with much higher `ms` than the sum of `agent:step` times.
+**Evidence:** `mastra:generate` with much higher `ms` than the sum of `agent:step` times.
 
-**Impact:** On a bad day, 2× the normal latency (was 3× before R4).
+**Impact:** On a bad day, up to 3× the normal latency.
 
 #### 7. Background fact extraction consumes quota every 10 turns
 
@@ -194,7 +193,7 @@ Images are often **faster** than text because there's no tool execution loop —
 
 #### 11. No provider-level timeout on Gemini
 
-**What:** The 60s timeout is enforced by our `withTimeout()` wrapper, not by the SDK or HTTP layer. Gemini can hang indefinitely inside the wrapper.
+**What:** The 55s timeout is enforced by our `withTimeout()` wrapper (using `AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`), not by the SDK or HTTP layer. Gemini can hang indefinitely inside the wrapper.
 
 ---
 
@@ -202,25 +201,27 @@ Images are often **faster** than text because there's no tool execution loop —
 
 ### Immediate Wins (Low Effort, High Impact)
 
-#### ✅ R1. Pass pre-loaded data into `runAgent` — saves 20–60ms per request
+#### ✅ R1. Pass pre-loaded data into `runMastraAgent` — saves 20–60ms per request
 
 **Status:** Implemented.
 
-**Change:** `runAgent` now accepts an optional `opts` parameter with pre-loaded `accounts` and `staged`. `respondToText` passes its pre-loaded data through, eliminating the double-fetch.
+**Change:** `runMastraAgent` (`mastra/run.ts`) accepts pre-loaded `accounts` and `staged` in its options. `respondToText` passes its pre-loaded data through, eliminating the double-fetch.
 
 ```ts
 // lib/handlers/text.ts
-const { text: replyText, hints } = await runAgent(userId, profile, facts, messages, traceId, {
+const { text: replyText, hints } = await runMastraAgent(messages, {
+  userId,
+  profile,
+  facts,
+  settings,
   accounts,
   staged,
+  hasStagedMedia,
+  // ...
 });
 
-// lib/llm/agent.ts
-const [accounts, staged, settings] = await Promise.all([
-  opts?.accounts ? Promise.resolve(opts.accounts) : listAccounts(userId),
-  opts?.staged ? Promise.resolve(opts.staged) : listRecentMedia(userId),
-  getSettings(userId),
-]);
+// mastra/run.ts
+const { userId, profile, facts, settings, accounts, staged } = opts;
 ```
 
 **Impact:** ~20–60ms saved + 2 fewer Redis round-trips per text request.
@@ -239,35 +240,35 @@ const [accounts, staged, settings] = await Promise.all([
 
 ---
 
-#### ✅ R3. Reduce `AGENT_TIMEOUT_MS` from 60s to 20s — fail fast
+#### ✅ R3. `AGENT_TIMEOUT_MS` is 55s — long enough for multi-step turns
 
-**Status:** Implemented.
+**Status:** Current value.
 
-**Change:** `lib/llm/provider.ts` — `AGENT_TIMEOUT_MS` changed from `60_000` to `20_000`.
+**Change:** `lib/llm/provider.ts` — `AGENT_TIMEOUT_MS` is `55_000`.
 
 ```ts
-export const AGENT_TIMEOUT_MS = 20_000;
+export const AGENT_TIMEOUT_MS = 55_000;
 ```
 
-**Impact:** Faster failure detection. Most healthy requests finish in 1–3s; 20s catches real hangs without burning function time.
+**Impact:** Multi-step tool turns routinely take 30–45s; 55s gives them room while still fail-fast-ing real hangs.
 
 ---
 
-#### ✅ R4. Add `maxRetries: 1` instead of `3` — reduce retry burn
+#### ✅ R4. Mastra agent `maxRetries: 3`
 
-**Status:** Implemented.
+**Status:** Current value.
 
-**Change:** `maxRetries` changed from `3` to `1` in `lib/llm/agent.ts` and `lib/handlers/image.ts`.
+**Change:** `mastra/agents/lekha-agent.ts` sets `maxRetries: 3` on the Mastra Agent.
 
 ```ts
-generateText({
+export const lekhaAgent = new Agent({
   // ...
-  maxRetries: 1,
+  maxRetries: 3,
   // ...
 });
 ```
 
-**Impact:** On transient 503s, reduces worst-case latency from 3× to 2×.
+**Impact:** Transient failures are retried automatically; on a bad day this can add up to 3× the normal latency.
 
 ---
 
@@ -352,7 +353,7 @@ const [history, facts, accounts, imageData] = await Promise.all([
 
 **What:** 30–40% of user messages are simple lookups ("what's the weather", "what's on my calendar today", "set a reminder"). These don't need the full 18-tool registry.
 
-**Fix:** Add an intent-classifier step before `runAgent`:
+**Fix:** Add an intent-classifier step before `runMastraAgent`:
 1. Fast classifier (small model or regex) categorizes intent
 2. If "simple" intent → use a slim tool subset (~5 tools)
 3. If "complex" intent → use full registry
@@ -399,12 +400,12 @@ After deploying with `DEBUG_TIMING=1`, watch for these patterns in Vercel logs:
 | Warning Sign | What to Look For | Action |
 |---|---|---|
 | Slow pre-flight | `webhook:prelight` > 200ms | Redis latency — check Upstash dashboard |
-| Slow LLM | `agent:generateText` > 8s | Reduce `maxRetries`, consider model downgrade |
+| Slow LLM | `mastra:generate` > 8s | Review prompt, consider model downgrade |
 | Multi-step bloat | `agent:step` count > 3 | Review prompt — model is over-tooling |
 | Slow tools | `agent:step` with `stepMs` > 2s | Check which tool — likely Google API or Tavily |
 | Cache misses | `history:summarize` appearing often | Pre-compute summaries (R6) |
 | LINE failures | `line:reply` with `ok: false` | Use `replyOrPush` (R2) |
-| Timeout recovery | `agent:runAgent` with `timeout: true` | Reduce `AGENT_TIMEOUT_MS` (R3) |
+| Timeout recovery | `mastra:runAgent` with `timeout: true` | Check `AGENT_TIMEOUT_MS` in `lib/llm/provider.ts` |
 | Cold starts | Function init time > 2s | Shrink bundle — `googleapis` → scoped packages (R9) |
 
 ---
@@ -416,9 +417,9 @@ Implemented in this session:
 | # | Recommendation | Status | Est. Impact |
 |---|---|---|---|
 | 1 | **R2** — `replyOrPush` fallback in all handlers | ✅ Done | Prevents silent failures on slow requests |
-| 2 | **R1** — Pass pre-loaded data to `runAgent` | ✅ Done | ~20–60ms saved per text request |
-| 3 | **R4** — Reduce `maxRetries` from 3 → 1 | ✅ Done | Reduces worst-case retry burn 3× → 2× |
-| 4 | **R3** — Lower timeout from 60s → 20s | ✅ Done | Faster failure detection |
+| 2 | **R1** — Pass pre-loaded data to `runMastraAgent` | ✅ Done | ~20–60ms saved per text request |
+| 3 | **R4** — Mastra agent `maxRetries: 3` | ✅ Current | Retries transient failures automatically |
+| 4 | **R3** — `AGENT_TIMEOUT_MS` is 55s | ✅ Current | Long enough for multi-step tool turns |
 | 5 | **R7** — Parallelize media download with preflight | ✅ Done | Up to 500ms saved on image+text combos |
 | 6 | **R5** — Cache `toolsForUser` per-user (5min) | ✅ Done | ~10–30ms + CPU saved on warm starts |
 | 7 | **R12** — Cache weather results (10min TTL) | ✅ Done | Repeated weather queries → ~10ms |

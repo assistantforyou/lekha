@@ -8,7 +8,7 @@ A personal AI assistant living in LINE. **Private bot** (allowlist-gated), per-u
 |---|---|
 | Runtime | Next.js 16 App Router on Vercel Functions (Node.js, Fluid Compute) |
 | Language | TypeScript, strict, `noUncheckedIndexedAccess` on |
-| LLM | Vercel AI SDK v6 + `@ai-sdk/google` (Gemini 2.5 Flash, paid-first, free-key fallback only if paid is down) |
+| LLM / agent framework | Vercel AI SDK v6 + `@ai-sdk/google` + Mastra (`mastra/`) — Gemini 2.5 Flash, paid-first, free-key fallback only if paid is down |
 | Embeddings | Gemini `gemini-embedding-001` (truncated to 768 dims, L2-normalized) |
 | Memory / queues | Upstash Redis (Marketplace integration → `KV_*` env vars) |
 | Vector search | Upstash Vector — archive semantic search (substring fallback when unset) |
@@ -64,11 +64,14 @@ lib/
 │   ├── shortcuts.ts                   # declarative LLM-bypass table (help/connect google/briefings)
 │   ├── enrich-reply.ts                # text + AgentHints → LineMessage (replaces regex-on-model-text)
 │   ├── maybe-extract.ts               # every-10-turn fact extraction trigger
-│   └── handlers/{text,image,other-media}.ts
+│   ├── handlers/
+│   │   ├── text.ts                    # text message → runMastraAgent
+│   │   ├── image.ts                   # image message → vision + staging
+│   │   └── other-media.ts             # video/audio/file staging + audio auto-transcription
 ├── llm/
 │   ├── provider.ts                    # chatModel + extractorModel — swap here for new LLMs
 │   ├── prompts.ts                     # base personality + system prompt builder
-│   ├── agent.ts                       # runAgent + helpers (shared by webhook + dev endpoint)
+│   ├── agent.ts                       # result processing + fallback helpers (legacy runAgent path still used by evals; production uses mastra/run.ts)
 │   ├── extract-facts.ts               # background fact extraction + archive summarization
 │   ├── render-drafts.ts               # canonical verbatim draft block
 │   ├── briefing.ts                    # builds morning briefing: weather/tasks/reminders/calendar/news/inbox
@@ -120,6 +123,14 @@ lib/
     ├── render-flex.ts                 # render_flex — model-generated LINE Flex cards
     ├── places.ts                      # suggest_places — structured place cards with Google Maps buttons
     └── staged-media.ts                # list / clear LINE media staged for attach/upload
+mastra/
+├── index.ts                           # Mastra singleton + Upstash-backed storage
+├── agents/
+│   └── lekha-agent.ts                 # Mastra Agent definition (model, Memory, tools)
+├── run.ts                             # runMastraAgent — production orchestrator
+├── tools/
+│   ├── index.ts                       # buildLekhaTools — wraps lib/tools into Mastra tools
+│   └── wrap-ai-tool.ts                # AI SDK v6 tool → Mastra tool adapter
 tests/
 ├── briefing-gate.test.ts              # shouldFireBriefingNow logic
 ├── confirm.test.ts                    # pending action queue
@@ -131,13 +142,13 @@ tests/
 ## Key architectural decisions (do NOT undo without thinking)
 
 ### 1. Tool errors are RETURNED, not thrown
-The AI SDK v6 catches exceptions in `tool({ execute })` and feeds the error back to the model as a tool result, which the model paraphrases (badly). For control-flow that the orchestrator MUST react to (Google auth required, API not enabled, generic API failures), use `withGoogleClient()` which returns structured `{ ok: false, need_google_auth | google_api_disabled | google_error, … }`. The orchestrator scans tool results post-hoc in `runAgent` and OVERRIDES the model's reply.
+The AI SDK v6 catches exceptions in `tool({ execute })` and feeds the error back to the model as a tool result, which the model paraphrases (badly). For control-flow that the orchestrator MUST react to (Google auth required, API not enabled, generic API failures), use `withGoogleClient()` which returns structured `{ ok: false, need_google_auth | google_api_disabled | google_error, … }`. The orchestrator (`runMastraAgent` in `mastra/run.ts`) scans tool results post-hoc and OVERRIDES the model's reply.
 
 ### 2. Pending actions are an atomic queue
 `appendPending` uses `RPUSH` because the model often emits multiple `draft_*` calls in one parallel-tool-use step. Read-modify-write would race (last write wins, one action lost). Same for `recent-media` staging — also `RPUSH` capped via `LTRIM`.
 
 ### 3. Canonical draft rendering, not model paraphrasing
-After `generateText`, `runAgent` collects all `draft_email` / `draft_calendar_event` tool calls and builds a verbatim block via `renderDraftsBlock`. Source of truth = tool args.
+After the Mastra agent generation finishes, `runMastraAgent` (`mastra/run.ts`) collects all `draft_email` / `draft_calendar_event` tool calls and builds a verbatim block via `renderDraftsBlock`. Source of truth = tool args.
 
 ### 4. Auto-resume after OAuth
 `/api/oauth/google/callback` executes pending actions immediately after a successful exchange and pushes the result. No "try again."
@@ -186,7 +197,7 @@ The bot is private by default. Every event hits the gate before any other logic.
 **Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome message), `/deny <id>` (remove from pending), `/status <id>` (diagnostic snapshot), `/force-briefing <id> [morning|evening]` (manual trigger), `/audit <id> [n]` (compliance trace — see decision #22). Anyone can `/myid` to get their own LINE userId.
 
 ### 16. Single LLM provider — Gemini 2.5 Flash (paid), 55s timeout
-`runAgent` calls Gemini directly with the full tool registry. We moved off Flash Lite because it blanked/panicked on agentic tool use; full Flash handles the same workload reliably. Paid tier RPM (1,000+) absorbs the agentic turn burst. `AGENT_TIMEOUT_MS` is 55s, giving multi-step turns room without burning function time on real hangs (multi-step tool turns routinely take 30-45s). `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
+The Mastra agent (`mastra/agents/lekha-agent.ts`) calls Gemini with the full tool registry. We moved off Flash Lite because it blanked/panicked on agentic tool use; full Flash handles the same workload reliably. Paid tier RPM (1,000+) absorbs the agentic turn burst. `AGENT_TIMEOUT_MS` is 55s (in `lib/llm/provider.ts`), giving multi-step turns room without burning function time on real hangs (multi-step tool turns routinely take 30-45s). `maxSteps: 8` in `mastra/run.ts` caps total reasoning steps to prevent runaway loops.
 
 **Tier order is paid-first, free-as-emergency-fallback-only** (`tiersToTry` in `lib/llm/agent.ts`; `chatModel()` in `lib/llm/provider.ts` mirrors this for non-agentic single-call paths — image analysis, media-ai, preread-doc, health check). This used to be free-first as a cost-saving attempt, but production logs (2026-07-06) showed the free tier's RPM (10-30) is essentially always exhausted under real agentic-turn volume — `[tier] free→paid (quota)` fired on effectively every single logged turn, each one burning 16-19s retrying a call that was never going to succeed before falling back to the paid tier that actually works. Zero cost savings, pure latency tax, on nearly every user-facing reply. Reordered so paid — the tier that's actually reliable — is tried first; free only gets used if paid itself is down. On a full outage (both tiers down) the bot still returns an error rather than degrading further — that part of the original tradeoff stands.
 
@@ -221,10 +232,10 @@ Future verbs (`draft:send:<idx>`, `reminder:cancel:<id>`) wire into the same bra
 **Do not re-add an LLM-based intent classifier.** The previous implementation caused hard failures when the LLM mis-classified a query (wrong label → wrong tool set → blank response). The regex approach with safe fallback is strictly more reliable.
 
 ### 17. Orchestrator-level error relay enforcement
-After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
+After the Mastra agent generation finishes, `runMastraAgent` (`mastra/run.ts`) scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
 
 ### 22. Per-user compliance audit log
-`lib/memory/audit-log.ts` (`audit:{userId}`, RPUSH-capped at 5000 entries, 1-year TTL — matches the receipts retention window) records one `AuditEntry` per agent turn: full user message text, the `fastClassify` hint that was active, every tool call's name/input/output verbatim (not redacted — this is a compliance/debug trail, not a user-facing feature), success/error status per tool, the final reply, and total duration. Written from both the success and error paths of `runAgent` (`lib/llm/agent.ts`), fire-and-forget (`.catch(console.error)`) so a Redis hiccup never blocks the user's reply.
+`lib/memory/audit-log.ts` (`audit:{userId}`, RPUSH-capped at 5000 entries, 1-year TTL — matches the receipts retention window) records one `AuditEntry` per agent turn: full user message text, the `fastClassify` hint that was active, every tool call's name/input/output verbatim (not redacted — this is a compliance/debug trail, not a user-facing feature), success/error status per tool, the final reply, and total duration. Written from both the success and error paths of `runMastraAgent` (`mastra/run.ts`), fire-and-forget (`.catch(console.error)`) so a Redis hiccup never blocks the user's reply.
 
 Admin-only retrieval via `/audit <userId> [n]` (`lib/admin-commands.ts`, default 5 / max 15 entries) — dumps a verbose per-turn trace (tool name, truncated input/output JSON, hint, duration, error) so a reported bug is traceable from the log alone. This is how the Drive-upload-under-`media`-hint bug (tools silently absent from the registry, not a model hallucination) would be diagnosed without needing to reproduce it live.
 
@@ -261,7 +272,7 @@ Three tools in `lib/tools/documents.ts` expose this to the model: `list_document
 3. Render it in `lib/llm/render-drafts.ts`.
 
 ## Swapping the LLM
-`lib/llm/provider.ts` only.
+Base model configuration lives in `lib/llm/provider.ts`; the Mastra Agent wires it in `mastra/agents/lekha-agent.ts`.
 
 ## Gotchas (lessons learned the hard way)
 
@@ -282,7 +293,7 @@ Three tools in `lib/tools/documents.ts` expose this to the model: `list_document
 - **LINE doesn't bundle a caption with media.** Recent-media staging spans messages within 30-min TTL.
 - **`Content-Transfer-Encoding: 7bit` is invalid for UTF-8 bodies** (Thai, emoji). Use base64.
 - **OAuth state nonce + connect-link token must be atomically consumed** (GETDEL) — non-atomic GET+DEL has a replay window.
-- **Gemini timeout at 55s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`). Full Flash reasons a bit longer than Flash Lite, and multi-step tool turns routinely take 30-45s; 55s gives them room while still fail-fast-ing real hangs. Image-only `generateText` calls use the same constant. Note `withTimeout`'s `Promise.race` doesn't actually cancel the losing call — a reported timeout can still complete server-side moments later, so a user retrying a timed-out non-idempotent action (e.g. send email) could in theory duplicate it.
+- **Gemini timeout at 55s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`). Full Flash reasons a bit longer than Flash Lite, and multi-step tool turns routinely take 30-45s; 55s gives them room while still fail-fast-ing real hangs. Note `withTimeout`'s `Promise.race` doesn't actually cancel the losing call — a reported timeout can still complete server-side moments later, so a user retrying a timed-out non-idempotent action (e.g. send email) could in theory duplicate it.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
 - **Upstash Vector index must be dim 768, cosine** to match Gemini `gemini-embedding-001` truncated via `outputDimensionality: 768`. Mismatch surfaces as silent upsert failures — as does any embedding-model 404/rename, which is exactly what happened when `text-embedding-004` was retired (see decision #12).
@@ -314,7 +325,7 @@ curl -s -X POST https://lekha-iota.vercel.app/api/dev/chat \
 - Auth: `x-dev-secret` header must match `DEV_CHAT_SECRET` env var (503 if env var unset, 401 if wrong)
 - Body: `{ userId: string, text: string }`
 - Returns: `{ reply: string }`
-- Uses `runAgent` from `lib/llm/agent.ts` — same core as the webhook
+- Uses `runMastraAgent` from `mastra/run.ts` — same core as the webhook
 - Fires fact extraction every 10 turns (same cadence as webhook)
 - No rate limiting, no allowlist check — dev use only
 

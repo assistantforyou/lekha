@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { mockGenerateText, type MockLLMScenario } from "@/eval/mocks/llm";
+import { mockMastraAgent, type MockMastraScenario } from "@/eval/mocks/mastra-agent";
 import { resetRedisMock } from "@/eval/mocks/redis";
 
 vi.mock("@/lib/memory/redis", async () => {
@@ -19,20 +19,37 @@ vi.mock("@/lib/line/client", () => ({
 }));
 vi.mock("@/lib/memory/audit-log", () => ({ appendAuditEntry: vi.fn(async () => {}) }));
 
-import { runAgent } from "@/lib/llm/agent";
-import { buildTaskTools } from "@/lib/tools/tasks";
-import { buildReminderTools } from "@/lib/tools/reminders";
-import { buildWeatherTools } from "@/lib/tools/weather";
+import { runMastraAgent } from "@/mastra/run";
 import { resetEvalState } from "@/eval/fixtures/state";
-import { testProfile, emptyFacts, TEST_USER_ID } from "@/eval/fixtures/user";
+import { testProfile, testSettings, emptyFacts, TEST_USER_ID } from "@/eval/fixtures/user";
 
 beforeEach(async () => {
   await resetEvalState();
 });
 
+function baseOpts(overrides: { hint?: string } = {}) {
+  return {
+    userId: TEST_USER_ID,
+    profile: testProfile(),
+    facts: emptyFacts(),
+    settings: testSettings(),
+    accounts: { accounts: [] as Array<{ email: string }>, activeEmail: null as string | null },
+    staged: [] as Array<{
+      kind: string;
+      messageId: string;
+      ts: number;
+      fileName?: string;
+      contentType?: string;
+      sizeBytes?: number;
+    }>,
+    hasStagedMedia: false,
+    hint: overrides.hint,
+  };
+}
+
 describe("conversation state across turns", () => {
   it("remembers previous tool call context in multi-turn scenario", async () => {
-    const scenarios: MockLLMScenario[] = [
+    const scenarios: MockMastraScenario[] = [
       {
         match: (params) => String(params.messages.at(-1)?.content).includes("weather"),
         result: () => ({
@@ -54,20 +71,22 @@ describe("conversation state across turns", () => {
         }),
       },
     ];
-    mockGenerateText(scenarios);
+    mockMastraAgent(scenarios);
 
-    const tools = { ...buildWeatherTools(), ...buildTaskTools(TEST_USER_ID), ...buildReminderTools(TEST_USER_ID) };
-
-    const first = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [
-      { role: "user", content: "weather in Bangkok" },
-    ], "trace-multi-1", { tools });
+    const first = await runMastraAgent(
+      [{ role: "user" as const, content: "weather in Bangkok" }],
+      baseOpts(),
+    );
     expect(first.toolCalls?.some((c) => c.toolName === "weather")).toBe(true);
 
-    const second = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [
-      { role: "user", content: "show my tasks" },
-      { role: "assistant", content: first.historyText },
-      { role: "user", content: "now show my tasks" },
-    ], "trace-multi-2", { tools, hint: "task" });
+    const second = await runMastraAgent(
+      [
+        { role: "user" as const, content: "show my tasks" },
+        { role: "assistant" as const, content: first.historyText },
+        { role: "user" as const, content: "now show my tasks" },
+      ],
+      baseOpts({ hint: "task" }),
+    );
     expect(second.toolCalls?.some((c) => c.toolName === "list_tasks")).toBe(true);
   });
 });

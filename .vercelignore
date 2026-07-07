@@ -1,7 +1,3 @@
-# Experimental Mastra work — not deployed yet
-mastra/
-app/api/mastra/
-
 # Playwright MCP snapshots
 .playwright-mcp/
 

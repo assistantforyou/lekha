@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Load the LLM mock first so the ai module is intercepted.
-import { mockGenerateText, type MockLLMScenario } from "@/eval/mocks/llm";
+// Load the Mastra agent mock first so the generate path is intercepted.
+import { mockMastraAgent, type MockMastraScenario } from "@/eval/mocks/mastra-agent";
 import { resetRedisMock } from "@/eval/mocks/redis";
 
 vi.mock("@/lib/memory/redis", async () => {
@@ -20,13 +20,9 @@ vi.mock("@/lib/line/client", () => ({
 }));
 vi.mock("@/lib/memory/audit-log", () => ({ appendAuditEntry: vi.fn(async () => {}) }));
 
-import { runAgent } from "@/lib/llm/agent";
-import { buildWeatherTools } from "@/lib/tools/weather";
-import { buildTaskTools } from "@/lib/tools/tasks";
-import { buildReminderTools } from "@/lib/tools/reminders";
-import { buildMemoryTools } from "@/lib/tools/memory";
+import { runMastraAgent } from "@/mastra/run";
 import { resetEvalState } from "@/eval/fixtures/state";
-import { testProfile, testFactsObject, emptyFacts, TEST_USER_ID } from "@/eval/fixtures/user";
+import { testProfile, testSettings, emptyFacts, TEST_USER_ID } from "@/eval/fixtures/user";
 import { requiredTool, forbiddenTool } from "@/eval/engine/matchers";
 
 beforeEach(async () => {
@@ -37,9 +33,29 @@ function userMessage(text: string) {
   return { role: "user" as const, content: text };
 }
 
-describe("tool selection with mocked LLM", () => {
+function baseOpts(overrides: { hint?: string; facts?: ReturnType<typeof emptyFacts> } = {}) {
+  return {
+    userId: TEST_USER_ID,
+    profile: testProfile(),
+    facts: overrides.facts ?? emptyFacts(),
+    settings: testSettings(),
+    accounts: { accounts: [] as Array<{ email: string }>, activeEmail: null as string | null },
+    staged: [] as Array<{
+      kind: string;
+      messageId: string;
+      ts: number;
+      fileName?: string;
+      contentType?: string;
+      sizeBytes?: number;
+    }>,
+    hasStagedMedia: false,
+    hint: overrides.hint,
+  };
+}
+
+describe("tool selection with mocked Mastra agent", () => {
   it("calls weather tool for weather query", async () => {
-    const scenario: MockLLMScenario = {
+    const scenario: MockMastraScenario = {
       result: () => ({
         text: "It's sunny in Bangkok.",
         steps: [{
@@ -49,19 +65,16 @@ describe("tool selection with mocked LLM", () => {
         }],
       }),
     };
-    mockGenerateText([scenario]);
+    mockMastraAgent([scenario]);
 
-    const result = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [userMessage("weather in Bangkok")], "trace-1", {
-      tools: buildWeatherTools(),
-      hint: "weather",
-    });
+    const result = await runMastraAgent([userMessage("weather in Bangkok")], baseOpts({ hint: "weather" }));
 
     expect(requiredTool(result, "weather").pass).toBe(true);
     expect(result.text).toContain("sunny");
   });
 
   it("calls list_tasks for task query", async () => {
-    const scenario: MockLLMScenario = {
+    const scenario: MockMastraScenario = {
       result: () => ({
         text: "",
         steps: [{
@@ -71,18 +84,15 @@ describe("tool selection with mocked LLM", () => {
         }],
       }),
     };
-    mockGenerateText([scenario]);
+    mockMastraAgent([scenario]);
 
-    const result = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [userMessage("show my tasks")], "trace-2", {
-      tools: buildTaskTools(TEST_USER_ID),
-      hint: "task",
-    });
+    const result = await runMastraAgent([userMessage("show my tasks")], baseOpts({ hint: "task" }));
 
     expect(requiredTool(result, "list_tasks").pass).toBe(true);
   });
 
   it("calls set_reminder for reminder query", async () => {
-    const scenario: MockLLMScenario = {
+    const scenario: MockMastraScenario = {
       result: () => ({
         text: "",
         steps: [{
@@ -92,28 +102,26 @@ describe("tool selection with mocked LLM", () => {
         }],
       }),
     };
-    mockGenerateText([scenario]);
+    mockMastraAgent([scenario]);
 
-    const result = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [userMessage("remind me to call mom in 1 hour")], "trace-3", {
-      tools: buildReminderTools(TEST_USER_ID),
-      hint: "reminder",
-    });
+    const result = await runMastraAgent(
+      [userMessage("remind me to call mom in 1 hour")],
+      baseOpts({ hint: "reminder" }),
+    );
 
     expect(requiredTool(result, "set_reminder").pass).toBe(true);
   });
 
   it("does not call tools for casual chat", async () => {
-    const scenario: MockLLMScenario = {
+    const scenario: MockMastraScenario = {
       result: () => ({
         text: "Hi there! How can I help?",
         steps: [],
       }),
     };
-    mockGenerateText([scenario]);
+    mockMastraAgent([scenario]);
 
-    const result = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [userMessage("hi")], "trace-4", {
-      tools: { ...buildWeatherTools(), ...buildTaskTools(TEST_USER_ID) },
-    });
+    const result = await runMastraAgent([userMessage("hi")], baseOpts());
 
     expect(forbiddenTool(result, "list_tasks").pass).toBe(true);
     expect(forbiddenTool(result, "weather").pass).toBe(true);
@@ -121,7 +129,7 @@ describe("tool selection with mocked LLM", () => {
   });
 
   it("calls remember for memory request", async () => {
-    const scenario: MockLLMScenario = {
+    const scenario: MockMastraScenario = {
       result: () => ({
         text: "",
         steps: [{
@@ -131,12 +139,12 @@ describe("tool selection with mocked LLM", () => {
         }],
       }),
     };
-    mockGenerateText([scenario]);
+    mockMastraAgent([scenario]);
 
-    const result = await runAgent(TEST_USER_ID, testProfile(), testFactsObject(), [userMessage("remember I like Thai iced tea")], "trace-5", {
-      tools: buildMemoryTools(TEST_USER_ID),
-      hint: "memory",
-    });
+    const result = await runMastraAgent(
+      [userMessage("remember I like Thai iced tea")],
+      baseOpts({ facts: emptyFacts(), hint: "memory" }),
+    );
 
     expect(requiredTool(result, "remember").pass).toBe(true);
   });

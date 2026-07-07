@@ -33,7 +33,8 @@ import { factsToPromptBlock, type UserFacts } from "@/lib/memory/facts";
 import { appendAuditEntry, type AuditToolCall } from "@/lib/memory/audit-log";
 import { buildFlexFromToolResults, buildFollowUps, buildDraftFlexCards } from "@/lib/llm/agent-flex";
 import { HELP_TEXT } from "@/lib/tools/help";
-import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
+import { unwrapAuthRequired } from "@/lib/errors";
+import { span, tick, withTimeout } from "@/lib/timing";
 import { t } from "@/lib/i18n";
 import { GEMINI_PROVIDER_OPTIONS, AGENT_TIMEOUT_MS } from "@/lib/llm/provider";
 
@@ -60,6 +61,7 @@ export type MastraRunOptions = {
   imageBundled?: boolean;
   isGroupChat?: boolean;
   speakerName?: string;
+  conversationId?: string;
   groupContext?: ModelMessage[];
   timeoutMs?: number;
   traceId?: string;
@@ -189,7 +191,10 @@ export async function runMastraAgent(
         instructions: system,
         context: [...timePrefix, ...(opts.groupContext ?? [])] as any,
         requestContext,
-        memory: { resource: userId, thread: userId },
+        memory: {
+          resource: userId,
+          thread: opts.isGroupChat && opts.conversationId ? opts.conversationId : userId,
+        },
         maxSteps: 8,
         providerOptions: { google: { ...GEMINI_PROVIDER_OPTIONS.google, temperature: 0.6 } } as any,
         onStepFinish: (step) => {
@@ -340,11 +345,6 @@ export async function runMastraAgent(
     const historyText = finalText.trim().length > 0 ? finalText : text.trim().length > 0 ? text : "Done.";
     return { text: finalText, hints, toolCalls: extraToolCalls, historyText };
   } catch (err) {
-    const isTimeout = err instanceof AgentTimeoutError;
-    if (isTimeout && geminiRanToolCalls) {
-      endAgent({ error: (err as Error).message });
-      throw err;
-    }
     const errText = await handleAgentError(err, opts.userId, lang, opts.userId);
     endAgent({ error: err instanceof Error ? err.message : String(err) });
     return {
@@ -353,7 +353,7 @@ export async function runMastraAgent(
         confirmDraft: false,
         hasDraftFlex: false,
         pickAccount: false,
-        needsGoogleConnect: false,
+        needsGoogleConnect: unwrapAuthRequired(err) !== undefined,
       },
       toolCalls: [],
       historyText: errText,

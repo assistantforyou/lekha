@@ -111,6 +111,7 @@ export async function respondToText(
     imageBundled: !!imageData,
     isGroupChat: Boolean(opts?.groupContext),
     speakerName: opts?.groupContext?.speakerName,
+    conversationId: opts?.groupContext?.conversationId,
     groupContext: groupMsgs,
     timeoutMs: imageData ? 55_000 : undefined,
     traceId,
@@ -135,10 +136,14 @@ export async function respondToText(
   endReply();
 
   const endAppend = span("text:appendTurns", traceId);
-  const appendPersonal = Promise.all([
-    appendTurn(userId, { role: "user", content: userText, ts: Date.now() }),
-    appendTurn(userId, { role: "assistant", content: historyText, ts: Date.now() }),
-  ]);
+  // TODO: remove appendTurn for DMs once fact extraction and dev chat are migrated
+  // to read from Mastra Memory instead of the legacy Redis history list.
+  const appendPersonal = opts?.groupContext
+    ? Promise.resolve()
+    : Promise.all([
+        appendTurn(userId, { role: "user", content: userText, ts: Date.now() }),
+        appendTurn(userId, { role: "assistant", content: historyText, ts: Date.now() }),
+      ]);
   const appendGroup = opts?.groupContext
     ? Promise.all([
         appendGroupTurn(opts.groupContext.conversationId, {

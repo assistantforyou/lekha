@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { mockGenerateText, type MockLLMScenario } from "@/eval/mocks/llm";
+import { mockMastraAgent, type MockMastraScenario } from "@/eval/mocks/mastra-agent";
 import { resetRedisMock } from "@/eval/mocks/redis";
 
 vi.mock("@/lib/memory/redis", async () => {
@@ -19,19 +19,37 @@ vi.mock("@/lib/line/client", () => ({
 }));
 vi.mock("@/lib/memory/audit-log", () => ({ appendAuditEntry: vi.fn(async () => {}) }));
 
-import { runAgent } from "@/lib/llm/agent";
-import { buildEmailTools } from "@/lib/tools/email";
+import { runMastraAgent } from "@/mastra/run";
 import { hasDraftConfirmation } from "@/eval/engine/matchers";
 import { resetEvalState } from "@/eval/fixtures/state";
-import { testProfile, emptyFacts, TEST_USER_ID } from "@/eval/fixtures/user";
+import { testProfile, testSettings, emptyFacts, TEST_USER_ID } from "@/eval/fixtures/user";
 
 beforeEach(async () => {
   await resetEvalState();
 });
 
+function baseOpts() {
+  return {
+    userId: TEST_USER_ID,
+    profile: testProfile(),
+    facts: emptyFacts(),
+    settings: testSettings(),
+    accounts: { accounts: [] as Array<{ email: string }>, activeEmail: null as string | null },
+    staged: [] as Array<{
+      kind: string;
+      messageId: string;
+      ts: number;
+      fileName?: string;
+      contentType?: string;
+      sizeBytes?: number;
+    }>,
+    hasStagedMedia: false,
+  };
+}
+
 describe("draft confirmation flow", () => {
   it("sets confirmDraft hint when draft_email succeeds", async () => {
-    const scenario: MockLLMScenario = {
+    const scenario: MockMastraScenario = {
       result: () => ({
         text: "I drafted an email for you.",
         steps: [{
@@ -48,20 +66,19 @@ describe("draft confirmation flow", () => {
         }],
       }),
     };
-    mockGenerateText([scenario]);
+    mockMastraAgent([scenario]);
 
-    const result = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [
-      { role: "user", content: "draft an email to my boss saying I'm out tomorrow" },
-    ], "trace-draft", {
-      tools: buildEmailTools(TEST_USER_ID),
-    });
+    const result = await runMastraAgent(
+      [{ role: "user" as const, content: "draft an email to my boss saying I'm out tomorrow" }],
+      baseOpts(),
+    );
 
     expect(hasDraftConfirmation(result).pass).toBe(true);
     expect(result.toolCalls?.some((c) => c.toolName === "draft_email")).toBe(true);
   });
 
   it("does not confirm draft when tool fails", async () => {
-    const scenario: MockLLMScenario = {
+    const scenario: MockMastraScenario = {
       result: () => ({
         text: "",
         steps: [{
@@ -70,13 +87,12 @@ describe("draft confirmation flow", () => {
         }],
       }),
     };
-    mockGenerateText([scenario]);
+    mockMastraAgent([scenario]);
 
-    const result = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [
-      { role: "user", content: "draft email" },
-    ], "trace-draft-fail", {
-      tools: buildEmailTools(TEST_USER_ID),
-    });
+    const result = await runMastraAgent(
+      [{ role: "user" as const, content: "draft email" }],
+      baseOpts(),
+    );
 
     expect(result.hints.confirmDraft).toBe(false);
     expect(result.text).toContain("missing subject");

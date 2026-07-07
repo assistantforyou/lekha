@@ -1,18 +1,19 @@
 import { Mastra } from "@mastra/core";
 import { UpstashStore } from "@mastra/upstash";
-import { env } from "@/lib/env";
+import { redisCreds } from "@/lib/env";
 import { lekhaAgent } from "./agents/lekha-agent";
 
 function createStorage() {
-  const e = env();
-  if (!e.UPSTASH_REDIS_REST_URL || !e.UPSTASH_REDIS_REST_TOKEN) {
+  try {
+    const { url, token } = redisCreds();
+    return new UpstashStore({
+      id: "lekha-storage",
+      url,
+      token,
+    });
+  } catch {
     return undefined;
   }
-  return new UpstashStore({
-    id: "lekha-storage",
-    url: e.UPSTASH_REDIS_REST_URL,
-    token: e.UPSTASH_REDIS_REST_TOKEN,
-  });
 }
 
 /**

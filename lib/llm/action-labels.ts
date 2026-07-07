@@ -43,6 +43,9 @@ export const ACTION_LABELS: Record<string, string> = {
   list_memories: "Memories listed",
   search_archived_memory: "Archive searched",
   list_archived_memory: "Archive listed",
+  list_documents: "Documents listed",
+  search_documents: "Documents searched",
+  forget_document: "Document forgotten",
   // Settings
   set_timezone: "Timezone updated",
   set_location: "Location updated",
@@ -53,6 +56,10 @@ export const ACTION_LABELS: Record<string, string> = {
   disable_evening_summary: "Evening summary disabled",
   enable_pre_meeting_reminders: "Pre-meeting reminders enabled",
   disable_pre_meeting_reminders: "Pre-meeting reminders disabled",
+  enable_pre_meeting_alerts: "Pre-meeting alerts enabled",
+  enable_task_check_in: "Task check-in enabled",
+  disable_task_check_in: "Task check-in disabled",
+  set_task_check_in_time: "Task check-in time set",
   enable_briefing_emails: "Briefing emails enabled",
   disable_briefing_emails: "Briefing emails disabled",
   get_my_settings: "Settings loaded",
@@ -82,6 +89,9 @@ export const ACTION_LABELS: Record<string, string> = {
   summarize_document: "Document summarized",
   transcribe_audio: "Audio transcribed",
   summarize_audio: "Audio summarized",
+  summarize_video: "Video summarized",
+  extract_document_data: "Document data extracted",
+  research_document_item: "Document research done",
   // Receipts
   scan_receipt: "Receipt scanned",
   list_receipts: "Receipts listed",
@@ -93,15 +103,23 @@ export const ACTION_LABELS: Record<string, string> = {
   add_to_list: "Added to list",
   remove_from_list: "Removed from list",
   clear_list: "List cleared",
+  create_list: "List created",
+  rename_list: "List renamed",
   delete_list: "List deleted",
   // Contacts & places
   contacts_search: "Contacts found",
+  contacts_remember: "Contact saved",
   suggest_places: "Places found",
+  // Staged media
+  list_staged_media: "Staged media listed",
+  clear_staged_media: "Staged media cleared",
+
   // Google accounts
   list_google_accounts: "Accounts listed",
   connect_google_account: "Connect link sent",
   switch_google_account: "Account switched",
   disconnect_google_account: "Account disconnected",
+
   // Misc
   show_help: "Help shown",
   export_my_data: "Data exported",

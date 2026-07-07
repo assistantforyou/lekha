@@ -1,7 +1,6 @@
 import { performance } from "perf_hooks";
 import type { ModelMessage } from "ai";
-import { runAgent } from "@/lib/llm/agent";
-import { toolsForUser } from "@/lib/tools";
+import { runMastraAgent, type MastraRunOptions } from "@/mastra/run";
 import { fastClassify } from "@/lib/fast-classify";
 import { getSettings } from "@/lib/memory/settings";
 import { loadFacts } from "@/lib/memory/facts";
@@ -51,14 +50,19 @@ export async function runScenario(
   const userHasGoogle = accounts.accounts.length > 0;
   const hasStagedMedia = staged.length > 0;
   const hint = fastClassify(scenario.userText, { hasStagedMedia });
-  const tools = await toolsForUser(userId, {
-    userHasGoogle,
-    disabledCategories: settings.disabledCategories,
-    hasStagedMedia,
-    hint,
-  });
 
   const messages: ModelMessage[] = [...(scenario.history ?? []), { role: "user", content: scenario.userText }];
+
+  const runOpts: MastraRunOptions = {
+    userId,
+    profile: testProfile(),
+    facts,
+    settings,
+    accounts,
+    staged,
+    hasStagedMedia,
+    hint,
+  };
 
   if (opts.useCache && cachedResultExists(scenario, opts.promptVersion, opts.model)) {
     const cached = readCachedResult(scenario, opts.promptVersion, opts.model);
@@ -69,14 +73,7 @@ export async function runScenario(
   let result;
   let error: string | undefined;
   try {
-    result = await runAgent(userId, testProfile(), facts, messages, `eval_${scenario.id}`, {
-      settings,
-      accounts,
-      staged,
-      tools,
-      hasStagedMedia,
-      hint,
-    });
+    result = await runMastraAgent(messages, runOpts);
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
     result = {
@@ -101,7 +98,9 @@ export async function runScenario(
     scenarioName: scenario.name,
     category: scenario.category,
     userText: scenario.userText,
-    availableTools: Object.keys(tools),
+    // Mastra builds the per-user tool registry internally, so the runner no longer
+    // has direct access to the available tool list. TODO: expose from runMastraAgent.
+    availableTools: [],
     calledTools: result.toolCalls?.map((c) => c.toolName) ?? [],
     toolInputs: result.toolCalls?.map((c) => ({ toolName: c.toolName, input: c.input })) ?? [],
     latencyMs,

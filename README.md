@@ -2,7 +2,7 @@
 
 A personal AI assistant that lives in [LINE](https://line.me). Add the Official Account, message it like a friend, and it can chat, remember things about you, set reminders, search the web, look at photos you send, manage your Google Calendar, search your Google Drive, and send email **from your own Gmail with real attachments** — including files you forwarded to it directly in LINE.
 
-Built on Next.js 16 + Vercel AI SDK v6 + Gemini, deployed on Vercel Functions. **Private bot** (allowlist-gated) — per-user isolated memory, Google OAuth, and rate limiting. Production: `https://lekha-iota.vercel.app`.
+Built on Next.js 16 + Vercel AI SDK v6 + Mastra + Gemini, deployed on Vercel Functions. **Private bot** (allowlist-gated) — per-user isolated memory, Google OAuth, and rate limiting. Production: `https://lekha-iota.vercel.app`.
 
 ---
 
@@ -133,12 +133,14 @@ For internals you need when modifying the code, see **[CLAUDE.md](./CLAUDE.md)**
                                           │
                                           ▼
         ┌────────────────────────────────────────────────────────────┐
-        │ runAgent(): generateText() with                            │
-        │   model:    gemini-flash-latest (via @ai-sdk/google)       │
-        │   system:   personality + memory + accounts + staged media │
-        │   tools:    13 tools, gated on env (Google/QStash/Tavily)  │
-        │   stopWhen: stepCountIs(8)                                 │
-        │   safety:   HARM_CATEGORY_* = BLOCK_NONE                   │
+        │ runMastraAgent() with                                      │
+        │   agent:   lekha-agent.ts (Mastra Agent + Memory)          │
+        │   model:   gemini-2.5-flash (via @ai-sdk/google)           │
+        │   system:  personality + memory + accounts + staged media  │
+        │   tools:   conditional registry gated on env/OAuth/hint    │
+        │   memory:  Mastra Memory on Upstash Redis/Vector           │
+        │   maxSteps: 8                                              │
+        │   safety:  HARM_CATEGORY_* = BLOCK_NONE                    │
         │                                                            │
         │ Post-process result.steps:                                 │
         │   • detect need_google_auth → override reply with link     │
@@ -158,7 +160,7 @@ For internals you need when modifying the code, see **[CLAUDE.md](./CLAUDE.md)**
 
 **Why a pending-action queue?** A single user message often triggers multiple actions in one turn ("email these people AND schedule a meeting"). The model emits both `draft_email` and `draft_calendar_event` in one parallel-tool-use step. Both `appendPending` calls happen concurrently, so the queue uses atomic `RPUSH` to avoid races. One YES → entire queue executes in order.
 
-**Why canonical draft rendering?** LLMs paraphrase. We don't want the user to confirm "an email about the certificate" only to have the bot send something different than what was actually drafted. After `generateText`, we inspect `result.steps` for tool calls, build a verbatim draft block from the actual tool-call inputs, and append (or replace) the model's text. Source of truth = tool args.
+**Why canonical draft rendering?** LLMs paraphrase. We don't want the user to confirm "an email about the certificate" only to have the bot send something different than what was actually drafted. After the Mastra agent generation finishes, `runMastraAgent` inspects the resulting steps for tool calls, builds a verbatim draft block from the actual tool-call inputs, and appends (or replaces) the model's text. Source of truth = tool args.
 
 ---
 
@@ -526,7 +528,7 @@ Look for `[webhook]`, `[agent]`, `[reminder]`, `[oauth]`, `[google]`, `[send]` p
 6. Restart `npm run dev` and try it.
 
 ### A new LLM provider
-Edit `lib/llm/provider.ts`. Just `chatModel()` and `extractorModel()`. Could be `@ai-sdk/anthropic`, `@ai-sdk/openai`, the Vercel AI Gateway, etc.
+Edit `lib/llm/provider.ts` for the base model helpers, and wire the chosen model into `mastra/agents/lekha-agent.ts`. Could be `@ai-sdk/anthropic`, `@ai-sdk/openai`, the Vercel AI Gateway, etc.
 
 ### A new pending-action type
 1. Add a variant to `PendingAction` in `lib/confirm.ts`.
@@ -547,7 +549,8 @@ app/
 │   ├── scheduled-email/fire/route.ts  # QStash callback
 │   ├── cron/sweep/route.ts            # proactive layer (every 15 min)
 │   ├── subscribe/route.ts             # email capture
-│   └── health/route.ts
+│   ├── health/route.ts
+│   └── mastra/health/route.ts         # Mastra agent health check
 ├── connect/[token]/page.tsx           # OAuth landing
 ├── components/marketing/, components/ui/
 └── layout.tsx, page.tsx               # marketing landing page
@@ -574,6 +577,11 @@ lib/
     ├── memory.ts, settings.ts, help.ts
     ├── morning-briefing.ts, evening-summary.ts
     ├── sent-history.ts, export.ts, staged-media.ts
+mastra/
+├── index.ts                           # Mastra singleton + storage
+├── agents/lekha-agent.ts              # Mastra Agent (model, Memory, tools)
+├── run.ts                             # runMastraAgent production orchestrator
+└── tools/                             # wraps lib/tools into Mastra tools
 tests/
 ├── briefing-gate.test.ts, confirm.test.ts, cron.test.ts
 ├── crypto.test.ts, verify.test.ts

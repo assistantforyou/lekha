@@ -2,25 +2,34 @@ import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { UpstashStore, UpstashVector } from "@mastra/upstash";
 import { googleClient } from "@/lib/llm/provider";
-import { env } from "@/lib/env";
+import { env, redisCreds } from "@/lib/env";
 import { buildLekhaTools, lekhaRequestContextSchema } from "../tools";
 
 function createMemory() {
   const e = env();
-  if (!e.UPSTASH_REDIS_REST_URL || !e.UPSTASH_REDIS_REST_TOKEN) {
+
+  let storage;
+  try {
+    const creds = redisCreds();
+    storage = new UpstashStore({
+      id: "lekha-memory",
+      url: creds.url,
+      token: creds.token,
+    });
+  } catch {
+    return undefined;
+  }
+
+  if (!e.UPSTASH_VECTOR_REST_URL || !e.UPSTASH_VECTOR_REST_TOKEN) {
     return undefined;
   }
 
   return new Memory({
-    storage: new UpstashStore({
-      id: "lekha-memory",
-      url: e.UPSTASH_REDIS_REST_URL,
-      token: e.UPSTASH_REDIS_REST_TOKEN,
-    }),
+    storage,
     vector: new UpstashVector({
       id: "lekha-vector",
-      url: e.UPSTASH_VECTOR_REST_URL!,
-      token: e.UPSTASH_VECTOR_REST_TOKEN!,
+      url: e.UPSTASH_VECTOR_REST_URL,
+      token: e.UPSTASH_VECTOR_REST_TOKEN,
     }),
     embedder: googleClient().textEmbeddingModel("gemini-embedding-001"),
     embedderOptions: { providerOptions: { google: { outputDimensionality: 768 } } },
@@ -29,6 +38,7 @@ function createMemory() {
       semanticRecall: {
         topK: 3,
         messageRange: 2,
+        scope: "thread",
       },
       workingMemory: { enabled: true, scope: "resource" },
     },

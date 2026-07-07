@@ -1339,7 +1339,7 @@ export function buildFlexFromToolResults(
 
       // ── News search ────────────────────────────────────────────────────
       if (
-        (toolName === "news_search" || toolName === "search_news") &&
+        toolName === "news_search" &&
         Array.isArray(value.stories ?? value.results)
       ) {
         if (userText && !looksLikeNewsRequest(userText)) {
@@ -1442,11 +1442,11 @@ export function buildFollowUps(
     push("Add item", "add to this list");
     push("Clear list", "clear this list");
   }
-  if (names.has("weather") || names.has("get_weather")) {
+  if (names.has("weather")) {
     push("Tomorrow?", "weather tomorrow");
     push("This week?", "weather this week");
   }
-  if (names.has("news_search") || names.has("search_news")) {
+  if (names.has("news_search")) {
     push("More like this", "show me more news on this");
   }
   if (names.has("get_morning_briefing")) {

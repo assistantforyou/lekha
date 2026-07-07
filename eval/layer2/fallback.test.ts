@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { mockGenerateText, type MockLLMScenario } from "@/eval/mocks/llm";
+import { mockMastraAgent, type MockMastraScenario } from "@/eval/mocks/mastra-agent";
 import { resetRedisMock } from "@/eval/mocks/redis";
 
 vi.mock("@/lib/memory/redis", async () => {
@@ -19,35 +19,52 @@ vi.mock("@/lib/line/client", () => ({
 }));
 vi.mock("@/lib/memory/audit-log", () => ({ appendAuditEntry: vi.fn(async () => {}) }));
 
-import { runAgent } from "@/lib/llm/agent";
-import { buildTaskTools } from "@/lib/tools/tasks";
+import { runMastraAgent } from "@/mastra/run";
 import { addTask } from "@/lib/memory/tasks";
 import { resetEvalState } from "@/eval/fixtures/state";
-import { testProfile, emptyFacts, TEST_USER_ID } from "@/eval/fixtures/user";
+import { testProfile, testSettings, emptyFacts, TEST_USER_ID } from "@/eval/fixtures/user";
 import { requiredTool } from "@/eval/engine/matchers";
 
 beforeEach(async () => {
   await resetEvalState();
 });
 
+function baseOpts(overrides: { hint?: string } = {}) {
+  return {
+    userId: TEST_USER_ID,
+    profile: testProfile(),
+    facts: emptyFacts(),
+    settings: testSettings(),
+    accounts: { accounts: [] as Array<{ email: string }>, activeEmail: null as string | null },
+    staged: [] as Array<{
+      kind: string;
+      messageId: string;
+      ts: number;
+      fileName?: string;
+      contentType?: string;
+      sizeBytes?: number;
+    }>,
+    hasStagedMedia: false,
+    hint: overrides.hint,
+  };
+}
+
 describe("deterministic fallback execution", () => {
   it("falls back to list_tasks when model blanks on task query", async () => {
-    const scenario: MockLLMScenario = {
+    const scenario: MockMastraScenario = {
       result: () => ({
         text: "I didn't catch that — could you rephrase?",
         steps: [],
       }),
     };
-    mockGenerateText([scenario]);
+    mockMastraAgent([scenario]);
 
     await addTask(TEST_USER_ID, { title: "buy milk" });
 
-    const result = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [
-      { role: "user", content: "show my tasks" },
-    ], "trace-fallback-task", {
-      tools: buildTaskTools(TEST_USER_ID),
-      hint: "task",
-    });
+    const result = await runMastraAgent(
+      [{ role: "user" as const, content: "show my tasks" }],
+      baseOpts({ hint: "task" }),
+    );
 
     expect(requiredTool(result, "list_tasks").pass).toBe(true);
     expect(result.historyText.length).toBeGreaterThan(0);
@@ -55,21 +72,53 @@ describe("deterministic fallback execution", () => {
   });
 
   it("falls back to weather when model blanks on weather query", async () => {
-    const scenario: MockLLMScenario = {
+    const scenario: MockMastraScenario = {
       result: () => ({
         text: "",
         steps: [],
       }),
     };
-    mockGenerateText([scenario]);
+    mockMastraAgent([scenario]);
 
-    const { buildWeatherTools } = await import("@/lib/tools/weather");
-    const result = await runAgent(TEST_USER_ID, testProfile(), emptyFacts(), [
-      { role: "user", content: "weather in Bangkok" },
-    ], "trace-fallback-weather", {
-      tools: buildWeatherTools(),
-      hint: "weather",
-    });
+    // Mock weather APIs so the test doesn't depend on slow/unreliable third parties.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL) => {
+        const u = url.toString();
+        if (u.includes("wttr.in")) {
+          return new Response(
+            JSON.stringify({
+              current_condition: [{
+                temp_C: "32",
+                temp_F: "90",
+                FeelsLikeC: "36",
+                weatherDesc: [{ value: "Sunny" }],
+                humidity: "65",
+                windspeedKmph: "10",
+                winddir16Point: "SW",
+              }],
+              nearest_area: [{
+                areaName: [{ value: "Bangkok" }],
+                region: [{ value: "Bangkok" }],
+                country: [{ value: "Thailand" }],
+              }],
+              weather: [
+                { date: "2026-07-07", maxtempC: "33", mintempC: "26", hourly: [{ chanceofrain: "10", weatherDesc: [{ value: "Sunny" }] }] },
+                { date: "2026-07-08", maxtempC: "32", mintempC: "26", hourly: [{ chanceofrain: "20", weatherDesc: [{ value: "Cloudy" }] }] },
+                { date: "2026-07-09", maxtempC: "31", mintempC: "25", hourly: [{ chanceofrain: "30", weatherDesc: [{ value: "Rain" }] }] },
+              ],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        return new Response(JSON.stringify({}), { status: 200 });
+      }),
+    );
+
+    const result = await runMastraAgent(
+      [{ role: "user" as const, content: "weather in Bangkok" }],
+      baseOpts({ hint: "weather" }),
+    );
 
     expect(requiredTool(result, "weather").pass).toBe(true);
   });

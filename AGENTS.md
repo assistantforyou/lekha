@@ -57,6 +57,7 @@ app/
 │   ├── github/line-webhook/route.ts        # recipient registration for GitHub notifications
 │   ├── subscribe/route.ts                  # marketing email capture
 │   ├── health/route.ts                     # dependency health check
+│   ├── mastra/health/route.ts              # Mastra agent health check
 │   ├── status/route.ts                     # human-readable Gemini tier status page
 │   ├── dashboard/{me,settings,facts,connect-google,disconnect-google,test-line}/route.ts
 │   └── report/{marketing,status,user}/route.ts
@@ -87,7 +88,7 @@ lib/
 ├── utils.ts                                # shared utilities (cn, etc.)
 ├── timing.ts                               # performance span/tick helpers
 ├── handlers/
-│   ├── text.ts                             # text message → runAgent
+│   ├── text.ts                             # text message → runMastraAgent
 │   ├── image.ts                            # image message → vision + staging
 │   └── other-media.ts                      # video/audio/file staging + audio auto-transcription
 ├── line/
@@ -100,9 +101,9 @@ lib/
 │   ├── places-flex.ts                      # places result Flex cards
 │   └── weather-flex.ts                     # weather result Flex cards
 ├── llm/
-│   ├── provider.ts                         # chatModel + extractorModel + embeddingModel — swap here
+│   ├── provider.ts                         # chatModel + extractorModel + embeddingModel — swap base model here
 │   ├── prompts.ts                          # base personality + system prompt builder
-│   ├── agent.ts                            # runAgent + helpers (shared by webhook + dev endpoint)
+│   ├── agent.ts                            # result processing + fallback helpers (legacy runAgent path still used by evals; production uses mastra/run.ts)
 │   ├── agent-flex.ts                       # Flex Message builders from tool results
 │   ├── action-labels.ts                    # deterministic fallback action triggers
 │   ├── casual-reply.ts                     # small-talk / greeting handlers
@@ -160,6 +161,14 @@ lib/
     ├── places.ts                           # suggest_places — structured place cards
     ├── render-flex.ts                      # render_flex — model-generated LINE Flex cards
     └── staged-media.ts                     # list / clear LINE media staged for attach/upload
+mastra/
+├── index.ts                                # Mastra singleton + Upstash-backed storage
+├── agents/
+│   └── lekha-agent.ts                      # Mastra Agent definition (model, memory, tools)
+├── run.ts                                  # runMastraAgent — production orchestrator bridging into Mastra
+├── tools/
+│   ├── index.ts                            # buildLekhaTools — wraps lib/tools into Mastra tools
+│   └── wrap-ai-tool.ts                     # AI SDK v6 tool → Mastra tool adapter
 tests/
 ├── allowlist.test.ts
 ├── briefing-gate.test.ts
@@ -184,13 +193,13 @@ marketing/
 ## Key architectural decisions (do NOT undo without thinking)
 
 ### 1. Tool errors are RETURNED, not thrown
-The AI SDK v6 catches exceptions in `tool({ execute })` and feeds the error back to the model as a tool result, which the model paraphrases (badly). For control-flow that the orchestrator MUST react to (Google auth required, API not enabled, generic API failures), use `withGoogleClient()` which returns structured `{ ok: false, need_google_auth | google_api_disabled | google_error, … }`. The orchestrator scans tool results post-hoc in `runAgent` and OVERRIDES the model's reply.
+The AI SDK v6 catches exceptions in `tool({ execute })` and feeds the error back to the model as a tool result, which the model paraphrases (badly). For control-flow that the orchestrator MUST react to (Google auth required, API not enabled, generic API failures), use `withGoogleClient()` which returns structured `{ ok: false, need_google_auth | google_api_disabled | google_error, … }`. The orchestrator (`runMastraAgent` in `mastra/run.ts`) scans tool results post-hoc and OVERRIDES the model's reply.
 
 ### 2. Pending actions are an atomic queue
 `appendPending` uses `RPUSH` because the model often emits multiple `draft_*` calls in one parallel-tool-use step. Read-modify-write would race (last write wins, one action lost). Same for `recent-media` staging — also `RPUSH` capped via `LTRIM`.
 
 ### 3. Canonical draft rendering, not model paraphrasing
-After `generateText`, `runAgent` collects all `draft_email` / `draft_calendar_event` / `schedule_email` tool calls and builds a verbatim block via `renderDraftsBlock`. Source of truth = tool args.
+After the Mastra agent generation finishes, `runMastraAgent` (`mastra/run.ts`) collects all `draft_email` / `draft_calendar_event` / `schedule_email` tool calls and builds a verbatim block via `renderDraftsBlock`. Source of truth = tool args.
 
 ### 4. Auto-resume after OAuth
 `/api/oauth/google/callback` executes pending actions immediately after a successful exchange and pushes the result. No "try again."
@@ -237,10 +246,10 @@ The bot is private by default. Every event hits the gate before any other logic.
 **Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome), `/deny <id>` (remove from pending). Anyone can `/myid` to get their own LINE userId.
 
 ### 16. Single LLM provider — Gemini 2.5 Flash, 30s timeout
-No cascade, no fallback. We use full Flash (not Flash Lite) for agentic tool use because Flash Lite blanked/panicked under the full tool registry. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 30s — fail-fast for real hangs without burning function time. `stepCountIs(8)` caps total reasoning steps to prevent runaway loops.
+No cascade, no fallback. The Mastra agent (`mastra/agents/lekha-agent.ts`) uses full Flash (not Flash Lite) for agentic tool use because Flash Lite blanked/panicked under the full tool registry. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 55s (in `lib/llm/provider.ts`) — long enough for multi-step tool turns without burning function time on real hangs. `maxSteps: 8` in `mastra/run.ts` caps total reasoning steps to prevent runaway loops.
 
 ### 17. Orchestrator-level error relay enforcement
-After `generateText`, `runAgent` scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
+After the Mastra agent generation finishes, `runMastraAgent` (`mastra/run.ts`) scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
 
 ### 18. Conditional tool registry (per-user OAuth gating + intent narrowing)
 `toolsForUser(userId)` returns a registry gated on env/user prerequisites (OAuth connected, service configured, user-disabled categories, staged media). On top of that, `lib/fast-classify.ts` runs instant regex matching on every user message and passes an optional `hint` to `toolsForUser`. Entries tagged with `hints: [...]` are only built when the hint matches; entries with no `hints` field are **universal** (always included). `web_search` is universal so any wrong narrowing still has a search fallback.
@@ -309,7 +318,7 @@ LINE groups/rooms are first-class conversation targets but do not pollute the 1:
 
 ## Swapping the LLM
 
-`lib/llm/provider.ts` only.
+Base model configuration lives in `lib/llm/provider.ts`; the Mastra Agent wires it in `mastra/agents/lekha-agent.ts`.
 
 ## Gotchas (lessons learned the hard way)
 
@@ -327,7 +336,7 @@ LINE groups/rooms are first-class conversation targets but do not pollute the 1:
 - **LINE doesn't bundle a caption with media.** Recent-media staging spans messages within 30-min TTL.
 - **`Content-Transfer-Encoding: 7bit` is invalid for UTF-8 bodies** (Thai, emoji). Use base64.
 - **OAuth state nonce + connect-link token must be atomically consumed** (GETDEL) — non-atomic GET+DEL has a replay window.
-- **Gemini timeout at 30s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`) — fail-fast for real hangs. Most healthy requests finish in 1–3s.
+- **Gemini timeout at 55s** (`AGENT_TIMEOUT_MS` in `lib/llm/provider.ts`) — long enough for multi-step tool turns while still fail-fast-ing real hangs. Most healthy requests finish in 1–3s.
 - **Pre-flight parallelization** — `checkRateLimit`, `getOrCreateProfile`, `getPending` run in parallel. `showLoading` (LINE API) is fire-and-forget. Saves ~400ms per request vs. sequential awaits.
 - **wttr.in is unreliable** — it's a personal project, goes down without warning (HTTP 500). Always have Open-Meteo as fallback. Both are keyless.
 - **Upstash Vector index must be dim 768, cosine** to match Gemini `text-embedding-004`. Mismatch surfaces as silent upsert failures.
@@ -361,7 +370,7 @@ curl -s -X POST https://lekha-iota.vercel.app/api/dev/chat \
   --max-time 60
 ```
 
-Requires `DEV_CHAT_SECRET` env var. Runs the full agent (same history, tools, facts as a real LINE message), pushes the reply to the user's LINE chat, and returns `{ reply: "..." }` as JSON. No rate limiting, no allowlist check — dev use only.
+Requires `DEV_CHAT_SECRET` env var. Runs the full agent via `runMastraAgent` (same history, tools, facts as a real LINE message), pushes the reply to the user's LINE chat, and returns `{ reply: "..." }` as JSON. No rate limiting, no allowlist check — dev use only.
 
 ## Cron sweep setup
 
