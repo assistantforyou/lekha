@@ -36,6 +36,15 @@ function cleanSnippet(s: string): string {
     .slice(0, 140);
 }
 
+function stripMarkdown(s: string): string {
+  return s
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/__(.*?)__/g, "$1")
+    .replace(/^\s*[*\-]\s+/gm, "• ")
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/`{1,3}(.*?)`{1,3}/g, "$1");
+}
+
 function fmtDateTime(isoOrMs: string | number, tz = "UTC"): string {
   const d = typeof isoOrMs === "number" ? new Date(isoOrMs) : new Date(String(isoOrMs));
   if (isNaN(d.getTime())) return String(isoOrMs).slice(0, 16).replace("T", " ");
@@ -1107,6 +1116,21 @@ export function buildFlexFromToolResults(
         continue;
       }
 
+      // ── Drive upload ───────────────────────────────────────────────────
+      if (toolName === "drive_upload_recent_media" && Array.isArray(value.uploaded)) {
+        const uploaded = value.uploaded as Array<{ name?: string; webViewLink?: string | null }>;
+        const items = uploaded.map((u) => ({
+          primary: String(u.name ?? "File"),
+          secondary: "Saved to Google Drive",
+          link: typeof u.webViewLink === "string" ? u.webViewLink : undefined,
+          linkLabel: "Open in Drive",
+        }));
+        out.push(buildSimpleCardFlex("📁 Saved to Drive", "#4285F4", items));
+        suppressText = true;
+        seen.add(toolName);
+        continue;
+      }
+
       // ── Media AI (OCR / image / document / audio) ──────────────────────
       if (
         (toolName === "ocr_image" || toolName === "summarize_image" || toolName === "read_document" ||
@@ -1120,8 +1144,9 @@ export function buildFlexFromToolResults(
           : toolName === "transcribe_audio" ? "🎤 Transcript"
           : toolName === "summarize_audio" ? "🎙️ Voice Summary"
           : "📄 Document Summary";
-        const text = (value.output as string).slice(0, 900);
-        const truncated = (value.output as string).length > 900;
+        const raw = stripMarkdown(value.output as string);
+        const text = raw.slice(0, 1900);
+        const truncated = raw.length > 1900;
         out.push(buildSimpleCardFlex(label, "#636E72", [{ primary: truncated ? text + " …" : text }]));
         suppressText = true;
         seen.add(toolName);

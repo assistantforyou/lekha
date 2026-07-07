@@ -64,8 +64,8 @@ export function buildMediaAiTools(userId: string) {
           userId,
           index,
           question
-            ? `Answer this question about the document, using specific facts, figures, and quotes from it: "${question}". If the document contains tables relevant to the answer, reproduce the relevant rows as a markdown table (preserve every column and row exactly — do not collapse or average values). If the document doesn't contain the answer, say so plainly.`
-            : "Summarize this document in 4-8 bullets. Highlight: purpose, key facts, dates, names, action items, conclusion. If the document contains tables, include a compact markdown table for the most important one instead of prose.",
+            ? `Answer this question about the document, using specific facts, figures, and quotes from it: "${question}". If the document contains tables relevant to the answer, reproduce the relevant rows as a simple list (one row per line, columns separated by ' | '). Do not use markdown (*, **, #, -, __). Use plain text and bullet points if needed. If the document doesn't contain the answer, say so plainly.`
+            : "Summarize this document clearly and comprehensively. Use as many bullet points as needed to cover the purpose, key facts, dates, names, action items, and conclusion. Do not use markdown (*, **, #, -, __). If the document contains tables, include the most important one as a simple list (one row per line, columns separated by ' | ').",
           { model: "chat", skipCache: !!question },
         ),
     }),
@@ -78,7 +78,7 @@ export function buildMediaAiTools(userId: string) {
         runDocPrompt(
           userId,
           index,
-          "Extract the full text of this document. Preserve headings, section numbers, and paragraph breaks. Reproduce every table as a markdown table — one row per source row, one column per source column, header row intact — do not paraphrase, merge, or drop cells. Do not summarize or skip anything. If the document is very long and you must truncate, say '--- truncated ---' at the end.",
+          "Extract the full text of this document. Preserve headings, section numbers, and paragraph breaks. Reproduce every table as a simple list — one row per source row, columns separated by ' | ', header row intact — do not paraphrase, merge, or drop cells. Do not use markdown (*, **, #, -, __). Do not summarize or skip anything. If the document is very long and you must truncate, say '--- truncated ---' at the end.",
           { maxChars: 8000, model: "chat" },
         ),
     }),

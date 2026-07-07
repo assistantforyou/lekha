@@ -58,3 +58,57 @@ describe("buildFlexFromToolResults news guard", () => {
     expect(suppressText).toBe(true);
   });
 });
+
+describe("buildFlexFromToolResults document + drive cards", () => {
+  it("renders Drive upload confirmation with file link", () => {
+    const result = {
+      steps: [
+        {
+          toolResults: [
+            {
+              toolName: "drive_upload_recent_media",
+              output: {
+                ok: true,
+                uploaded: [
+                  { id: "f1", name: "certificate.pdf", webViewLink: "https://drive.google.com/file/d/f1/view" },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const { messages, suppressText } = buildFlexFromToolResults(result, "Asia/Bangkok");
+    expect(messages.length).toBeGreaterThan(0);
+    expect(suppressText).toBe(true);
+    const json = JSON.stringify(messages);
+    expect(json).toContain("Saved to Drive");
+    expect(json).toContain("certificate.pdf");
+    expect(json).toContain("https://drive.google.com/file/d/f1/view");
+  });
+
+  it("strips markdown from document summary output", () => {
+    const result = {
+      steps: [
+        {
+          toolResults: [
+            {
+              toolName: "summarize_document",
+              output: {
+                ok: true,
+                output: "* **Purpose:** This is a test\n- Item two",
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const { messages, suppressText } = buildFlexFromToolResults(result, "Asia/Bangkok");
+    expect(messages.length).toBeGreaterThan(0);
+    expect(suppressText).toBe(true);
+    const json = JSON.stringify(messages);
+    expect(json).not.toContain("**Purpose:**");
+    expect(json).toContain("Purpose: This is a test");
+    expect(json).toContain("• Item two");
+  });
+});
