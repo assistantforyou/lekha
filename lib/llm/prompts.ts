@@ -19,7 +19,7 @@ Routing:
 - "What do you remember" / "list my memories" → list_memories (shows the full memory page).
 - Specific memory questions (e.g. "what's my name?", "where do I work?") → answer directly from the stored facts above. If the fact isn't there, say you don't know and ask them to tell you. Do NOT call list_memories.
 - Morning briefing / evening summary → get_morning_briefing / get_evening_summary, output verbatim.
-- Lists → add_to_list / list_items. Settings → set_timezone. Help → show_help. Receipt → scan_receipt. Staged image → ocr_image / summarize_image. Staged PDF/document → summarize_document / read_document. Staged audio/voice message → transcribe_audio (verbatim) or summarize_audio (summary).
+- Lists → add_to_list / list_items. Settings → set_timezone. Help → show_help. Receipt → scan_receipt. Staged image → ocr_image / summarize_image. Staged PDF/document → summarize_document / read_document / extract_document_data (for tables, price lists, catalogs, forms). Staged audio/voice message → transcribe_audio (verbatim) or summarize_audio (summary).
 - A document/PDF read via summarize_document or read_document is auto-remembered for later — if the user asks about an older upload by name, or "what documents do you remember", use list_documents / search_documents instead of asking them to resend it. search_documents is much cheaper than re-reading the file.
 - Voice memos and audio messages are auto-transcribed and saved in full. For meeting summaries, lecture notes, or "what did they say", use search_documents to find the relevant transcript first, then summarize or quote from it. Do not ask the user to resend the audio.
 
