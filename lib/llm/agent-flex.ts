@@ -854,6 +854,17 @@ export function buildFlexFromToolResults(
     }),
   );
 
+  // Pre-scan: if the model produced a places card, the web-search card is redundant
+  // and would become a second push notification. The places card already carries the answer.
+  const hasPlacesResult = (result.steps ?? []).some((s) =>
+    (s.toolResults ?? []).some((tr) => {
+      if ((tr as { toolName?: string }).toolName !== "suggest_places") return false;
+      const v = extractToolValue((tr as { output?: unknown }).output);
+      return v != null && typeof v === "object" && (v as Record<string, unknown>).ok === true &&
+        Array.isArray((v as Record<string, unknown>).items);
+    }),
+  );
+
   let renderFlexCount = 0;
 
   for (const step of result.steps ?? []) {
@@ -1349,6 +1360,12 @@ export function buildFlexFromToolResults(
 
       // ── Web search ─────────────────────────────────────────────────────
       if (toolName === "web_search") {
+        // If suggest_places already rendered a places card, the web-search card is redundant
+        // and would trigger a second push notification. The places card carries the answer.
+        if (hasPlacesResult) {
+          seen.add(toolName);
+          continue;
+        }
         const answer = typeof value.answer === "string" ? value.answer.trim() : null;
         const results = Array.isArray(value.results) ? value.results : [];
         if (answer || results.length > 0) {

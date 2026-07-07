@@ -152,3 +152,65 @@ describe("buildFlexFromToolResults document + drive cards", () => {
     expect(json).toContain("This is the actual content");
   });
 });
+
+describe("buildFlexFromToolResults places consolidation", () => {
+  it("renders only the places card when both web_search and suggest_places are returned", () => {
+    const result = {
+      steps: [
+        {
+          toolResults: [
+            {
+              toolName: "web_search",
+              output: {
+                ok: true,
+                answer: "Here are some great restaurants in Sukhumvit.",
+                results: [{ title: "Best Sukhumvit restaurants", url: "https://example.com/1" }],
+              },
+            },
+            {
+              toolName: "suggest_places",
+              output: {
+                ok: true,
+                title: "Restaurants",
+                items: [
+                  { name: "Soul Food Mahanakorn", note: "Thai sharing plates", mapsQuery: "Soul Food Mahanakorn Bangkok" },
+                  { name: "Err", note: "Rustic Thai", mapsQuery: "Err Bangkok" },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const { messages, suppressText } = buildFlexFromToolResults(result, "Asia/Bangkok", { userText: "where should we eat" });
+    expect(messages).toHaveLength(1);
+    expect(suppressText).toBe(true);
+    const json = JSON.stringify(messages);
+    expect(json).toContain("Soul Food Mahanakorn");
+    expect(json).not.toContain("Best Sukhumvit restaurants");
+  });
+
+  it("still renders web_search card when there is no places card", () => {
+    const result = {
+      steps: [
+        {
+          toolResults: [
+            {
+              toolName: "web_search",
+              output: {
+                ok: true,
+                answer: "The capital of France is Paris.",
+                results: [],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const { messages, suppressText } = buildFlexFromToolResults(result, "Asia/Bangkok", { userText: "what is the capital of france" });
+    expect(messages.length).toBeGreaterThan(0);
+    expect(suppressText).toBe(true);
+    const json = JSON.stringify(messages);
+    expect(json).toContain("Paris");
+  });
+});
