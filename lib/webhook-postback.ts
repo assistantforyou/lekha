@@ -14,7 +14,8 @@ import { withGoogleClient } from "@/lib/tools/with-google";
 import { google } from "googleapis";
 import type { LineEvent } from "@/lib/line/types";
 import { buildGate } from "@/lib/gate";
-import { approvePending, denyPending } from "@/lib/memory/allowlist";
+import { approvePending, denyPending, isAllowed } from "@/lib/memory/allowlist";
+import { isOnTrial, startTrial } from "@/lib/trial";
 
 const GMAIL_MODIFY = "https://www.googleapis.com/auth/gmail.modify";
 
@@ -257,10 +258,28 @@ async function handleTutorial({ userId, replyToken, args }: Ctx): Promise<void> 
   await handleTutorialPostback(userId, replyToken, args);
 }
 
+async function handleTrial({ userId, replyToken, args }: Ctx): Promise<void> {
+  const action = args[0];
+  if (action !== "start") {
+    await mkReply(userId, replyToken)("Tap the free trial button to start.");
+    return;
+  }
+  if (await isAllowed(userId)) {
+    await mkReply(userId, replyToken)("You're already subscribed. Enjoy unlimited messages!");
+    return;
+  }
+  if (await isOnTrial(userId)) {
+    await mkReply(userId, replyToken)("Your free trial is already active. Type =tutorial to restart setup.");
+    return;
+  }
+  await startTrial(userId, replyToken);
+}
+
 const HANDLERS: Record<string, ((ctx: Ctx) => Promise<void>) | undefined> = {
   confirm: handleConfirm,
   settings: handleSettings,
   tutorial: handleTutorial,
+  trial: handleTrial,
   task: handleTask,
   checkin: handleCheckin,
   gmail: handleGmail,

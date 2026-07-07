@@ -24,7 +24,7 @@ describe("processResult", () => {
     expect(processed.hadUnrelayedToolError).toBe(false);
   });
 
-  it("overrides soft apology with real tool error", () => {
+  it("overrides soft apology with real tool error and strips tool name", () => {
     const result = {
       text: "I'm sorry, something went wrong.",
       steps: [
@@ -36,6 +36,7 @@ describe("processResult", () => {
     };
     const processed = processResult(result, null, [{ toolName: "list_tasks", input: {} }]);
     expect(processed.reply).toContain("redis unreachable");
+    expect(processed.reply).not.toContain("list_tasks:");
     expect(processed.hadUnrelayedToolError).toBe(true);
   });
 

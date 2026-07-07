@@ -72,8 +72,13 @@ export function buildTaskTools(userId: string) {
           }
           dueAtTs = new Date(dueAt).getTime();
         }
-        const t = await addTask(userId, { title, notes, dueAt: dueAtTs });
-        return { ok: true, task: t };
+        try {
+          const t = await addTask(userId, { title, notes, dueAt: dueAtTs });
+          return { ok: true, task: t };
+        } catch (err) {
+          console.error("[tasks] add_task failed", err);
+          return { ok: false, error: "Couldn't save the task right now. Please try again in a moment." };
+        }
       },
     }),
 
@@ -104,8 +109,13 @@ export function buildTaskTools(userId: string) {
             }
             dueAtTs = new Date(item.dueAt).getTime();
           }
-          const t = await addTask(userId, { title: item.title, notes: item.notes, dueAt: dueAtTs });
-          created.push(t);
+          try {
+            const t = await addTask(userId, { title: item.title, notes: item.notes, dueAt: dueAtTs });
+            created.push(t);
+          } catch (err) {
+            console.error("[tasks] add_tasks item failed", err);
+            errors.push(`Couldn't save "${item.title}" right now`);
+          }
         }
         return { ok: true, createdCount: created.length, created, errors: errors.length ? errors : undefined };
       },
@@ -133,10 +143,15 @@ export function buildTaskTools(userId: string) {
       description: "Mark a task done by id or title. Use this EVERY time the user says 'done', 'finished', 'complete it', or 'mark it done' after seeing tasks. If title is provided and id is omitted, finds the first open task matching the title. NEVER just confirm in text — always call this tool.",
       inputSchema: z.object({ id: z.string().optional(), title: z.string().optional() }),
       execute: async ({ id, title }) => {
-        const targetId = await resolveTaskId(userId, id, title);
-        if (!targetId) return { ok: false, error: title ? `No open task matching "${title}".` : "Task not found" };
-        const t = await completeTask(userId, targetId);
-        return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
+        try {
+          const targetId = await resolveTaskId(userId, id, title);
+          if (!targetId) return { ok: false, error: title ? `No open task matching "${title}".` : "Task not found" };
+          const t = await completeTask(userId, targetId);
+          return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
+        } catch (err) {
+          console.error("[tasks] complete_task failed", err);
+          return { ok: false, error: "Couldn't update the task right now. Please try again in a moment." };
+        }
       },
     }),
 
@@ -144,10 +159,15 @@ export function buildTaskTools(userId: string) {
       description: "Re-open a previously-completed task by id or title. If title is provided and id is omitted, finds the first done task matching the title.",
       inputSchema: z.object({ id: z.string().optional(), title: z.string().optional() }),
       execute: async ({ id, title }) => {
-        const targetId = await resolveTaskId(userId, id, title, "done");
-        if (!targetId) return { ok: false, error: title ? `No completed task matching "${title}".` : "Task not found" };
-        const t = await reopenTask(userId, targetId);
-        return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
+        try {
+          const targetId = await resolveTaskId(userId, id, title, "done");
+          if (!targetId) return { ok: false, error: title ? `No completed task matching "${title}".` : "Task not found" };
+          const t = await reopenTask(userId, targetId);
+          return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
+        } catch (err) {
+          console.error("[tasks] reopen_task failed", err);
+          return { ok: false, error: "Couldn't update the task right now. Please try again in a moment." };
+        }
       },
     }),
 
@@ -161,19 +181,24 @@ export function buildTaskTools(userId: string) {
         dueAt: z.string().optional(),
       }),
       execute: async ({ id, title, new_title, notes, dueAt }) => {
-        const targetId = await resolveTaskId(userId, id, title);
-        if (!targetId) return { ok: false, error: title ? `No task matching "${title}".` : "Task not found" };
-        const patch: Parameters<typeof updateTask>[2] = {};
-        if (new_title !== undefined) patch.title = new_title;
-        if (notes !== undefined) patch.notes = notes;
-        if (dueAt !== undefined) {
-          if (!Number.isFinite(new Date(dueAt).getTime())) {
-            return { ok: false, error: "Invalid dueAt date" };
+        try {
+          const targetId = await resolveTaskId(userId, id, title);
+          if (!targetId) return { ok: false, error: title ? `No task matching "${title}".` : "Task not found" };
+          const patch: Parameters<typeof updateTask>[2] = {};
+          if (new_title !== undefined) patch.title = new_title;
+          if (notes !== undefined) patch.notes = notes;
+          if (dueAt !== undefined) {
+            if (!Number.isFinite(new Date(dueAt).getTime())) {
+              return { ok: false, error: "Invalid dueAt date" };
+            }
+            patch.dueAt = new Date(dueAt).getTime();
           }
-          patch.dueAt = new Date(dueAt).getTime();
+          const t = await updateTask(userId, targetId, patch);
+          return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
+        } catch (err) {
+          console.error("[tasks] update_task failed", err);
+          return { ok: false, error: "Couldn't update the task right now. Please try again in a moment." };
         }
-        const t = await updateTask(userId, targetId, patch);
-        return t ? { ok: true, task: t } : { ok: false, error: "Task not found" };
       },
     }),
 
@@ -182,8 +207,13 @@ export function buildTaskTools(userId: string) {
         "Mark EVERY currently-open task as done in one atomic call. Use when the user says 'clear all my tasks', 'mark them all done', 'all tasks done', 'wipe my open tasks', etc. Returns the list of tasks that were completed. Do NOT call list_tasks + complete_task individually for bulk clears — use this instead.",
       inputSchema: z.object({}),
       execute: async () => {
-        const completed = await completeAllOpenTasks(userId);
-        return { ok: true, completedCount: completed.length, completed };
+        try {
+          const completed = await completeAllOpenTasks(userId);
+          return { ok: true, completedCount: completed.length, completed };
+        } catch (err) {
+          console.error("[tasks] complete_all_open_tasks failed", err);
+          return { ok: false, error: "Couldn't update the tasks right now. Please try again in a moment." };
+        }
       },
     }),
 
@@ -191,9 +221,14 @@ export function buildTaskTools(userId: string) {
       description: "Delete a task by id or title permanently. If title is provided and id is omitted, finds the first task matching the title.",
       inputSchema: z.object({ id: z.string().optional(), title: z.string().optional() }),
       execute: async ({ id, title }) => {
-        const targetId = await resolveTaskId(userId, id, title, "all");
-        if (!targetId) return { ok: false, error: title ? `No task matching "${title}".` : "Task not found" };
-        return { ok: await deleteTask(userId, targetId) };
+        try {
+          const targetId = await resolveTaskId(userId, id, title, "all");
+          if (!targetId) return { ok: false, error: title ? `No task matching "${title}".` : "Task not found" };
+          return { ok: await deleteTask(userId, targetId) };
+        } catch (err) {
+          console.error("[tasks] delete_task failed", err);
+          return { ok: false, error: "Couldn't delete the task right now. Please try again in a moment." };
+        }
       },
     }),
   };

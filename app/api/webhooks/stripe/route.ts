@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { env } from "@/lib/env";
 import { addToAllowlist, removeFromAllowlist } from "@/lib/memory/allowlist";
+import { removeFromTrial } from "@/lib/trial";
 import { push, text as textMsg, getProfile } from "@/lib/line/client";
 import { redis } from "@/lib/memory/redis";
 import { unregisterUser } from "@/lib/memory/user-registry";
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
     const customerEmail = session.customer_details?.email;
     if (lineUserId) {
       await addToAllowlist(lineUserId);
+      await removeFromTrial(lineUserId).catch(() => {});
       console.log(`[stripe-webhook] granted access to ${lineUserId} (checkout completed)`);
       const profile = await getProfile(lineUserId);
       const name = profile?.displayName ? ` ${profile.displayName}` : "";

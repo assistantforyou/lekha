@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { isAllowed } from "@/lib/memory/allowlist";
+import { isOnTrial } from "@/lib/trial";
 import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { signupGateFlex } from "@/lib/line/flex";
 import type { LineEvent } from "@/lib/line/types";
@@ -22,10 +23,11 @@ export function buildGate(): Gate {
 }
 
 /**
- * Allowlist gate (decision #15). Returns true if the event should proceed.
- * For rejected users, sends a friendly reply with their LINE id.
+ * Access gate. Returns true if the event should proceed.
+ * Admins, allowlisted users, and active free-trial users pass.
+ * For rejected users, sends the paywall / free-trial Flex card.
  */
-export async function passesAllowlist(event: LineEvent, gate: Gate): Promise<boolean> {
+export async function passesGate(event: LineEvent, gate: Gate): Promise<boolean> {
   const userId = event.source?.userId;
   if (!userId) return false; // malformed event → deny
 
@@ -40,8 +42,8 @@ export async function passesAllowlist(event: LineEvent, gate: Gate): Promise<boo
   }
 
   if (gate.isAdmin(userId)) return true;
-
   if (await isAllowed(userId)) return true;
+  if (await isOnTrial(userId)) return true;
 
   if ("replyToken" in event && event.replyToken) {
     await replyOrPush(userId, event.replyToken, [signupGateFlex(env().APP_BASE_URL)]);

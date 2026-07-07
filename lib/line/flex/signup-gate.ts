@@ -4,7 +4,7 @@ import type { FlexMessage } from "@/lib/line/client";
 export function signupGateFlex(baseUrl: string): FlexMessage {
   return {
     type: "flex",
-    altText: "Lekha is subscription-based. Choose a plan to sign up.",
+    altText: "Unlock Lekha / ปลดล็อก Lekha — choose a plan or start a free trial.",
     contents: {
       type: "bubble",
       size: "mega",
@@ -16,18 +16,32 @@ export function signupGateFlex(baseUrl: string): FlexMessage {
         contents: [
           {
             type: "text",
-            text: "Get access to Lekha",
+            text: "Unlock Lekha",
             weight: "bold",
             size: "xl",
             color: "#FFFFFF",
           },
           {
             type: "text",
-            text: "Lekha is a subscription-based personal assistant. Start with a 7-day free trial.",
+            text: "ปลดล็อก Lekha",
+            weight: "bold",
+            size: "lg",
+            color: "#FFFFFF",
+          },
+          {
+            type: "text",
+            text: "Start with a free trial, or subscribe to chat unlimited.",
             wrap: true,
             size: "sm",
             color: "#AABBDD",
             margin: "md",
+          },
+          {
+            type: "text",
+            text: "เริ่มทดลองใช้ฟรี หรือสมัครสมาชิกเพื่อแชทไม่จำกัด",
+            wrap: true,
+            size: "sm",
+            color: "#AABBDD",
           },
         ],
         backgroundColor: "#071124",
@@ -41,7 +55,18 @@ export function signupGateFlex(baseUrl: string): FlexMessage {
           {
             type: "button",
             style: "primary",
-            color: "#1a7fe0",
+            color: "#06C755",
+            height: "sm",
+            action: {
+              type: "postback",
+              label: "Free trial / ทดลองใช้ฟรี",
+              data: "trial:start",
+              displayText: "Free trial / ทดลองใช้ฟรี",
+            },
+          },
+          {
+            type: "button",
+            style: "secondary",
             height: "sm",
             action: {
               type: "uri",

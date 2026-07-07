@@ -11,6 +11,7 @@ import {
 } from "@/lib/memory/allowlist";
 import { getSettings } from "@/lib/memory/settings";
 import { listAllUsers } from "@/lib/memory/user-registry";
+import { removeFromTrial, isOnTrial } from "@/lib/trial";
 import { redis } from "@/lib/memory/redis";
 import { listAuditLog, type AuditEntry } from "@/lib/memory/audit-log";
 import { buildMorningBriefing } from "@/lib/llm/briefing";
@@ -35,8 +36,10 @@ export async function handleAdminCommand(
 
   const addMatch = userText.match(new RegExp(`^/allow\\s+(${LINE_ID_RE.source})$`, "i"));
   if (addMatch) {
-    await addToAllowlist(addMatch[1]!);
-    await replyOrPush(userId, replyToken, [textMsg(`✅ Added ${addMatch[1]} to the allowlist.`)]);
+    const target = addMatch[1]!;
+    await addToAllowlist(target);
+    await removeFromTrial(target).catch(() => {});
+    await replyOrPush(userId, replyToken, [textMsg(`✅ Added ${target} to the allowlist.`)]);
     return true;
   }
 
@@ -86,6 +89,7 @@ export async function handleAdminCommand(
     const target = approveMatch[1]!;
     const alreadyAllowed = await isAllowed(target);
     const wasPending = await approvePending(target);
+    await removeFromTrial(target).catch(() => {});
     const name = (await getProfile(target).catch(() => null))?.displayName ?? "";
     await replyOrPush(userId, replyToken, [
       textMsg(wasPending ? `✅ Approved ${name ? `${name} ` : ""}${target}. Welcome message sent.` : `⚠️ ${target} was not in the pending queue, but is now allowed.`),
@@ -112,8 +116,9 @@ export async function handleAdminCommand(
   const statusMatch = userText.match(new RegExp(`^/status\\s+(${LINE_ID_RE.source})$`, "i"));
   if (statusMatch) {
     const target = statusMatch[1]!;
-    const [allowed, registered, settings] = await Promise.all([
+    const [allowed, onTrial, registered, settings] = await Promise.all([
       isAllowed(target),
+      isOnTrial(target),
       (async () => {
         const all = await listAllUsers();
         return all.includes(target);
@@ -135,6 +140,7 @@ export async function handleAdminCommand(
       `📊 Status for ${profile?.displayName ?? target}`,
       ``,
       `Allowed: ${allowed ? "✅ yes" : "❌ no"}`,
+      `Trial: ${onTrial ? "✅ yes" : "❌ no"}`,
       `In sweep registry: ${registered ? "✅ yes" : "❌ no"}`,
       ``,
       `Timezone: ${settings?.timezone ?? "(default)"}`,

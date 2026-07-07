@@ -224,10 +224,11 @@ export function processResult(
   const modelText = result.text?.trim() ?? "";
 
   if (toolErrors.length > 0 && !draftBlock) {
-    const allErrorsPresent = toolErrors.every((e) => modelText.includes(e.split(": ").slice(1).join(": ")));
+    const strippedErrors = toolErrors.map((e) => e.split(": ").slice(1).join(": "));
+    const allErrorsPresent = strippedErrors.every((msg) => modelText.includes(msg));
     if (!allErrorsPresent) {
       console.warn("[agent] model soft-apologized — overriding with real tool errors", toolErrors);
-      return { reply: toolErrors.join("\n"), authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: true };
+      return { reply: strippedErrors.join("\n"), authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: true };
     }
   }
 

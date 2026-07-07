@@ -22,7 +22,11 @@ export async function clearOnboarded(userId: string): Promise<void> {
  * When triggered without a replyToken (e.g. admin approval), it falls back to
  * a push.
  */
-export async function startOnboarding(userId: string, replyToken: string, displayName = ""): Promise<void> {
-  await startTutorial(userId, replyToken, displayName);
+export async function startOnboarding(
+  userId: string,
+  replyToken: string,
+  displayName = "",
+  isTrial = false,
+): Promise<void> {
+  await startTutorial(userId, replyToken, displayName, isTrial);
 }
-

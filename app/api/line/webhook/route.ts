@@ -11,8 +11,10 @@ import { registerUser, unregisterUser } from "@/lib/memory/user-registry";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { classify, clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
-import { buildGate, passesAllowlist } from "@/lib/gate";
-import { isAllowed, addToAllowlist } from "@/lib/memory/allowlist";
+import { buildGate, passesGate } from "@/lib/gate";
+import { isAllowed } from "@/lib/memory/allowlist";
+import { isOnTrial, checkTrialDailyQuota, trialQuotaMessage, startTrial } from "@/lib/trial";
+import { getSettings } from "@/lib/memory/settings";
 
 import { handleAdminCommand, handleMyId } from "@/lib/admin-commands";
 import { dispatchShortcut } from "@/lib/shortcuts";
@@ -123,34 +125,24 @@ async function handleEvent(
     }
   }
 
-  // Free trial code: non-allowed users can type "FREETRIAL100" to bypass the paywall.
+  // Free trial button from the paywall.
   if (
-    event.type === "message" &&
-    "message" in event &&
-    event.message.type === "text" &&
-    "text" in event.message &&
+    event.type === "postback" &&
+    "postback" in event &&
+    event.postback?.data === "trial:start" &&
     event.source?.userId
   ) {
-    const ftUserId = event.source.userId;
-    const ftText = (event.message.text as string).trim();
-    if (ftText.toUpperCase() === "FREETRIAL100" && !(await isAllowed(ftUserId))) {
-      await addToAllowlist(ftUserId);
-      registerUser(ftUserId).catch(() => {});
-      const ftProfile = await getOrCreateProfile(ftUserId);
-      const ftName =
-        ftProfile.displayName && ftProfile.displayName !== "friend" ? ` ${ftProfile.displayName}` : "";
-      const ftReplyToken = "replyToken" in event ? event.replyToken : undefined;
-      await replyOrPush(ftUserId, ftReplyToken, [
-        textMsg(
-          `Free trial activated! 🎉 Welcome to Lekha${ftName}!\n\nI'm your personal AI assistant. I can set reminders, search the web, check weather and stocks, read photos, and much more.\n\nType "help" to see everything I can do, or "connect google" to link Gmail, Calendar, and Drive.`,
-        ),
-      ]);
-      endEvent({ type: "free-trial" });
+    const trialUserId = event.source.userId;
+    if (!(await isAllowed(trialUserId))) {
+      const trialProfile = await getOrCreateProfile(trialUserId);
+      const trialReplyToken = "replyToken" in event ? event.replyToken : "";
+      await startTrial(trialUserId, trialReplyToken, trialProfile.displayName ?? "");
+      endEvent({ type: "trial-start" });
       return true;
     }
   }
 
-  if (!(await passesAllowlist(event, gate))) {
+  if (!(await passesGate(event, gate))) {
     endEvent({ skipped: "allowlist" });
     return false;
   }
@@ -227,6 +219,21 @@ async function handleEvent(
     ]);
     endEvent({ type: "rate-limited" });
     return true;
+  }
+
+  // Trial users get a daily message cap once onboarding is complete.
+  if (await isOnTrial(userId)) {
+    const onboarded = await isOnboarded(userId);
+    if (onboarded) {
+      const settings = await getSettings(userId);
+      const dq = await checkTrialDailyQuota(userId, settings.timezone);
+      if (!dq.ok) {
+        const lang = settings.language === "th" ? "th" : "en";
+        await replyOrPush(userId, event.replyToken, [textMsg(trialQuotaMessage(lang, dq.resetsAt))]);
+        endEvent({ type: "trial-quota-exceeded" });
+        return true;
+      }
+    }
   }
 
   if (message.type === "text" && "text" in message && typeof message.text === "string") {

@@ -3,6 +3,7 @@ import { getSettings, updateSettings, type UserSettings } from "@/lib/memory/set
 import { redis } from "@/lib/memory/redis";
 import { settingsMainFlex } from "@/lib/line/flex/settings";
 import { loadFacts, saveFacts, _internalNewFact } from "@/lib/memory/facts";
+import { TRIAL_DAILY_LIMIT } from "@/lib/trial-constants";
 import type { FlexMessage } from "@/lib/line/client";
 
 const ACCENT = "#5B6FF0";
@@ -11,6 +12,7 @@ const TEXT = "#333333";
 const TUTORIAL_KEY = (userId: string) => `user:${userId}:tutorial:step`;
 const TUTORIAL_WAITING_KEY = (userId: string) => `user:${userId}:tutorial:waiting`;
 const TUTORIAL_DISPLAY_NAME_KEY = (userId: string) => `user:${userId}:tutorial:displayName`;
+const TUTORIAL_TRIAL_KEY = (userId: string) => `user:${userId}:tutorial:isTrial`;
 
 async function setTutorialDisplayName(userId: string, displayName: string): Promise<void> {
   await redis().set(TUTORIAL_DISPLAY_NAME_KEY(userId), displayName, { ex: 60 * 60 * 24 });
@@ -555,9 +557,19 @@ export async function sendTutorialStep(userId: string, replyToken: string, step:
   if (section === "memory") await setTutorialWaiting(userId, "memoryFact");
 }
 
-export async function startTutorial(userId: string, replyToken: string, displayName = ""): Promise<void> {
+export async function startTutorial(
+  userId: string,
+  replyToken: string,
+  displayName = "",
+  isTrial = false,
+): Promise<void> {
   await setTutorialStep(userId, 0);
   await setTutorialDisplayName(userId, displayName);
+  if (isTrial) {
+    await redis().set(TUTORIAL_TRIAL_KEY(userId), 1, { ex: 60 * 60 * 24 });
+  } else {
+    await redis().del(TUTORIAL_TRIAL_KEY(userId));
+  }
   if (!replyToken) {
     const welcome = displayName
       ? `Hi ${displayName}! Welcome to Lekha 👋\n\nLet's set up your account in 30 seconds.\n\nสวัสดี ${displayName}! ยินดีต้อนรับสู่ Lekha 👋\n\nมาตั้งค่าบัญชีของคุณใน 30 วินาทีกัน`
@@ -587,16 +599,29 @@ async function finishTutorial(userId: string, replyToken: string, seedFact?: str
   await setTutorialWaiting(userId, null);
   await redis().set(`user:${userId}:onboarded`, 1);
   const settings = await getSettings(userId);
-  const t = T[tutorialLang(settings)];
+  const lang = tutorialLang(settings);
+  const t = T[lang];
   const displayName = await getTutorialDisplayName(userId);
-  const name = settings.personaPreferredName?.trim() || displayName || (tutorialLang(settings) === "th" ? "คุณ" : "there");
+  const name = settings.personaPreferredName?.trim() || displayName || (lang === "th" ? "คุณ" : "there");
   const greeting = seedFact?.trim()
     ? t.finishGreeting.replace("{name}", name).replace("{fact}", seedFact.trim())
     : t.emptyFactGreeting.replace("{name}", name);
-  await replyOrPush(userId, replyToken, [
+  const isTrial = (await redis().get(TUTORIAL_TRIAL_KEY(userId))) === 1;
+  await redis().del(TUTORIAL_TRIAL_KEY(userId));
+  const messages: Array<ReturnType<typeof textMsg> | FlexMessage> = [
     textMsg(greeting),
     settingsMainFlex(settings),
-  ]);
+  ];
+  if (isTrial) {
+    messages.push(
+      textMsg(
+        lang === "th"
+          ? `ทดลองใช้ฟรีใช้งานอยู่ — ส่งได้ ${TRIAL_DAILY_LIMIT} ข้อความต่อวัน อัปเกรดได้ตลอดเวลาเพื่อใช้งานไม่จำกัด`
+          : `Free trial active — you can send ${TRIAL_DAILY_LIMIT} messages per day. Upgrade anytime for unlimited messages.`,
+      ),
+    );
+  }
+  await replyOrPush(userId, replyToken, messages);
 }
 
 function deriveDisabledCategories(tools: Record<string, boolean>): string[] {
