@@ -64,8 +64,8 @@ export function buildMediaAiTools(userId: string) {
           userId,
           index,
           question
-            ? `Answer this question about the document, using specific facts, figures, and quotes from it: "${question}". If the document contains tables relevant to the answer, reproduce the relevant rows as a simple list (one row per line, columns separated by ' | '). Do not use markdown (*, **, #, -, __). Use plain text and bullet points if needed. If the document doesn't contain the answer, say so plainly.`
-            : "Summarize this document clearly and comprehensively. Use as many bullet points as needed to cover the purpose, key facts, dates, names, action items, and conclusion. Do not use markdown (*, **, #, -, __). If the document contains tables, include the most important one as a simple list (one row per line, columns separated by ' | ').",
+            ? `Answer this question about the document, using specific facts, figures, and quotes from it: "${question}". Respond naturally in plain text. Avoid markdown (*, **, #, -, __, \`). If the document doesn't contain the answer, say so plainly.`
+            : "Summarize this document naturally, as if explaining it to the user in a chat. Cover the main purpose, key facts, dates, names, action items, and conclusion. Use paragraphs, bullets, or a mix — whatever format makes the summary clearest. Do not use markdown (*, **, #, -, __, \`). Use plain text and • for bullets if you use bullets.",
           { model: "chat", skipCache: !!question },
         ),
     }),
