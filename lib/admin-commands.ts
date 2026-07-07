@@ -31,7 +31,6 @@ import {
   gmailResultsFlex,
   pendingUsersFlex,
   groupsListFlex,
-  myIdFlex,
 } from "@/lib/line/flex";
 import type { Gate } from "@/lib/gate";
 import type { LineMessage } from "@/lib/line/client";
@@ -365,12 +364,11 @@ function formatAuditEntries(target: string, entries: AuditEntry[]): string {
 }
 
 /** `/myid` — anyone can look up their own LINE userId (to request access).
- *  Sends a Flex card with a one-tap "Copy my ID" button plus a plain-text
- *  fallback so the ID can always be selected and pasted to an admin.
+ *  Sends the ID as plain text so it can be selected, copied, and pasted to an admin.
  */
 export async function handleMyId(userId: string, userText: string, replyToken: string): Promise<boolean> {
   if (!/^\/myid$/i.test(userText)) return false;
   console.warn("[myid] replied", { userId });
-  await replyOrPush(userId, replyToken, [myIdFlex(userId), textMsg(userId)]);
+  await replyOrPush(userId, replyToken, [textMsg(userId)]);
   return true;
 }

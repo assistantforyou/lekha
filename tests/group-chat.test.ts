@@ -2,12 +2,14 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 type Store = {
   sets: Map<string, Set<string>>;
+  zsets: Map<string, Map<string, number>>;
   strings: Map<string, { value: string; expiresAt?: number }>;
   lists: Map<string, unknown[]>;
 };
 
 const store: Store = {
   sets: new Map(),
+  zsets: new Map(),
   strings: new Map(),
   lists: new Map(),
 };
@@ -16,6 +18,7 @@ const sent: { to: string; messages: unknown[] }[] = [];
 
 function reset() {
   store.sets.clear();
+  store.zsets.clear();
   store.strings.clear();
   store.lists.clear();
   sent.length = 0;
@@ -28,6 +31,15 @@ function getSet(key: string): Set<string> {
     store.sets.set(key, s);
   }
   return s;
+}
+
+function getZset(key: string): Map<string, number> {
+  let z = store.zsets.get(key);
+  if (!z) {
+    z = new Map();
+    store.zsets.set(key, z);
+  }
+  return z;
 }
 
 function getList(key: string): unknown[] {
@@ -64,6 +76,16 @@ vi.mock("@/lib/memory/redis", () => ({
       return had ? 1 : 0;
     },
     smembers: async (key: string) => [...getSet(key)],
+    zadd: async (key: string, entry: { score: number; member: string }) => {
+      const z = getZset(key);
+      z.set(entry.member, entry.score);
+      return 1;
+    },
+    zscore: async (key: string, member: string) => {
+      const score = getZset(key).get(member);
+      return score === undefined ? null : score;
+    },
+    expire: async () => 1,
     set: async (key: string, value: unknown, opts?: { ex?: number; nx?: boolean }) => {
       const now = Date.now();
       const existing = store.strings.get(key);
@@ -92,6 +114,7 @@ vi.mock("@/lib/memory/redis", () => ({
       let n = 0;
       for (const k of keys) {
         if (store.sets.delete(k)) n++;
+        if (store.zsets.delete(k)) n++;
         if (store.strings.delete(k)) n++;
         if (store.lists.delete(k)) n++;
       }
@@ -167,8 +190,9 @@ vi.mock("@/lib/ratelimit", () => ({
 }));
 
 vi.mock("@/lib/handlers/text", () => ({
-  respondToText: vi.fn(async (_replyToken, userId, _profile, userText) => {
+  respondToText: vi.fn(async (_replyToken, userId, _profile, userText, _traceId, opts) => {
     sent.push({ to: userId, messages: [{ type: "text", text: `responded to: ${userText}` }] });
+    opts?.onQuoteTokens?.(["quote-token-from-bot"]);
   }),
 }));
 
@@ -178,6 +202,8 @@ import {
   isGroupEvent,
   isMentionOfBot,
   isNameInvocation,
+  isReplyToBotQuote,
+  recordBotQuoteTokens,
   shouldRespondInGroup,
 } from "@/lib/group";
 import { hasGroupAccess, addAllowedGroup, isGroupAllowed, addToTeam } from "@/lib/group-access";
@@ -347,5 +373,33 @@ describe("group chat support", () => {
     expect(r2).toBe(true);
     expect(sent.length).toBe(1);
     expect(JSON.stringify(sent[0]!.messages[0])).toContain("Team");
+  });
+
+  it("replying to a bot message triggers response in allowed group", async () => {
+    await addAllowedGroup(groupId);
+    await recordBotQuoteTokens(conversationId, ["qt-bot-123"]);
+    const gate = buildGate();
+    const event = groupMessage("follow up", "U1", { quoteToken: "qt-bot-123" });
+    const r = await handleGroupMessage(event, gate);
+    expect(r).toBe(true);
+    expect(sent.length).toBe(1);
+    expect(JSON.stringify(sent[0]!)).toContain("responded to");
+  });
+
+  it("replying to a bot message without access sends paywall", async () => {
+    await recordBotQuoteTokens(conversationId, ["qt-bot-456"]);
+    const gate = buildGate();
+    const event = groupMessage("follow up", "U1", { quoteToken: "qt-bot-456" });
+    const r = await handleGroupMessage(event, gate);
+    expect(r).toBe(true);
+    expect(sent.length).toBe(1);
+    expect(JSON.stringify(sent[0]!.messages[0])).toContain("Team");
+  });
+
+  it("isReplyToBotQuote returns false for unknown or missing quote tokens", async () => {
+    await recordBotQuoteTokens(conversationId, ["known"]);
+    expect(await isReplyToBotQuote(conversationId, "known")).toBe(true);
+    expect(await isReplyToBotQuote(conversationId, "unknown")).toBe(false);
+    expect(await isReplyToBotQuote(conversationId, undefined)).toBe(false);
   });
 });

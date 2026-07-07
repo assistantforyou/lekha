@@ -1,6 +1,6 @@
 import { env } from "@/lib/env";
 import type { Gate } from "@/lib/gate";
-import { getBotUserId, getConversationId, rawGroupId } from "@/lib/group";
+import { clearBotQuoteTokens, getBotUserId, getConversationId, rawGroupId } from "@/lib/group";
 import {
   addAllowedGroup,
   isGroupAllowed,
@@ -57,6 +57,7 @@ export async function handleLeave(event: LeaveEvent): Promise<void> {
   await removeDiscoveredGroup(groupId);
   await clearGroupHistory(conversationId);
   await clearGroupProfiles(conversationId);
+  await clearBotQuoteTokens(conversationId);
 }
 
 export async function handleMemberJoined(event: MemberJoinedEvent, gate: Gate): Promise<boolean> {
@@ -108,6 +109,7 @@ export async function handleMemberLeft(event: MemberLeftEvent): Promise<void> {
   await removeDiscoveredGroup(groupId);
   await clearGroupHistory(conversationId);
   await clearGroupProfiles(conversationId);
+  await clearBotQuoteTokens(conversationId);
 }
 
 async function notifyAdminsNewGroup(groupId: string): Promise<void> {

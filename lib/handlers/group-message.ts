@@ -1,6 +1,14 @@
 import { env } from "@/lib/env";
 import type { Gate } from "@/lib/gate";
-import { getBotUserId, getConversationId, isMentionOfBot, isNameInvocation, rawGroupId } from "@/lib/group";
+import {
+  getBotUserId,
+  getConversationId,
+  isMentionOfBot,
+  isNameInvocation,
+  isReplyToBotQuote,
+  rawGroupId,
+  recordBotQuoteTokens,
+} from "@/lib/group";
 import { addAllowedGroup, hasGroupAccess, removeAllowedGroup } from "@/lib/group-access";
 import { getSpeakerDisplayName } from "@/lib/memory/group-history";
 import { getOrCreateProfile } from "@/lib/memory/profile";
@@ -61,7 +69,8 @@ export async function handleGroupMessage(
   const botUserId = getBotUserId();
   const isMention = isMentionOfBot(textMessage, botUserId);
   const isName = isNameInvocation(userText);
-  if (!isMention && !isName) return true;
+  const isReply = await isReplyToBotQuote(conversationId, textMessage.quoteToken);
+  if (!isMention && !isName && !isReply) return true;
 
   const allowed = await hasGroupAccess({ userId, groupId, gate });
   if (!allowed) {
@@ -85,6 +94,9 @@ export async function handleGroupMessage(
       speakerName,
       messageId: textMessage.id,
       quoteToken: textMessage.quoteToken,
+    },
+    onQuoteTokens: (tokens) => {
+      recordBotQuoteTokens(conversationId, tokens).catch(() => {});
     },
   });
 

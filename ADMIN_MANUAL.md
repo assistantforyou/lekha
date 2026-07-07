@@ -8,10 +8,7 @@
 
 ## 1. The one thing admins do most: let someone in
 
-You do **not** need a user to paste their LINE ID. But if they do, it must be copyable. `/myid` now replies with:
-
-1. A Flex card with a **"📋 Copy my ID"** button (taps once = copied to clipboard).
-2. A plain-text follow-up containing just the ID, so it can also be long-pressed and copied.
+You do **not** need a user to paste their LINE ID. `/myid` replies with the ID as plain text, so they can select, copy, and paste it to an admin.
 
 ### Approval options (pick any)
 
@@ -35,7 +32,7 @@ When you tap **Allow** on a pending card, the bot:
 | Command | Who | What it does |
 |---|---|---|
 | `/help` | anyone | Help card and command list (also works as `help`) |
-| `/myid` | anyone | Sends copyable LINE user ID |
+| `/myid` | anyone | Sends your LINE user ID as plain text |
 | `/settings` | allowed/trial/admin | Opens settings menu |
 | `/settings <section>` | allowed/trial/admin | Jumps to section: `briefing`, `tools`, `persona`, `memory`, `facts`, `locale` |
 | `/settings:section:<section>` | allowed/trial/admin | Postback-style section jump |
@@ -164,6 +161,16 @@ This is why Keno and Pang show `allowed` — they explicitly used `/promo FREETR
 | **`/allowgroup <GROUP_ID>``** | Type the exact group/room ID. |
 | **Add to `ADMIN_GROUP_IDS`** | Vercel env var; permanent, survives restarts. |
 
+### How users talk to the bot in a group
+
+LINE does **not** show bots in the group `@` autocomplete, so members cannot pick Lekha from the mention picker. They can still invoke the bot with:
+
+1. **`@Lekha` typed manually** at the start of a message (case-insensitive).
+2. **The name at the start** — e.g. `Lekha, what's the weather?`.
+3. **A reply to any of the bot's messages** — swipe/right-click the bot's message and hit reply; the bot treats that as a direct invocation, no `@` needed.
+
+> Tip: the bot's join message already tells members they can mention `@Lekha` or reply to its messages.
+
 ### `/groups` output
 
 - **✅ Allowed groups** — already authorised (`groups:allowed` + `ADMIN_GROUP_IDS`).
@@ -261,7 +268,7 @@ Facts are stored per user at `user:{userId}:facts:v2`.
 
 Use this section as a running log. Add a bullet every time the manual is updated.
 
-- **2026-07-07** — Converted `=` commands to `/` commands; added copyable `/myid`; added group discovery and admin `/groups` Flex cards; increased `/audit` max to 100; improved `/users` status logging; created this manual.
+- **2026-07-07** — Converted `=` commands to `/` commands; added `/myid` plain-text reply; added group discovery and admin `/groups` Flex cards; increased `/audit` max to 100; improved `/users` status logging; created this manual.
 
 ---
 

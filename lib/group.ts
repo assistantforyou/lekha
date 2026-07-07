@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { redis } from "@/lib/memory/redis";
 import type { LineEvent, LineMessageEvent, LineTextMessage } from "@/lib/line/types";
 
 export type ConversationSource = {
@@ -67,4 +68,32 @@ export function shouldRespondInGroup(
 
 export function formatSpeakerName(displayName: string): string {
   return displayName.split(/\s+/)[0] ?? displayName;
+}
+
+const BOT_QUOTE_TTL_MS = 24 * 60 * 60 * 1000;
+const BOT_QUOTE_KEY_TTL_SEC = 60 * 60 * 24;
+
+function botQuoteKey(conversationId: string) {
+  return `bot-quotes:${conversationId}`;
+}
+
+export async function recordBotQuoteTokens(conversationId: string, tokens: string[]): Promise<void> {
+  if (!tokens.length) return;
+  const key = botQuoteKey(conversationId);
+  const score = Date.now();
+  for (const member of tokens) {
+    await redis().zadd(key, { score, member });
+  }
+  await redis().expire(key, BOT_QUOTE_KEY_TTL_SEC);
+}
+
+export async function isReplyToBotQuote(conversationId: string, quoteToken: string | undefined): Promise<boolean> {
+  if (!quoteToken) return false;
+  const score = await redis().zscore(botQuoteKey(conversationId), quoteToken);
+  if (score === null) return false;
+  return Date.now() - Number(score) <= BOT_QUOTE_TTL_MS;
+}
+
+export async function clearBotQuoteTokens(conversationId: string): Promise<void> {
+  await redis().del(botQuoteKey(conversationId));
 }
