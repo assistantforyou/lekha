@@ -336,10 +336,15 @@ export async function runAgent(
     imageBundled?: boolean;
     /** Override the default 30s agent timeout. Use 55s when image bytes are in the request. */
     timeoutMs?: number;
+    /** Whether this turn is happening inside a LINE group chat. */
+    isGroupChat?: boolean;
+    /** The display name of the group member invoking the bot (group chats only). */
+    speakerName?: string;
   },
 ): Promise<AgentResult> {
   const endAgent = span("agent:runAgent", traceId);
   const agentStart = performance.now();
+  let lang: string | null = null;
 
   try {
     const [accounts, staged, settings] = await Promise.all([
@@ -388,9 +393,10 @@ export async function runAgent(
             .join("\n")}\nIf the user asks about an image, call \`ocr_image\` or \`summarize_image\` with the index. If they ask about a PDF/document, call \`summarize_document\` or \`read_document\`. If they ask about a voice memo/meeting/lecture, the full transcript is already saved — use \`search_documents\` to find it and summarize or quote from it. Use \`attach_recent_media\` / \`attach_recent_media_indexes\` only when attaching files to an email.`
       : "";
     const tz = settings.timezone ?? "Asia/Bangkok";
+    lang = settings.language;
     const displayName = settings.personaPreferredName?.trim() || profile.displayName;
     const factsBlock = factsToPromptBlock(facts, factLimitForHint(opts?.hint));
-    const system = buildSystemPrompt(factsBlock, { displayName }, settings);
+    const system = buildSystemPrompt(factsBlock, { displayName }, { ...settings, isGroupChat: opts?.isGroupChat, speakerName: opts?.speakerName });
 
     // Volatile per-request context goes into a synthetic first message pair so
     // the system prompt stays stable and Gemini's implicit prefix cache can hit.

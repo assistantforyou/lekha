@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Atomically consume state nonce (prevents replay)
-  const stored = await redis().getdel<{ plan: "monthly" | "yearly" }>(`signup:state:${state}`);
+  const stored = await redis().getdel<{ plan: "monthly" | "yearly" | "team_monthly" | "team_yearly" }>(`signup:state:${state}`);
   if (!stored) {
     return NextResponse.redirect(`${base}/signup?error=invalid_state`);
   }
@@ -69,12 +69,20 @@ export async function GET(req: NextRequest) {
   const stripeKey = testMode ? e.STRIPE_TEST_SECRET_KEY : e.STRIPE_SECRET_KEY;
   const monthlyPriceId = testMode ? e.STRIPE_TEST_MONTHLY_PRICE_ID : e.STRIPE_MONTHLY_PRICE_ID;
   const yearlyPriceId = testMode ? e.STRIPE_TEST_YEARLY_PRICE_ID : e.STRIPE_YEARLY_PRICE_ID;
+  const teamMonthlyPriceId = testMode ? e.STRIPE_TEST_TEAM_MONTHLY_PRICE_ID : e.STRIPE_TEAM_MONTHLY_PRICE_ID;
+  const teamYearlyPriceId = testMode ? e.STRIPE_TEST_TEAM_YEARLY_PRICE_ID : e.STRIPE_TEAM_YEARLY_PRICE_ID;
 
-  if (!stripeKey || !monthlyPriceId || !yearlyPriceId) {
+  const requiredPriceId =
+    plan === "yearly" ? yearlyPriceId :
+    plan === "monthly" ? monthlyPriceId :
+    plan === "team_monthly" ? teamMonthlyPriceId :
+    teamYearlyPriceId;
+
+  if (!stripeKey || !requiredPriceId) {
     return NextResponse.redirect(`${base}/signup?error=stripe_not_configured`);
   }
 
-  const priceId = plan === "yearly" ? yearlyPriceId : monthlyPriceId;
+  const priceId = requiredPriceId;
 
   // Create Stripe Checkout Session with 7-day trial
   const stripe = new Stripe(stripeKey);

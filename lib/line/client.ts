@@ -85,11 +85,26 @@ function authHeaders() {
   };
 }
 
+function extractQuoteTokens(r: Response, bodyText: string): string[] {
+  try {
+    if (!r.ok) return [];
+    const json = JSON.parse(bodyText) as { sentMessages?: { id: string; quoteToken: string }[] };
+    return json.sentMessages?.map((m) => m.quoteToken).filter(Boolean) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Reply to a message using a one-shot reply token (~1min validity).
  * Falls back silently if expired/used; caller should switch to push.
+ * Optionally returns the quote tokens of sent messages via onQuoteTokens.
  */
-export async function reply(replyToken: string, messages: LineMessage[]): Promise<boolean> {
+export async function reply(
+  replyToken: string,
+  messages: LineMessage[],
+  onQuoteTokens?: (tokens: string[]) => void,
+): Promise<boolean> {
   const end = span("line:reply");
   const { messages: safeMessages, warnings } = sanitizeFlexMessages(messages);
   if (warnings.length) console.warn("[line] flex validation warnings", warnings);
@@ -98,9 +113,14 @@ export async function reply(replyToken: string, messages: LineMessage[]): Promis
     headers: authHeaders(),
     body: JSON.stringify({ replyToken, messages: safeMessages }),
   });
+  const text = await safeText(r);
   end({ ok: r.ok, status: r.status, messages: safeMessages.length });
+  if (onQuoteTokens) {
+    const tokens = extractQuoteTokens(r, text);
+    if (tokens.length) onQuoteTokens(tokens);
+  }
   if (!r.ok) {
-    console.warn("[line] reply failed", r.status, await safeText(r));
+    console.warn("[line] reply failed", r.status, text);
     return false;
   }
   return true;
@@ -109,8 +129,13 @@ export async function reply(replyToken: string, messages: LineMessage[]): Promis
 /**
  * Push a message to a user (counts against monthly quota on free plan).
  * Retries up to 2 times on transient 5xx/network errors with exponential backoff.
+ * Optionally returns the quote tokens of sent messages via onQuoteTokens.
  */
-export async function push(to: string, messages: LineMessage[]): Promise<boolean> {
+export async function push(
+  to: string,
+  messages: LineMessage[],
+  onQuoteTokens?: (tokens: string[]) => void,
+): Promise<boolean> {
   const { messages: safeMessages, warnings } = sanitizeFlexMessages(messages);
   if (warnings.length) console.warn("[line] flex validation warnings", warnings);
   const body = JSON.stringify({ to, messages: safeMessages });
@@ -121,10 +146,14 @@ export async function push(to: string, messages: LineMessage[]): Promise<boolean
       headers: authHeaders(),
       body,
     });
+    const text = await safeText(r);
     end({ ok: r.ok, status: r.status, messages: safeMessages.length, attempt });
+    if (onQuoteTokens) {
+      const tokens = extractQuoteTokens(r, text);
+      if (tokens.length) onQuoteTokens(tokens);
+    }
     if (r.ok) return true;
     const status = r.status;
-    const text = await safeText(r);
     // Don't retry on 4xx (bad request, auth, rate-limit) — only 5xx/network
     if (status < 500 || attempt === 2) {
       console.warn("[line] push failed", status, text);
@@ -138,17 +167,19 @@ export async function push(to: string, messages: LineMessage[]): Promise<boolean
 
 /**
  * Reply if the token is fresh, else push. Returns the method used.
+ * Optionally captures the quote tokens of sent messages.
  */
 export async function replyOrPush(
   to: string,
   replyToken: string | undefined,
   messages: LineMessage[],
+  onQuoteTokens?: (tokens: string[]) => void,
 ): Promise<"reply" | "push" | "failed"> {
   if (replyToken) {
-    const ok = await reply(replyToken, messages);
+    const ok = await reply(replyToken, messages, onQuoteTokens);
     if (ok) return "reply";
   }
-  const ok = await push(to, messages);
+  const ok = await push(to, messages, onQuoteTokens);
   return ok ? "push" : "failed";
 }
 

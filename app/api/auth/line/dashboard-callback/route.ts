@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const dashboardStored = await redis().getdel<{ redirectTo?: string }>(`dashboard:state:${state}`);
   const signupStored = dashboardStored
     ? null
-    : await redis().getdel<{ plan: "monthly" | "yearly" }>(`signup:state:${state}`);
+    : await redis().getdel<{ plan: "monthly" | "yearly" | "team_monthly" | "team_yearly" }>(`signup:state:${state}`);
 
   if (!dashboardStored && !signupStored) {
     return NextResponse.redirect(`${base}/?error=invalid_state`);
@@ -78,12 +78,21 @@ export async function GET(req: NextRequest) {
     const stripeKey = testMode ? e.STRIPE_TEST_SECRET_KEY : e.STRIPE_SECRET_KEY;
     const monthlyPriceId = testMode ? e.STRIPE_TEST_MONTHLY_PRICE_ID : e.STRIPE_MONTHLY_PRICE_ID;
     const yearlyPriceId = testMode ? e.STRIPE_TEST_YEARLY_PRICE_ID : e.STRIPE_YEARLY_PRICE_ID;
+    const teamMonthlyPriceId = testMode ? e.STRIPE_TEST_TEAM_MONTHLY_PRICE_ID : e.STRIPE_TEAM_MONTHLY_PRICE_ID;
+    const teamYearlyPriceId = testMode ? e.STRIPE_TEST_TEAM_YEARLY_PRICE_ID : e.STRIPE_TEAM_YEARLY_PRICE_ID;
 
-    if (!stripeKey || !monthlyPriceId || !yearlyPriceId) {
+    const isTeam = plan.startsWith("team_");
+    const requiredPriceId =
+      plan === "yearly" ? yearlyPriceId :
+      plan === "monthly" ? monthlyPriceId :
+      plan === "team_monthly" ? teamMonthlyPriceId :
+      teamYearlyPriceId;
+
+    if (!stripeKey || !requiredPriceId) {
       return NextResponse.redirect(`${base}/signup?error=stripe_not_configured`);
     }
 
-    const priceId = plan === "yearly" ? yearlyPriceId : monthlyPriceId;
+    const priceId = requiredPriceId;
     const stripe = new Stripe(stripeKey);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",

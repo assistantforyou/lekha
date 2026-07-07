@@ -1,7 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { after } from "next/server";
 import { verifyLineSignature } from "@/lib/line/verify";
-import { Webhook, type LineEvent } from "@/lib/line/types";
+import {
+  Webhook,
+  type LineEvent,
+  type JoinEvent,
+  type LeaveEvent,
+  type MemberJoinedEvent,
+  type MemberLeftEvent,
+  type LineMessageEvent,
+} from "@/lib/line/types";
 import { replyOrPush, text as textMsg, showLoading } from "@/lib/line/client";
 import { env } from "@/lib/env";
 import { redis } from "@/lib/memory/redis";
@@ -27,6 +35,9 @@ import { handlePostback } from "@/lib/webhook-postback";
 import { span } from "@/lib/timing";
 import { markUserActive } from "@/lib/sweep";
 import { isOnboarded, startOnboarding } from "@/lib/onboarding";
+import { isGroupEvent } from "@/lib/group";
+import { handleJoin, handleLeave, handleMemberJoined, handleMemberLeft } from "@/lib/handlers/group-lifecycle";
+import { handleGroupMessage } from "@/lib/handlers/group-message";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -145,7 +156,31 @@ async function handleEvent(
     }
   }
 
-  if (!(await passesGate(event, gate))) {
+  if (event.type === "join") {
+    const r = await handleJoin(event as JoinEvent, gate);
+    endEvent({ type: "join" });
+    return r;
+  }
+
+  if (event.type === "leave") {
+    await handleLeave(event as LeaveEvent);
+    endEvent({ type: "leave" });
+    return true;
+  }
+
+  if (event.type === "memberJoined") {
+    const r = await handleMemberJoined(event as MemberJoinedEvent, gate);
+    endEvent({ type: "memberJoined" });
+    return r;
+  }
+
+  if (event.type === "memberLeft") {
+    await handleMemberLeft(event as MemberLeftEvent);
+    endEvent({ type: "memberLeft" });
+    return true;
+  }
+
+  if (!isGroupEvent(event) && !(await passesGate(event, gate))) {
     endEvent({ skipped: "allowlist" });
     return false;
   }
@@ -205,6 +240,12 @@ async function handleEvent(
     return false;
   }
   const message = event.message;
+
+  if (isGroupEvent(event)) {
+    const r = await handleGroupMessage(event as LineMessageEvent, gate, traceId);
+    endEvent({ type: "group-message" });
+    return r;
+  }
 
   // Pre-flight in parallel. registerUser adds user to the sweep registry (users:active set).
   // NOTE: There are no per-user QStash schedules for briefings. The master sweep iterates all users.

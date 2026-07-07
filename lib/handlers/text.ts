@@ -11,6 +11,17 @@ import { fastClassify } from "@/lib/fast-classify";
 import { enrichReply } from "../enrich-reply";
 import { span, timed } from "@/lib/timing";
 import { handleTutorialText } from "@/lib/tutorial";
+import { getBotUserId } from "@/lib/group";
+import { appendGroupTurn, groupContextForPrompt } from "@/lib/memory/group-history";
+
+export type GroupRespondContext = {
+  conversationId: string;
+  chatId: string;
+  speakerUserId: string;
+  speakerName: string;
+  messageId: string;
+  quoteToken?: string;
+};
 
 export async function respondToText(
   replyToken: string,
@@ -18,12 +29,17 @@ export async function respondToText(
   profile: { displayName: string },
   userText: string,
   traceId?: string,
+  opts?: {
+    groupContext?: GroupRespondContext;
+    onQuoteTokens?: (tokens: string[]) => void;
+  },
 ): Promise<void> {
   // Tutorial command / in-progress setup takes precedence over normal chat.
   if (await handleTutorialText(userId, replyToken, userText)) return;
 
   const endHandler = span("text:respondToText", traceId);
-  showLoading(userId, 60).catch(() => {}); // fire-and-forget
+  const loadingChatId = opts?.groupContext?.chatId ?? userId;
+  showLoading(loadingChatId, 60).catch(() => {}); // fire-and-forget
 
   // Load staged first so we can kick off image download in parallel with other preloads.
   const staged = await listRecentMedia(userId);
@@ -52,8 +68,12 @@ export async function respondToText(
   const hint = fastClassify(userText, { hasStagedMedia });
 
   const endPreload = span("text:preload", traceId);
-  const [rawHistoryMsgs, facts, accounts, settings, imageData] = await Promise.all([
+  const groupContextPromise = opts?.groupContext
+    ? groupContextForPrompt(opts.groupContext.conversationId, getBotUserId())
+    : Promise.resolve([]);
+  const [rawHistoryMsgs, groupMsgs, facts, accounts, settings, imageData] = await Promise.all([
     historyForPrompt(userId),
+    groupContextPromise,
     loadFacts(userId, 30),
     listAccounts(userId),
     getSettings(userId),
@@ -87,10 +107,15 @@ export async function respondToText(
     userContent = userText;
   }
 
-  const messages: ModelMessage[] = [
-    ...historyMsgs,
-    { role: "user", content: userContent },
-  ];
+  const messages: ModelMessage[] = opts?.groupContext
+    ? [
+        ...groupMsgs,
+        { role: "user", content: userContent },
+      ]
+    : [
+        ...historyMsgs,
+        { role: "user", content: userContent },
+      ];
 
   const userHasGoogle = accounts.accounts.length > 0;
   const tools = await toolsForUser(userId, {
@@ -108,6 +133,8 @@ export async function respondToText(
     settings,
     hint,
     imageBundled: !!imageData,
+    isGroupChat: Boolean(opts?.groupContext),
+    speakerName: opts?.groupContext?.speakerName,
     // Image already staged — give Gemini vision + response steps more time
     timeoutMs: imageData ? 55_000 : undefined,
   });
@@ -117,22 +144,44 @@ export async function respondToText(
   // Always use the replyToken for the actual answer. The earlier ack was sent via
   // push (best effort); if the free plan's push quota is exhausted, the user still
   // gets the answer via reply and sees the loading animation while processing.
+  const replyTo = opts?.groupContext?.chatId ?? userId;
   await replyOrPush(
-    userId,
+    replyTo,
     replyToken,
     enrichReply(
       replyText,
       hints,
       accounts.accounts.map((a) => a.email),
     ).slice(0, 5),
+    opts?.onQuoteTokens,
   );
   endReply();
 
   const endAppend = span("text:appendTurns", traceId);
-  await Promise.all([
+  const appendPersonal = Promise.all([
     appendTurn(userId, { role: "user", content: userText, ts: Date.now() }),
     appendTurn(userId, { role: "assistant", content: historyText, ts: Date.now() }),
   ]);
+  const appendGroup = opts?.groupContext
+    ? Promise.all([
+        appendGroupTurn(opts.groupContext.conversationId, {
+          userId: opts.groupContext.speakerUserId,
+          displayName: opts.groupContext.speakerName,
+          text: userText,
+          ts: Date.now(),
+          messageId: opts.groupContext.messageId,
+          quoteToken: opts.groupContext.quoteToken,
+        }),
+        appendGroupTurn(opts.groupContext.conversationId, {
+          userId: getBotUserId() ?? "bot",
+          displayName: "Lekha",
+          text: historyText,
+          ts: Date.now(),
+          messageId: "",
+        }),
+      ])
+    : Promise.resolve();
+  await Promise.all([appendPersonal, appendGroup]);
   endAppend();
 
   endHandler({ userTextLength: userText.length, replyLength: replyText.length });

@@ -266,6 +266,17 @@ Postback `data` is parsed by verb prefix (`verb:arg:arg…`, capped at 300 chars
 
 Idempotency relies on the existing `seen:{webhookEventId}` dedup.
 
+### 21. Group chat support
+LINE groups/rooms are first-class conversation targets but do not pollute the 1:1 experience:
+
+- The bot only replies in groups when explicitly invoked (mention `@Lekha`, name invocation, or reply to a recent bot message).
+- Group conversation context is stored separately under `group:{groupId}:history` / `room:{roomId}:history`, capped at 50 messages, with a 30-day TTL.
+- Only the recent 20 group messages are injected into the prompt, so long groups stay cheap.
+- Speaker display names are cached per group for one day via the LINE group/room member profile API.
+- Personal state (history, facts, settings, tasks, reminders) remains keyed by the invoking user's `userId`.
+- Group access is gated by `hasGroupAccess({ userId, groupId, gate })`, which checks: admin → `groups:allowed` → `ADMIN_GROUP_IDS` env → `users:team` Team subscription. This separates billing from feature logic.
+- Group lifecycle events (`join`, `leave`, `memberJoined`, `memberLeft`) are handled in the webhook; an admin adding the bot auto-authorises the group.
+
 ## Conventions
 
 - **No comments unless explaining a non-obvious WHY.**

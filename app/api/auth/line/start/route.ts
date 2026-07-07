@@ -7,8 +7,9 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const plan = req.nextUrl.searchParams.get("plan");
-  if (plan !== "monthly" && plan !== "yearly") {
-    return new NextResponse("invalid plan", { status: 400 });
+  const validPlans = ["monthly", "yearly", "team_monthly", "team_yearly"];
+  if (!plan || !validPlans.includes(plan)) {
+    return new Response("invalid plan", { status: 400 });
   }
 
   const e = env();
