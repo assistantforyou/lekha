@@ -5,6 +5,7 @@ import { settingsMainFlex } from "@/lib/line/flex/settings";
 import { loadFacts, saveFacts, _internalNewFact } from "@/lib/memory/facts";
 import { TRIAL_DAILY_LIMIT } from "@/lib/trial-constants";
 import type { FlexMessage } from "@/lib/line/client";
+import { t } from "@/lib/i18n";
 
 const ACCENT = "#5B6FF0";
 const TEXT = "#333333";
@@ -158,7 +159,9 @@ const T = {
     timeError: "I didn't catch the time. Try something like 07:30, 7:30 AM, 21:00, or 9 PM.",
     tryAgain: "Please try again.",
     tapButtonsOrRestart: "Tap the buttons above to finish setup, or type =tutorial to restart.",
+    step: "Setup step {step} of {total}",
   },
+
   th: {
     welcome: "ยินดีต้อนรับ! มาตั้งค่า Lekha ใน 30 วินาทีกัน",
     welcomeStart: "เริ่มตั้งค่า",
@@ -224,6 +227,7 @@ const T = {
     timeError: "ฉันไม่เข้าใจเวลา ลองเช่น 07:30, 7:30 AM, 21:00 หรือ 9 PM",
     tryAgain: "กรุณาลองอีกครั้ง",
     tapButtonsOrRestart: "แตะปุ่มด้านบนเพื่อตั้งค่าต่อ หรือพิมพ์ =tutorial เพื่อเริ่มใหม่",
+    step: "ขั้นตอนที่ {step} จาก {total}",
   },
 };
 
@@ -289,14 +293,15 @@ function parseCustomTime(input: string): string | null {
   return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
-function tutorialBubble(step: number, total: number, title: string, description: string, contents: object[]): FlexMessage {
+function tutorialBubble(lang: Lang, step: number, total: number, title: string, description: string, contents: object[]): FlexMessage {
+  const stepText = T[lang].step.replace("{step}", String(step)).replace("{total}", String(total));
   return {
     type: "flex",
-    altText: `${title} — Setup step ${step} of ${total}.`,
+    altText: `${title} — ${stepText}.`,
     contents: {
       type: "bubble",
       size: "mega",
-      header: header(title, `Setup step ${step} of ${total}`),
+      header: header(title, stepText),
       body: body([hint(description), separator(), ...contents]),
     },
   };
@@ -317,13 +322,15 @@ function finishNavRow(lang: Lang): object {
 
 async function languageStep(settings: UserSettings): Promise<FlexMessage> {
   // The language step is intentionally bilingual so it's understandable before a choice is made.
+  const lang = tutorialLang(settings);
+  const stepText = T[lang].step.replace("{step}", "1").replace("{total}", "6");
   return {
     type: "flex",
     altText: "Choose your language / เลือกภาษา",
     contents: {
       type: "bubble",
       size: "mega",
-      header: header("🌐 Language / ภาษา", "Setup step 1 of 6"),
+      header: header("🌐 Language / ภาษา", stepText),
       body: body([
         hint("Choose the language for setup and replies. / เลือกภาษาสำหรับการตั้งค่าและการตอบกลับ"),
         separator(),
@@ -351,7 +358,7 @@ async function localeStep(settings: UserSettings): Promise<FlexMessage> {
   ];
   const bangkokTz = settings.timezone === "Asia/Bangkok";
   const bangkokLoc = settings.location === "Bangkok, Thailand";
-  return tutorialBubble(2, 6, t.localeTitle, t.localeDescription, [
+  return tutorialBubble(lang, 2, 6, t.localeTitle, t.localeDescription, [
     chipRow(
       t.replyLanguage,
       languages.map((o) => optionButton(o.label, `tutorial:set:language:${o.value}`, o.on)),
@@ -381,7 +388,7 @@ async function briefingStep(settings: UserSettings): Promise<FlexMessage> {
   const morningOn = (time: string) => settings.morningBriefingTime === time;
   const eveningOn = (time: string) => settings.eveningSummaryEnabled && settings.eveningSummaryTime === time;
   const checkinOn = (time: string) => settings.taskCheckInEnabled && settings.taskCheckInTime === time;
-  return tutorialBubble(3, 6, t.briefingTitle, t.briefingDescription, [
+  return tutorialBubble(lang, 3, 6, t.briefingTitle, t.briefingDescription, [
     chipRow(
       t.morningBriefing,
       [
@@ -432,7 +439,7 @@ async function toolsStep(settings: UserSettings): Promise<FlexMessage> {
     { labelKey: "toolsMinimal", value: "minimal", tools: { todo: true, reminders: true, calendar: false, email: false, drive: false } },
     { labelKey: "toolsChat", value: "chat", tools: { todo: false, reminders: false, calendar: false, email: false, drive: false } },
   ];
-  return tutorialBubble(4, 6, t.toolsTitle, t.toolsDescription, [
+  return tutorialBubble(lang, 4, 6, t.toolsTitle, t.toolsDescription, [
     {
       type: "box",
       layout: "vertical",
@@ -484,7 +491,7 @@ async function personaStep(settings: UserSettings, userId: string): Promise<Flex
     { label: t.sirMadam, value: "Sir / Madam", on: settings.personaAddressing === "Sir / Madam" },
     { label: t.noAddress, value: "No address", on: settings.personaAddressing === "No address" },
   ];
-  return tutorialBubble(5, 6, t.personaTitle, t.personaDescription, [
+  return tutorialBubble(lang, 5, 6, t.personaTitle, t.personaDescription, [
     preferredNameRow(settings, displayName, lang),
     chipRow(t.tone, tones.map((o) => optionButton(o.label, `tutorial:set:personaTone:${o.value}`, o.on)), 1),
     chipRow(t.addressYouAs, addressing.map((o) => optionButton(o.label, `tutorial:set:personaAddressing:${o.value}`, o.on)), 1),
@@ -495,7 +502,7 @@ async function personaStep(settings: UserSettings, userId: string): Promise<Flex
 async function memoryStep(settings: UserSettings): Promise<FlexMessage> {
   const lang = tutorialLang(settings);
   const t = T[lang];
-  return tutorialBubble(6, 6, t.memoryTitle, t.memoryDescription, [
+  return tutorialBubble(lang, 6, 6, t.memoryTitle, t.memoryDescription, [
     hint(t.memoryFactHint),
     {
       type: "box",

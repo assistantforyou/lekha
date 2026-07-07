@@ -4,6 +4,8 @@ import { appendTurn } from "@/lib/memory/history";
 import { appendRecentMedia, listRecentMedia } from "@/lib/memory/recent-media";
 import { autoProcessAudio } from "@/lib/tools/media-ai";
 import { maybeExtractFacts } from "@/lib/maybe-extract";
+import { getSettings } from "@/lib/memory/settings";
+import { t } from "@/lib/i18n";
 
 /** Items staged within this window count as "sent together" for ack wording. */
 const BATCH_WINDOW_MS = 10_000;
@@ -75,6 +77,7 @@ export async function respondToOtherMedia(
   // batched with text, the text handler leads the reply and we just transcribe in
   // the background; when standalone, we send a brief ack.
   if (kind === "audio") {
+    const settings = await getSettings(userId);
     if (mode === "stage_only") {
       autoProcessAudio(userId, messageId, fileName).catch((err) =>
         console.warn("[other-media] background audio transcription failed", err),
@@ -83,9 +86,10 @@ export async function respondToOtherMedia(
       try {
         const { transcript } = await autoProcessAudio(userId, messageId, fileName);
         const durationHint = durationMs && durationMs > 0 ? ` (${Math.round(durationMs / 1000)}s)` : "";
-        const reply = transcript && transcript !== "No speech detected."
-          ? `🎙 Got your voice memo${durationHint}. I've transcribed and saved it — just ask me to summarize, search, or pull quotes from it.`
-          : `🎙 Got your voice memo${durationHint}, but I didn't detect any speech.`;
+        const reply =
+          transcript && transcript !== "No speech detected."
+            ? t(settings.language, "voiceMemoAck", { duration: durationHint })
+            : t(settings.language, "voiceMemoNoSpeech", { duration: durationHint });
         await replyOrPush(userId, replyToken, [textMsg(reply)]);
         await appendTurn(userId, {
           role: "user",
@@ -107,18 +111,22 @@ export async function respondToOtherMedia(
   // stage_only: media+text arrived in same batch — text handler runs the agent.
   if (mode === "stage_only") return;
 
+  const settings = await getSettings(userId);
+  const lang = settings.language;
   const staged = await listRecentMedia(userId);
   const batchCount = staged.filter((m) => Date.now() - m.ts < BATCH_WINDOW_MS).length;
-  const ack =
-    batchCount > 1
-      ? `Got your ${batchCount} files. Ask me what you'd like to do with them.`
-      : isArchive(contentType, fileName)
-      ? `Got your zip file${fileName ? ` (${fileName})` : ""} — I can attach it to emails but I can't open or extract the contents.`
-      : isDoc
-      ? `Got your document${fileName ? ` (${fileName})` : ""} — reading it now. What would you like to know?`
-      : kind === "audio"
-      ? `Got your voice memo — want me to transcribe or summarize it?`
-      : `Got your ${kind}${fileName ? ` (${fileName})` : ""} — it's ready. What would you like to do with it?`;
+  let ack: string;
+  if (batchCount > 1) {
+    ack = t(lang, "docsAck", { count: String(batchCount) });
+  } else if (isArchive(contentType, fileName)) {
+    ack = t(lang, "zipAck", { name: fileName ?? "" });
+  } else if (isDoc) {
+    ack = t(lang, "docAck", { name: fileName ?? "" });
+  } else if (kind === "audio") {
+    ack = t(lang, "audioAck");
+  } else {
+    ack = t(lang, "genericMediaAck", { kind, name: fileName ?? "" });
+  }
 
   await replyOrPush(userId, replyToken, [textMsg(ack)]);
   await appendTurn(userId, {

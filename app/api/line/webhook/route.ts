@@ -15,6 +15,7 @@ import { buildGate, passesGate } from "@/lib/gate";
 import { isAllowed } from "@/lib/memory/allowlist";
 import { isOnTrial, checkTrialDailyQuota, trialQuotaMessage, startTrial } from "@/lib/trial";
 import { getSettings } from "@/lib/memory/settings";
+import { t } from "@/lib/i18n";
 
 import { handleAdminCommand, handleMyId } from "@/lib/admin-commands";
 import { dispatchShortcut } from "@/lib/shortcuts";
@@ -63,7 +64,8 @@ export async function POST(req: NextRequest) {
       const uid = event.source?.userId;
       const rt = "replyToken" in event ? event.replyToken : undefined;
       if (uid && rt) {
-        replyOrPush(uid, rt, [textMsg("Something went wrong — try again in a moment.")]).catch(() => {});
+        const langSettings = await getSettings(uid).catch(() => null);
+        replyOrPush(uid, rt, [textMsg(t(langSettings?.language, "agentErrGeneric"))]).catch(() => {});
       }
     }
   }
@@ -98,7 +100,8 @@ export async function POST(req: NextRequest) {
         const uid = event.source?.userId;
         const rt = "replyToken" in event ? event.replyToken : undefined;
         if (uid && rt) {
-          replyOrPush(uid, rt, [textMsg("Something went wrong — try again in a moment.")]).catch(() => {});
+          const langSettings = await getSettings(uid).catch(() => null);
+          replyOrPush(uid, rt, [textMsg(t(langSettings?.language, "agentErrGeneric"))]).catch(() => {});
         }
       }
     }
@@ -167,15 +170,16 @@ async function handleEvent(
     const endProfile = span("webhook:getOrCreateProfile", traceId);
     const profile = await getOrCreateProfile(userId);
     endProfile();
+    const settings = await getSettings(userId);
     const name = profile.displayName && profile.displayName !== "friend" ? profile.displayName : "";
     if (!(await isOnboarded(userId))) {
       await startOnboarding(userId, event.replyToken, name);
     } else {
-      await replyOrPush(userId, event.replyToken, [
-        textMsg(
-          `Hi${name ? ` ${name}` : ""}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`,
-        ),
-      ]);
+      const greeting =
+        settings.language === "th"
+          ? `สวัสดี${name ? ` ${name}` : ""}! ฉัน Lekha เลขาส่วนตัวของคุณ 👋\n\nฉันตั้งเตือน ค้นหาเว็บ เช็คราคาหุ้นและอากาศ อ่านรูปภาพ และอื่น ๆ ได้\n\nพิมพ์ "help" เพื่อดูทั้งหมดที่ฉันทำได้ หรือพิมพ์ "connect google" เพื่อเชื่อม Google (Gmail, Calendar, Drive)`
+          : `Hi${name ? ` ${name}` : ""}! I'm Lekha, your personal assistant 👋\n\nI can set reminders, search the web, look up stocks or weather, read photos, and more.\n\nType "help" to see everything I can do. To connect Google (Gmail, Calendar, Drive), type "connect google".`;
+      await replyOrPush(userId, event.replyToken, [textMsg(greeting)]);
     }
     endEvent({ type: "follow" });
     return true;
@@ -214,8 +218,9 @@ async function handleEvent(
   endPreflight({ rateLimited: !rl.ok, pending: pending.length });
 
   if (!rl.ok) {
+    const settings = await getSettings(userId);
     await replyOrPush(userId, event.replyToken, [
-      textMsg(`Easy there — give me a sec. Try again in ~${rl.retryAfterSec}s.`),
+      textMsg(t(settings.language, "rateLimitMessage", { sec: String(rl.retryAfterSec) })),
     ]);
     endEvent({ type: "rate-limited" });
     return true;
@@ -255,9 +260,14 @@ async function handleEvent(
         return true;
       }
       if (decision === "no") {
+        const settings = await getSettings(userId);
         await clearPending(userId);
         await replyOrPush(userId, event.replyToken, [
-          textMsg(`Cancelled ${pending.length === 1 ? "that" : `all ${pending.length}`}.`),
+          textMsg(
+            pending.length === 1
+              ? t(settings.language, "pendingCancelledOne")
+              : t(settings.language, "pendingCancelledMany", { count: String(pending.length) }),
+          ),
         ]);
         endEvent({ type: "pending-no" });
         return true;
@@ -312,16 +322,14 @@ async function handleEvent(
   }
 
   if (message.type === "sticker") {
-    await replyOrPush(userId, event.replyToken, [
-      textMsg("Cute sticker. Send me text, a photo, or a file if you'd like me to do something with it."),
-    ]);
+    const settings = await getSettings(userId);
+    await replyOrPush(userId, event.replyToken, [textMsg(t(settings.language, "stickerReply"))]);
     endEvent({ type: "sticker" });
     return true;
   }
 
-  await replyOrPush(userId, event.replyToken, [
-    textMsg("I didn't recognize that message type. Try text, a photo, video, audio, or a file."),
-  ]);
+  const settings = await getSettings(userId);
+  await replyOrPush(userId, event.replyToken, [textMsg(t(settings.language, "unknownMessageType"))]);
   endEvent({ type: "unknown" });
   return true;
 }

@@ -20,6 +20,7 @@ import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
 import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
 import { stripMarkdown } from "@/lib/format";
 import { ACTION_LABELS } from "@/lib/llm/action-labels";
+import { t } from "@/lib/i18n";
 import { buildMediaAiTools } from "@/lib/tools/media-ai";
 import { buildWeatherTools } from "@/lib/tools/weather";
 import { buildNewsTools } from "@/lib/tools/news";
@@ -183,6 +184,7 @@ export function processResult(
   activeEmail: string | null,
   allCalls: { toolName: string; input: unknown }[],
   timezone?: string,
+  language?: string | null,
 ): ProcessedResult {
   let authNeeded: { connectUrl: string; reason: string } | null = null;
   let apiDisabled: { api: string; enableUrl: string | null; message: string } | null = null;
@@ -251,31 +253,29 @@ export function processResult(
     const unique = [...new Set(labels)];
     return { reply: unique.length ? unique.join(" • ") + " ✓" : "Done.", authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
   }
-  return { reply: "I didn't catch that — could you rephrase?", authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
+  return { reply: t(language, "fallbackNoCatch"), authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
 }
 
 
-function formatProcessed(processed: ProcessedResult): string {
+function formatProcessed(processed: ProcessedResult, language?: string | null): string {
   if (processed.authNeeded) {
     const isReauth = processed.authNeeded.reason.includes("scopes") || processed.authNeeded.reason.includes("reconnect") || processed.authNeeded.reason.includes("no longer valid");
-    const intro = isReauth
-      ? "Your Google connection expired and needs to be refreshed."
-      : "I need access to your Google account to do that.";
+    const intro = isReauth ? t(language, "connectGoogleReauth") : t(language, "connectGoogleNeeded");
     // Don't paste the raw connect URL into text — it's dead, unselectable
     // text inside a Flex bubble. Tapping "Connect Google" below (added via
     // hints.needsGoogleConnect in enrichReply) sends "connect google", which
     // replies with a real tappable button.
-    return `${intro}\n\nTap "Connect Google" below to reconnect — it only takes a few seconds.`;
+    return `${intro}\n\n${t(language, "connectGoogleHint")}`;
   }
   if (processed.apiDisabled) {
     const enableHint = processed.apiDisabled.enableUrl
-      ? `\n\nEnable it here:\n${processed.apiDisabled.enableUrl}`
-      : `\n\nEnable it in Google Cloud Console → APIs & Services → Library.`;
-    return `Google says the ${processed.apiDisabled.api} isn't enabled in your Cloud project.${enableHint}\n\nGive it ~1 min to propagate after enabling, then try again.`;
+      ? `\n\n${t(language, "googleApiEnableUrl")}\n${processed.apiDisabled.enableUrl}`
+      : `\n\n${t(language, "googleApiEnableConsole")}`;
+    return `${t(language, "googleApiDisabled", { api: processed.apiDisabled.api })}${enableHint}\n\n${t(language, "googleApiWait")}`;
   }
   if (processed.googleErr) {
     const status = processed.googleErr.status ? ` (HTTP ${processed.googleErr.status})` : "";
-    return `Google API error${status}: ${processed.googleErr.message}`;
+    return t(language, "googleErr", { status, message: processed.googleErr.message });
   }
   return stripMarkdown(processed.reply);
 }
@@ -499,8 +499,8 @@ export async function runAgent(
       costUsd,
     });
     const endProcess = span("agent:processResult", traceId);
-    const processed = processResult(result as any, accounts.activeEmail, tracker.successfulCalls, settings?.timezone);
-    const text = formatProcessed(processed);
+    const processed = processResult(result as any, accounts.activeEmail, tracker.successfulCalls, settings?.timezone, lang);
+    const text = formatProcessed(processed, lang);
     const draftToolNames = tracker.successfulCalls
       .filter((c) =>
         c.toolName === "draft_email" ||
@@ -539,7 +539,7 @@ export async function runAgent(
     // delete_receipt call silently fails, and the user never finds out).
     let finalText = suppressText && !processed.authNeeded && !processed.hadUnrelayedToolError ? "" : text;
     let extraToolCalls = tracker.allCalls;
-    const looksBlankOrUnhelpful = finalText === "I didn't catch that — could you rephrase?" ||
+    const looksBlankOrUnhelpful = finalText === t(lang, "fallbackNoCatch") ||
       (finalText.length < 60 && !processed.authNeeded && !processed.apiDisabled && !processed.googleErr && tracker.successfulCalls.length === 0);
     if (looksBlankOrUnhelpful) {
       // Deterministic fallbacks: if the model blanks on an unambiguous query,
@@ -550,12 +550,12 @@ export async function runAgent(
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (looksLikeTaskList(lastUserText)) {
-        const fb = await fallbackListTasks(userId, displayName, settings?.timezone);
+        const fb = await fallbackListTasks(userId, displayName, settings?.timezone, lang);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (looksLikeWeather(lastUserText)) {
-        const fb = await fallbackWeather(lastUserText, settings?.timezone);
+        const fb = await fallbackWeather(lastUserText, settings?.timezone, lang);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
@@ -565,11 +565,11 @@ export async function runAgent(
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (opts?.hasStagedMedia && looksLikeMediaQuery(lastUserText)) {
-        const fb = await fallbackSummarizeDocument(userId, displayName, lastUserText);
+        const fb = await fallbackSummarizeDocument(userId, displayName, lastUserText, lang);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
       } else if (looksLikeNewsQuery(lastUserText)) {
-        const fb = await fallbackNewsSearch(lastUserText);
+        const fb = await fallbackNewsSearch(lastUserText, lang);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
@@ -580,7 +580,7 @@ export async function runAgent(
         // Universal fallback: any factual/research question the model blanked on
         // → web_search. This is how Claude.ai/Gemini work: web search is always
         // the backstop for current or factual queries the model can't answer alone.
-        const fb = await fallbackWebSearch(lastUserText);
+        const fb = await fallbackWebSearch(lastUserText, lang);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
@@ -616,7 +616,7 @@ export async function runAgent(
     const historyText = finalText.trim().length > 0 ? finalText : (text.trim().length > 0 ? text : "Done.");
     return { text: finalText, hints, toolCalls: extraToolCalls, historyText };
   } catch (err) {
-    const errText = await handleAgentError(err, userId, traceId);
+    const errText = await handleAgentError(err, userId, lang, traceId);
     endAgent({ error: err instanceof Error ? err.message : String(err) });
     appendAuditEntry(userId, {
       traceId,
@@ -751,7 +751,11 @@ function looksLikeFactualQuery(text: string): boolean {
   );
 }
 
-async function fallbackWeather(query: string, _timezone = "Asia/Bangkok"): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackWeather(
+  query: string,
+  _timezone = "Asia/Bangkok",
+  language?: string | null,
+): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const locationMatch = query.match(/\b(?:in|at|for)\s+(.{2,80}?)\s*(?:\?|$)/i);
   const location = locationMatch?.[1]?.trim() ?? "Bangkok";
   const wTools = buildWeatherTools();
@@ -765,13 +769,16 @@ async function fallbackWeather(query: string, _timezone = "Asia/Bangkok"): Promi
         toolCalls: [{ toolName: "weather", input: { location } }],
       };
     }
-    return { text: "Weather lookup completed.", toolCalls: [{ toolName: "weather", input: { location } }] };
+    return { text: t(language, "done"), toolCalls: [{ toolName: "weather", input: { location } }] };
   } catch {
-    return { text: `I couldn't get the weather for ${location} right now.`, toolCalls: [{ toolName: "weather", input: { location } }] };
+    return { text: t(language, "agentErrGeneric"), toolCalls: [{ toolName: "weather", input: { location } }] };
   }
 }
 
-async function fallbackNewsSearch(query: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackNewsSearch(
+  query: string,
+  language?: string | null,
+): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const topicMatch = query.match(/\b(?:news\s+(?:on|about)|about|on)\s+(.{2,80}?)\s*(?:\?|$)/i);
   const topic = (topicMatch?.[1]?.trim() ?? query.replace(/\b(latest|news|today|on|about|the)\b/gi, "").trim()) || "top news";
   try {
@@ -779,18 +786,23 @@ async function fallbackNewsSearch(query: string): Promise<{ text: string; flexMe
     const result = await nTools.news_search.execute!({ query: topic, days: 2, count: 5 }, { toolCallId: "fallback", messages: [] });
     const val = extractToolValue(result) as Record<string, unknown> | null;
     const stories = Array.isArray(val?.stories) ? val.stories as Array<{ title: string; url: string; snippet?: string; source?: string }> : [];
-    if (stories.length === 0) return { text: `No news found for "${topic}" right now.`, toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
+    if (stories.length === 0) return { text: t(language, "done"), toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
     return {
       text: "",
       flexMessages: [newsFlex(stories, `📰 ${topic}`)],
       toolCalls: [{ toolName: "news_search", input: { query: topic } }],
     };
   } catch {
-    return { text: `I couldn't fetch news right now. Try again shortly.`, toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
+    return { text: t(language, "agentErrUnavailable"), toolCalls: [{ toolName: "news_search", input: { query: topic } }] };
   }
 }
 
-async function fallbackSummarizeDocument(userId: string, displayName: string, question: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackSummarizeDocument(
+  userId: string,
+  displayName: string,
+  question: string,
+  language?: string | null,
+): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   // Pass the user's actual question through — previously called with {} (index
   // only), which silently discarded whatever they specifically asked and always
   // returned a generic 4-8 bullet summary instead of an answer to their question.
@@ -803,19 +815,22 @@ async function fallbackSummarizeDocument(userId: string, displayName: string, qu
       return { text: val.error, toolCalls: [{ toolName: "summarize_document", input }] };
     }
     const output = val && typeof val === "object" && typeof val.output === "string" ? val.output : String(result);
-    return { text: `${displayName}, here's what I found in the document:\n\n${output}`, toolCalls: [{ toolName: "summarize_document", input }] };
+    return { text: `${displayName}, ${output}`, toolCalls: [{ toolName: "summarize_document", input }] };
   } catch (err) {
-    return { text: `I couldn't read that document, ${displayName}. Try sending it again.`, toolCalls: [{ toolName: "summarize_document", input }] };
+    return { text: t(language, "agentErrGeneric"), toolCalls: [{ toolName: "summarize_document", input }] };
   }
 }
 
-async function fallbackWebSearch(query: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackWebSearch(
+  query: string,
+  language?: string | null,
+): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const wsTool = buildWebSearchTool();
   try {
     const result = await wsTool.web_search.execute!({ query, count: 5 }, { toolCallId: "fallback", messages: [] });
     const val = extractToolValue(result) as Record<string, unknown> | null;
     if (val && val.ok === false) {
-      return { text: "I couldn't search for that right now. Please try again.", toolCalls: [{ toolName: "web_search", input: { query } }] };
+      return { text: t(language, "agentErrUnavailable"), toolCalls: [{ toolName: "web_search", input: { query } }] };
     }
     const answer = typeof val?.answer === "string" && val.answer ? val.answer : null;
     const results = Array.isArray(val?.results) ? val.results as Array<{ title: string; url: string; content?: string }> : [];
@@ -826,18 +841,23 @@ async function fallbackWebSearch(query: string): Promise<{ text: string; flexMes
       const lines = results.slice(0, 3).map((r) => `• ${r.title}: ${(r.content ?? "").slice(0, 120)}...`).join("\n");
       return { text: lines, toolCalls: [{ toolName: "web_search", input: { query } }] };
     }
-    return { text: "I couldn't find anything for that right now.", toolCalls: [{ toolName: "web_search", input: { query } }] };
+    return { text: t(language, "agentErrGeneric"), toolCalls: [{ toolName: "web_search", input: { query } }] };
   } catch {
-    return { text: "Search failed. Please try again shortly.", toolCalls: [{ toolName: "web_search", input: { query } }] };
+    return { text: t(language, "agentErrUnavailable"), toolCalls: [{ toolName: "web_search", input: { query } }] };
   }
 }
 
-async function fallbackListTasks(userId: string, _displayName: string, timezone = "Asia/Bangkok"): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+async function fallbackListTasks(
+  userId: string,
+  _displayName: string,
+  timezone = "Asia/Bangkok",
+  language?: string | null,
+): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const tasks = await listTasks(userId, "open");
   if (tasks.length === 0) {
     return {
       text: "",
-      flexMessages: [buildSimpleCardFlex("✅ Tasks", "#00B894", [{ primary: "No open tasks right now. 🎉" }])],
+      flexMessages: [buildSimpleCardFlex("✅ Tasks", "#00B894", [{ primary: t(language, "noTasks") }])],
       toolCalls: [{ toolName: "list_tasks", input: { filter: "open" } }],
     };
   }
@@ -872,7 +892,7 @@ function getLastUserText(messages: ModelMessage[]): string {
   return "";
 }
 
-async function handleAgentError(err: unknown, userId: string, traceId?: string): Promise<string> {
+async function handleAgentError(err: unknown, userId: string, language?: string | null, traceId?: string): Promise<string> {
   try {
     const authErr = unwrapAuthRequired(err);
     if (authErr) {
@@ -881,7 +901,7 @@ async function handleAgentError(err: unknown, userId: string, traceId?: string):
       // hints.needsGoogleConnect (set below) adds a "Connect Google" quick
       // reply that routes through the tappable-button shortcut instead.
       await buildConnectUrl(userId);
-      return `To do that I need access to your Google account. Tap "Connect Google" below to connect it.`;
+      return t(language, "agentErrConnect");
     }
   } catch (e) {
     console.error("[agent] buildConnectUrl failed in error handler", e);
@@ -893,11 +913,11 @@ async function handleAgentError(err: unknown, userId: string, traceId?: string):
   }
   const rateErr = unwrapCause(err, (v): v is RateLimited => v instanceof RateLimited);
   if (rateErr) {
-    return `I'm being rate-limited. Try again in ~${rateErr.retryAfterSec}s.`;
+    return t(language, "agentErrRateLimit", { sec: String(rateErr.retryAfterSec) });
   }
   if (err instanceof AgentTimeoutError) {
     console.warn("[agent] timeout", { seconds: err.seconds, traceId });
-    return "That took longer than I expected — try again in a moment.";
+    return t(language, "agentErrTimeout");
   }
   const msg = err instanceof Error ? err.message : String(err);
   // AI_RetryError wraps the 503: its .message is "Failed after N attempts. Last error: ..."
@@ -909,12 +929,12 @@ async function handleAgentError(err: unknown, userId: string, traceId?: string):
     /AI_RetryError|maxRetriesExceeded/i.test(msg)
   ) {
     console.warn("[agent] service unavailable", { msg: msg.slice(0, 200), traceId });
-    return "Temporarily unavailable — please try again in a moment.";
+    return t(language, "agentErrUnavailable");
   }
   if (/spending cap|RESOURCE_EXHAUSTED|exceeded its monthly|rate limit|429/i.test(msg)) {
     console.warn("[agent] LLM quota exhausted", { msg: msg.slice(0, 200), traceId });
-    return "I'm out of LLM quota for the moment (monthly spending cap hit). Please check the Gemini project spend cap, or try again later.";
+    return t(language, "agentErrQuota");
   }
   console.error("[agent] unhandled", err, { traceId });
-  return `Something went wrong. Try again in a moment.`;
+  return t(language, "agentErrGeneric");
 }

@@ -99,7 +99,14 @@ export function buildSystemPrompt(
       : `\n\nThe user's LINE display name is "${sanitizePromptValue(displayName)}".`
     : "";
   const loc = settings?.location ? `\nLocation (user-stated): ${sanitizePromptValue(settings.location)}.` : "";
-  const lang = settings?.language ? `\nReply in: ${settings.language} (override the auto-match rule).` : "";
+  const effectivePrimaryLang = settings?.language
+    ? settings.language === "th"
+      ? "Thai"
+      : "English"
+    : settings?.personaPrimaryLang ?? "English";
+  const lang = settings?.language
+    ? `\nALWAYS reply in ${settings.language === "th" ? "Thai" : "English"} (language code "${settings.language}"). This overrides the auto-match rule and any other language instruction.`
+    : "";
 
   const tone = settings?.personaTone;
   const addressing = settings?.personaAddressing;
@@ -113,8 +120,8 @@ export function buildSystemPrompt(
   if (addressing) {
     personaInstructions += `Address the user as: ${addressing}. `;
   }
-  if (primaryLang) {
-    personaInstructions += `Primary language: ${primaryLang}. `;
+  if (effectivePrimaryLang) {
+    personaInstructions += `Primary language: ${effectivePrimaryLang}. `;
   }
   if (voiceMatch) {
     personaInstructions += `Match the user's writing style and voice in your replies. `;

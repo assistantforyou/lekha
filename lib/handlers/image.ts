@@ -1,6 +1,8 @@
 import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { appendTurn } from "@/lib/memory/history";
 import { appendRecentMedia, listRecentMedia } from "@/lib/memory/recent-media";
+import { getSettings } from "@/lib/memory/settings";
+import { t } from "@/lib/i18n";
 import { span } from "@/lib/timing";
 
 /** Items staged within this window count as "sent together" for ack wording. */
@@ -32,12 +34,13 @@ export async function respondToImage(
     return;
   }
 
+  const settings = await getSettings(userId);
   const staged = await listRecentMedia(userId);
   const batchCount = staged.filter((m) => Date.now() - m.ts < BATCH_WINDOW_MS).length;
   const ack =
     batchCount > 1
-      ? `Got your ${batchCount} images. Ask me to read text from them, describe them, or scan them as receipts.`
-      : "Got your image. Ask me to read text from it, describe it, or scan it as a receipt.";
+      ? t(settings.language, "imagesAck", { count: String(batchCount) })
+      : t(settings.language, "imageAck");
   await replyOrPush(userId, replyToken, [textMsg(ack)]);
   await appendTurn(userId, { role: "user", content: "[sent an image]", ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: ack, ts: Date.now() });

@@ -11,6 +11,7 @@ import {
   settingsFactsFlex,
   settingsLocaleFlex,
 } from "@/lib/line/flex/settings";
+import { t, uiLang } from "@/lib/i18n";
 
 const VALID_SECTIONS = new Set([
   "briefing",
@@ -49,7 +50,7 @@ async function sendMenu(userId: string, replyToken: string, section: Section): P
   if (section === "memory") messages = [settingsMemoryFlex(settings)];
   if (section === "facts") {
     const facts = await loadFacts(userId);
-    messages = [settingsFactsFlex(facts.facts)];
+    messages = [settingsFactsFlex(facts.facts, settings.language)];
   }
   if (section === "locale") messages = [settingsLocaleFlex(settings)];
   try {
@@ -133,7 +134,7 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
   } else if (key === "memoryCompactAt" && value) {
     const n = parseCompact(value);
     if (n === null) {
-      await replyOrPush(userId, replyToken, [textMsg("Compact interval must be a whole number between 1 and 1000 messages.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "compactError"))]);
       return;
     }
     patch.memoryCompactAt = n;
@@ -171,28 +172,28 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
       patch.disabledCategories = deriveDisabledCategories(nextTools);
     }
   } else if (key === "morningTime" && value) {
-    const t = args.slice(3).join(":");
-    if (!isValidTime(t)) {
-      await replyOrPush(userId, replyToken, [textMsg("Please pick a valid time like 07:30.")]);
+    const timeStr = args.slice(3).join(":");
+    if (!isValidTime(timeStr)) {
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
       return;
     }
-    patch.morningBriefingTime = t;
+    patch.morningBriefingTime = timeStr;
   } else if (key === "eveningTime" && value) {
-    const t = args.slice(3).join(":");
-    if (!isValidTime(t)) {
-      await replyOrPush(userId, replyToken, [textMsg("Please pick a valid time like 21:30.")]);
+    const timeStr = args.slice(3).join(":");
+    if (!isValidTime(timeStr)) {
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
       return;
     }
     patch.eveningSummaryEnabled = true;
-    patch.eveningSummaryTime = t;
+    patch.eveningSummaryTime = timeStr;
   } else if (key === "checkinTime" && value) {
-    const t = args.slice(3).join(":");
-    if (!isValidTime(t)) {
-      await replyOrPush(userId, replyToken, [textMsg("Please pick a valid time like 20:30.")]);
+    const timeStr = args.slice(3).join(":");
+    if (!isValidTime(timeStr)) {
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
       return;
     }
     patch.taskCheckInEnabled = true;
-    patch.taskCheckInTime = t;
+    patch.taskCheckInTime = timeStr;
   }
 
   await applyPatchAndReply(userId, replyToken, patch, returnSection);
@@ -218,13 +219,14 @@ async function handleToggle(userId: string, replyToken: string, args: string[]):
 
 async function handleFactsAction(userId: string, replyToken: string, args: string[]): Promise<void> {
   // args = ["facts", "del", id]
+  const settings = await getSettings(userId);
   const id = args[2];
   if (id) {
     const facts = await loadFacts(userId);
     const next = facts.facts.filter((f) => f.id !== id);
     if (next.length !== facts.facts.length) {
       await saveFacts(userId, { facts: next, updatedAt: Date.now() });
-      await replyOrPush(userId, replyToken, [textMsg("Deleted that fact.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "deletedFact"))]);
     }
   }
   await sendMenu(userId, replyToken, "facts");
@@ -239,8 +241,9 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
   const first = args[0];
 
   if (first === "main" || first === "noop") {
+    const settings = await getSettings(userId);
     if (first === "noop") {
-      await replyOrPush(userId, replyToken, [textMsg("Settings closed. Type =settings= anytime.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "settingsClosed"))]);
     } else {
       await sendMenu(userId, replyToken, "main");
     }
@@ -254,12 +257,14 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
 
   if (first === "prompt" && args[1]) {
     const key = args[1];
+    const settings = await getSettings(userId);
+    const lang = uiLang(settings.language);
     await setPendingPrompt(userId, key);
     const textPrompts: Record<string, string> = {
-      timezone: "What timezone should I use? (e.g. Asia/Bangkok)",
-      location: "What location should I use? (e.g. Bangkok, Thailand)",
-      fact: "What fact should I remember?",
-      preferredName: "What should I call you?",
+      timezone: t(settings.language, "timezonePrompt"),
+      location: t(settings.language, "locationPrompt"),
+      fact: t(settings.language, "factPrompt"),
+      preferredName: t(settings.language, "preferredNamePrompt"),
     };
     const timeSlots: Record<string, string[]> = {
       morning: ["05:00", "05:30", "06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00"],
@@ -270,10 +275,10 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
       await replyOrPush(
         userId,
         replyToken,
-        [withQuickReplies("Pick a time, or type your own (e.g. 21:30).", timeSlots[key]!.map((t) => ({ label: t, text: t })))],
+        [withQuickReplies(t(settings.language, "pickTimePrompt"), timeSlots[key]!.map((time) => ({ label: time, text: time })))],
       );
     } else {
-      await replyOrPush(userId, replyToken, [textMsg(textPrompts[key] ?? "What value?")]);
+      await replyOrPush(userId, replyToken, [textMsg(textPrompts[key] ?? t(settings.language, "customPromptFallback"))]);
     }
     return;
   }
@@ -282,6 +287,7 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
     await handleFactsAction(userId, replyToken, args);
     return;
   }
+
 
   if (first === "toggle") {
     await handleToggle(userId, replyToken, args);
@@ -329,7 +335,7 @@ async function applyTypedSet(userId: string, replyToken: string, rawKey: string,
     } else if (isValidTime(value)) {
       patch.morningBriefingTime = value;
     } else {
-      await replyOrPush(userId, replyToken, [textMsg("Please use HH:MM (e.g. 07:30) or 'off'.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
       return;
     }
     returnSection = "briefing";
@@ -340,7 +346,7 @@ async function applyTypedSet(userId: string, replyToken: string, rawKey: string,
       patch.eveningSummaryEnabled = true;
       patch.eveningSummaryTime = value;
     } else {
-      await replyOrPush(userId, replyToken, [textMsg("Please use HH:MM (e.g. 21:30) or 'off'.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
       return;
     }
     returnSection = "briefing";
@@ -351,14 +357,14 @@ async function applyTypedSet(userId: string, replyToken: string, rawKey: string,
       patch.taskCheckInEnabled = true;
       patch.taskCheckInTime = value;
     } else {
-      await replyOrPush(userId, replyToken, [textMsg("Please use HH:MM (e.g. 20:30) or 'off'.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
       return;
     }
     returnSection = "briefing";
   } else if (key === "compact" || key === "compactat" || key === "memorycompactat") {
     const n = parseCompact(value);
     if (n === null) {
-      await replyOrPush(userId, replyToken, [textMsg("Compact interval must be a whole number between 1 and 1000 messages.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "compactError"))]);
       return;
     }
     patch.memoryCompactAt = n;
@@ -367,7 +373,7 @@ async function applyTypedSet(userId: string, replyToken: string, rawKey: string,
     patch.personaPreferredName = value || null;
     returnSection = "persona";
   } else {
-    await replyOrPush(userId, replyToken, [textMsg(`Unknown setting key "${rawKey}". Type =settings= to see the menu.`)]);
+    await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "unknownSetting", { key: rawKey }))]);
     return;
   }
 
@@ -380,9 +386,10 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
 
   const pending = await getPendingPrompt(userId);
   if (pending) {
+    const settings = await getSettings(userId);
     if (lower === "cancel") {
       await clearPendingPrompt(userId);
-      await replyOrPush(userId, replyToken, [textMsg("Cancelled.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "cancelled"))]);
       return true;
     }
     if (!text.startsWith("=")) {
@@ -390,15 +397,15 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
       if (pending === "fact") {
         if (text) {
           await appendFact(userId, text, { category: "other" });
-          await replyOrPush(userId, replyToken, [textMsg("Got it — I’ll remember that.")]);
+          await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "gotItRemember"))]);
           await sendMenu(userId, replyToken, "facts");
         } else {
-          await replyOrPush(userId, replyToken, [textMsg("What should I remember? Type your fact.")]);
+          await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "whatShouldIRemember"))]);
           await setPendingPrompt(userId, "fact");
         }
       } else if (pending === "preferredName") {
         await updateSettings(userId, { personaPreferredName: text.trim() || null });
-        await replyOrPush(userId, replyToken, [textMsg("Got it — I'll call you that from now on.")]);
+        await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "gotItCallYou"))]);
         await sendMenu(userId, replyToken, "persona");
       } else {
         await applyTypedSet(userId, replyToken, pending, text);
@@ -444,13 +451,14 @@ export async function handleSettingsCommand(userId: string, replyToken: string, 
 
   const rememberMatch = text.match(/^=remember\s+(.+)$/i);
   if (rememberMatch) {
+    const settings = await getSettings(userId);
     const fact = rememberMatch[1]!.trim();
     if (fact) {
       await appendFact(userId, fact, { category: "other" });
-      await replyOrPush(userId, replyToken, [textMsg("Got it — I’ll remember that.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "gotItRemember"))]);
       await sendMenu(userId, replyToken, "facts");
     } else {
-      await replyOrPush(userId, replyToken, [textMsg("What should I remember? Type =remember <fact>.")]);
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "rememberUsage"))]);
     }
     return true;
   }

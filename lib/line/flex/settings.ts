@@ -2,6 +2,7 @@ import type { FlexMessage } from "@/lib/line/client";
 import type { UserSettings } from "@/lib/memory/settings";
 import type { Fact } from "@/lib/memory/facts";
 import { deriveCheckInTime } from "@/lib/time-utils";
+import { t, uiLang, type UiLang } from "@/lib/i18n";
 
 const ACCENT = "#5B6FF0";
 const ACCENT_DARK = "#4A5BD8";
@@ -80,7 +81,7 @@ function messageButton(label: string, text: string, style: "primary" | "secondar
   };
 }
 
-function toggleRow(label: string, isOn: boolean, onData: string, offData: string): object {
+function toggleRow(label: string, isOn: boolean, onData: string, offData: string, lang: UiLang): object {
   return {
     type: "box",
     layout: "horizontal",
@@ -94,10 +95,10 @@ function toggleRow(label: string, isOn: boolean, onData: string, offData: string
         flex: 1,
         contents: [
           { type: "text", text: label, weight: "bold", size: "sm", color: TEXT, wrap: true, adjustMode: "shrink-to-fit" },
-          { type: "text", text: isOn ? "On" : "Off", size: "xs", color: isOn ? OK : MUTED },
+          { type: "text", text: isOn ? t(lang, "on") : t(lang, "off"), size: "xs", color: isOn ? OK : MUTED },
         ],
       },
-      postbackButton(isOn ? "Turn off" : "Turn on", isOn ? offData : onData, isOn ? "secondary" : "primary", isOn ? undefined : OK),
+      postbackButton(isOn ? t(lang, "turnOff") : t(lang, "turnOn"), isOn ? offData : onData, isOn ? "secondary" : "primary", isOn ? undefined : OK),
     ],
   };
 }
@@ -120,7 +121,7 @@ function chipRow(
   };
 }
 
-function sectionButton(icon: string, title: string, subtitle: string, section: string): object {
+function sectionButton(icon: string, title: string, subtitle: string, section: string, lang: UiLang): object {
   return {
     type: "box",
     layout: "horizontal",
@@ -137,12 +138,12 @@ function sectionButton(icon: string, title: string, subtitle: string, section: s
           { type: "text", text: subtitle, size: "xs", color: "#777777", wrap: true },
         ],
       },
-      postbackButton("Edit", `settings:section:${section}`, "primary", ACCENT, `Edit ${title}`),
+      postbackButton(t(lang, "edit"), `settings:section:${section}`, "primary", ACCENT, `${t(lang, "edit")} ${title}`),
     ],
   };
 }
 
-function currentRow(label: string, value: string): object {
+function currentRow(label: string, value: string, lang: UiLang): object {
   return {
     type: "box",
     layout: "horizontal",
@@ -160,11 +161,12 @@ function wrap(...contents: object[]): object {
 }
 
 export function settingsMainFlex(settings: UserSettings): FlexMessage {
-  const morning = settings.morningBriefingTime ? `${settings.morningBriefingTime}` : "Off";
-  const evening = settings.eveningSummaryEnabled ? settings.eveningSummaryTime : "Off";
+  const lang = uiLang(settings.language);
+  const morning = settings.morningBriefingTime ? `${settings.morningBriefingTime}` : t(lang, "off");
+  const evening = settings.eveningSummaryEnabled ? settings.eveningSummaryTime : t(lang, "off");
   const checkIn = settings.taskCheckInEnabled
     ? (settings.taskCheckInTime ?? deriveCheckInTime(settings.eveningSummaryTime))
-    : "Off";
+    : t(lang, "off");
   const toolsOn = Object.values(settings.tools).filter(Boolean).length;
   const topicsOn = Object.values(settings.briefingTopics).filter(Boolean).length;
 
@@ -174,15 +176,15 @@ export function settingsMainFlex(settings: UserSettings): FlexMessage {
     contents: {
       type: "bubble",
       size: "mega",
-      header: header("⚙️ Settings"),
+      header: header(t(lang, "settingsTitle")),
       body: body([
-        hint("Tap a section to edit. Changes apply immediately inside LINE."),
-        sectionButton("📰", "Briefings", `Morning ${morning} · Evening ${evening} · Check-in ${checkIn}`, "briefing"),
-        sectionButton("🛠", "Tools", `Turn whole tool surfaces on or off · ${toolsOn}/5 enabled`, "tools"),
-        sectionButton("🎭", "Persona", `Tone · Address · Language · Voice match`, "persona"),
-        sectionButton("🧠", "Memory", `Auto-extract facts every ${settings.memoryCompactAt} msgs · ${settings.memoryEnabled ? "on" : "off"}`, "memory"),
-        sectionButton("📝", "Facts", `Everything Lekha remembers about you`, "facts"),
-        sectionButton("🌐", "Language & Location", `Timezone · Location · Reply language`, "locale"),
+        hint(t(lang, "settingsHint")),
+        sectionButton("📰", t(lang, "briefingTitle"), `${t(lang, "morningLabel")} ${morning} · ${t(lang, "eveningLabel")} ${evening} · ${t(lang, "checkinLabel")} ${checkIn}`, "briefing", lang),
+        sectionButton("🛠", t(lang, "toolsTitle"), `${t(lang, "toolsHint")} · ${toolsOn}/5 ${t(lang, "on")}`, "tools", lang),
+        sectionButton("🎭", t(lang, "personaTitle"), `${t(lang, "toneLabel")} · ${t(lang, "addressYouAsLabel")} · ${t(lang, "languageLabel")} · ${t(lang, "matchVoiceLabel")}`, "persona", lang),
+        sectionButton("🧠", t(lang, "memoryTitle"), `${t(lang, "autoCompactLabel")} ${settings.memoryCompactAt} msgs · ${settings.memoryEnabled ? t(lang, "on") : t(lang, "off")}`, "memory", lang),
+        sectionButton("📝", t(lang, "factsTitle"), t(lang, "factsTitle"), "facts", lang),
+        sectionButton("🌐", t(lang, "localeTitle"), `${t(lang, "timezoneLabel")} · ${t(lang, "locationLabel")} · ${t(lang, "replyLanguageLabel")}`, "locale", lang),
         separator(),
         {
           type: "box",
@@ -190,7 +192,7 @@ export function settingsMainFlex(settings: UserSettings): FlexMessage {
           margin: "md",
           spacing: "sm",
           contents: [
-            postbackButton("Close", "settings:noop", "secondary"),
+            postbackButton(t(lang, "close"), "settings:noop", "secondary"),
           ],
         },
       ]),
@@ -198,7 +200,7 @@ export function settingsMainFlex(settings: UserSettings): FlexMessage {
   };
 }
 
-function timePresetRow(label: string, current: string | null, keyPrefix: string): object {
+function timePresetRow(label: string, current: string | null, keyPrefix: string, lang: UiLang): object {
   const defaultPresets = ["06:00", "07:00", "08:00", "09:00"];
   const presets: Record<string, string[]> = {
     morning: defaultPresets,
@@ -227,16 +229,17 @@ function timePresetRow(label: string, current: string | null, keyPrefix: string)
         alignItems: "center",
         contents: [
           { type: "text", text: label, weight: "bold", size: "sm", color: TEXT, flex: 1, wrap: true },
-          postbackButton(current === null ? "Off" : "Turn off", `settings:toggle:${keyPrefix}:off`, offOn, offOn === "primary" ? undefined : MUTED),
+          postbackButton(current === null ? t(lang, "off") : t(lang, "turnOff"), `settings:toggle:${keyPrefix}:off`, offOn, offOn === "primary" ? undefined : MUTED),
         ],
       },
       ...buttonRows,
-      promptButton("Custom time…", keyPrefix, "secondary"),
+      promptButton(t(lang, "customTime"), keyPrefix, "secondary"),
     ],
   };
 }
 
 export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
+  const lang = uiLang(settings.language);
   const topicEntries = Object.entries(settings.briefingTopics);
   const topicRows = topicEntries.map(([id, on]) =>
     toggleRow(
@@ -244,30 +247,31 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
       on,
       `settings:briefing:set:briefingTopic:${id}:true`,
       `settings:briefing:set:briefingTopic:${id}:false`,
+      lang,
     ),
   );
 
   return {
     type: "flex",
-    altText: `Briefing settings: morning ${settings.morningBriefingTime ?? "off"}, evening ${settings.eveningSummaryEnabled ? settings.eveningSummaryTime : "off"}.`,
+    altText: `Briefing settings: morning ${settings.morningBriefingTime ?? t(lang, "off")}, evening ${settings.eveningSummaryEnabled ? settings.eveningSummaryTime : t(lang, "off")}.`,
     contents: {
       type: "bubble",
       size: "mega",
-      header: header("📰 Briefings"),
+      header: header(t(lang, "briefingTitle")),
       body: body([
-        hint("Choose when and how Lekha briefs you each day. Times are in your timezone."),
-        timePresetRow("Morning", settings.morningBriefingTime, "morning"),
-        timePresetRow("Evening", settings.eveningSummaryEnabled ? settings.eveningSummaryTime : null, "evening"),
-        timePresetRow("Task check-in", settings.taskCheckInEnabled ? (settings.taskCheckInTime ?? deriveCheckInTime(settings.eveningSummaryTime)) : null, "checkin"),
+        hint(t(lang, "briefingHint")),
+        timePresetRow(t(lang, "morningLabel"), settings.morningBriefingTime, "morning", lang),
+        timePresetRow(t(lang, "eveningLabel"), settings.eveningSummaryEnabled ? settings.eveningSummaryTime : null, "evening", lang),
+        timePresetRow(t(lang, "checkinLabel"), settings.taskCheckInEnabled ? (settings.taskCheckInTime ?? deriveCheckInTime(settings.eveningSummaryTime)) : null, "checkin", lang),
         separator(),
-        toggleRow("Include unread Gmail", settings.inboxBriefingEnabled, "settings:briefing:set:inboxBriefingEnabled:true", "settings:briefing:set:inboxBriefingEnabled:false"),
-        chipRow("Length", [
+        toggleRow(t(lang, "includeUnreadGmail"), settings.inboxBriefingEnabled, "settings:briefing:set:inboxBriefingEnabled:true", "settings:briefing:set:inboxBriefingEnabled:false", lang),
+        chipRow(t(lang, "lengthLabel"), [
           { label: "Headlines", data: "settings:briefing:set:briefingLength:Headlines", on: settings.briefingLength === "Headlines" },
           { label: "Bullets", data: "settings:briefing:set:briefingLength:Bullets", on: settings.briefingLength === "Bullets" },
           { label: "Full", data: "settings:briefing:set:briefingLength:Full", on: settings.briefingLength === "Full" },
         ]),
         chipRow(
-          "Language",
+          t(lang, "languageLabel"),
           [
             { label: "English", data: "settings:briefing:set:briefingLanguage:English", on: settings.briefingLanguage === "English" },
             { label: "ไทย", data: "settings:briefing:set:briefingLanguage:ไทย", on: settings.briefingLanguage === "ไทย" },
@@ -277,21 +281,21 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
         ),
         separator(),
         wrap(
-          { type: "text", text: "Channels", weight: "bold", size: "sm", color: TEXT, wrap: true },
+          { type: "text", text: t(lang, "channelsLabel"), weight: "bold", size: "sm", color: TEXT, wrap: true },
           hint("LINE chat sends the briefing here. Email sends it to your connected Gmail address."),
-          toggleRow("LINE chat", settings.briefingChannels.line, "settings:briefing:set:briefingChannel:line:true", "settings:briefing:set:briefingChannel:line:false"),
-          toggleRow("Email", settings.briefingChannels.email, "settings:briefing:set:briefingChannel:email:true", "settings:briefing:set:briefingChannel:email:false"),
-          toggleRow("Push alert", settings.briefingChannels.push, "settings:briefing:set:briefingChannel:push:true", "settings:briefing:set:briefingChannel:push:false"),
+          toggleRow(t(lang, "lineChat"), settings.briefingChannels.line, "settings:briefing:set:briefingChannel:line:true", "settings:briefing:set:briefingChannel:line:false", lang),
+          toggleRow(t(lang, "emailChannel"), settings.briefingChannels.email, "settings:briefing:set:briefingChannel:email:true", "settings:briefing:set:briefingChannel:email:false", lang),
+          toggleRow(t(lang, "pushAlert"), settings.briefingChannels.push, "settings:briefing:set:briefingChannel:push:true", "settings:briefing:set:briefingChannel:push:false", lang),
         ),
         separator(),
-        wrap({ type: "text", text: "Daily briefing topics", weight: "bold", size: "sm", color: TEXT, wrap: true }, ...topicRows),
+        wrap({ type: "text", text: t(lang, "dailyTopics"), weight: "bold", size: "sm", color: TEXT, wrap: true }, ...topicRows),
         separator(),
         {
           type: "box",
           layout: "horizontal",
           margin: "md",
           spacing: "sm",
-          contents: [postbackButton("← Back", "settings:main", "secondary")],
+          contents: [postbackButton(t(lang, "back"), "settings:main", "secondary")],
         },
       ]),
     },
@@ -299,17 +303,18 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
 }
 
 export function settingsToolsFlex(settings: UserSettings): FlexMessage {
+  const lang = uiLang(settings.language);
   const toolOrder = [
-    { id: "todo", icon: "✅", name: "To-do list" },
-    { id: "reminders", icon: "⏰", name: "Reminders" },
-    { id: "calendar", icon: "📅", name: "Calendar" },
-    { id: "email", icon: "📧", name: "Email" },
-    { id: "drive", icon: "📁", name: "Drive" },
-  ] as const;
+    { id: "todo", icon: "✅", key: "toolTodo" as const },
+    { id: "reminders", icon: "⏰", key: "toolReminders" as const },
+    { id: "calendar", icon: "📅", key: "toolCalendar" as const },
+    { id: "email", icon: "📧", key: "toolEmail" as const },
+    { id: "drive", icon: "📁", key: "toolDrive" as const },
+  ];
 
-  const rows = toolOrder.map((t) => {
-    const on = !!settings.tools[t.id];
-    return toggleRow(`${t.icon} ${t.name}`, on, `settings:tools:set:tool:${t.id}:true`, `settings:tools:set:tool:${t.id}:false`);
+  const rows = toolOrder.map((tool) => {
+    const on = !!settings.tools[tool.id];
+    return toggleRow(`${tool.icon} ${t(lang, tool.key)}`, on, `settings:tools:set:tool:${tool.id}:true`, `settings:tools:set:tool:${tool.id}:false`, lang);
   });
 
   return {
@@ -318,9 +323,9 @@ export function settingsToolsFlex(settings: UserSettings): FlexMessage {
     contents: {
       type: "bubble",
       size: "mega",
-      header: header("🛠 Tools"),
+      header: header(t(lang, "toolsTitle")),
       body: body([
-        hint("Enable or disable whole tool surfaces. Tap a tool to expand its options."),
+        hint(t(lang, "toolsHint")),
         ...rows,
         separator(),
         {
@@ -329,7 +334,7 @@ export function settingsToolsFlex(settings: UserSettings): FlexMessage {
           margin: "md",
           spacing: "sm",
           contents: [
-            postbackButton("← Back", "settings:main", "secondary"),
+            postbackButton(t(lang, "back"), "settings:main", "secondary"),
           ],
         },
       ]),
@@ -338,48 +343,49 @@ export function settingsToolsFlex(settings: UserSettings): FlexMessage {
 }
 
 export function settingsPersonaFlex(settings: UserSettings): FlexMessage {
+  const lang = uiLang(settings.language);
   return {
     type: "flex",
     altText: `Persona settings: ${settings.personaTone}, ${settings.personaAddressing}, ${settings.personaPrimaryLang}.`,
     contents: {
       type: "bubble",
       size: "mega",
-      header: header("🎭 Persona"),
+      header: header(t(lang, "personaTitle")),
       body: body([
-        hint("Choose Lekha's tone, how she addresses you, and her primary language."),
-        currentRow("Preferred name", settings.personaPreferredName || "LINE display name"),
-        promptButton("Set preferred name", "preferredName", "secondary"),
+        hint(t(lang, "personaHint")),
+        currentRow(t(lang, "preferredNameLabel"), settings.personaPreferredName || "LINE display name", lang),
+        promptButton(settings.personaPreferredName?.trim() ? t(lang, "changePreferredName") : t(lang, "setPreferredName"), "preferredName", "secondary"),
         chipRow(
-          "Tone",
+          t(lang, "toneLabel"),
           [
-            { label: "Warm", data: "settings:persona:set:personaTone:Warm", on: settings.personaTone === "Warm" },
-            { label: "Professional", data: "settings:persona:set:personaTone:Professional", on: settings.personaTone === "Professional" },
-            { label: "Playful", data: "settings:persona:set:personaTone:Playful", on: settings.personaTone === "Playful" },
+            { label: t(lang, "toneWarm"), data: "settings:persona:set:personaTone:Warm", on: settings.personaTone === "Warm" },
+            { label: t(lang, "toneProfessional"), data: "settings:persona:set:personaTone:Professional", on: settings.personaTone === "Professional" },
+            { label: t(lang, "tonePlayful"), data: "settings:persona:set:personaTone:Playful", on: settings.personaTone === "Playful" },
           ],
           2,
         ),
         chipRow(
-          "Address you as",
+          t(lang, "addressYouAsLabel"),
           [
-            { label: "First name", data: "settings:persona:set:personaAddressing:First name", on: settings.personaAddressing === "First name" },
-            { label: "Khun", data: "settings:persona:set:personaAddressing:Khun", on: settings.personaAddressing === "Khun" },
-            { label: "Sir / Madam", data: "settings:persona:set:personaAddressing:Sir / Madam", on: settings.personaAddressing === "Sir / Madam" },
-            { label: "No address", data: "settings:persona:set:personaAddressing:No address", on: settings.personaAddressing === "No address" },
+            { label: t(lang, "addressingFirstName"), data: "settings:persona:set:personaAddressing:First name", on: settings.personaAddressing === "First name" },
+            { label: t(lang, "addressingKhun"), data: "settings:persona:set:personaAddressing:Khun", on: settings.personaAddressing === "Khun" },
+            { label: t(lang, "addressingSirMadam"), data: "settings:persona:set:personaAddressing:Sir / Madam", on: settings.personaAddressing === "Sir / Madam" },
+            { label: t(lang, "addressingNoAddress"), data: "settings:persona:set:personaAddressing:No address", on: settings.personaAddressing === "No address" },
           ],
           2,
         ),
-        chipRow("Primary language", [
+        chipRow(t(lang, "primaryLanguageLabel"), [
           { label: "English", data: "settings:persona:set:personaPrimaryLang:English", on: settings.personaPrimaryLang === "English" },
           { label: "Thai", data: "settings:persona:set:personaPrimaryLang:Thai", on: settings.personaPrimaryLang === "Thai" },
         ]),
-        toggleRow("Match your writing voice", settings.personaVoiceMatch, "settings:persona:set:personaVoiceMatch:true", "settings:persona:set:personaVoiceMatch:false"),
+        toggleRow(t(lang, "matchVoiceLabel"), settings.personaVoiceMatch, "settings:persona:set:personaVoiceMatch:true", "settings:persona:set:personaVoiceMatch:false", lang),
         separator(),
         {
           type: "box",
           layout: "horizontal",
           margin: "md",
           spacing: "sm",
-          contents: [postbackButton("← Back", "settings:main", "secondary")],
+          contents: [postbackButton(t(lang, "back"), "settings:main", "secondary")],
         },
       ]),
     },
@@ -387,17 +393,18 @@ export function settingsPersonaFlex(settings: UserSettings): FlexMessage {
 }
 
 export function settingsMemoryFlex(settings: UserSettings): FlexMessage {
+  const lang = uiLang(settings.language);
   return {
     type: "flex",
     altText: `Memory settings: enabled ${settings.memoryEnabled}, compact every ${settings.memoryCompactAt} messages.`,
     contents: {
       type: "bubble",
       size: "mega",
-      header: header("🧠 Memory"),
+      header: header(t(lang, "memoryTitle")),
       body: body([
-        hint("Lekha auto-extracts durable facts every N messages. Turn off to stop auto-extraction."),
-        toggleRow("Memory enabled", settings.memoryEnabled, "settings:memory:set:memoryEnabled:true", "settings:memory:set:memoryEnabled:false"),
-        chipRow("Auto-compact every", [
+        hint(t(lang, "memoryHint")),
+        toggleRow(t(lang, "memoryEnabledLabel"), settings.memoryEnabled, "settings:memory:set:memoryEnabled:true", "settings:memory:set:memoryEnabled:false", lang),
+        chipRow(t(lang, "autoCompactLabel"), [
           { label: "5", data: "settings:memory:set:memoryCompactAt:5", on: settings.memoryCompactAt === 5 },
           { label: "10", data: "settings:memory:set:memoryCompactAt:10", on: settings.memoryCompactAt === 10 },
           { label: "15", data: "settings:memory:set:memoryCompactAt:15", on: settings.memoryCompactAt === 15 },
@@ -411,8 +418,8 @@ export function settingsMemoryFlex(settings: UserSettings): FlexMessage {
           margin: "md",
           spacing: "sm",
           contents: [
-            postbackButton("View facts", "settings:section:facts", "primary"),
-            promptButton("Add fact…", "fact", "secondary"),
+            postbackButton(t(lang, "viewFacts"), "settings:section:facts", "primary"),
+            promptButton(t(lang, "addFact"), "fact", "secondary"),
           ],
         },
         separator(),
@@ -421,14 +428,15 @@ export function settingsMemoryFlex(settings: UserSettings): FlexMessage {
           layout: "horizontal",
           margin: "md",
           spacing: "sm",
-          contents: [postbackButton("← Back", "settings:main", "secondary")],
+          contents: [postbackButton(t(lang, "back"), "settings:main", "secondary")],
         },
       ]),
     },
   };
 }
 
-export function settingsFactsFlex(facts: Fact[]): FlexMessage {
+export function settingsFactsFlex(facts: Fact[], language?: string | null): FlexMessage {
+  const lang = uiLang(language);
   const rows = facts.map((f) => ({
     type: "box",
     layout: "horizontal",
@@ -454,10 +462,10 @@ export function settingsFactsFlex(facts: Fact[]): FlexMessage {
     contents: {
       type: "bubble",
       size: "mega",
-      header: header("📝 Facts"),
+      header: header(t(lang, "factsTitle")),
       body: body([
-        hint(`Showing all ${facts.length} fact${facts.length === 1 ? "" : "s"}. Deleting is immediate.`),
-        ...(rows.length ? rows : [{ type: "text", text: "No facts yet. Tap Add fact to create one.", size: "sm", color: "#777777", wrap: true }]),
+        hint(t(lang, "factsHint", { count: String(facts.length), s: facts.length === 1 ? "" : "s" })),
+        ...(rows.length ? rows : [{ type: "text", text: t(lang, "noFacts"), size: "sm", color: "#777777", wrap: true }]),
         separator(),
         {
           type: "box",
@@ -465,8 +473,8 @@ export function settingsFactsFlex(facts: Fact[]): FlexMessage {
           margin: "md",
           spacing: "sm",
           contents: [
-            postbackButton("← Back", "settings:section:memory", "secondary"),
-            promptButton("Add fact…", "fact", "primary"),
+            postbackButton(t(lang, "back"), "settings:section:memory", "secondary"),
+            promptButton(t(lang, "addFact"), "fact", "primary"),
           ],
         },
       ]),
@@ -475,44 +483,45 @@ export function settingsFactsFlex(facts: Fact[]): FlexMessage {
 }
 
 export function settingsLocaleFlex(settings: UserSettings): FlexMessage {
+  const lang = uiLang(settings.language);
   return {
     type: "flex",
     altText: `Language and location: ${settings.language ?? "Auto"}, ${settings.location ?? "No location"}, ${settings.timezone}.`,
     contents: {
       type: "bubble",
       size: "mega",
-      header: header("🌐 Language & Location"),
+      header: header(t(lang, "localeTitle")),
       body: body([
-        hint("Set your timezone, location, and preferred reply language."),
-        chipRow("Reply language", [
-          { label: "Auto", data: "settings:locale:set:language:auto", on: settings.language === null },
+        hint(t(lang, "localeHint")),
+        chipRow(t(lang, "replyLanguageLabel"), [
+          { label: t(lang, "auto"), data: "settings:locale:set:language:auto", on: settings.language === null },
           { label: "English", data: "settings:locale:set:language:en", on: settings.language === "en" },
           { label: "ไทย", data: "settings:locale:set:language:th", on: settings.language === "th" },
         ]),
-        currentRow("Current", settings.language ?? "Auto"),
+        currentRow(t(lang, "currentLabel"), settings.language ?? "Auto", lang),
         separator(),
         chipRow(
-          "Timezone",
+          t(lang, "timezoneLabel"),
           PRESET_TIMEZONES.map((tz) => ({ label: tz.split("/")[1] ?? tz, data: `settings:locale:set:timezone:${tz}`, on: settings.timezone === tz })),
           3,
         ),
-        currentRow("Timezone", settings.timezone),
-        promptButton("Custom timezone…", "timezone", "secondary"),
+        currentRow(t(lang, "timezoneLabel"), settings.timezone, lang),
+        promptButton(t(lang, "customTimezone"), "timezone", "secondary"),
         separator(),
         chipRow(
-          "Location",
+          t(lang, "locationLabel"),
           PRESET_LOCATIONS.map((loc) => ({ label: loc, data: `settings:locale:set:location:${loc}`, on: settings.location === loc })),
           2,
         ),
-        currentRow("Location", settings.location ?? "—"),
-        promptButton("Custom location…", "location", "secondary"),
+        currentRow(t(lang, "locationLabel"), settings.location ?? "—", lang),
+        promptButton(t(lang, "customLocation"), "location", "secondary"),
         separator(),
         {
           type: "box",
           layout: "horizontal",
           margin: "md",
           spacing: "sm",
-          contents: [postbackButton("← Back", "settings:main", "secondary")],
+          contents: [postbackButton(t(lang, "back"), "settings:main", "secondary")],
         },
       ]),
     },
