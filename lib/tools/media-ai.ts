@@ -64,8 +64,8 @@ export function buildMediaAiTools(userId: string) {
           userId,
           index,
           question
-            ? `Answer this question about the document, using specific facts, figures, and quotes from it: "${question}". Respond naturally in plain text. Avoid markdown (*, **, #, -, __, \`). If the document doesn't contain the answer, say so plainly.`
-            : "Summarize this document naturally, as if explaining it to the user in a chat. Cover the main purpose, key facts, dates, names, action items, and conclusion. Use paragraphs, bullets, or a mix — whatever format makes the summary clearest. Do not use markdown (*, **, #, -, __, \`). Use plain text and • for bullets if you use bullets.",
+            ? `Answer this question about the document directly, using specific facts, figures, and quotes from it: "${question}". Start with the answer immediately — do not write "Here is the answer" or any meta-introduction. Avoid markdown (*, **, #, -, __, \`). If the document doesn't contain the answer, say so plainly.`
+            : "Summarize this document directly and naturally. Start with the content immediately — do not write \"Here is a summary\", \"This document is about\", \"in X bullets\", or any meta-introduction. Cover the main purpose, key facts, dates, names, action items, and conclusion. Prefer short paragraphs. Only use • bullets if the document is a list or bullets make the answer significantly clearer. Avoid markdown (*, **, #, -, __, \`).",
           { model: "chat", skipCache: !!question },
         ),
     }),

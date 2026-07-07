@@ -111,4 +111,44 @@ describe("buildFlexFromToolResults document + drive cards", () => {
     expect(json).toContain("Purpose: This is a test");
     expect(json).toContain("• Item two");
   });
+
+  it("renders long document summaries without 120-char truncation", () => {
+    const longText = "A".repeat(1000);
+    const result = {
+      steps: [
+        {
+          toolResults: [
+            {
+              toolName: "summarize_document",
+              output: { ok: true, output: longText },
+            },
+          ],
+        },
+      ],
+    };
+    const { messages } = buildFlexFromToolResults(result, "Asia/Bangkok");
+    const json = JSON.stringify(messages);
+    expect(json).toContain(longText);
+    expect(json).not.toContain("A".repeat(120) + " …");
+  });
+
+  it("strips meta-introductions from document summaries", () => {
+    const result = {
+      steps: [
+        {
+          toolResults: [
+            {
+              toolName: "summarize_document",
+              output: { ok: true, output: "Here's a summary of the document in 6 bullets:\n\nThis is the actual content." },
+            },
+          ],
+        },
+      ],
+    };
+    const { messages } = buildFlexFromToolResults(result, "Asia/Bangkok");
+    const json = JSON.stringify(messages);
+    expect(json).not.toContain("Here's a summary");
+    expect(json).not.toContain("in 6 bullets");
+    expect(json).toContain("This is the actual content");
+  });
 });

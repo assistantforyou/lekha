@@ -45,6 +45,19 @@ function stripMarkdown(s: string): string {
     .replace(/`{1,3}(.*?)`{1,3}/g, "$1");
 }
 
+function stripMetaPrefix(s: string): string {
+  return s
+    .replace(/^(Here[']?s? (is |are )?a? ?(summary|quick summary|brief summary)( of [^:：]*)?[：:]?\s*)/i, "")
+    .replace(/^(Summary[：:]?\s*)/i, "")
+    .replace(/^(In summary[，:,]?\s*)/i, "")
+    .replace(/^(This document (is about|discusses|describes|contains)[：:]?\s*)/i, "")
+    .replace(/^(The following is (a summary|an overview)[：:]?\s*)/i, "")
+    .replace(/^\d+\s+bullets?[：:]?\s*/i, "")
+    .replace(/^(ใน\s*\d+\s*ข้อ[：:]?\s*)/, "")
+    .replace(/^(สรุป[：:]?\s*)/, "")
+    .trim();
+}
+
 function fmtDateTime(isoOrMs: string | number, tz = "UTC"): string {
   const d = typeof isoOrMs === "number" ? new Date(isoOrMs) : new Date(String(isoOrMs));
   if (isNaN(d.getTime())) return String(isoOrMs).slice(0, 16).replace("T", " ");
@@ -148,6 +161,46 @@ export function buildSimpleCardFlex(
         paddingBottom: "8px",
         spacing: "none",
         contents: bodyContents,
+      },
+    },
+  } as LineMessage;
+}
+
+/** Card for long text outputs (document summaries, transcripts, OCR). Keeps the
+ *  full text readable instead of squashing it into the 120-char list-row limit. */
+function buildLongTextCardFlex(title: string, text: string, headerColor: string): LineMessage {
+  const maxChars = 4000;
+  const cleaned = stripMetaPrefix(stripMarkdown(text));
+  const truncated = cleaned.length > maxChars;
+  const display = truncated ? cleaned.slice(0, maxChars).replace(/\s+\S*$/, " …") : cleaned;
+
+  return {
+    type: "flex",
+    altText: `${title}: ${cleaned.slice(0, 200)}`.slice(0, 400),
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        backgroundColor: headerColor,
+        paddingAll: "16px",
+        contents: [{ type: "text", text: title, color: "#FFFFFF", weight: "bold", size: "md" }],
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "16px",
+        spacing: "md",
+        contents: [
+          {
+            type: "text",
+            text: display,
+            size: "sm",
+            wrap: true,
+            color: "#333333",
+          },
+        ],
       },
     },
   } as LineMessage;
@@ -1144,10 +1197,7 @@ export function buildFlexFromToolResults(
           : toolName === "transcribe_audio" ? "🎤 Transcript"
           : toolName === "summarize_audio" ? "🎙️ Voice Summary"
           : "📄 Document Summary";
-        const raw = stripMarkdown(value.output as string);
-        const text = raw.slice(0, 1900);
-        const truncated = raw.length > 1900;
-        out.push(buildSimpleCardFlex(label, "#636E72", [{ primary: truncated ? text + " …" : text }]));
+        out.push(buildLongTextCardFlex(label, value.output as string, "#636E72"));
         suppressText = true;
         seen.add(toolName);
         continue;
