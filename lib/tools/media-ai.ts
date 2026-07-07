@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { tool } from "ai";
-import { generateText } from "ai";
+import { tool, generateText } from "ai";
 import { extractorModel, chatModel } from "@/lib/llm/provider";
 import { listRecentMedia, touchRecentMedia } from "@/lib/memory/recent-media";
 import { getMessageContent } from "@/lib/line/client";
 import { getDocContent, setDocContent } from "@/lib/memory/doc-cache";
 import { indexDocument } from "@/lib/memory/documents";
 import { appendFact } from "@/lib/memory/facts";
+import { extractStructuredDocument } from "@/lib/document-intelligence";
 import { createHash } from "crypto";
 
 // Lazy-load heavy conversion/parser modules so cold starts without media don't pay.
@@ -81,6 +81,45 @@ export function buildMediaAiTools(userId: string) {
           "Extract the full text of this document. Preserve headings, section numbers, and paragraph breaks. Reproduce every table as a simple list — one row per source row, columns separated by ' | ', header row intact — do not paraphrase, merge, or drop cells. Do not use markdown (*, **, #, -, __). Do not summarize or skip anything. If the document is very long and you must truncate, say '--- truncated ---' at the end.",
           { maxChars: 8000, model: "chat" },
         ),
+    }),
+
+    extract_document_data: tool({
+      description:
+        "Extract structured data (tables, price lists, catalogs, forms) from a PDF or document as JSON. Use when the user asks about specific fields, prices, products, rows, or comparisons. Much more token-efficient than re-reading the whole file each time. The extracted data is cached and searchable.",
+      inputSchema: z.object({
+        index: z.number().int().min(1).optional(),
+        hint: z
+          .string()
+          .max(300)
+          .optional()
+          .describe("Optional hint about what to extract, e.g. 'product catalog with price and dimensions'."),
+      }),
+      execute: async ({ index, hint }) => {
+        const item = await resolveStagedItem(userId, index, "file");
+        if (!item || "error" in item) return item ?? { ok: false as const, error: "No staged document." };
+
+        touchRecentMedia(userId).catch(() => {});
+
+        try {
+          const fetched = await getMessageContent(item.messageId);
+          const doc = await extractStructuredDocument(
+            userId,
+            item.messageId,
+            item.fileName ?? "document",
+            fetched.bytes,
+            hint,
+          );
+          return {
+            ok: true as const,
+            title: doc.title,
+            count: doc.items.length,
+            items: doc.items,
+          };
+        } catch (err) {
+          console.error("[media-ai] extract_document_data failed", err);
+          return { ok: false as const, error: "Couldn't extract structured data from this document. Try read_document instead." };
+        }
+      },
     }),
 
     transcribe_audio: tool({
