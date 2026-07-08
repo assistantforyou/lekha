@@ -2,6 +2,7 @@ import { z } from "zod";
 import { tool } from "ai";
 import { google } from "googleapis";
 import { withGoogleClient } from "./with-google";
+import { withGoogleCache } from "@/lib/memory/cache";
 import { appendPending, type SendEmailAction } from "@/lib/confirm";
 import { headerMap } from "./gmail-helpers";
 
@@ -52,38 +53,40 @@ export function buildGmailInboxTools(userId: string) {
         fromEmail: z.string().email().optional(),
       }),
       execute: async ({ query, limit, fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [GMAIL_RO], async ({ client }) => {
-          const gmail = google.gmail({ version: "v1", auth: client });
-          const list = await gmail.users.messages.list({
-            userId: "me",
-            q: query,
-            maxResults: limit,
+        return withGoogleClient(userId, fromEmail, [GMAIL_RO], async ({ client, email }) => {
+          return withGoogleCache(userId, email, "gmail:search", { query, limit }, 60, async () => {
+            const gmail = google.gmail({ version: "v1", auth: client });
+            const list = await gmail.users.messages.list({
+              userId: "me",
+              q: query,
+              maxResults: limit,
+            });
+            const ids = (list.data.messages ?? []).map((m) => m.id ?? "").filter(Boolean);
+            const fetched = await Promise.all(
+              ids.map((id) =>
+                gmail.users.messages.get({
+                  userId: "me",
+                  id,
+                  format: "metadata",
+                  metadataHeaders: ["From", "To", "Subject", "Date"],
+                }),
+              ),
+            );
+            const messages = fetched.map((r) => {
+              const h = headerMap(r.data.payload?.headers ?? undefined);
+              return {
+                id: r.data.id ?? "",
+                threadId: r.data.threadId ?? "",
+                from: h["from"] ?? "",
+                to: h["to"] ?? "",
+                subject: h["subject"] ?? "(no subject)",
+                date: h["date"] ?? "",
+                snippet: r.data.snippet ?? "",
+                unread: (r.data.labelIds ?? []).includes("UNREAD"),
+              };
+            });
+            return { ok: true as const, messages };
           });
-          const ids = (list.data.messages ?? []).map((m) => m.id ?? "").filter(Boolean);
-          const fetched = await Promise.all(
-            ids.map((id) =>
-              gmail.users.messages.get({
-                userId: "me",
-                id,
-                format: "metadata",
-                metadataHeaders: ["From", "To", "Subject", "Date"],
-              }),
-            ),
-          );
-          const messages = fetched.map((r) => {
-            const h = headerMap(r.data.payload?.headers ?? undefined);
-            return {
-              id: r.data.id ?? "",
-              threadId: r.data.threadId ?? "",
-              from: h["from"] ?? "",
-              to: h["to"] ?? "",
-              subject: h["subject"] ?? "(no subject)",
-              date: h["date"] ?? "",
-              snippet: r.data.snippet ?? "",
-              unread: (r.data.labelIds ?? []).includes("UNREAD"),
-            };
-          });
-          return { ok: true as const, messages };
         });
       },
     }),
@@ -127,42 +130,51 @@ export function buildGmailInboxTools(userId: string) {
         fromEmail: z.string().email().optional(),
       }),
       execute: async ({ hours, unread_only, limit, fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [GMAIL_RO], async ({ client }) => {
-          const gmail = google.gmail({ version: "v1", auth: client });
-          const q = [
-            `newer_than:${hours}h`,
-            unread_only ? "is:unread" : "",
-            "category:primary",
-          ]
-            .filter(Boolean)
-            .join(" ");
-          const list = await gmail.users.messages.list({ userId: "me", q, maxResults: limit });
-          const ids = (list.data.messages ?? []).map((m) => m.id ?? "").filter(Boolean);
-          if (!ids.length) return { ok: true as const, messages: [] };
-          const fetched = await Promise.all(
-            ids.map((id) =>
-              gmail.users.messages.get({
-                userId: "me",
-                id,
-                format: "metadata",
-                metadataHeaders: ["From", "Subject", "Date"],
-              }),
-            ),
-          );
-          return {
-            ok: true as const,
-            messages: fetched.map((r) => {
-              const h = headerMap(r.data.payload?.headers ?? undefined);
+        return withGoogleClient(userId, fromEmail, [GMAIL_RO], async ({ client, email }) => {
+          return withGoogleCache(
+            userId,
+            email,
+            "gmail:summarize_recent",
+            { hours, unread_only, limit },
+            60,
+            async () => {
+              const gmail = google.gmail({ version: "v1", auth: client });
+              const q = [
+                `newer_than:${hours}h`,
+                unread_only ? "is:unread" : "",
+                "category:primary",
+              ]
+                .filter(Boolean)
+                .join(" ");
+              const list = await gmail.users.messages.list({ userId: "me", q, maxResults: limit });
+              const ids = (list.data.messages ?? []).map((m) => m.id ?? "").filter(Boolean);
+              if (!ids.length) return { ok: true as const, messages: [] };
+              const fetched = await Promise.all(
+                ids.map((id) =>
+                  gmail.users.messages.get({
+                    userId: "me",
+                    id,
+                    format: "metadata",
+                    metadataHeaders: ["From", "Subject", "Date"],
+                  }),
+                ),
+              );
               return {
-                id: r.data.id,
-                from: h["from"] ?? "",
-                subject: h["subject"] ?? "(no subject)",
-                date: h["date"] ?? "",
-                snippet: r.data.snippet ?? "",
-                unread: (r.data.labelIds ?? []).includes("UNREAD"),
+                ok: true as const,
+                messages: fetched.map((r) => {
+                  const h = headerMap(r.data.payload?.headers ?? undefined);
+                  return {
+                    id: r.data.id,
+                    from: h["from"] ?? "",
+                    subject: h["subject"] ?? "(no subject)",
+                    date: h["date"] ?? "",
+                    snippet: r.data.snippet ?? "",
+                    unread: (r.data.labelIds ?? []).includes("UNREAD"),
+                  };
+                }),
               };
-            }),
-          };
+            },
+          );
         });
       },
     }),

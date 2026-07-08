@@ -1,6 +1,39 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import Stripe from "stripe";
+import { env } from "@/lib/env";
 
-export default function SuccessPage() {
+export const runtime = "nodejs";
+
+export default async function SuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ session_id?: string }>;
+}) {
+  const { session_id } = await searchParams;
+  if (!session_id) {
+    notFound();
+  }
+
+  const e = env();
+  const testMode = e.STRIPE_TEST_MODE === "true";
+  const stripeKey = testMode ? e.STRIPE_TEST_SECRET_KEY : e.STRIPE_SECRET_KEY;
+  if (!stripeKey) {
+    notFound();
+  }
+
+  const stripe = new Stripe(stripeKey);
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await stripe.checkout.sessions.retrieve(session_id);
+  } catch {
+    notFound();
+  }
+
+  if (session.status !== "complete") {
+    notFound();
+  }
+
   return (
     <div style={{
       minHeight: "100vh",

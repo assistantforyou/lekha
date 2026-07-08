@@ -85,6 +85,30 @@ vi.mock("@/lib/memory/redis", () => ({
       const score = getZset(key).get(member);
       return score === undefined ? null : score;
     },
+    zrange: async <T extends unknown[]>(
+      key: string,
+      min: number | string,
+      max: number | string,
+      opts?: { byScore?: boolean },
+    ) => {
+      const z = getZset(key);
+      let entries = Array.from(z.entries()).sort((a, b) => a[1] - b[1]);
+      if (opts?.byScore && typeof min === "number" && max === "+inf") {
+        entries = entries.filter(([, score]) => score >= min);
+      }
+      return entries.map(([member]) => member) as T;
+    },
+    zremrangebyscore: async (key: string, min: number, max: number) => {
+      const z = getZset(key);
+      let n = 0;
+      for (const [member, score] of z) {
+        if (score >= min && score <= max) {
+          z.delete(member);
+          n++;
+        }
+      }
+      return n;
+    },
     expire: async () => 1,
     set: async (key: string, value: unknown, opts?: { ex?: number; nx?: boolean }) => {
       const now = Date.now();

@@ -5,7 +5,13 @@ import { env } from "@/lib/env";
 const COOKIE_NAME = "lekha_session";
 
 function secret(): Uint8Array {
-  return new TextEncoder().encode(env().OAUTH_STATE_SECRET);
+  const e = env();
+  if (e.DASHBOARD_JWT_SECRET) {
+    return new TextEncoder().encode(e.DASHBOARD_JWT_SECRET);
+  }
+  // Backwards compatibility: existing deploys may only have OAUTH_STATE_SECRET.
+  console.warn("[dashboard-auth] DASHBOARD_JWT_SECRET not set; falling back to OAUTH_STATE_SECRET");
+  return new TextEncoder().encode(e.OAUTH_STATE_SECRET);
 }
 
 export async function signSession(userId: string, displayName: string): Promise<string> {

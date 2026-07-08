@@ -55,7 +55,7 @@ export async function respondToText(
     ? timed(
         "text:getMessageContent",
         traceId,
-        () => getMessageContent(freshImage.messageId),
+        () => getMessageContent(freshImage.messageId, userId),
         { sizeBytes: freshImage.sizeBytes },
       ).catch(() => null)
     : Promise.resolve(null);

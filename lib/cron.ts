@@ -58,6 +58,18 @@ export async function scheduleOneShot(
   return r.messageId;
 }
 
+export async function publishJSON(
+  pathFromBase: string,
+  body: Record<string, unknown>,
+): Promise<string> {
+  const url = `${env().APP_BASE_URL}${pathFromBase}`;
+  const r = await qstash().publishJSON({
+    url,
+    body,
+  });
+  return r.messageId;
+}
+
 /**
  * Convert HH:mm in a given IANA timezone to a UTC cron "min hour * * *" expression.
  * Uses Intl.DateTimeFormat to handle half-hour offsets (e.g. Asia/Kolkata +5:30,

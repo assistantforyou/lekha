@@ -103,7 +103,7 @@ export function buildMediaAiTools(userId: string) {
         touchRecentMedia(userId).catch(() => {});
 
         try {
-          const fetched = await getMessageContent(item.messageId);
+          const fetched = await getMessageContent(item.messageId, userId);
           const doc = await extractStructuredDocument(
             userId,
             item.messageId,
@@ -139,7 +139,7 @@ export function buildMediaAiTools(userId: string) {
         touchRecentMedia(userId).catch(() => {});
 
         try {
-          const fetched = await getMessageContent(stagedItem.messageId);
+          const fetched = await getMessageContent(stagedItem.messageId, userId);
           const doc = await extractStructuredDocument(
             userId,
             stagedItem.messageId,
@@ -326,7 +326,7 @@ async function runDocPrompt(
   let bytes: Uint8Array;
   let mediaType: string;
   try {
-    const fetched = await getMessageContent(item.messageId);
+    const fetched = await getMessageContent(item.messageId, userId);
     bytes = fetched.bytes;
     mediaType = normalizeMediaTypeFromBytes(fetched.bytes, fetched.contentType, item.fileName, item.kind as "audio" | "image" | "video" | "file");
   } catch (err) {
@@ -405,7 +405,7 @@ async function runMediaPromptById(
   let bytes: Uint8Array;
   let mediaType: string;
   try {
-    const fetched = await getMessageContent(messageId);
+    const fetched = await getMessageContent(messageId, userId);
     bytes = fetched.bytes;
     mediaType = normalizeMediaTypeFromBytes(fetched.bytes, fetched.contentType, undefined, expectedKind);
   } catch (err) {
@@ -454,7 +454,7 @@ async function runMediaPrompt(
   let bytes: Uint8Array;
   let mediaType: string;
   try {
-    const fetched = await getMessageContent(item.messageId);
+    const fetched = await getMessageContent(item.messageId, userId);
     bytes = fetched.bytes;
     mediaType = normalizeMediaTypeFromBytes(fetched.bytes, fetched.contentType, item.fileName, item.kind as "audio" | "image" | "video" | "file");
   } catch (err) {

@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization") ?? "";
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  const allowed = new Set([env().OAUTH_STATE_SECRET, env().CRON_MANUAL_SECRET].filter(Boolean));
-  if (!allowed.has(bearer)) {
+  const cronSecret = env().CRON_MANUAL_SECRET;
+  if (!cronSecret || bearer !== cronSecret) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

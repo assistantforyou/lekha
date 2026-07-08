@@ -152,7 +152,7 @@ export async function sendEmail(
     // otherwise serialize and risk Vercel function timeouts.
     const fetchedMedia = await Promise.all(
       targets.map(async ({ item }, i) => {
-        const { bytes, contentType } = await getMessageContent(item.messageId);
+        const { bytes, contentType } = await getMessageContent(item.messageId, userId);
         const overrideName = args.attachRecentMediaFilenames?.[i];
         const filename =
           (overrideName && overrideName.length > 0 ? overrideName : null) ??

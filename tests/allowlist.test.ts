@@ -5,18 +5,21 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 type Store = {
   sets: Map<string, Set<string>>;
   hashes: Map<string, Map<string, string>>;
+  zsets: Map<string, Map<string, number>>;
   strings: Map<string, { value: string; expiresAt?: number }>;
 };
 
 const store: Store = {
   sets: new Map(),
   hashes: new Map(),
+  zsets: new Map(),
   strings: new Map(),
 };
 
 function reset() {
   store.sets.clear();
   store.hashes.clear();
+  store.zsets.clear();
   store.strings.clear();
 }
 
@@ -27,6 +30,15 @@ function getSet(key: string): Set<string> {
     store.sets.set(key, s);
   }
   return s;
+}
+
+function getZset(key: string): Map<string, number> {
+  let z = store.zsets.get(key);
+  if (!z) {
+    z = new Map();
+    store.zsets.set(key, z);
+  }
+  return z;
 }
 
 function getHash(key: string): Map<string, string> {
@@ -63,10 +75,45 @@ vi.mock("@/lib/memory/redis", () => ({
       if (!h || h.size === 0) return null;
       return Object.fromEntries(h);
     },
+    zadd: async (key: string, entry: { score: number; member: string }) => {
+      getZset(key).set(entry.member, entry.score);
+      return 1;
+    },
+    zrem: async (key: string, member: string) => {
+      const had = getZset(key).has(member);
+      getZset(key).delete(member);
+      return had ? 1 : 0;
+    },
+    zrange: async <T extends unknown[]>(
+      key: string,
+      min: number | string,
+      max: number | string,
+      opts?: { byScore?: boolean },
+    ) => {
+      const z = getZset(key);
+      let entries = Array.from(z.entries()).sort((a, b) => a[1] - b[1]);
+      if (opts?.byScore && typeof min === "number" && max === "+inf") {
+        entries = entries.filter(([, score]) => score >= min);
+      }
+      return entries.map(([member]) => member) as T;
+    },
+    zremrangebyscore: async (key: string, min: number, max: number) => {
+      const z = getZset(key);
+      let n = 0;
+      for (const [member, score] of z) {
+        if (score >= min && score <= max) {
+          z.delete(member);
+          n++;
+        }
+      }
+      return n;
+    },
+    zcard: async (key: string) => getZset(key).size,
     del: async (key: string) => {
       let n = 0;
       if (store.sets.delete(key)) n++;
       if (store.hashes.delete(key)) n++;
+      if (store.zsets.delete(key)) n++;
       if (store.strings.delete(key)) n++;
       return n;
     },

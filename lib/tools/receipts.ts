@@ -182,7 +182,7 @@ export function buildReceiptTools(userId: string) {
         let bytes: Uint8Array;
         let mediaType: string;
         try {
-          const fetched = await getMessageContent(item.messageId);
+          const fetched = await getMessageContent(item.messageId, userId);
           bytes = fetched.bytes;
           mediaType = fetched.contentType;
         } catch (err) {

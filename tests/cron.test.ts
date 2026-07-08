@@ -1,5 +1,22 @@
-import { describe, it, expect } from "vitest";
-import { localTimeToUtcCron } from "@/lib/cron";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { localTimeToUtcCron, publishJSON } from "@/lib/cron";
+
+const publishMock = vi.fn();
+
+vi.mock("@upstash/qstash", () => ({
+  Client: class MockClient {
+    publishJSON = publishMock;
+  },
+}));
+
+vi.mock("@/lib/env", () => ({
+  env: () => ({
+    APP_BASE_URL: "https://test.example",
+    QSTASH_TOKEN: "token",
+    QSTASH_CURRENT_SIGNING_KEY: "key",
+  }),
+  hasQStash: () => true,
+}));
 
 // These tests use real system calls (no mocking needed — function is pure modulo
 // Date.now() for offset, which we can't control). We verify the structure and
@@ -65,5 +82,21 @@ describe("localTimeToUtcCron", () => {
     const result = localTimeToUtcCron("07:30", "Asia/Kolkata");
     // If the bug is fixed, this should be "30 2 * * *". For now just verify format.
     expect(result).toMatch(/^\d+ \d+ \* \* \*$/);
+  });
+});
+
+describe("publishJSON", () => {
+  beforeEach(() => {
+    publishMock.mockReset();
+  });
+
+  it("publishes to the full URL and returns the messageId", async () => {
+    publishMock.mockResolvedValueOnce({ messageId: "msg_123" });
+    const id = await publishJSON("/api/cron/sweep/fire", { cursor: 0, batchSize: 20 });
+    expect(publishMock).toHaveBeenCalledWith({
+      url: "https://test.example/api/cron/sweep/fire",
+      body: { cursor: 0, batchSize: 20 },
+    });
+    expect(id).toBe("msg_123");
   });
 });

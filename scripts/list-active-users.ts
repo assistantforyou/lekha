@@ -1,7 +1,7 @@
-import { redis } from "../lib/memory/redis";
+import { listActiveUsers } from "../lib/memory/user-registry";
 
 async function main() {
-  const users = await redis().smembers("users:active");
+  const users = await listActiveUsers();
   console.log(`Found ${users.length} active users:`);
   for (const u of users) {
     console.log(u);

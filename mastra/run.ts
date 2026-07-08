@@ -10,6 +10,8 @@ import {
   flattenToolCallsForAudit,
   handleAgentError,
   getLastUserText,
+  computeMaxSteps,
+  estimatePromptTokens,
   looksLikeMemoryRecall,
   looksLikeTaskList,
   looksLikeWeather,
@@ -28,7 +30,7 @@ import {
   type AgentResult,
   type AgentHints,
 } from "@/lib/llm/agent-helpers";
-import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
+import { buildSystemPrompt, buildTimeContext, escapePromptLiteral } from "@/lib/llm/prompts";
 import { factsToPromptBlock, type UserFacts } from "@/lib/memory/facts";
 import { historyForPrompt, appendTurn, type StoredTurn } from "@/lib/memory/history";
 import { appendAuditEntry, type AuditToolCall } from "@/lib/memory/audit-log";
@@ -37,6 +39,7 @@ import { HELP_TEXT } from "@/lib/tools/help";
 import { unwrapAuthRequired } from "@/lib/errors";
 import { span, tick, withTimeout } from "@/lib/timing";
 import { t } from "@/lib/i18n";
+import { logError, logWarn } from "@/lib/log";
 import { GEMINI_PROVIDER_OPTIONS, AGENT_TIMEOUT_MS } from "@/lib/llm/provider";
 import { env } from "@/lib/env";
 import { toolsForUser } from "@/lib/tools";
@@ -129,7 +132,7 @@ export async function runMastraAgent(
               const ago = Math.round((Date.now() - m.ts) / 60_000);
               const parts = [
                 `${i + 1}. ${m.kind}`,
-                m.fileName ? `"${m.fileName}"` : null,
+                m.fileName ? `"${escapePromptLiteral(m.fileName)}"` : null,
                 `(${m.contentType}`,
                 m.sizeBytes ? `, ${(m.sizeBytes / 1024).toFixed(0)} KB` : "",
                 `)`,
@@ -143,7 +146,7 @@ export async function runMastraAgent(
               const ago = Math.round((Date.now() - m.ts) / 60_000);
               const parts = [
                 `${i + 1}. ${m.kind}`,
-                m.fileName ? `"${m.fileName}"` : null,
+                m.fileName ? `"${escapePromptLiteral(m.fileName)}"` : null,
                 `(${m.contentType}`,
                 m.sizeBytes ? `, ${(m.sizeBytes / 1024).toFixed(0)} KB` : "",
                 `)`,
@@ -158,7 +161,12 @@ export async function runMastraAgent(
     lang = settings.language ?? null;
     const displayName = settings.personaPreferredName?.trim() || profile.displayName;
     const location = settings.location ?? null;
-    const factsBlock = factsToPromptBlock(facts, factLimitForHint(opts.hint ?? undefined));
+    const lastUserText = getLastUserText(messages);
+    const isMultiStepHint = looksMultiStep(lastUserText);
+    const maxSteps = computeMaxSteps(opts.hint ?? undefined, opts.hasStagedMedia, isMultiStepHint);
+
+    let factLimit = factLimitForHint(opts.hint ?? undefined);
+    let factsBlock = factsToPromptBlock(facts, factLimit);
 
     const recencyReminder = opts.hint === "recent"
       ? "This message likely asks about current or recent information. ALWAYS search the web (web_search or news_search) before answering. Do not rely on training data."
@@ -168,12 +176,15 @@ export async function runMastraAgent(
       ? `\n\nCurrent context (reference data, not a user request):\n${contextParts}`
       : "";
 
-    const system =
-      buildSystemPrompt(factsBlock, { displayName }, {
+    function buildSystem(currentFactsBlock: string): string {
+      return buildSystemPrompt(currentFactsBlock, { displayName }, {
         ...settings,
         isGroupChat: opts.isGroupChat,
         speakerName: opts.speakerName,
       }) + contextSystemBlock;
+    }
+
+    let system = buildSystem(factsBlock);
 
     const requestContext = new RequestContext();
     requestContext.set("userId", userId);
@@ -186,33 +197,64 @@ export async function runMastraAgent(
     requestContext.set("language", lang);
 
     const historyMessages = await historyForPrompt(userId);
-    const conversationMessages: ModelMessage[] = [
+    const groupContext = opts.groupContext ?? [];
+    const currentMessages = messages;
+    let conversationMessages: ModelMessage[] = [
       ...historyMessages,
-      ...(opts.groupContext ?? []),
-      ...messages,
+      ...groupContext,
+      ...currentMessages,
     ];
+
+    // Per-turn soft token/cost budget compaction.
+    let estTokens = estimatePromptTokens(system, conversationMessages);
+    if (estTokens > 100_000) {
+      const slicedHistory = historyMessages.slice(-20); // ~10 turns
+      conversationMessages = [...slicedHistory, ...groupContext, ...currentMessages];
+      estTokens = estimatePromptTokens(system, conversationMessages);
+      if (estTokens > 150_000) {
+        factLimit = 5;
+        factsBlock = factsToPromptBlock(facts, factLimit);
+        system = buildSystem(factsBlock);
+        estTokens = estimatePromptTokens(system, conversationMessages);
+      }
+      console.log(
+        "[mastra] turn budget compacted: turns=%d facts=%d estTokens=%d",
+        Math.ceil(slicedHistory.length / 2),
+        factLimit,
+        estTokens,
+      );
+    }
 
     async function attemptGenerate(tier: "free" | "paid") {
       const agent = getLekhaAgent(tier);
       const localTracker = createStepTracker(traceId);
       let localRanToolCalls = false;
-      const res = await withTimeout(
-        agent.generate(conversationMessages as any, {
-          instructions: system,
-          requestContext,
-          maxSteps: 8,
-          providerOptions: { google: { ...GEMINI_PROVIDER_OPTIONS.google, temperature: 0.6 } } as any,
-          onStepFinish: (step) => {
-            if (step.toolCalls.length > 0) localRanToolCalls = true;
-            localTracker.record(adaptMastraStep(step));
-          },
-        }),
-        opts.timeoutMs ?? AGENT_TIMEOUT_MS,
-      );
-      return { res, tracker: localTracker, ranToolCalls: localRanToolCalls };
+      const ctrl = new AbortController();
+      const timeoutMs = opts.timeoutMs ?? AGENT_TIMEOUT_MS;
+      const abortTimer = setTimeout(() => {
+        console.warn("[mastra] aborting agent call due to timeout", { userId, timeoutMs });
+        ctrl.abort();
+      }, timeoutMs);
+      try {
+        const res = await withTimeout(
+          agent.generate(conversationMessages as any, {
+            instructions: system,
+            requestContext,
+            maxSteps,
+            abortSignal: ctrl.signal,
+            providerOptions: { google: { ...GEMINI_PROVIDER_OPTIONS.google, temperature: 0.6 } } as any,
+            onStepFinish: (step) => {
+              if (step.toolCalls.length > 0) localRanToolCalls = true;
+              localTracker.record(adaptMastraStep(step));
+            },
+          }),
+          timeoutMs,
+        );
+        return { res, tracker: localTracker, ranToolCalls: localRanToolCalls };
+      } finally {
+        clearTimeout(abortTimer);
+      }
     }
-
-    const lastUserText = getLastUserText(messages);
 
     // Deterministic multi-step path: plan → execute → synthesize.
     // This avoids Gemini Flash's unreliable auto-loop when several independent
@@ -241,7 +283,7 @@ export async function runMastraAgent(
           staged: recentBlock,
           isGroupChat: opts.isGroupChat,
           groupContext: opts.groupContext
-            ? opts.groupContext.map((m) => `${m.role}: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`).join("\n")
+            ? opts.groupContext.map((m) => `${m.role}: ${typeof m.content === "string" ? escapePromptLiteral(m.content) : escapePromptLiteral(JSON.stringify(m.content))}`).join("\n")
             : undefined,
         });
       } catch (err) {
@@ -443,15 +485,15 @@ export async function runMastraAgent(
       reply: finalText,
       toolCalls: flattenToolCallsForAudit(adaptedSteps) as AuditToolCall[],
       durationMs: Date.now() - agentStart,
-    }).catch((e) => console.error("[audit] append failed", e));
+    }).catch((e) => logError("audit", "appendAuditEntry failed", e));
 
     const historyText = finalText.trim().length > 0 ? finalText : text.trim().length > 0 ? text : "Done.";
 
     // Persist this turn to Redis-backed rolling history.
     const userTurn: StoredTurn = { role: "user", content: getLastUserText(messages), ts: Date.now() };
     const assistantTurn: StoredTurn = { role: "assistant", content: historyText, ts: Date.now() };
-    appendTurn(userId, userTurn).catch((e) => console.warn("[history] append user failed", e));
-    appendTurn(userId, assistantTurn).catch((e) => console.warn("[history] append assistant failed", e));
+    appendTurn(userId, userTurn).catch((e) => logWarn("history", "appendTurn user failed", { error: e }));
+    appendTurn(userId, assistantTurn).catch((e) => logWarn("history", "appendTurn assistant failed", { error: e }));
 
     return { text: finalText, hints, toolCalls: extraToolCalls, historyText };
   } catch (err) {

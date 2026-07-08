@@ -12,9 +12,11 @@ Order matters — services depend on each other.
 ```bash
 echo "TOKEN_ENCRYPTION_KEY=$(openssl rand -hex 32)"
 echo "OAUTH_STATE_SECRET=$(openssl rand -hex 32)"
+echo "DASHBOARD_JWT_SECRET=$(openssl rand -hex 32)"
+echo "CRON_MANUAL_SECRET=$(openssl rand -hex 32)"
 ```
 
-Save both for step 8.
+Save these for step 8. `OAUTH_STATE_SECRET`, `DASHBOARD_JWT_SECRET`, and `CRON_MANUAL_SECRET` must all be distinct.
 
 ---
 
@@ -135,9 +137,9 @@ The bot's proactive features (morning briefing at 7 AM, pre-meeting reminders at
 To test the sweep manually without waiting for the schedule:
 
 ```bash
-# Manual trigger — uses your OAUTH_STATE_SECRET as a bearer token (already in env)
+# Manual trigger — uses your CRON_MANUAL_SECRET as a bearer token
 curl -XPOST https://YOUR-VERCEL-URL/api/cron/sweep \
-  -H "Authorization: Bearer $OAUTH_STATE_SECRET"
+  -H "Authorization: Bearer $CRON_MANUAL_SECRET"
 ```
 
 **Historical note:** An earlier version of the codebase stored per-user QStash schedule IDs in user settings (migration v4→v5, now a no-op). That approach was abandoned in favor of the master sweep. The `lib/cron.ts` `scheduleRecurring` / `cancelSchedule` wrappers are dead code kept for reference but never called for briefings.

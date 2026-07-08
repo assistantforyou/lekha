@@ -44,6 +44,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   line_profile: "Could not fetch your LINE profile. Please try again.",
   stripe_not_configured: "Payments are not configured yet. Contact support.",
   not_configured: "Service not configured. Contact support.",
+  invalid_plan: "That plan is not available. Please choose a valid plan.",
 };
 
 function LekhaMark() {

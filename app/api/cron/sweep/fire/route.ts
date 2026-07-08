@@ -10,8 +10,9 @@ import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing"
 import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
 import { sweepTaskCheckIn, isUserRecentlyActive, claimPushLock, runSweepForUser, isAllowedForProactive } from "@/lib/sweep";
 import { listTasks } from "@/lib/memory/tasks";
-import { listAllUsers } from "@/lib/memory/user-registry";
+import { countActiveUsers, listActiveUsersSlice } from "@/lib/memory/user-registry";
 import { runWithConcurrency } from "@/lib/concurrency";
+import { publishJSON } from "@/lib/cron";
 import { verifyQStashSignature, unauthorized, badRequest, notConfigured, isManualCronTrigger } from "@/lib/qstash-verify";
 
 export const runtime = "nodejs";
@@ -26,6 +27,9 @@ const Body = z.object({
     "task_deadline",
     "pre_meeting",
   ]).optional(),
+  // master sweep pagination
+  cursor: z.number().int().min(0).optional(),
+  batchSize: z.number().int().min(1).max(100).optional(),
   // task_deadline
   taskId: z.string().optional(),
   title: z.string().optional(),
@@ -59,24 +63,65 @@ export async function POST(req: NextRequest) {
 
   const { userId, type } = parsed.data;
 
-  // ─── Master sweep (no type = iterate all users) ──────────────────────────
+  // ─── Master sweep (no type = paginate through active users) ──────────────
   if (!type) {
+    const batchSize = Math.max(1, Math.min(parsed.data.batchSize ?? 20, 100));
+    const cursor = parsed.data.cursor ?? 0;
+
+    let total = 0;
+    try {
+      total = await countActiveUsers();
+    } catch (err) {
+      console.error("[sweep] failed to count users", err);
+      return NextResponse.json({ ok: false, error: "failed to count users" }, { status: 500 });
+    }
+
+    if (total === 0) {
+      return NextResponse.json({ ok: true, usersChecked: 0 });
+    }
+
     let users: string[] = [];
     try {
-      users = await listAllUsers();
+      users = await listActiveUsersSlice(cursor, batchSize);
     } catch (err) {
       console.error("[sweep] failed to list users", err);
       return NextResponse.json({ ok: false, error: "failed to list users" }, { status: 500 });
     }
+
     await runWithConcurrency(
       users,
       (uid) =>
         runSweepForUser(uid).catch((err) =>
           console.error("[sweep] master sweep failed for user", uid, err),
         ),
-      5,
+      3,
     );
-    return NextResponse.json({ ok: true, usersChecked: users.length });
+
+    const nextCursor = cursor + users.length;
+    let scheduledNext: string | null = null;
+    if (nextCursor < total) {
+      try {
+        scheduledNext = await publishJSON("/api/cron/sweep/fire", {
+          cursor: nextCursor,
+          batchSize,
+        });
+      } catch (err) {
+        console.error("[sweep] failed to schedule next batch", err);
+        return NextResponse.json(
+          { ok: false, error: "failed to schedule next batch", usersChecked: users.length, cursor, total, nextCursor },
+          { status: 500 },
+        );
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      usersChecked: users.length,
+      cursor,
+      total,
+      nextCursor,
+      scheduledNext,
+    });
   }
 
   // ─── Typed one-shot (reminder, task deadline, pre-meeting alert) ─────────

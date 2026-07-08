@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/dashboard-auth";
-import { loadFacts, appendFact, removeFact } from "@/lib/memory/facts";
+import {
+  loadFacts,
+  appendFact,
+  removeFact,
+  FACT_CATEGORIES,
+  type FactCategory,
+} from "@/lib/memory/facts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,6 +18,10 @@ export async function GET(req: NextRequest) {
   }
   const facts = await loadFacts(session.userId);
   return NextResponse.json({ facts: facts.facts });
+}
+
+function isValidCategory(s: unknown): s is FactCategory {
+  return typeof s === "string" && (FACT_CATEGORIES as string[]).includes(s);
 }
 
 export async function POST(req: NextRequest) {
@@ -36,11 +46,17 @@ export async function POST(req: NextRequest) {
 
   if (action === "add") {
     const content = typeof raw.content === "string" ? raw.content : "";
-    const category = typeof raw.category === "string" ? raw.category : "other";
+    const category = isValidCategory(raw.category) ? raw.category : "other";
+    if (raw.category !== undefined && !isValidCategory(raw.category)) {
+      return NextResponse.json(
+        { error: "invalid category", valid: FACT_CATEGORIES },
+        { status: 400 },
+      );
+    }
     if (!content.trim()) {
       return NextResponse.json({ error: "content required" }, { status: 400 });
     }
-    await appendFact(session.userId, content.trim(), { category: category as import("@/lib/memory/facts").FactCategory });
+    await appendFact(session.userId, content.trim(), { category });
     const facts = await loadFacts(session.userId);
     return NextResponse.json({ facts: facts.facts });
   }

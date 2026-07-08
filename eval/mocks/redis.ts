@@ -262,21 +262,21 @@ const redisMethod = {
     return added;
   },
 
-  async hgetall<T>(key: string): Promise<T | null> {
+  async hgetall<T extends Record<string, string>>(key: string): Promise<T | null> {
     const hash = getHashStore().get(key);
     if (!hash || hash.size === 0) return null;
-    const out: Record<string, unknown> = {};
+    const out: Record<string, string> = {};
     for (const [field, value] of hash) {
-      out[field] = deserialize(value);
+      out[field] = value;
     }
     return out as T;
   },
 
-  async hget<T>(key: string, field: string): Promise<T | null> {
+  async hget<T extends string>(key: string, field: string): Promise<T | null> {
     const hash = getHashStore().get(key);
     if (!hash) return null;
     const value = hash.get(field);
-    return value !== undefined ? (deserialize(value) as T) : null;
+    return value !== undefined ? (value as T) : null;
   },
 
   async hdel(key: string, ...fields: string[]): Promise<number> {

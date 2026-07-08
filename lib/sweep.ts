@@ -9,28 +9,21 @@ import { briefingFlex, newsFlex, gmailResultsFlex } from "@/lib/line/flex";
 import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing";
 import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
 import { deriveCheckInTime } from "@/lib/time-utils";
+import { registerUser, REGISTRY_KEY } from "@/lib/memory/user-registry";
 
 const ACTIVE_WINDOW_MS = 10 * 60 * 1000; // 10 min
-const ACTIVE_THROTTLE_MS = 5 * 60 * 1000; // 5 min
 
-/** Mark user as recently active (called from webhook on every inbound message).
- *  Throttled: only writes if last write was > 5 min ago to reduce Redis ops.
- */
+
+/** Mark user as recently active (called from webhook on every inbound message). */
 export async function markUserActive(userId: string): Promise<void> {
-  const key = `active:${userId}`;
-  const existing = await redis().get<number>(key);
-  if (existing && Date.now() - existing < ACTIVE_THROTTLE_MS) {
-    return; // already active recently — skip write
-  }
-  await redis().set(key, Date.now(), { ex: Math.ceil(ACTIVE_WINDOW_MS / 1000) });
+  await registerUser(userId);
 }
 
 /** Returns true if the user messaged the bot within the last 10 minutes. */
 export async function isUserRecentlyActive(userId: string): Promise<boolean> {
-  const val = await redis().get(`active:${userId}`);
-  if (!val) return false;
-  const ts = typeof val === "number" ? val : Number(val);
-  return Date.now() - ts < ACTIVE_WINDOW_MS;
+  const score = await redis().zscore(REGISTRY_KEY, userId);
+  if (score === null) return false;
+  return Date.now() - score < ACTIVE_WINDOW_MS;
 }
 
 async function pushText(userId: string, text: string) {

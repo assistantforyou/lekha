@@ -25,6 +25,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${base}/signup?error=invalid_state`);
   }
   const { plan } = stored;
+  const validPlans = ["monthly", "yearly", "team_monthly", "team_yearly"] as const;
+  if (!validPlans.includes(plan as (typeof validPlans)[number])) {
+    return NextResponse.redirect(`${base}/signup?plan=monthly&error=invalid_plan`);
+  }
 
   if (!e.LINE_LOGIN_CHANNEL_ID || !e.LINE_LOGIN_CHANNEL_SECRET) {
     return NextResponse.redirect(`${base}/signup?error=not_configured`);
@@ -95,7 +99,7 @@ export async function GET(req: NextRequest) {
       metadata: { line_user_id: userId, line_display_name: displayName },
     },
     metadata: { line_user_id: userId, line_display_name: displayName, plan },
-    success_url: `${base}/signup/success`,
+    success_url: `${base}/signup/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/signup?plan=${plan}`,
   });
 

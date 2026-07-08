@@ -5,7 +5,7 @@ import { redis } from "./redis";
 // issue like "Drive upload silently unavailable" is traceable from the log alone
 // without needing to reproduce it. 1-year retention to match the receipts store;
 // capped list size protects Redis memory from a single hyperactive user.
-const MAX_ENTRIES = 5000;
+const MAX_ENTRIES = 200;
 const RETENTION_SECONDS = 60 * 60 * 24 * 365;
 
 export type AuditToolCall = {

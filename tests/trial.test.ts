@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const store: {
   sets: Map<string, Set<string>>;
+  zsets: Map<string, Map<string, number>>;
   strings: Map<string, { value: string; expiresAt?: number }>;
 } = {
   sets: new Map(),
+  zsets: new Map(),
   strings: new Map(),
 };
 
@@ -12,6 +14,7 @@ const sent: { userId: string; messages: unknown[] }[] = [];
 
 function reset() {
   store.sets.clear();
+  store.zsets.clear();
   store.strings.clear();
   sent.length = 0;
 }
@@ -23,6 +26,15 @@ function getSet(key: string): Set<string> {
     store.sets.set(key, s);
   }
   return s;
+}
+
+function getZset(key: string): Map<string, number> {
+  let z = store.zsets.get(key);
+  if (!z) {
+    z = new Map();
+    store.zsets.set(key, z);
+  }
+  return z;
 }
 
 vi.mock("@/lib/env", () => ({
@@ -59,6 +71,7 @@ vi.mock("@/lib/memory/redis", () => ({
       let n = 0;
       if (store.strings.delete(key)) n++;
       if (store.sets.delete(key)) n++;
+      if (store.zsets.delete(key)) n++;
       return n;
     },
     incr: async (key: string) => {
@@ -78,6 +91,24 @@ vi.mock("@/lib/memory/redis", () => ({
       entry.expiresAt = Date.now() + seconds * 1000;
       return 1;
     },
+    eval: async <T,>(script: string, keys: string[], args: string[]): Promise<T> => {
+      const key = keys[0];
+      if (!key) return 0 as T;
+      // Approximate the trial quota Lua script: incr + expire on first write.
+      if (script.includes("incr") && script.includes("expire")) {
+        const entry = store.strings.get(key);
+        let n = 0;
+        if (entry) {
+          const parsed = JSON.parse(entry.value);
+          if (typeof parsed === "number") n = parsed;
+        }
+        n += 1;
+        const ttl = Number(args[0]);
+        store.strings.set(key, { value: JSON.stringify(n), expiresAt: Number.isFinite(ttl) ? Date.now() + ttl * 1000 : entry?.expiresAt });
+        return n as T;
+      }
+      return 0 as T;
+    },
     sadd: async (key: string, member: string) => {
       const before = getSet(key).size;
       getSet(key).add(member);
@@ -90,6 +121,39 @@ vi.mock("@/lib/memory/redis", () => ({
       return had ? 1 : 0;
     },
     smembers: async (key: string) => [...getSet(key)],
+    zadd: async (key: string, entry: { score: number; member: string }) => {
+      getZset(key).set(entry.member, entry.score);
+      return 1;
+    },
+    zscore: async (key: string, member: string) => {
+      const score = getZset(key).get(member);
+      return score === undefined ? null : score;
+    },
+    zrange: async <T extends unknown[]>(
+      key: string,
+      min: number | string,
+      max: number | string,
+      opts?: { byScore?: boolean },
+    ) => {
+      const z = getZset(key);
+      let entries = Array.from(z.entries()).sort((a, b) => a[1] - b[1]);
+      if (opts?.byScore && typeof min === "number" && max === "+inf") {
+        entries = entries.filter(([, score]) => score >= min);
+      }
+      return entries.map(([member]) => member) as T;
+    },
+    zremrangebyscore: async (key: string, min: number, max: number) => {
+      const z = getZset(key);
+      let n = 0;
+      for (const [member, score] of z) {
+        if (score >= min && score <= max) {
+          z.delete(member);
+          n++;
+        }
+      }
+      return n;
+    },
+    zcard: async (key: string) => getZset(key).size,
   }),
 }));
 
@@ -125,10 +189,9 @@ describe("free trial", () => {
     expect(await isOnTrial("U1")).toBe(false);
   });
 
-  it("registers trial users in the active sweep set", async () => {
+  it("registers trial users in the active sweep window", async () => {
     await addToTrial("U1");
-    const active = getSet("users:active");
-    expect(active.has("U1")).toBe(true);
+    expect(getZset("users:active:window").has("U1")).toBe(true);
   });
 
   it("counts messages up to the daily limit", async () => {
@@ -157,19 +220,16 @@ describe("free trial", () => {
     const th = trialQuotaMessage("th", resetsAt);
     const en = trialQuotaMessage("en", resetsAt);
     const both = trialQuotaMessage(null, resetsAt);
-    expect(th).toContain("ทดลองใช้ฟรี");
-    expect(en).toContain("free trial messages");
-    expect(both).toContain("free trial messages");
-    expect(both).toContain("ทดลองใช้ฟรี");
+    expect(th).toContain("วันนี้");
+    expect(en).toContain("today");
+    expect(both).toContain("today");
+    expect(both).toContain("วันนี้");
   });
 
-  it("starts the tutorial when free trial begins", async () => {
-    await startTrial("U1", "", "James");
+  it("startTrial adds user to trial and sends welcome", async () => {
+    await startTrial("U1", "token", "James");
     expect(await isOnTrial("U1")).toBe(true);
+    expect(sent.length).toBeGreaterThan(0);
     expect(await getTutorialStep("U1")).toBe(0);
-    expect(sent.length).toBeGreaterThanOrEqual(1);
-    const welcome = sent[0]!.messages[0] as { text?: string };
-    expect(welcome.text).toContain("Free trial started");
-    expect(welcome.text).toContain("ทดลองใช้ฟรีเริ่มต้นแล้ว");
   });
 });

@@ -6,6 +6,7 @@ import "./marketing.css";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import type { SVGProps } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { LangToggle } from "./i18n";
 
 /* ---------- Icons (inline SVGs, single-line strokes) ---------- */
@@ -126,7 +127,7 @@ const QRModal = ({ open, onClose, config }: { open: boolean; onClose: () => void
           <span className="ig-corner tr"></span>
           <span className="ig-corner bl"></span>
           <span className="ig-corner br"></span>
-          <img src={c.qrSrc} alt={c.qrAlt} />
+          <Image src={c.qrSrc} alt={c.qrAlt} fill sizes="244px" priority />
         </div>
 
         <div className="ig-handle">
@@ -211,7 +212,7 @@ const Hero = () => {
 
         <div>
           <div className="avatar-stage">
-            <img src="/assets/lekha-hero.png" alt="LEKHA avatar" />
+            <Image src="/assets/lekha-hero.png" alt="LEKHA avatar" fill sizes="(max-width: 1100px) 100vw, 50vw" priority />
             <div className="chat-float">
               <span className="dot"></span>{" Online\n            "}
             </div>

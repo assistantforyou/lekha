@@ -1233,6 +1233,18 @@ body {
   border-color: var(--line-strong);
   color: var(--ink);
 }
+.save-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 500;
+}
 
 /* mobile sidebar opener */
 .mobile-menu {

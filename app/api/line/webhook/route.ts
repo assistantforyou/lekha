@@ -25,107 +25,24 @@ import { isOnTrial, checkTrialDailyQuota, trialQuotaMessage, startTrial } from "
 import { getSettings } from "@/lib/memory/settings";
 import { t } from "@/lib/i18n";
 
-import { handleAdminCommand, handleMyId } from "@/lib/admin-commands";
-import { handlePromoCommand } from "@/lib/promo-codes";
-import { dispatchShortcut } from "@/lib/shortcuts";
-import { respondToText } from "@/lib/handlers/text";
-import { respondToImage } from "@/lib/handlers/image";
-import { respondToOtherMedia } from "@/lib/handlers/other-media";
 import { maybeExtractFacts } from "@/lib/maybe-extract";
-import { handlePostback } from "@/lib/webhook-postback";
-import { span } from "@/lib/timing";
+import { span, withTimeout } from "@/lib/timing";
 import { markUserActive } from "@/lib/sweep";
-import { isOnboarded, startOnboarding } from "@/lib/onboarding";
 import { isGroupEvent } from "@/lib/group";
-import { handleJoin, handleLeave, handleMemberJoined, handleMemberLeft } from "@/lib/handlers/group-lifecycle";
-import { handleGroupMessage } from "@/lib/handlers/group-message";
+import { logWarn, logError } from "@/lib/log";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
-  const raw = await req.text();
-  const sig = req.headers.get("x-line-signature");
-  if (!verifyLineSignature(raw, sig, env().LINE_CHANNEL_SECRET)) {
-    return new NextResponse("invalid signature", { status: 401 });
-  }
+const EVENT_TIMEOUT_MS = 50_000;
+const AFTER_BATCH_SIZE = 3;
 
-  let payload;
-  try {
-    payload = Webhook.parse(JSON.parse(raw));
-  } catch (err) {
-    console.warn("[webhook] bad payload", err);
-    return new NextResponse("bad payload", { status: 400 });
-  }
-
-  const events = payload.events;
-  const gate = buildGate();
-
-  // Handle lightweight postback taps synchronously so the replyToken is used
-  // immediately and the UI feels instant. Messages/follows still run after().
-  for (let i = 0; i < events.length; i++) {
-    const event = events[i];
-    if (!event || event.type !== "postback") continue;
-    try {
-      const replied = await handleEvent(event, gate);
-      if (!replied) {
-        console.warn("[webhook] postback produced no reply", { userId: event.source?.userId });
-      }
-    } catch (err) {
-      console.error("[webhook] postback handler crashed", err);
-      const uid = event.source?.userId;
-      const rt = "replyToken" in event ? event.replyToken : undefined;
-      if (uid && rt) {
-        const langSettings = await getSettings(uid).catch(() => null);
-        replyOrPush(uid, rt, [textMsg(t(langSettings?.language, "agentErrGeneric"))]).catch(() => {});
-      }
-    }
-  }
-
-  // Respond 200 immediately; do all real work after the response.
-  after(async () => {
-    for (let i = 0; i < events.length; i++) {
-      const event = events[i];
-      if (!event || event.type === "postback") continue;
-      // Media immediately followed by more media or by text in the same batch →
-      // stage only; whatever handles the LAST event in the run sends the single
-      // reply (either the text handler with all staged media in context, or the
-      // final media item's own ack). Without this, sending N media in one go
-      // produced N separate near-identical "Got your X" acks in a row.
-      const nextEvent = events[i + 1];
-      const nextContinuesBatch =
-        nextEvent?.type === "message" &&
-        "message" in nextEvent &&
-        ["text", "image", "video", "audio", "file"].includes(nextEvent.message.type);
-      const thisIsMedia =
-        event.type === "message" &&
-        "message" in event &&
-        ["image", "video", "audio", "file"].includes(event.message.type);
-      try {
-        const replied = await handleEvent(event, gate, thisIsMedia && nextContinuesBatch ? "stage_only" : "normal");
-        if (!replied) {
-          console.warn("[webhook] event produced no reply", { type: event.type, userId: event.source?.userId });
-        }
-      } catch (err) {
-        console.error("[webhook] event handler crashed", err);
-        // Try to send a fallback error message if we have a userId and replyToken.
-        const uid = event.source?.userId;
-        const rt = "replyToken" in event ? event.replyToken : undefined;
-        if (uid && rt) {
-          const langSettings = await getSettings(uid).catch(() => null);
-          replyOrPush(uid, rt, [textMsg(t(langSettings?.language, "agentErrGeneric"))]).catch(() => {});
-        }
-      }
-    }
-  });
-
-  return NextResponse.json({ ok: true });
-}
+type WebhookMode = "normal" | "stage_only";
 
 async function handleEvent(
   event: LineEvent,
   gate: ReturnType<typeof buildGate>,
-  mode: "normal" | "stage_only" = "normal",
+  mode: WebhookMode = "normal",
 ): Promise<boolean> {
   const traceId = `${event.source?.userId ?? "unknown"}_${Date.now().toString(36)}`;
   const endEvent = span("webhook:handleEvent", traceId);
@@ -158,24 +75,28 @@ async function handleEvent(
   }
 
   if (event.type === "join") {
+    const { handleJoin } = await import("@/lib/handlers/group-lifecycle");
     const r = await handleJoin(event as JoinEvent, gate);
     endEvent({ type: "join" });
     return r;
   }
 
   if (event.type === "leave") {
+    const { handleLeave } = await import("@/lib/handlers/group-lifecycle");
     await handleLeave(event as LeaveEvent);
     endEvent({ type: "leave" });
     return true;
   }
 
   if (event.type === "memberJoined") {
+    const { handleMemberJoined } = await import("@/lib/handlers/group-lifecycle");
     const r = await handleMemberJoined(event as MemberJoinedEvent, gate);
     endEvent({ type: "memberJoined" });
     return r;
   }
 
   if (event.type === "memberLeft") {
+    const { handleMemberLeft } = await import("@/lib/handlers/group-lifecycle");
     await handleMemberLeft(event as MemberLeftEvent);
     endEvent({ type: "memberLeft" });
     return true;
@@ -188,11 +109,11 @@ async function handleEvent(
 
   // Mark user active for proactive-layer suppression (10-min window).
   const uid = event.source?.userId;
-  if (uid) markUserActive(uid).catch(() => {});
+  if (uid) markUserActive(uid).catch((e) => logWarn("sweep", "markUserActive failed", { error: e }));
 
   if (event.type === "unfollow") {
     const userId = event.source?.userId;
-    if (userId) unregisterUser(userId).catch(() => {});
+    if (userId) unregisterUser(userId).catch((e) => logWarn("user-registry", "unregisterUser failed", { error: e }));
     return true;
   }
 
@@ -202,12 +123,13 @@ async function handleEvent(
       endEvent({ skipped: "no-user" });
       return false;
     }
-    registerUser(userId).catch(() => {});
+    registerUser(userId).catch((e) => logWarn("user-registry", "registerUser failed", { error: e }));
     const endProfile = span("webhook:getOrCreateProfile", traceId);
     const profile = await getOrCreateProfile(userId);
     endProfile();
     const settings = await getSettings(userId);
     const name = profile.displayName && profile.displayName !== "friend" ? profile.displayName : "";
+    const { isOnboarded, startOnboarding } = await import("@/lib/onboarding");
     if (!(await isOnboarded(userId))) {
       await startOnboarding(userId, event.replyToken, name);
     } else {
@@ -222,8 +144,9 @@ async function handleEvent(
   }
 
   if (event.type === "postback") {
+    const { handlePostback } = await import("@/lib/webhook-postback");
     const userId = event.source?.userId;
-    if (userId) registerUser(userId).catch(() => {});
+    if (userId) registerUser(userId).catch((e) => logWarn("user-registry", "registerUser failed", { error: e }));
     await handlePostback(event);
     endEvent({ type: "postback" });
     return true;
@@ -243,14 +166,15 @@ async function handleEvent(
   const message = event.message;
 
   if (isGroupEvent(event)) {
+    const { handleGroupMessage } = await import("@/lib/handlers/group-message");
     const r = await handleGroupMessage(event as LineMessageEvent, gate, traceId);
     endEvent({ type: "group-message" });
     return r;
   }
 
-  // Pre-flight in parallel. registerUser adds user to the sweep registry (users:active set).
+  // Pre-flight in parallel. registerUser adds user to the sweep registry (users:active:window sorted set).
   // NOTE: There are no per-user QStash schedules for briefings. The master sweep iterates all users.
-  registerUser(userId).catch(() => {});
+  registerUser(userId).catch((e) => logWarn("user-registry", "registerUser failed", { error: e }));
   const endPreflight = span("webhook:prelight", traceId);
   const [rl, profile, pending] = await Promise.all([
     checkRateLimit(userId),
@@ -270,6 +194,7 @@ async function handleEvent(
 
   // Trial users get a daily message cap once onboarding is complete.
   if (await isOnTrial(userId)) {
+    const { isOnboarded } = await import("@/lib/onboarding");
     const onboarded = await isOnboarded(userId);
     if (onboarded) {
       const settings = await getSettings(userId);
@@ -317,6 +242,7 @@ async function handleEvent(
       await clearPending(userId);
     }
 
+    const { handleMyId, handleAdminCommand } = await import("@/lib/admin-commands");
     if (await handleMyId(userId, userText, event.replyToken)) {
       endEvent({ type: "myid" });
       return true;
@@ -325,24 +251,30 @@ async function handleEvent(
       endEvent({ type: "admin" });
       return true;
     }
+
+    const { handlePromoCommand } = await import("@/lib/promo-codes");
     if (await handlePromoCommand(userId, userText, event.replyToken)) {
       endEvent({ type: "promo" });
       return true;
     }
+
+    const { dispatchShortcut } = await import("@/lib/shortcuts");
     if (await dispatchShortcut({ userId, replyToken: event.replyToken, userText })) {
       endEvent({ type: "shortcut" });
       return true;
     }
 
+    const { respondToText } = await import("@/lib/handlers/text");
     await respondToText(event.replyToken, userId, profile, userText, traceId);
-    maybeExtractFacts(userId).catch(() => {});
+    maybeExtractFacts(userId).catch((e) => logWarn("facts", "maybeExtractFacts failed", { error: e }));
     endEvent({ type: "text" });
     return true;
   }
 
   if (message.type === "image" && "id" in message && typeof message.id === "string") {
+    const { respondToImage } = await import("@/lib/handlers/image");
     await respondToImage(event.replyToken, userId, profile, message.id, mode, traceId);
-    if (mode !== "stage_only") maybeExtractFacts(userId).catch(() => {});
+    if (mode !== "stage_only") maybeExtractFacts(userId).catch((e) => logWarn("facts", "maybeExtractFacts failed", { error: e }));
     endEvent({ type: mode === "stage_only" ? "image-stage" : "image" });
     return true;
   }
@@ -352,6 +284,7 @@ async function handleEvent(
     "id" in message &&
     typeof message.id === "string"
   ) {
+    const { respondToOtherMedia } = await import("@/lib/handlers/other-media");
     await respondToOtherMedia(
       event.replyToken,
       userId,
@@ -362,7 +295,7 @@ async function handleEvent(
       "duration" in message && typeof message.duration === "number" ? message.duration : undefined,
       mode,
     );
-    if (mode !== "stage_only") maybeExtractFacts(userId).catch(() => {});
+    if (mode !== "stage_only") maybeExtractFacts(userId).catch((e) => logWarn("facts", "maybeExtractFacts failed", { error: e }));
     endEvent({ type: mode === "stage_only" ? `${message.type}-stage` : message.type });
     return true;
   }
@@ -378,4 +311,103 @@ async function handleEvent(
   await replyOrPush(userId, event.replyToken, [textMsg(t(settings.language, "unknownMessageType"))]);
   endEvent({ type: "unknown" });
   return true;
+}
+
+export async function POST(req: NextRequest) {
+  const raw = await req.text();
+  const sig = req.headers.get("x-line-signature");
+  if (!verifyLineSignature(raw, sig, env().LINE_CHANNEL_SECRET)) {
+    return new NextResponse("invalid signature", { status: 401 });
+  }
+
+  let payload;
+  try {
+    payload = Webhook.parse(JSON.parse(raw));
+  } catch (err) {
+    console.warn("[webhook] bad payload", err);
+    return new NextResponse("bad payload", { status: 400 });
+  }
+
+  const events = payload.events;
+  const gate = buildGate();
+
+  // Handle lightweight postback taps synchronously so the replyToken is used
+  // immediately and the UI feels instant. Messages/follows still run after().
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i];
+    if (!event || event.type !== "postback") continue;
+    try {
+      const replied = await handleEvent(event, gate);
+      if (!replied) {
+        console.warn("[webhook] postback produced no reply", { userId: event.source?.userId });
+      }
+    } catch (err) {
+      console.error("[webhook] postback handler crashed", err);
+      const uid = event.source?.userId;
+      const rt = "replyToken" in event ? event.replyToken : undefined;
+      if (uid && rt) {
+        const langSettings = await getSettings(uid).catch((e) => {
+          logWarn("webhook", "getSettings failed in postback error fallback", { error: e });
+          return null;
+        });
+        replyOrPush(uid, rt, [textMsg(t(langSettings?.language, "agentErrGeneric"))]).catch((e) =>
+          logWarn("webhook", "error-reply fallback failed", { error: e }),
+        );
+      }
+    }
+  }
+
+  // Respond 200 immediately; do all real work after the response.
+  after(async () => {
+    const jobs = events
+      .map((event, i) => {
+        if (!event || event.type === "postback") return null;
+        // Media immediately followed by more media or by text in the same batch →
+        // stage only; whatever handles the LAST event in the run sends the single
+        // reply (either the text handler with all staged media in context, or the
+        // final media item's own ack). Without this, sending N media in one go
+        // produced N separate near-identical "Got your X" acks in a row.
+        const nextEvent = events[i + 1];
+        const nextContinuesBatch =
+          nextEvent?.type === "message" &&
+          "message" in nextEvent &&
+          ["text", "image", "video", "audio", "file"].includes(nextEvent.message.type);
+        const thisIsMedia =
+          event.type === "message" &&
+          "message" in event &&
+          ["image", "video", "audio", "file"].includes(event.message.type);
+        return { event, mode: thisIsMedia && nextContinuesBatch ? ("stage_only" as const) : ("normal" as const) };
+      })
+      .filter((j): j is { event: LineEvent; mode: WebhookMode } => j !== null);
+
+    for (let i = 0; i < jobs.length; i += AFTER_BATCH_SIZE) {
+      const batch = jobs.slice(i, i + AFTER_BATCH_SIZE);
+      await Promise.all(
+        batch.map(async ({ event, mode }) => {
+          try {
+            const replied = await withTimeout(handleEvent(event, gate, mode), EVENT_TIMEOUT_MS);
+            if (!replied) {
+              console.warn("[webhook] event produced no reply", { type: event.type, userId: event.source?.userId });
+            }
+          } catch (err) {
+            console.error("[webhook] event handler crashed", err);
+            // Try to send a fallback error message if we have a userId and replyToken.
+            const uid = event.source?.userId;
+            const rt = "replyToken" in event ? event.replyToken : undefined;
+            if (uid && rt) {
+              const langSettings = await getSettings(uid).catch((e) => {
+                logWarn("webhook", "getSettings failed in event error fallback", { error: e });
+                return null;
+              });
+              replyOrPush(uid, rt, [textMsg(t(langSettings?.language, "agentErrGeneric"))]).catch((e) =>
+                logWarn("webhook", "error-reply fallback failed", { error: e }),
+              );
+            }
+          }
+        }),
+      );
+    }
+  });
+
+  return NextResponse.json({ ok: true });
 }

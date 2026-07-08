@@ -1,4 +1,4 @@
-import { redis } from "../lib/memory/redis";
+import { unregisterUser } from "../lib/memory/user-registry";
 
 const USER_ID = process.argv[2];
 
@@ -7,8 +7,8 @@ async function main() {
     console.error("Usage: npx tsx scripts/remove-active-user.ts <userId>");
     process.exit(1);
   }
-  await redis().srem("users:active", USER_ID);
-  console.log(`Removed ${USER_ID} from users:active`);
+  await unregisterUser(USER_ID);
+  console.log(`Removed ${USER_ID} from users:active:window`);
 }
 
 main().catch((e) => {

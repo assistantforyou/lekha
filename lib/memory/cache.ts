@@ -6,7 +6,9 @@
 
 export type CacheEntry<T> = { value: T; ts: number };
 
+import { createHash } from "crypto";
 import { LruMap } from "@/lib/lru-cache";
+import { redis } from "@/lib/memory/redis";
 
 export function createTtlCache<T>(defaultTtlMs = 5_000, maxSize = 1000) {
   const map = new LruMap<string, CacheEntry<T>>(maxSize);
@@ -39,4 +41,28 @@ export function createTtlCache<T>(defaultTtlMs = 5_000, maxSize = 1000) {
   }
 
   return { get, set, invalidate, clear };
+}
+
+/**
+ * Redis-backed JSON cache for Google API read calls.
+ * Keyed by service + user + resolved account + hashed args so repeated identical
+ * read calls within the TTL window don't hit Google twice.
+ */
+export async function withGoogleCache<T>(
+  userId: string,
+  email: string | null | undefined,
+  service: string,
+  args: Record<string, unknown>,
+  ttlSec: number,
+  fetch: () => Promise<T>,
+): Promise<T> {
+  const argsHash = createHash("sha256").update(JSON.stringify(args)).digest("hex");
+  const key = `gcache:${service}:${userId}:${email ?? "none"}:${argsHash}`;
+  const cached = await redis().get<T>(key);
+  if (cached !== null && cached !== undefined) return cached;
+  const result = await fetch();
+  if (result !== null && result !== undefined) {
+    await redis().set(key, result, { ex: ttlSec });
+  }
+  return result;
 }

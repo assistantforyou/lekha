@@ -74,6 +74,10 @@ export async function GET(req: NextRequest) {
   // ─── Signup flow ──────────────────────────────────────────────────────────
   if (signupStored) {
     const { plan } = signupStored;
+    const validPlans = ["monthly", "yearly", "team_monthly", "team_yearly"] as const;
+    if (!validPlans.includes(plan as (typeof validPlans)[number])) {
+      return NextResponse.redirect(`${base}/signup?plan=monthly&error=invalid_plan`);
+    }
     const testMode = e.STRIPE_TEST_MODE === "true";
     const stripeKey = testMode ? e.STRIPE_TEST_SECRET_KEY : e.STRIPE_SECRET_KEY;
     const monthlyPriceId = testMode ? e.STRIPE_TEST_MONTHLY_PRICE_ID : e.STRIPE_MONTHLY_PRICE_ID;
@@ -103,7 +107,7 @@ export async function GET(req: NextRequest) {
         metadata: { line_user_id: userId, line_display_name: displayName },
       },
       metadata: { line_user_id: userId, line_display_name: displayName, plan },
-      success_url: `${base}/signup/success`,
+      success_url: `${base}/signup/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${base}/signup?plan=${plan}`,
     });
 

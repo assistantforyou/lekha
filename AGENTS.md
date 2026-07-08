@@ -231,7 +231,7 @@ Every fact-extraction cycle (every `memoryCompactAt` turns, default 10) writes a
 Uploaded documents and audio transcripts are indexed separately (`lib/memory/documents.ts`) so the full content remains searchable long after the ~30 min LINE staged-media window closes. Documents are indexed on first read; voice memos are transcribed and indexed automatically on arrival. `search_documents` searches across both kinds.
 
 ### 13. Proactive layer via master sweep
-A single QStash schedule hits `/api/cron/sweep` every 15 min (legacy endpoint; forwards to `lib/sweep.ts` `runSweepForUser`). The current endpoint is `/api/cron/sweep/fire`. It iterates `users:active` set and decides per-user whether to push (morning briefing window check, evening summary window check, task check-in window check). **There are no per-user QStash schedules for briefings/summaries.**
+A single QStash schedule hits `/api/cron/sweep` every 15 min (legacy endpoint; forwards to `/api/cron/sweep/fire`). The current endpoint is `/api/cron/sweep/fire`. It paginates through `users:active:window` (default batch 20, concurrency 3) and decides per-user whether to push (morning briefing window check, evening summary window check, task check-in window check). **There are no per-user QStash schedules for briefings/summaries.**
 
 Idempotency is via `claimPushLock()` (`pushlock:{userId}:{type}:{YYYY-MM-DD}` with 5-min TTL), not per-event Redis keys. Pre-meeting alerts and task deadline warnings are scheduled as one-shot QStash messages at event/task creation time — the sweep does NOT scan calendars for upcoming events.
 
@@ -246,7 +246,7 @@ The bot is private by default. Every event hits the gate before any other logic.
 **Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome), `/deny <id>` (remove from pending). Anyone can `/myid` to get their own LINE userId.
 
 ### 16. Single LLM provider — Gemini 2.5 Flash, 30s timeout
-No cascade, no fallback. The Mastra agent (`mastra/agents/lekha-agent.ts`) uses full Flash (not Flash Lite) for agentic tool use because Flash Lite blanked/panicked under the full tool registry. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 55s (in `lib/llm/provider.ts`) — long enough for multi-step tool turns without burning function time on real hangs. `maxSteps: 8` in `mastra/run.ts` caps total reasoning steps to prevent runaway loops.
+No cascade, no fallback. The Mastra agent (`mastra/agents/lekha-agent.ts`) uses full Flash (not Flash Lite) for agentic tool use because Flash Lite blanked/panicked under the full tool registry. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 55s (in `lib/llm/provider.ts`) — long enough for multi-step tool turns without burning function time on real hangs. `maxSteps` is dynamic via `computeMaxSteps()` in `lib/llm/agent-helpers.ts` (media/multi-step → 10, focused hints → 8, default → 6, clamped [4, 12]) to cap cost/latency while still allowing multi-step turns.
 
 ### 17. Orchestrator-level error relay enforcement
 After the Mastra agent generation finishes, `runMastraAgent` (`mastra/run.ts`) scans all tool results for `{ ok: false, error: "..." }`. If the model soft-apologized instead of relaying the actual error (detected by checking whether the error text appears in the model's response), the orchestrator overrides the reply with the real error. This prevents models from hiding API failures behind generic apologies.
@@ -376,10 +376,12 @@ Requires `DEV_CHAT_SECRET` env var. Runs the full agent via `runMastraAgent` (sa
 
 The proactive layer (morning briefings, pre-meeting alerts, evening summaries, task check-ins) needs a QStash schedule pointing at `/api/cron/sweep` every 15 min. See SETUP.md step 11. Without it, proactive features are silent (everything else still works).
 
-Manual trigger (uses `OAUTH_STATE_SECRET` as bearer):
+The legacy `/api/cron/sweep` endpoint forwards to the paginated `/api/cron/sweep/fire` endpoint; the actual sweep is processed in chained batches of active users.
+
+Manual trigger (uses `CRON_MANUAL_SECRET` as bearer):
 ```bash
-curl -XPOST https://YOUR-VERCEL-URL/api/cron/sweep \
-  -H "Authorization: Bearer $OAUTH_STATE_SECRET"
+curl -XPOST https://YOUR-VERCEL-URL/api/cron/sweep/fire \
+  -H "Authorization: Bearer $CRON_MANUAL_SECRET"
 ```
 
 ## Security considerations
@@ -390,6 +392,7 @@ curl -XPOST https://YOUR-VERCEL-URL/api/cron/sweep \
 | QStash callback spoofing | `Upstash-Signature` verified via `@upstash/qstash` Receiver |
 | OAuth state CSRF / replay | Signed (HMAC) connect-link tokens, server-side nonce in Redis with 10-min TTL, single-use GETDEL |
 | Refresh tokens at rest | AES-256-GCM with `TOKEN_ENCRYPTION_KEY` (64 hex chars) |
+| Dashboard session signing | Dedicated `DASHBOARD_JWT_SECRET` (distinct from `OAUTH_STATE_SECRET`) |
 | LLM identity jailbreak | `userId` is bound from the verified webhook, never from tool args. Tools use that bound `userId` to fetch tokens |
 | Abuse / quota burn | Per-user sliding-window rate limit (500/hr) via `@upstash/ratelimit` |
 | Webhook replay | Each event de-duped by `webhookEventId` for 10 min |

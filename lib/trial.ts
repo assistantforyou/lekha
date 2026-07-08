@@ -65,16 +65,24 @@ function nextMidnightLocalMs(timezone: string, ts = Date.now()): number {
   return candidate + 24 * 60 * 60 * 1000;
 }
 
+const QUOTA_TTL_SECONDS = 60 * 60 * 50;
+const INCR_AND_EXPIRE_SCRIPT = `
+  local key = KEYS[1]
+  local ttl = tonumber(ARGV[1])
+  local n = redis.call('incr', key)
+  if n == 1 then
+    redis.call('expire', key, ttl)
+  end
+  return n
+`;
+
 export async function checkTrialDailyQuota(
   userId: string,
   timezone = "Asia/Bangkok",
 ): Promise<{ ok: boolean; used: number; remaining: number; resetsAt: Date }> {
   const dateStr = localDateString(timezone);
   const key = `trial:quota:${userId}:${dateStr}`;
-  const used = await redis().incr(key);
-  if (used === 1) {
-    await redis().expire(key, 60 * 60 * 50);
-  }
+  const used = await redis().eval<[string], number>(INCR_AND_EXPIRE_SCRIPT, [key], [String(QUOTA_TTL_SECONDS)]);
   const remaining = Math.max(0, TRIAL_DAILY_LIMIT - used);
   const resetsAt = new Date(nextMidnightLocalMs(timezone));
   return { ok: used <= TRIAL_DAILY_LIMIT, used, remaining, resetsAt };

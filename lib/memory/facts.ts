@@ -1,11 +1,12 @@
 import { redis } from "./redis";
 
 /**
- * Structured fact schema (F1). Each user has up to ~200 facts; LRU evicts
- * the oldest-updated when the cap is exceeded.
+ * Structured fact schema (F2). Each user has up to 500 facts; the sorted set
+ * `user:{userId}:facts:order` (score = updatedAt) is the source of truth for
+ * eviction order, and the hash `user:{userId}:facts:h` stores the JSON facts.
  *
- * Old text-blob schema lived at `user:{userId}:facts` — that key is deleted
- * lazily on the first read of the new key (dev env, wipe-OK per James).
+ * The previous JSON-blob schema lived at `user:{userId}:facts:v2` and is
+ * migrated lazily on the first read.
  */
 
 export type FactCategory =
@@ -52,8 +53,10 @@ const MAX_CONTENT = 1000;
 const PROMPT_FACTS_MAX = 30; // Most recent facts only; keeps prompt size bounded.
 const FACTS_CACHE_TTL_MS = 30_000;
 
-const key = (userId: string) => `user:${userId}:facts:v2`;
-const legacyKey = (userId: string) => `user:${userId}:facts`;
+const hashKey = (userId: string) => `user:${userId}:facts:h`;
+const orderKey = (userId: string) => `user:${userId}:facts:order`;
+const legacyKey = (userId: string) => `user:${userId}:facts:v2`;
+const textBlobKey = (userId: string) => `user:${userId}:facts`;
 
 import { LruMap } from "@/lib/lru-cache";
 
@@ -67,43 +70,124 @@ function isCategory(s: unknown): s is FactCategory {
   return typeof s === "string" && (FACT_CATEGORIES as string[]).includes(s);
 }
 
-export async function loadFacts(userId: string, limit?: number): Promise<UserFacts> {
-  const cached = factsCache.get(userId);
-  if (cached && Date.now() - cached.ts < FACTS_CACHE_TTL_MS) {
-    const facts = cached.facts;
-    if (limit === undefined || facts.facts.length <= limit) return facts;
-    // Cached facts exceed requested limit — slice without mutating cache.
-    return { facts: displayOrder(facts.facts).slice(0, limit), updatedAt: facts.updatedAt };
-  }
-  const v = await redis().get<UserFacts>(key(userId));
-  const facts = v && Array.isArray(v.facts) ? v : { facts: [], updatedAt: 0 };
-  if (!v) {
-    // Lazy wipe of legacy text-blob key — fresh start on new schema.
-    await redis().del(legacyKey(userId)).catch(() => {});
-  }
-  factsCache.set(userId, { facts, ts: Date.now() });
-  if (limit !== undefined && facts.facts.length > limit) {
-    return { facts: displayOrder(facts.facts).slice(0, limit), updatedAt: facts.updatedAt };
+function parseFacts(raw: Record<string, string>): Fact[] {
+  const facts: Fact[] = [];
+  for (const value of Object.values(raw)) {
+    const parsed = JSON.parse(value) as Fact;
+    if (isCategory(parsed.category)) facts.push(parsed);
   }
   return facts;
 }
 
-export async function saveFacts(userId: string, facts: UserFacts): Promise<void> {
-  // Enforce cap: LRU on updatedAt ascending.
-  let list = facts.facts.map((f) => ({
+async function migrateLegacyFacts(userId: string): Promise<boolean> {
+  const v2 = await redis().get<UserFacts>(legacyKey(userId));
+  if (v2 && Array.isArray(v2.facts)) {
+    await saveFacts(userId, v2);
+    await redis().del(legacyKey(userId));
+    await redis().del(textBlobKey(userId));
+    return true;
+  }
+  await redis().del(textBlobKey(userId)).catch(() => {});
+  return false;
+}
+
+export async function loadFacts(
+  userId: string,
+  limit?: number,
+): Promise<UserFacts> {
+  const cached = factsCache.get(userId);
+  if (cached && Date.now() - cached.ts < FACTS_CACHE_TTL_MS) {
+    const facts = cached.facts;
+    if (limit === undefined || facts.facts.length <= limit) return facts;
+    return {
+      facts: displayOrder(facts.facts).slice(0, limit),
+      updatedAt: facts.updatedAt,
+    };
+  }
+
+  const raw = await redis().hgetall<Record<string, string>>(hashKey(userId));
+  let facts: Fact[];
+  if (!raw || Object.keys(raw).length === 0) {
+    const migrated = await migrateLegacyFacts(userId);
+    if (migrated) {
+      const refreshed = await redis().hgetall<Record<string, string>>(
+        hashKey(userId),
+      );
+      facts = refreshed ? parseFacts(refreshed) : [];
+    } else {
+      facts = [];
+    }
+  } else {
+    facts = parseFacts(raw);
+  }
+
+  const result: UserFacts = {
+    facts: displayOrder(facts),
+    updatedAt: facts.length ? facts[0]!.updatedAt : 0,
+  };
+  factsCache.set(userId, { facts: result, ts: Date.now() });
+  if (limit !== undefined && result.facts.length > limit) {
+    return {
+      facts: displayOrder(result.facts).slice(0, limit),
+      updatedAt: result.updatedAt,
+    };
+  }
+  return result;
+}
+
+export async function saveFacts(
+  userId: string,
+  facts: UserFacts,
+): Promise<void> {
+  // Clamp content length.
+  const list = facts.facts.map((f) => ({
     ...f,
     content: f.content.slice(0, MAX_CONTENT),
   }));
-  if (list.length > MAX_FACTS) {
-    list = [...list]
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-      .slice(0, MAX_FACTS);
+
+  const currentHash = await redis().hgetall<Record<string, string>>(hashKey(userId));
+  const currentIds = Object.keys(currentHash ?? {});
+  const desiredIds = new Set(list.map((f) => f.id));
+  const removedIds = currentIds.filter((id) => !desiredIds.has(id));
+
+  const hashObj: Record<string, string> = {};
+  for (const f of list) hashObj[f.id] = JSON.stringify(f);
+
+  const tx = redis().multi();
+  if (Object.keys(hashObj).length > 0) {
+    tx.hset(hashKey(userId), hashObj);
+    for (const f of list) {
+      tx.zadd(orderKey(userId), { score: f.updatedAt, member: f.id });
+    }
+    // Evict the oldest facts beyond the cap.
+    tx.zremrangebyrank(orderKey(userId), 0, -(MAX_FACTS + 1));
   }
-  await redis().set(key(userId), { facts: list, updatedAt: facts.updatedAt });
+  if (removedIds.length) {
+    tx.hdel(hashKey(userId), ...removedIds);
+  }
+  await tx.exec();
+
+  // Remove hash fields whose ids were evicted from the sorted set.
+  const [remaining, refreshedHash] = await Promise.all([
+    redis().zrange<string[]>(orderKey(userId), 0, -1),
+    redis().hgetall<Record<string, string>>(hashKey(userId)),
+  ]);
+  const remainingSet = new Set(remaining);
+  const evicted = Object.keys(refreshedHash ?? {}).filter(
+    (id) => !remainingSet.has(id),
+  );
+  if (evicted.length) {
+    await redis().hdel(hashKey(userId), ...evicted);
+  }
+
   invalidateFactsCache(userId);
 }
 
-function newFact(content: string, category: FactCategory = "other", opts?: Partial<Fact>): Fact {
+function newFact(
+  content: string,
+  category: FactCategory = "other",
+  opts?: Partial<Fact>,
+): Fact {
   const now = Date.now();
   return {
     id: crypto.randomUUID().replace(/-/g, "").slice(0, 12),
@@ -127,7 +211,12 @@ function prioritySort(a: Fact, b: Fact): number {
 export async function appendFact(
   userId: string,
   content: string,
-  opts?: { category?: FactCategory; sourceTurnId?: string; confidence?: Fact["confidence"]; priority?: number },
+  opts?: {
+    category?: FactCategory;
+    sourceTurnId?: string;
+    confidence?: Fact["confidence"];
+    priority?: number;
+  },
 ): Promise<void> {
   const norm = content.trim();
   if (!norm) return;
@@ -137,7 +226,6 @@ export async function appendFact(
     (f) => f.category === category && f.content.toLowerCase() === norm.toLowerCase(),
   );
   if (dupIdx >= 0) {
-    // Bump updatedAt so LRU keeps it. Upgrade priority if the new instance is higher.
     facts.facts[dupIdx]!.updatedAt = Date.now();
     const newPriority = opts?.priority ?? 0;
     const oldPriority = facts.facts[dupIdx]!.priority ?? 0;
@@ -147,16 +235,20 @@ export async function appendFact(
       newFact(norm, category, {
         sourceTurnId: opts?.sourceTurnId,
         confidence: opts?.confidence,
+        priority: opts?.priority,
       }),
     );
   }
   facts.updatedAt = Date.now();
   await saveFacts(userId, facts);
-  invalidateFactsCache(userId);
 }
 
 /** Update a fact at a 1-indexed position (display order: newest first). */
-export async function updateFact(userId: string, index1: number, content: string): Promise<boolean> {
+export async function updateFact(
+  userId: string,
+  index1: number,
+  content: string,
+): Promise<boolean> {
   const facts = await loadFacts(userId);
   const ordered = displayOrder(facts.facts);
   const target = ordered[index1 - 1];
@@ -171,7 +263,10 @@ export async function updateFact(userId: string, index1: number, content: string
 }
 
 /** Delete a fact at a 1-indexed position (display order). */
-export async function removeFact(userId: string, index1: number): Promise<boolean> {
+export async function removeFact(
+  userId: string,
+  index1: number,
+): Promise<boolean> {
   const facts = await loadFacts(userId);
   const ordered = displayOrder(facts.facts);
   const target = ordered[index1 - 1];
@@ -185,7 +280,8 @@ export async function removeFact(userId: string, index1: number): Promise<boolea
 export async function clearFacts(userId: string): Promise<number> {
   const facts = await loadFacts(userId);
   const n = facts.facts.length;
-  await saveFacts(userId, { facts: [], updatedAt: Date.now() });
+  await redis().del(hashKey(userId));
+  await redis().del(orderKey(userId));
   invalidateFactsCache(userId);
   return n;
 }

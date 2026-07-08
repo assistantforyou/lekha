@@ -210,7 +210,7 @@ export function buildDriveTools(userId: string) {
         try {
           fetched = await Promise.all(
             targets.map(async (item, i) => {
-              const { bytes, contentType } = await getMessageContent(item.messageId);
+              const { bytes, contentType } = await getMessageContent(item.messageId, userId);
               const overrideName = filenames?.[i];
               const name =
                 (overrideName && overrideName.length > 0 ? overrideName : null) ??

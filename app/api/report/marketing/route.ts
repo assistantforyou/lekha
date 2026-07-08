@@ -19,7 +19,7 @@ export async function GET() {
     totalLists,
     totalScheduledEmails,
   ] = await Promise.all([
-    r.scard("users:active").catch(() => 0),
+    r.zcard("users:active:window").catch(() => 0),
     r.scard("users:allowed").catch(() => 0),
     r.scard("users:pending").catch(() => 0),
     aggregateFacts(r),
@@ -58,18 +58,10 @@ export async function GET() {
 
 async function aggregateFacts(r: ReturnType<typeof redis>): Promise<number> {
   try {
-    const keys = await r.keys("user:*:facts:v2");
+    const keys = await r.keys("user:*:facts:h");
     if (keys.length === 0) return 0;
-    const vals = await r.mget<string[]>(...keys);
-    return vals.reduce((sum, v) => {
-      if (!v) return sum;
-      try {
-        const parsed = JSON.parse(v) as { facts?: unknown[] };
-        return sum + (parsed.facts?.length ?? 0);
-      } catch {
-        return sum;
-      }
-    }, 0);
+    const counts = await Promise.all(keys.map((k) => r.hlen(k)));
+    return counts.reduce((a, b) => a + b, 0);
   } catch {
     return 0;
   }
@@ -77,9 +69,9 @@ async function aggregateFacts(r: ReturnType<typeof redis>): Promise<number> {
 
 async function aggregateTasks(r: ReturnType<typeof redis>): Promise<number> {
   try {
-    const keys = await r.keys("user:*:tasks");
+    const keys = await r.keys("user:*:tasks:h");
     if (keys.length === 0) return 0;
-    const counts = await Promise.all(keys.map((k) => r.llen(k)));
+    const counts = await Promise.all(keys.map((k) => r.hlen(k)));
     return counts.reduce((a, b) => a + b, 0);
   } catch {
     return 0;

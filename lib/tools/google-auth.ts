@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { redis } from "@/lib/memory/redis";
+import { LruMap } from "@/lib/lru-cache";
 import { encrypt, decrypt, hmac, safeEqual } from "@/lib/memory/crypto";
 import { env, hasGoogleOAuth } from "@/lib/env";
 import { GoogleAuthRequired } from "@/lib/errors";
@@ -44,7 +45,7 @@ const stateKey = (nonce: string) => `oauth:state:${nonce}`;
 const connectLinkKey = (sigB64u: string) => `oauth:connect_link:${sigB64u}`;
 
 // In-memory cache for account list — accounts change rarely, but are read 2–3x per turn.
-const accountsCache = new Map<string, { blob: AccountsBlob; ts: number }>();
+const accountsCache = new LruMap<string, { blob: AccountsBlob; ts: number }>(500);
 const ACCOUNTS_CACHE_TTL_MS = 30_000;
 
 function invalidateAccountsCache(userId: string) {

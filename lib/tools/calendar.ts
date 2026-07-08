@@ -3,6 +3,7 @@ import { tool } from "ai";
 import { google } from "googleapis";
 import { getGoogleClient } from "./google-auth";
 import { withGoogleClient, guardGoogleApiCall } from "./with-google";
+import { withGoogleCache } from "@/lib/memory/cache";
 import { appendPending, type CreateCalendarEventAction } from "@/lib/confirm";
 import { getSettings } from "@/lib/memory/settings";
 import { schedulePreMeetingAlerts, cancelPreMeetingAlerts } from "@/lib/proactive-schedules";
@@ -100,23 +101,32 @@ export function buildCalendarTools(userId: string) {
         fromEmail: z.string().email().optional(),
       }),
       execute: async ({ query, startISO, endISO, maxResults, fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client }) => {
-          const calendar = google.calendar({ version: "v3", auth: client });
-          const timeMin = startISO ?? new Date().toISOString();
-          const timeMax = endISO ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-          const r = await calendar.events.list({
-            calendarId: "primary",
-            ...(query ? { q: query } : {}),
-            timeMin,
-            timeMax,
-            singleEvents: true,
-            orderBy: "startTime",
-            maxResults,
-          });
-          return {
-            ok: true as const,
-            events: r.data.items?.map(briefWithId) ?? [],
-          };
+        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client, email }) => {
+          return withGoogleCache(
+            userId,
+            email,
+            "calendar:search",
+            { query, startISO, endISO, maxResults },
+            60,
+            async () => {
+              const calendar = google.calendar({ version: "v3", auth: client });
+              const timeMin = startISO ?? new Date().toISOString();
+              const timeMax = endISO ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+              const r = await calendar.events.list({
+                calendarId: "primary",
+                ...(query ? { q: query } : {}),
+                timeMin,
+                timeMax,
+                singleEvents: true,
+                orderBy: "startTime",
+                maxResults,
+              });
+              return {
+                ok: true as const,
+                events: r.data.items?.map(briefWithId) ?? [],
+              };
+            },
+          );
         });
       },
     }),
@@ -218,30 +228,32 @@ export function buildCalendarTools(userId: string) {
         fromEmail: z.string().email().optional(),
       }),
       execute: async ({ days, fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client }) => {
-          const calendar = google.calendar({ version: "v3", auth: client });
-          const now = new Date();
-          const max = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-          const r = await calendar.events.list({
-            calendarId: "primary",
-            timeMin: now.toISOString(),
-            timeMax: max.toISOString(),
-            singleEvents: true,
-            orderBy: "startTime",
-            maxResults: 10,
+        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client, email }) => {
+          return withGoogleCache(userId, email, "calendar:upcoming", { days }, 60, async () => {
+            const calendar = google.calendar({ version: "v3", auth: client });
+            const now = new Date();
+            const max = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+            const r = await calendar.events.list({
+              calendarId: "primary",
+              timeMin: now.toISOString(),
+              timeMax: max.toISOString(),
+              singleEvents: true,
+              orderBy: "startTime",
+              maxResults: 10,
+            });
+            return {
+              ok: true as const,
+              events:
+                r.data.items?.map((e) => ({
+                  id: e.id ?? "",
+                  summary: e.summary ?? "(no title)",
+                  start: e.start?.dateTime ?? e.start?.date ?? "",
+                  end: e.end?.dateTime ?? e.end?.date ?? "",
+                  location: e.location ?? null,
+                  htmlLink: e.htmlLink ?? null,
+                })) ?? [],
+            };
           });
-          return {
-            ok: true as const,
-            events:
-              r.data.items?.map((e) => ({
-                id: e.id ?? "",
-                summary: e.summary ?? "(no title)",
-                start: e.start?.dateTime ?? e.start?.date ?? "",
-                end: e.end?.dateTime ?? e.end?.date ?? "",
-                location: e.location ?? null,
-                htmlLink: e.htmlLink ?? null,
-              })) ?? [],
-          };
         });
       },
     }),
@@ -250,22 +262,24 @@ export function buildCalendarTools(userId: string) {
       description: "Quick today-view of the user's calendar — every event today with start/end times.",
       inputSchema: z.object({ fromEmail: z.string().email().optional() }),
       execute: async ({ fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client }) => {
-          const calendar = google.calendar({ version: "v3", auth: client });
-          const start = new Date(); start.setHours(0, 0, 0, 0);
-          const end = new Date();   end.setHours(23, 59, 59, 999);
-          const r = await calendar.events.list({
-            calendarId: "primary",
-            timeMin: start.toISOString(),
-            timeMax: end.toISOString(),
-            singleEvents: true,
-            orderBy: "startTime",
-            maxResults: 25,
+        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client, email }) => {
+          return withGoogleCache(userId, email, "calendar:today", {}, 60, async () => {
+            const calendar = google.calendar({ version: "v3", auth: client });
+            const start = new Date(); start.setHours(0, 0, 0, 0);
+            const end = new Date();   end.setHours(23, 59, 59, 999);
+            const r = await calendar.events.list({
+              calendarId: "primary",
+              timeMin: start.toISOString(),
+              timeMax: end.toISOString(),
+              singleEvents: true,
+              orderBy: "startTime",
+              maxResults: 25,
+            });
+            return {
+              ok: true as const,
+              events: r.data.items?.map(briefWithId) ?? [],
+            };
           });
-          return {
-            ok: true as const,
-            events: r.data.items?.map(briefWithId) ?? [],
-          };
         });
       },
     }),
@@ -274,22 +288,24 @@ export function buildCalendarTools(userId: string) {
       description: "Week-view of upcoming calendar events (next 7 days). Use for 'what's my week look like' / 'organize my calendar' questions.",
       inputSchema: z.object({ fromEmail: z.string().email().optional() }),
       execute: async ({ fromEmail }) => {
-        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client }) => {
-          const calendar = google.calendar({ version: "v3", auth: client });
-          const start = new Date();
-          const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
-          const r = await calendar.events.list({
-            calendarId: "primary",
-            timeMin: start.toISOString(),
-            timeMax: end.toISOString(),
-            singleEvents: true,
-            orderBy: "startTime",
-            maxResults: 50,
+        return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client, email }) => {
+          return withGoogleCache(userId, email, "calendar:week", {}, 60, async () => {
+            const calendar = google.calendar({ version: "v3", auth: client });
+            const start = new Date();
+            const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+            const r = await calendar.events.list({
+              calendarId: "primary",
+              timeMin: start.toISOString(),
+              timeMax: end.toISOString(),
+              singleEvents: true,
+              orderBy: "startTime",
+              maxResults: 50,
+            });
+            return {
+              ok: true as const,
+              events: r.data.items?.map(briefWithId) ?? [],
+            };
           });
-          return {
-            ok: true as const,
-            events: r.data.items?.map(briefWithId) ?? [],
-          };
         });
       },
     }),

@@ -1250,7 +1250,16 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
   const [state, setState] = useState<State>(() => makeDefaultState(displayName, userId));
   const [loaded, setLoaded] = useState(false);
   const [tweaks, setTweaks] = useState(TWEAK_DEFAULTS);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastServerState = useRef<State | null>(null);
+  const changeGen = useRef(0);
+  const abortCtrl = useRef<AbortController | null>(null);
+  const stateRef = useRef<State>(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // Load settings from backend on mount
   useEffect(() => {
@@ -1258,101 +1267,146 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
       .then(r => r.json())
       .then(data => {
         if (data.settings) {
-          const s = data.settings;
-          setState(prev => ({
-            ...prev,
-            morningOn: s.morningBriefingTime !== null,
-            morningTime: s.morningBriefingTime ?? "07:00",
-            eveningOn: s.eveningSummaryEnabled,
-            eveningTime: s.eveningSummaryTime ?? "21:00",
-            checkinOn: s.taskCheckInEnabled,
-            checkinTime: s.taskCheckInTime ?? deriveCheckInTime(s.eveningSummaryTime ?? "21:00"),
-            topics: s.briefingTopics ?? prev.topics,
-            briefLength: s.briefingLength ?? prev.briefLength,
-            briefLang: s.briefingLanguage ?? prev.briefLang,
-            briefChannels: s.briefingChannels ?? prev.briefChannels,
-            topicSources: s.briefingTopicSources ?? prev.topicSources,
-            timezone: s.timezone ?? prev.timezone,
-            tools: s.tools ?? prev.tools,
-            toolSettings: s.toolSettings ?? prev.toolSettings,
-            compactAt: s.memoryCompactAt ?? prev.compactAt,
-            memoryEnabled: s.memoryEnabled ?? prev.memoryEnabled,
-            persona: {
-              tone: s.personaTone ?? prev.persona.tone,
-              addressing: s.personaAddressing ?? prev.persona.addressing,
-              primaryLang: s.personaPrimaryLang ?? prev.persona.primaryLang,
-              voiceMatch: s.personaVoiceMatch ?? prev.persona.voiceMatch,
-            },
-            displayName: data.displayName ?? prev.displayName,
-            memories: data.facts
-              ? data.facts.map((f: { id: string; category: string; content: string }) => ({ id: f.id, tag: f.category, text: f.content }))
-              : prev.memories,
-            googleAccounts: data.googleAccounts ?? prev.googleAccounts,
-            activeGoogleEmail: data.activeGoogleEmail ?? prev.activeGoogleEmail,
-            joinedAt: data.joinedAt ?? prev.joinedAt,
-            subscriptionActive: data.subscriptionActive ?? prev.subscriptionActive,
-            connections: {
-              ...prev.connections,
-              line: true,
-              gcal: (data.googleAccounts?.length ?? 0) > 0,
-              gmail: (data.googleAccounts?.length ?? 0) > 0,
-              gdrive: (data.googleAccounts?.length ?? 0) > 0,
-              gcontacts: (data.googleAccounts?.length ?? 0) > 0,
-            },
-          }));
+          setState(prev => {
+            const s = data.settings;
+            const next = {
+              ...prev,
+              morningOn: s.morningBriefingTime !== null,
+              morningTime: s.morningBriefingTime ?? "07:00",
+              eveningOn: s.eveningSummaryEnabled,
+              eveningTime: s.eveningSummaryTime ?? "21:00",
+              checkinOn: s.taskCheckInEnabled,
+              checkinTime: s.taskCheckInTime ?? deriveCheckInTime(s.eveningSummaryTime ?? "21:00"),
+              topics: s.briefingTopics ?? prev.topics,
+              briefLength: s.briefingLength ?? prev.briefLength,
+              briefLang: s.briefingLanguage ?? prev.briefLang,
+              briefChannels: s.briefingChannels ?? prev.briefChannels,
+              topicSources: s.briefingTopicSources ?? prev.topicSources,
+              timezone: s.timezone ?? prev.timezone,
+              tools: s.tools ?? prev.tools,
+              toolSettings: s.toolSettings ?? prev.toolSettings,
+              compactAt: s.memoryCompactAt ?? prev.compactAt,
+              memoryEnabled: s.memoryEnabled ?? prev.memoryEnabled,
+              persona: {
+                tone: s.personaTone ?? prev.persona.tone,
+                addressing: s.personaAddressing ?? prev.persona.addressing,
+                primaryLang: s.personaPrimaryLang ?? prev.persona.primaryLang,
+                voiceMatch: s.personaVoiceMatch ?? prev.persona.voiceMatch,
+              },
+              displayName: data.displayName ?? prev.displayName,
+              memories: data.facts
+                ? data.facts.map((f: { id: string; category: string; content: string }) => ({ id: f.id, tag: f.category, text: f.content }))
+                : prev.memories,
+              googleAccounts: data.googleAccounts ?? prev.googleAccounts,
+              activeGoogleEmail: data.activeGoogleEmail ?? prev.activeGoogleEmail,
+              joinedAt: data.joinedAt ?? prev.joinedAt,
+              subscriptionActive: data.subscriptionActive ?? prev.subscriptionActive,
+              connections: {
+                ...prev.connections,
+                line: true,
+                gcal: (data.googleAccounts?.length ?? 0) > 0,
+                gmail: (data.googleAccounts?.length ?? 0) > 0,
+                gdrive: (data.googleAccounts?.length ?? 0) > 0,
+                gcontacts: (data.googleAccounts?.length ?? 0) > 0,
+              },
+            };
+            lastServerState.current = next;
+            return next;
+          });
+        } else {
+          lastServerState.current = stateRef.current;
         }
         setLoaded(true);
       })
       .catch(err => {
         console.error("[dashboard] failed to load settings", err);
+        lastServerState.current = stateRef.current;
         setLoaded(true);
       });
   }, []);
 
-  // Persist to backend on change (debounced)
-  const syncToBackend = useCallback((next: State) => {
+  // Persist to backend on change (debounced, optimistic + silent retry)
+  const syncToBackend = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      const derivedCheckIn = deriveCheckInTime(next.eveningTime);
-      const checkinTimeToSave = !next.checkinOn
+      if (!lastServerState.current) return;
+      const snapshot = stateRef.current;
+      changeGen.current += 1;
+      const syncGen = changeGen.current;
+
+      const derivedCheckIn = deriveCheckInTime(snapshot.eveningTime);
+      const checkinTimeToSave = !snapshot.checkinOn
         ? null
-        : next.checkinTime === derivedCheckIn
+        : snapshot.checkinTime === derivedCheckIn
           ? null
-          : next.checkinTime;
-      fetch("/api/dashboard/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          morningOn: next.morningOn,
-          morningTime: next.morningTime,
-          eveningOn: next.eveningOn,
-          eveningTime: next.eveningTime,
-          checkinOn: next.checkinOn,
-          checkinTime: checkinTimeToSave,
-          topics: next.topics,
-          briefLength: next.briefLength,
-          briefLang: next.briefLang,
-          briefChannels: next.briefChannels,
-          briefingTopicSources: next.topicSources,
-          tools: next.tools,
-          toolSettings: next.toolSettings,
-          compactAt: next.compactAt,
-          memoryEnabled: next.memoryEnabled,
-          personaTone: next.persona.tone,
-          personaAddressing: next.persona.addressing,
-          personaPrimaryLang: next.persona.primaryLang,
-          personaVoiceMatch: next.persona.voiceMatch,
-        }),
-      }).catch(err => console.error("[dashboard] save failed", err));
+          : snapshot.checkinTime;
+      const body = {
+        morningOn: snapshot.morningOn,
+        morningTime: snapshot.morningTime,
+        eveningOn: snapshot.eveningOn,
+        eveningTime: snapshot.eveningTime,
+        checkinOn: snapshot.checkinOn,
+        checkinTime: checkinTimeToSave,
+        topics: snapshot.topics,
+        briefLength: snapshot.briefLength,
+        briefLang: snapshot.briefLang,
+        briefChannels: snapshot.briefChannels,
+        briefingTopicSources: snapshot.topicSources,
+        tools: snapshot.tools,
+        toolSettings: snapshot.toolSettings,
+        compactAt: snapshot.compactAt,
+        memoryEnabled: snapshot.memoryEnabled,
+        personaTone: snapshot.persona.tone,
+        personaAddressing: snapshot.persona.addressing,
+        personaPrimaryLang: snapshot.persona.primaryLang,
+        personaVoiceMatch: snapshot.persona.voiceMatch,
+      };
+
+      if (abortCtrl.current) abortCtrl.current.abort();
+      const ctrl = new AbortController();
+      abortCtrl.current = ctrl;
+
+      const serverSnapshot = lastServerState.current;
+      const attempt = async (retriesLeft: number, delayMs: number) => {
+        try {
+          const res = await fetch("/api/dashboard/settings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+            signal: ctrl.signal,
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error ?? `save failed (${res.status})`);
+          }
+          if (syncGen === changeGen.current) {
+            lastServerState.current = snapshot;
+            setSaveNotice(null);
+          }
+        } catch (err) {
+          if (ctrl.signal.aborted) return;
+          if (syncGen !== changeGen.current) return;
+          console.error("[dashboard] save attempt failed", err);
+          if (retriesLeft > 0) {
+            setTimeout(() => attempt(retriesLeft - 1, delayMs * 3), delayMs);
+            return;
+          }
+          setState(serverSnapshot);
+          setSaveNotice("Couldn't save — changes reverted");
+          setTimeout(() => {
+            setSaveNotice((cur) =>
+              cur === "Couldn't save — changes reverted" ? null : cur,
+            );
+          }, 4000);
+        }
+      };
+      attempt(2, 500);
     }, 1200);
   }, []);
 
   const set = useCallback((patch: Partial<State>) => {
-    setState(prev => {
-      const next = { ...prev, ...patch };
-      syncToBackend(next);
-      return next;
-    });
+    setState(prev => ({ ...prev, ...patch }));
+    syncToBackend();
   }, [syncToBackend]);
 
   // apply accent tweak
@@ -1400,7 +1454,11 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
           <ViewComp state={state} set={set} setActive={setActive}/>
 
           <div className="savebar">
-            <I.shield style={{color:"var(--ok)"}}/>
+            {saveNotice ? (
+              <div className="save-notice">{saveNotice}</div>
+            ) : (
+              <I.shield style={{color:"var(--ok)"}}/>
+            )}
             <div>
               <div style={{color:"var(--ink)", fontWeight:600, fontSize:13.5}}>Auto-save on</div>
               <div style={{fontSize:12, color:"var(--ink-mute)", fontFamily:"JetBrains Mono, monospace"}}>
@@ -1411,7 +1469,8 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
               if (confirm("Reset all customizations to default?")) {
                 const def = makeDefaultState(displayName, userId);
                 setState(def);
-                syncToBackend(def);
+                lastServerState.current = def;
+                syncToBackend();
               }
             }}>Reset to defaults</button>
             <TestLineButton userId={userId} />

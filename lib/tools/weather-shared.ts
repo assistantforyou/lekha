@@ -1,4 +1,5 @@
 import { fetchJSON } from "@/lib/fetch";
+import { LruMap } from "@/lib/lru-cache";
 
 export type WeatherResult = {
   ok: true;
@@ -22,7 +23,7 @@ export type WeatherResult = {
   source: string;
 };
 
-const weatherCache = new Map<string, { result: WeatherResult; ts: number }>();
+const weatherCache = new LruMap<string, { result: WeatherResult; ts: number }>(500);
 const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000;
 
 export async function fetchWeather(location: string): Promise<WeatherResult | null> {

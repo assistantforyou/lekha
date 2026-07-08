@@ -82,8 +82,12 @@ const Env = z.object({
   // Cron manual trigger
   CRON_MANUAL_SECRET: z.string().min(32).optional(),
 
+  // Dashboard session JWT (must be distinct from OAUTH_STATE_SECRET).
+  DASHBOARD_JWT_SECRET: z.string().min(32).optional(),
+
   // Dev/test
   DEV_CHAT_SECRET: z.string().min(16).optional(),
+  DEV_LINE_USER_ID: z.string().optional(),
 
   // GitHub notify bot (separate LINE channel for push/merge notifications)
   GITHUB_NOTIFY_CHANNEL_SECRET: z.string().optional(),

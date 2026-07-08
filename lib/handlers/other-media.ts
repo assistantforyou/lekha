@@ -6,6 +6,7 @@ import { autoProcessAudio } from "@/lib/tools/media-ai";
 import { maybeExtractFacts } from "@/lib/maybe-extract";
 import { getSettings } from "@/lib/memory/settings";
 import { t } from "@/lib/i18n";
+import { logWarn } from "@/lib/log";
 
 /** Items staged within this window count as "sent together" for ack wording. */
 const BATCH_WINDOW_MS = 10_000;
@@ -51,7 +52,7 @@ export async function respondToOtherMedia(
   })
     .then(async (head) => {
       const ct = head.headers.get("content-type");
-      await head.body?.cancel().catch(() => {});
+      if (head.body) Promise.resolve(head.body.cancel?.()).catch(() => {});
       if (ct && ct !== contentType) {
         await appendRecentMedia(userId, {
           kind,
@@ -64,13 +65,25 @@ export async function respondToOtherMedia(
         });
       }
     })
-    .catch(() => {});
+    .catch((e) => logWarn("line", "content-type HEAD probe failed", { error: e }));
 
   const isDoc = isReadableDoc(contentType, fileName);
 
   // For readable docs: kick off background pre-read so the first question answers instantly.
+  // Skip expensive pre-read for large/unknown-size docs sent as part of a batch; the text
+  // handler will read on demand when the user asks about a specific file.
   if (isDoc) {
-    prereadDoc(userId, messageId, fileName, env().LINE_CHANNEL_ACCESS_TOKEN).catch(() => {});
+    const MAX_PREREAD_BYTES = 10 * 1024 * 1024;
+    const recentlyStaged = (await listRecentMedia(userId)).filter(
+      (m) => m.messageId !== messageId && Date.now() - m.ts < 30_000,
+    );
+    const shouldPreread =
+      (fileSize !== undefined && fileSize <= MAX_PREREAD_BYTES) || recentlyStaged.length === 0;
+    if (shouldPreread) {
+      prereadDoc(userId, messageId, fileName, env().LINE_CHANNEL_ACCESS_TOKEN).catch((e) =>
+        logWarn("preread", "prereadDoc failed", { error: e }),
+      );
+    }
   }
 
   // Audio: auto-transcribe and save the full transcript for later recall. When

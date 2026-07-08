@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
 
   // Restrict to the single known dev userId — prevents impersonating arbitrary users
   // if DEV_CHAT_SECRET is ever compromised. Fail closed: DEV_LINE_USER_ID is required.
-  const allowedUserId = process.env.DEV_LINE_USER_ID;
+  const allowedUserId = env().DEV_LINE_USER_ID;
   if (!allowedUserId) {
     return NextResponse.json({ error: "DEV_LINE_USER_ID not configured" }, { status: 503 });
   }

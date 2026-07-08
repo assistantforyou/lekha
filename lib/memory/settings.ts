@@ -1,4 +1,5 @@
 import { redis } from "./redis";
+import { LruMap } from "@/lib/lru-cache";
 
 export type UserSettings = {
   /** IANA timezone, e.g. "Asia/Bangkok". Defaults below if unset. */
@@ -226,7 +227,7 @@ function applyMigrations(stored: StoredSettings): StoredSettings {
 const key = (userId: string) => `user:${userId}:settings`;
 
 // In-memory cache for settings (TTL = 5s) — avoids repeated Redis reads within a single request.
-const settingsCache = new Map<string, { data: UserSettings; ts: number }>();
+const settingsCache = new LruMap<string, { data: UserSettings; ts: number }>(1000);
 const SETTINGS_CACHE_TTL_MS = 5000;
 
 export async function getSettings(userId: string): Promise<UserSettings> {

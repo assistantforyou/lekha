@@ -1,7 +1,40 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const store: { strings: Map<string, string> } = { strings: new Map() };
-function reset() { store.strings.clear(); }
+type Store = {
+  hashes: Map<string, Map<string, string>>;
+  zsets: Map<string, Map<string, number>>;
+  strings: Map<string, string>;
+};
+
+const store: Store = {
+  hashes: new Map(),
+  zsets: new Map(),
+  strings: new Map(),
+};
+
+function reset() {
+  store.hashes.clear();
+  store.zsets.clear();
+  store.strings.clear();
+}
+
+function getHash(key: string): Map<string, string> {
+  let h = store.hashes.get(key);
+  if (!h) {
+    h = new Map();
+    store.hashes.set(key, h);
+  }
+  return h;
+}
+
+function getZset(key: string): Map<string, number> {
+  let z = store.zsets.get(key);
+  if (!z) {
+    z = new Map();
+    store.zsets.set(key, z);
+  }
+  return z;
+}
 
 vi.mock("@/lib/memory/redis", () => ({
   redis: () => ({
@@ -13,7 +46,131 @@ vi.mock("@/lib/memory/redis", () => ({
       store.strings.set(key, JSON.stringify(value));
       return "OK";
     },
-    del: async (key: string) => (store.strings.delete(key) ? 1 : 0),
+    del: async (key: string) => {
+      let n = 0;
+      if (store.hashes.delete(key)) n++;
+      if (store.zsets.delete(key)) n++;
+      if (store.strings.delete(key)) n++;
+      return n;
+    },
+    hset: async (key: string, obj: Record<string, string>) => {
+      const h = getHash(key);
+      for (const [k, v] of Object.entries(obj)) h.set(k, String(v));
+      return Object.keys(obj).length;
+    },
+    hgetall: async <T extends Record<string, string>>(key: string) => {
+      const h = store.hashes.get(key);
+      if (!h || h.size === 0) return null;
+      return Object.fromEntries(h) as T;
+    },
+    hdel: async (key: string, ...fields: string[]) => {
+      const h = store.hashes.get(key);
+      if (!h) return 0;
+      let n = 0;
+      for (const f of fields) if (h.delete(f)) n++;
+      return n;
+    },
+    hlen: async (key: string) => getHash(key).size,
+    zadd: async (
+      key: string,
+      entry: { score: number; member: string } | Array<{ score: number; member: string }>,
+    ) => {
+      const z = getZset(key);
+      const entries = Array.isArray(entry) ? entry : [entry];
+      for (const e of entries) z.set(e.member, e.score);
+      return entries.length;
+    },
+    zrange: async <T extends unknown[]>(
+      key: string,
+      min: number | string,
+      max: number | string,
+      opts?: { byScore?: boolean },
+    ) => {
+      const z = getZset(key);
+      let entries = Array.from(z.entries()).sort((a, b) => a[1] - b[1]);
+      if (opts?.byScore && typeof min === "number" && max === "+inf") {
+        entries = entries.filter(([, score]) => score >= min);
+      } else if (typeof min === "number" && typeof max === "number") {
+        // rank range
+        entries = entries.slice(min, max < 0 ? undefined : max + 1);
+      }
+      return entries.map(([member]) => member) as T;
+    },
+    zscore: async (key: string, member: string) => {
+      const score = getZset(key).get(member);
+      return score === undefined ? null : score;
+    },
+    zremrangebyrank: async (key: string, start: number, stop: number) => {
+      const z = getZset(key);
+      const entries = Array.from(z.entries()).sort((a, b) => a[1] - b[1]);
+      const end = stop < 0 ? entries.length + stop : stop;
+      let n = 0;
+      for (let i = start; i <= end; i++) {
+        const entry = entries[i];
+        if (entry && z.delete(entry[0])) n++;
+      }
+      return n;
+    },
+    zremrangebyscore: async (key: string, min: number, max: number) => {
+      const z = getZset(key);
+      let n = 0;
+      for (const [member, score] of z) {
+        if (score >= min && score <= max) {
+          z.delete(member);
+          n++;
+        }
+      }
+      return n;
+    },
+    zcard: async (key: string) => getZset(key).size,
+    multi: () => {
+      const ops: (() => unknown)[] = [];
+      return {
+        hset: (key: string, obj: Record<string, string>) =>
+          ops.push(() => {
+            const h = getHash(key);
+            let n = 0;
+            for (const [k, v] of Object.entries(obj)) {
+              h.set(k, String(v));
+              n++;
+            }
+            return n;
+          }),
+        zadd: (key: string, entry: { score: number; member: string }) =>
+          ops.push(() => {
+            getZset(key).set(entry.member, entry.score);
+            return 1;
+          }),
+        zremrangebyrank: (key: string, start: number, stop: number) =>
+          ops.push(() => {
+            const z = getZset(key);
+            const entries = Array.from(z.entries()).sort((a, b) => a[1] - b[1]);
+            const end = stop < 0 ? entries.length + stop : stop;
+            let n = 0;
+            for (let i = start; i <= end; i++) {
+              const entry = entries[i];
+              if (entry && z.delete(entry[0])) n++;
+            }
+            return n;
+          }),
+        hdel: (key: string, ...fields: string[]) =>
+          ops.push(() => {
+            const h = store.hashes.get(key);
+            if (!h) return 0;
+            let n = 0;
+            for (const f of fields) if (h.delete(f)) n++;
+            return n;
+          }),
+        del: (key: string) =>
+          ops.push(() => {
+            let n = 0;
+            if (store.hashes.delete(key)) n++;
+            if (store.zsets.delete(key)) n++;
+            return n;
+          }),
+        exec: async () => ops.map((fn) => fn()),
+      };
+    },
   }),
 }));
 
@@ -109,7 +266,16 @@ describe("structured facts", () => {
 
   it("LRU evicts oldest when exceeding cap", async () => {
     // Force-load 501 facts with stepping timestamps.
-    const facts = { facts: [] as Array<{ id: string; category: "other"; content: string; createdAt: number; updatedAt: number }>, updatedAt: Date.now() };
+    const facts = {
+      facts: [] as Array<{
+        id: string;
+        category: "other";
+        content: string;
+        createdAt: number;
+        updatedAt: number;
+      }>,
+      updatedAt: Date.now(),
+    };
     for (let i = 0; i < 501; i++) {
       facts.facts.push({
         id: String(i),
@@ -119,7 +285,6 @@ describe("structured facts", () => {
         updatedAt: i,
       });
     }
-    // Save via internal helper path: simulate by writing JSON then reading.
     store.strings.set("user:U1:facts:v2", JSON.stringify(facts));
     // Trigger save through appendFact: this exercises the cap.
     await appendFact("U1", "fresh", { category: "other" });

@@ -3,9 +3,24 @@ import { createHash } from "crypto";
 import { embedText, getVectorIndex, isValidUserId } from "./embeddings";
 
 const SEARCH_CACHE_TTL_SEC = 10 * 60;
+const MAX_CACHE_KEYS = 100;
 
 function sha1(s: string): string {
   return createHash("sha1").update(s).digest("hex").slice(0, 16);
+}
+
+function cacheIndexKey(userId: string) {
+  return `archive:search:keys:${userId}`;
+}
+
+async function writeSearchCache(userId: string, cacheKey: string, value: ArchivedSummary[]): Promise<void> {
+  const indexKey = cacheIndexKey(userId);
+  const tx = redis().multi();
+  tx.set(cacheKey, value, { ex: SEARCH_CACHE_TTL_SEC });
+  tx.lpush(indexKey, cacheKey);
+  tx.ltrim(indexKey, 0, MAX_CACHE_KEYS - 1);
+  tx.expire(indexKey, SEARCH_CACHE_TTL_SEC);
+  await tx.exec();
 }
 
 export type ArchivedSummary = {
@@ -110,7 +125,7 @@ export async function searchArchive(userId: string, query: string): Promise<Arch
             }
           }
           if (out.length) {
-            await redis().set(cacheKey, out, { ex: SEARCH_CACHE_TTL_SEC }).catch(() => {});
+            await writeSearchCache(userId, cacheKey, out).catch(() => {});
             return out;
           }
         }
@@ -120,7 +135,7 @@ export async function searchArchive(userId: string, query: string): Promise<Arch
     }
   }
   const fallback = await searchArchiveFallback(userId, query);
-  await redis().set(cacheKey, fallback, { ex: SEARCH_CACHE_TTL_SEC }).catch(() => {});
+  await writeSearchCache(userId, cacheKey, fallback).catch(() => {});
   return fallback;
 }
 

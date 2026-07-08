@@ -27,7 +27,7 @@ export async function prereadDoc(
   let bytes: Uint8Array;
   let mediaType: string;
   try {
-    const fetched = await getMessageContent(messageId);
+    const fetched = await getMessageContent(messageId, userId);
     bytes = fetched.bytes;
     mediaType = normalizeMediaTypeFromBytes(bytes, fetched.contentType, fileName, "file");
   } catch {

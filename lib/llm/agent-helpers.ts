@@ -1,17 +1,11 @@
 import { performance } from "perf_hooks";
 import { generateText, stepCountIs, type ModelMessage } from "ai";
 import { chatModelForTier, hasFreeKey, hasPaidKey, AGENT_TIMEOUT_MS, GEMINI_PROVIDER_OPTIONS } from "@/lib/llm/provider";
-import { isTierDown, markTierDown } from "@/lib/llm/health";
 import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
 import { factsToPromptBlock, loadFacts, displayOrder } from "@/lib/memory/facts";
-import { listAccounts } from "@/lib/tools/google-auth";
-import { listRecentMedia } from "@/lib/memory/recent-media";
 import { listTasks } from "@/lib/memory/tasks";
-import { getSettings } from "@/lib/memory/settings";
-import { toolsForUser } from "@/lib/tools";
 import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
-import type { ToolSet } from "ai";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapCause, unwrapAuthRequired } from "@/lib/errors";
 import type { LineMessage } from "@/lib/line/client";
 import { buildFlexFromToolResults, buildFollowUps, buildSimpleCardFlex, buildDraftFlexCards } from "@/lib/llm/agent-flex";
@@ -28,7 +22,7 @@ import { buildFinanceTools } from "@/lib/tools/finance";
 import { buildWebSearchTool } from "@/lib/tools/web-search";
 import { buildCryptoFlex, buildStockFlex, type CryptoResult, type StockResult } from "@/lib/line/finance-flex";
 import { HELP_TEXT } from "@/lib/tools/help";
-import { appendAuditEntry, type AuditToolCall } from "@/lib/memory/audit-log";
+import type { AuditToolCall } from "@/lib/memory/audit-log";
 
 /**
  * Map a fastClassify hint to a facts-injection limit.
@@ -66,6 +60,52 @@ export function factLimitForHint(hint: string | undefined): number {
     default:
       return 20;
   }
+}
+
+/**
+ * Dynamic maxSteps for the agentic turn. Higher for media/multi-step,
+ * lower for open-ended turns to cap cost/latency. Clamped to [4, 12].
+ */
+export function computeMaxSteps(
+  hint: string | undefined,
+  hasStagedMedia: boolean,
+  isMultiStepHint: boolean,
+): number {
+  let steps: number;
+  if (hint === "media" || hasStagedMedia) {
+    steps = 10;
+  } else if (isMultiStepHint) {
+    steps = 10;
+  } else if (
+    hint === "recent" ||
+    hint === "email" ||
+    hint === "reminder" ||
+    hint === "task" ||
+    hint === "weather"
+  ) {
+    steps = 8;
+  } else {
+    steps = 6;
+  }
+  return Math.max(4, Math.min(12, steps));
+}
+
+/** Cheap token heuristic: total characters / 4. */
+export function estimatePromptTokens(system: string, messages: ModelMessage[]): number {
+  let chars = system.length;
+  for (const m of messages) {
+    const content = m.content;
+    if (typeof content === "string") {
+      chars += content.length;
+    } else if (Array.isArray(content)) {
+      for (const part of content) {
+        if (part && typeof part === "object" && "text" in part && typeof part.text === "string") {
+          chars += part.text.length;
+        }
+      }
+    }
+  }
+  return Math.ceil(chars / 4);
 }
 
 export function extractToolValue(output: unknown): unknown {
@@ -179,8 +219,25 @@ type ProcessedResult = {
   hadUnrelayedToolError: boolean;
 };
 
+type AgentStep = {
+  toolResults: { toolName?: string; output?: unknown }[];
+};
+
+type ProcessResultInput = {
+  text?: string;
+  steps: AgentStep[];
+};
+
+function toolNameOf(tr: { toolName?: string } | undefined): string {
+  return tr?.toolName ?? "";
+}
+
+function looksLikeSoftApology(text: string): boolean {
+  return /sorry|apolog|unable|couldn't|can't|won't|didn't|doesn't/i.test(text);
+}
+
 export function processResult(
-  result: any,
+  result: ProcessResultInput,
   activeEmail: string | null,
   allCalls: { toolName: string; input: unknown }[],
   timezone?: string,
@@ -195,7 +252,7 @@ export function processResult(
   for (const step of result.steps) {
     for (const tr of step.toolResults) {
       if (!tr) continue;
-      const value = extractToolValue((tr as { output?: unknown }).output);
+      const value = extractToolValue(tr.output);
       if (!value || typeof value !== "object") continue;
       const v = value as Record<string, unknown>;
       if (v.need_google_auth && typeof v.connect_url === "string") {
@@ -212,7 +269,7 @@ export function processResult(
           message: typeof v.message === "string" ? v.message : "",
         };
       } else if (v.ok === false && typeof v.error === "string") {
-        const toolName = (tr as { toolName?: string }).toolName ?? "tool";
+        const toolName = tr.toolName ?? "tool";
         toolErrors.push(`${toolName}: ${v.error}`);
       }
     }
@@ -228,7 +285,12 @@ export function processResult(
   if (toolErrors.length > 0 && !draftBlock) {
     const strippedErrors = toolErrors.map((e) => e.split(": ").slice(1).join(": "));
     const allErrorsPresent = strippedErrors.every((msg) => modelText.includes(msg));
-    if (!allErrorsPresent) {
+    const shouldOverride =
+      modelText.length === 0 ||
+      modelText.length < 60 ||
+      looksLikeSoftApology(modelText) ||
+      !allErrorsPresent;
+    if (shouldOverride) {
       console.warn("[agent] model soft-apologized — overriding with real tool errors", toolErrors);
       return { reply: strippedErrors.join("\n"), authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: true };
     }
@@ -243,7 +305,7 @@ export function processResult(
   if (allCalls.length > 0) {
     for (const step of result.steps) {
       for (const tr of step.toolResults) {
-        const toolName = (tr as { toolName?: string }).toolName ?? "";
+        const toolName = toolNameOf(tr);
         if (toolName === "get_morning_briefing" || toolName === "get_evening_summary") {
           return { reply: "", authNeeded: null, apiDisabled: null, googleErr: null, hadUnrelayedToolError: false };
         }
@@ -670,6 +732,10 @@ export async function handleAgentError(err: unknown, userId: string, language?: 
   }
   if (err instanceof AgentTimeoutError) {
     console.warn("[agent] timeout", { seconds: err.seconds, traceId });
+    return t(language, "agentErrTimeout");
+  }
+  if (err instanceof Error && /abort|aborted|AbortError|This operation was aborted/i.test(err.message)) {
+    console.warn("[agent] LLM call aborted (timeout)", { traceId });
     return t(language, "agentErrTimeout");
   }
   const msg = err instanceof Error ? err.message : String(err);

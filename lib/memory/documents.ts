@@ -15,8 +15,10 @@ const CHUNK_OVERLAP = 200;
 /** Safety cap — ~70k chars of source text indexed per document. */
 const MAX_CHUNKS_PER_DOC = 40;
 const MAX_DOCS_PER_USER = 100;
+const DOC_CHUNKS_TTL_SEC = 60 * 60 * 24 * 365;
 
 const docIndexKey = (userId: string) => `doc_index:${userId}`;
+const docChunksKey = (userId: string, docId: string) => `doc_chunks:${userId}:${docId}`;
 
 export type DocumentMeta = {
   /** Stable id for the document — the LINE messageId it was uploaded as. */
@@ -43,9 +45,8 @@ export function chunkText(text: string, chunkSize = CHUNK_SIZE, overlap = CHUNK_
 
 /**
  * Chunk, embed, and upsert a document's full text for later recall. Best-effort —
- * if Upstash Vector isn't configured or embedding fails, the document simply
- * won't be searchable later (the caller's immediate read/summary still works
- * fine; this only affects long-term recall).
+ * if Upstash Vector isn't configured or embedding fails, the document is still
+ * stored as raw chunks so substring search can fall back to it.
  */
 export async function indexDocument(
   userId: string,
@@ -54,34 +55,40 @@ export async function indexDocument(
   fullText: string,
   kind: "document" | "audio" = "document",
 ): Promise<void> {
-  const vec = getVectorIndex();
-  if (!vec) return;
   const chunks = chunkText(fullText);
   if (!chunks.length) return;
 
   // Re-indexing (e.g. re-read after truncation the first time) replaces, not appends.
   await deleteDocument(userId, docId);
 
-  const vectors: { id: string; vector: number[]; metadata: Record<string, unknown> }[] = [];
-  for (let i = 0; i < chunks.length; i++) {
-    const v = await embedText(chunks[i]!);
-    if (!v) continue;
-    vectors.push({
-      id: `doc:${userId}:${docId}:${i}`,
-      vector: v,
-      metadata: { userId, docId, fileName, chunkIndex: i, text: chunks[i], kind, ts: Date.now() },
-    });
-  }
-  if (!vectors.length) return;
+  // Always store chunk text; it powers the vector-offline fallback and survives
+  // after the LINE media window closes.
+  await redis().set(docChunksKey(userId, docId), chunks, { ex: DOC_CHUNKS_TTL_SEC });
 
-  try {
-    await vec.upsert(vectors);
-  } catch (err) {
-    console.warn("[documents] vector upsert failed", err);
-    return;
+  const vec = getVectorIndex();
+  if (vec) {
+    const vectors: { id: string; vector: number[]; metadata: Record<string, unknown> }[] = [];
+    for (let i = 0; i < chunks.length; i++) {
+      const text = chunks[i];
+      if (text === undefined) continue;
+      const v = await embedText(text);
+      if (!v) continue;
+      vectors.push({
+        id: `doc:${userId}:${docId}:${i}`,
+        vector: v,
+        metadata: { userId, docId, fileName, chunkIndex: i, text, kind, ts: Date.now() },
+      });
+    }
+    if (vectors.length) {
+      try {
+        await vec.upsert(vectors);
+      } catch (err) {
+        console.warn("[documents] vector upsert failed", err);
+      }
+    }
   }
 
-  const meta: DocumentMeta = { docId, fileName, ts: Date.now(), chunkCount: vectors.length };
+  const meta: DocumentMeta = { docId, fileName, ts: Date.now(), chunkCount: chunks.length };
   await redis().hset(docIndexKey(userId), { [docId]: JSON.stringify(meta) });
 
   // Cap tracked documents — drop the oldest if this pushed us over the limit.
@@ -110,31 +117,59 @@ export async function deleteDocument(userId: string, docId: string): Promise<voi
     }
   }
   await redis().hdel(docIndexKey(userId), docId);
+  await redis().del(docChunksKey(userId, docId));
 }
 
 export type DocChunkHit = { fileName: string; docId: string; text: string; chunkIndex: number };
 
 /** Semantic search across a user's previously-indexed documents, optionally scoped to one docId. */
 export async function searchDocuments(userId: string, query: string, docId?: string): Promise<DocChunkHit[]> {
+  if (!isValidUserId(userId)) return [];
+
   const vec = getVectorIndex();
-  if (!vec || !isValidUserId(userId)) return [];
-  const qv = await embedText(query);
-  if (!qv) return [];
-  const filter = docId
-    ? `userId = '${userId}' and docId = '${docId}'`
-    : `userId = '${userId}'`;
-  try {
-    const hits = await vec.query({ vector: qv, topK: 8, includeMetadata: true, filter });
-    const out: DocChunkHit[] = [];
-    for (const h of hits ?? []) {
-      const md = (h.metadata ?? {}) as { fileName?: string; docId?: string; text?: string; chunkIndex?: number };
-      if (md.docId && md.text) {
-        out.push({ fileName: md.fileName ?? "document", docId: md.docId, text: md.text, chunkIndex: md.chunkIndex ?? 0 });
+  const queryVector = vec ? await embedText(query) : undefined;
+  if (vec && queryVector) {
+    const filter = docId
+      ? `userId = '${userId}' and docId = '${docId}'`
+      : `userId = '${userId}'`;
+    try {
+      const hits = await vec.query({ vector: queryVector, topK: 8, includeMetadata: true, filter });
+      const out: DocChunkHit[] = [];
+      for (const h of hits ?? []) {
+        const md = (h.metadata ?? {}) as { fileName?: string; docId?: string; text?: string; chunkIndex?: number };
+        if (md.docId && md.text) {
+          out.push({ fileName: md.fileName ?? "document", docId: md.docId, text: md.text, chunkIndex: md.chunkIndex ?? 0 });
+        }
+      }
+      if (out.length) return out;
+    } catch (err) {
+      console.warn("[documents] vector query failed; falling back to substring", err);
+    }
+  }
+
+  return searchDocumentsFallback(userId, query, docId);
+}
+
+async function searchDocumentsFallback(
+  userId: string,
+  query: string,
+  docId?: string,
+): Promise<DocChunkHit[]> {
+  const docs = await listDocuments(userId);
+  const target = docId ? docs.filter((d) => d.docId === docId) : docs;
+  const q = query.toLowerCase();
+  const out: DocChunkHit[] = [];
+  for (const d of target) {
+    const chunks = await redis().get<string[]>(docChunksKey(userId, d.docId));
+    if (!chunks) continue;
+    for (let i = 0; i < chunks.length; i++) {
+      const text = chunks[i];
+      if (text === undefined) continue;
+      if (text.toLowerCase().includes(q)) {
+        out.push({ fileName: d.fileName, docId: d.docId, text, chunkIndex: i });
+        if (out.length >= 8) return out;
       }
     }
-    return out;
-  } catch (err) {
-    console.warn("[documents] vector query failed", err);
-    return [];
   }
+  return out;
 }

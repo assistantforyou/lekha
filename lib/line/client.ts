@@ -9,7 +9,7 @@ const DATA_API = "https://api-data.line.me/v2/bot";
 // re-downloading the same image/PDF when multiple tools use it in one turn.
 import { LruMap } from "@/lib/lru-cache";
 
-const contentCache = new LruMap<string, { promise: Promise<{ bytes: Uint8Array; contentType: string }>; ts: number }>(200);
+const contentCache = new LruMap<string, { promise: Promise<{ bytes: Uint8Array; contentType: string }>; ts: number }>(100);
 const CONTENT_CACHE_TTL_MS = 2 * 60 * 1000;
 
 function fetchWithTimeout(url: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
@@ -201,12 +201,19 @@ export async function showLoading(chatId: string, seconds = 20): Promise<void> {
  */
 const MAX_MEDIA_BYTES = 20 * 1024 * 1024; // 20 MB
 
-export async function getMessageContent(messageId: string): Promise<{
+export async function getMessageContent(
+  messageId: string,
+  userId?: string,
+): Promise<{
   bytes: Uint8Array;
   contentType: string;
 }> {
+  const cacheKey = userId ? `${userId}:${messageId}` : messageId;
+  if (!userId) {
+    console.warn("[line] getMessageContent called without userId — cross-user cache isolation not guaranteed");
+  }
   const now = Date.now();
-  const cached = contentCache.get(messageId);
+  const cached = contentCache.get(cacheKey);
   if (cached && now - cached.ts < CONTENT_CACHE_TTL_MS) {
     return cached.promise;
   }
@@ -226,12 +233,17 @@ export async function getMessageContent(messageId: string): Promise<{
       end({ ok: false, tooLarge: true, sizeBytes: Number(cl) });
       throw new Error(`File too large (${(Number(cl) / 1024 / 1024).toFixed(1)} MB). Max ${MAX_MEDIA_BYTES / 1024 / 1024} MB.`);
     }
-    const buf = new Uint8Array(await r.arrayBuffer());
+    const arrayBuf = await r.arrayBuffer();
+    if (arrayBuf.byteLength > MAX_MEDIA_BYTES) {
+      end({ ok: false, tooLarge: true, sizeBytes: arrayBuf.byteLength });
+      throw new Error(`File too large (${(arrayBuf.byteLength / 1024 / 1024).toFixed(1)} MB). Max ${MAX_MEDIA_BYTES / 1024 / 1024} MB.`);
+    }
+    const buf = new Uint8Array(arrayBuf);
     end({ ok: true, sizeBytes: buf.byteLength, contentType: ct });
     return { bytes: buf, contentType: ct };
   })();
 
-  contentCache.set(messageId, { promise, ts: now });
+  contentCache.set(cacheKey, { promise, ts: now });
   return promise;
 }
 

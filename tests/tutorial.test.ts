@@ -1,11 +1,41 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const store: { strings: Map<string, string> } = { strings: new Map() };
+type Store = {
+  strings: Map<string, string>;
+  hashes: Map<string, Map<string, string>>;
+  zsets: Map<string, Map<string, number>>;
+};
+
+const store: Store = {
+  strings: new Map(),
+  hashes: new Map(),
+  zsets: new Map(),
+};
 const sent: { userId: string; messages: unknown[] }[] = [];
 
 function reset() {
   store.strings.clear();
+  store.hashes.clear();
+  store.zsets.clear();
   sent.length = 0;
+}
+
+function getHash(key: string): Map<string, string> {
+  let h = store.hashes.get(key);
+  if (!h) {
+    h = new Map();
+    store.hashes.set(key, h);
+  }
+  return h;
+}
+
+function getZset(key: string): Map<string, number> {
+  let z = store.zsets.get(key);
+  if (!z) {
+    z = new Map();
+    store.zsets.set(key, z);
+  }
+  return z;
 }
 
 vi.mock("@/lib/memory/redis", () => ({
@@ -18,7 +48,107 @@ vi.mock("@/lib/memory/redis", () => ({
       store.strings.set(key, JSON.stringify(value));
       return "OK";
     },
-    del: async (key: string) => (store.strings.delete(key) ? 1 : 0),
+    del: async (key: string) => {
+      let n = 0;
+      if (store.strings.delete(key)) n++;
+      if (store.hashes.delete(key)) n++;
+      if (store.zsets.delete(key)) n++;
+      return n;
+    },
+    hset: async (key: string, obj: Record<string, string>) => {
+      const h = getHash(key);
+      for (const [k, v] of Object.entries(obj)) h.set(k, String(v));
+      return Object.keys(obj).length;
+    },
+    hgetall: async <T extends Record<string, string>>(key: string) => {
+      const h = store.hashes.get(key);
+      if (!h || h.size === 0) return null;
+      return Object.fromEntries(h) as T;
+    },
+    hdel: async (key: string, ...fields: string[]) => {
+      const h = store.hashes.get(key);
+      if (!h) return 0;
+      let n = 0;
+      for (const f of fields) if (h.delete(f)) n++;
+      return n;
+    },
+    zadd: async (key: string, entry: { score: number; member: string }) => {
+      getZset(key).set(entry.member, entry.score);
+      return 1;
+    },
+    zrange: async <T extends unknown[]>(
+      key: string,
+      min: number | string,
+      max: number | string,
+      opts?: { byScore?: boolean },
+    ) => {
+      const z = getZset(key);
+      let entries = Array.from(z.entries()).sort((a, b) => a[1] - b[1]);
+      if (opts?.byScore && typeof min === "number" && max === "+inf") {
+        entries = entries.filter(([, score]) => score >= min);
+      }
+      return entries.map(([member]) => member) as T;
+    },
+    zscore: async (key: string, member: string) => {
+      const score = getZset(key).get(member);
+      return score === undefined ? null : score;
+    },
+    zremrangebyrank: async (key: string, start: number, stop: number) => {
+      const z = getZset(key);
+      const entries = Array.from(z.entries()).sort((a, b) => a[1] - b[1]);
+      const end = stop < 0 ? entries.length + stop : stop;
+      let n = 0;
+      for (let i = start; i <= end; i++) {
+        const entry = entries[i];
+        if (entry && z.delete(entry[0])) n++;
+      }
+      return n;
+    },
+    multi: () => {
+      const ops: (() => unknown)[] = [];
+      return {
+        hset: (k: string, obj: Record<string, string>) =>
+          ops.push(() => {
+            const h = getHash(k);
+            for (const [kk, v] of Object.entries(obj)) h.set(kk, String(v));
+            return Object.keys(obj).length;
+          }),
+        zadd: (k: string, entry: { score: number; member: string }) =>
+          ops.push(() => {
+            getZset(k).set(entry.member, entry.score);
+            return 1;
+          }),
+        zremrangebyrank: (k: string, start: number, stop: number) =>
+          ops.push(() => {
+            const z = getZset(k);
+            const entries = Array.from(z.entries()).sort((a, b) => a[1] - b[1]);
+            const end = stop < 0 ? entries.length + stop : stop;
+            let n = 0;
+            for (let i = start; i <= end; i++) {
+              const entry = entries[i];
+              if (entry && z.delete(entry[0])) n++;
+            }
+            return n;
+          }),
+        hdel: (k: string, ...fields: string[]) =>
+          ops.push(() => {
+            const h = store.hashes.get(k);
+            if (!h) return 0;
+            let n = 0;
+            for (const f of fields) if (h.delete(f)) n++;
+            return n;
+          }),
+        del: (k: string) =>
+          ops.push(() => {
+            let n = 0;
+            if (store.strings.delete(k)) n++;
+            if (store.hashes.delete(k)) n++;
+            if (store.zsets.delete(k)) n++;
+            return n;
+          }),
+        exec: async () => ops.map((fn) => fn()),
+      };
+    },
   }),
 }));
 
