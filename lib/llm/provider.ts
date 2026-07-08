@@ -60,6 +60,26 @@ export function chatModel() {
   return chatModelForTier(hasPaidKey() ? "paid" : "free");
 }
 
+/**
+ * Try the free key first, then fall back to paid on quota/rate-limit errors.
+ * Useful for internal LLM calls (planner, synthesizer) where we still want to
+ * prefer the free tier but cannot afford a hard failure.
+ */
+export async function withGeminiFallback<T>(fn: (model: ReturnType<typeof chatModelForTier>) => Promise<T>): Promise<T> {
+  const e = env();
+  const canFallback = Boolean(e.GEMINI_API_KEY_FREE && e.GEMINI_API_KEY);
+  try {
+    return await fn(chatModelForTier("free"));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (canFallback && /RESOURCE_EXHAUSTED|rate limit|429|quota|exceeded|spending cap/i.test(msg)) {
+      console.warn("[provider] free Gemini key quota hit, falling back to paid key");
+      return await fn(chatModelForTier("paid"));
+    }
+    throw err;
+  }
+}
+
 /** Background extraction / summarization model. Flash-Lite is sufficient for
  *  generateObject (structured output, no tool use) and costs ~6× less on output.
  *  Prefers the free key so background tasks don't burn paid quota. */

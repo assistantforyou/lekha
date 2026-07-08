@@ -39,6 +39,8 @@ import { span, tick, withTimeout } from "@/lib/timing";
 import { t } from "@/lib/i18n";
 import { GEMINI_PROVIDER_OPTIONS, AGENT_TIMEOUT_MS } from "@/lib/llm/provider";
 import { env } from "@/lib/env";
+import { toolsForUser } from "@/lib/tools";
+import { looksMultiStep, runMultiStep } from "@/lib/llm/multi-step";
 
 export type MastraRunOptions = {
   userId: string;
@@ -67,10 +69,6 @@ export type MastraRunOptions = {
   groupContext?: ModelMessage[];
   timeoutMs?: number;
   traceId?: string;
-  /** Force at least one tool call (useful for deterministic multi-step tests). */
-  toolChoice?: "auto" | "required" | "none";
-  /** Override the default tool-step budget. */
-  maxSteps?: number;
 };
 
 type InternalStep = {
@@ -203,9 +201,8 @@ export async function runMastraAgent(
         agent.generate(conversationMessages as any, {
           instructions: system,
           requestContext,
-          maxSteps: opts.maxSteps ?? 8,
+          maxSteps: 8,
           providerOptions: { google: { ...GEMINI_PROVIDER_OPTIONS.google, temperature: 0.6 } } as any,
-          toolChoice: (opts.toolChoice ?? "auto") as any,
           onStepFinish: (step) => {
             if (step.toolCalls.length > 0) localRanToolCalls = true;
             localTracker.record(adaptMastraStep(step));
@@ -216,22 +213,84 @@ export async function runMastraAgent(
       return { res, tracker: localTracker, ranToolCalls: localRanToolCalls };
     }
 
-    const endGenerate = span("mastra:generate", traceId);
-    let generateResult: Awaited<ReturnType<typeof attemptGenerate>>;
-    try {
-      generateResult = await attemptGenerate("free");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const e = env();
-      const canFallback = Boolean(e.GEMINI_API_KEY_FREE && e.GEMINI_API_KEY);
-      if (canFallback && /RESOURCE_EXHAUSTED|rate limit|429|quota|exceeded|spending cap/i.test(msg)) {
-        console.warn("[mastra] free Gemini key quota hit, falling back to paid key", { userId, msg: msg.slice(0, 200) });
-        generateResult = await attemptGenerate("paid");
-      } else {
-        throw err;
+    const lastUserText = getLastUserText(messages);
+
+    // Deterministic multi-step path: plan → execute → synthesize.
+    // This avoids Gemini Flash's unreliable auto-loop when several independent
+    // tool requests appear in one message.
+    let multiStepResult: Awaited<ReturnType<typeof runMultiStep>> | undefined;
+    if (looksMultiStep(lastUserText)) {
+      try {
+        const aiTools = await toolsForUser(userId, {
+          userHasGoogle,
+          disabledCategories: settings.disabledCategories ?? [],
+          hasStagedMedia: opts.hasStagedMedia,
+          hint: opts.hint ?? undefined,
+        });
+        multiStepResult = await runMultiStep(lastUserText, aiTools, {
+          timezone: tz,
+          language: lang,
+          displayName,
+        });
+      } catch (err) {
+        console.warn("[mastra] multi-step handler failed, falling back to agent", err);
+        multiStepResult = undefined;
       }
     }
-    const { res: result, tracker, ranToolCalls: geminiRanToolCalls } = generateResult;
+
+    const endGenerate = span("mastra:generate", traceId);
+    let result: Awaited<ReturnType<typeof attemptGenerate>>["res"];
+    let tracker: Awaited<ReturnType<typeof attemptGenerate>>["tracker"];
+    let geminiRanToolCalls: boolean;
+    let multiStepStep: InternalStep | undefined;
+
+    if (multiStepResult && multiStepResult.toolCalls.length > 0) {
+      tracker = createStepTracker(traceId);
+      geminiRanToolCalls = true;
+      const callIds = new Map<string, string>();
+      for (const c of multiStepResult.toolCalls) {
+        callIds.set(c.tool, `${c.tool}-${Math.random().toString(36).slice(2)}`);
+      }
+      multiStepStep = {
+        text: multiStepResult.text,
+        finishReason: "stop",
+        toolCalls: multiStepResult.toolCalls.map((c) => ({
+          toolCallId: callIds.get(c.tool) ?? `${c.tool}-${Math.random().toString(36).slice(2)}`,
+          toolName: c.tool,
+          input: c.input,
+        })),
+        toolResults: multiStepResult.toolResults.map((r) => ({
+          toolCallId: callIds.get(r.tool) ?? `${r.tool}-${Math.random().toString(36).slice(2)}`,
+          toolName: r.tool,
+          output: r.output,
+        })),
+      };
+      tracker.record(multiStepStep);
+      result = {
+        text: multiStepResult.text,
+        steps: [],
+        totalUsage: { inputTokens: 0, outputTokens: 0 },
+        usage: { inputTokens: 0, outputTokens: 0 },
+      } as any;
+    } else {
+      let generateResult: Awaited<ReturnType<typeof attemptGenerate>>;
+      try {
+        generateResult = await attemptGenerate("free");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const e = env();
+        const canFallback = Boolean(e.GEMINI_API_KEY_FREE && e.GEMINI_API_KEY);
+        if (canFallback && /RESOURCE_EXHAUSTED|rate limit|429|quota|exceeded|spending cap/i.test(msg)) {
+          console.warn("[mastra] free Gemini key quota hit, falling back to paid key", { userId, msg: msg.slice(0, 200) });
+          generateResult = await attemptGenerate("paid");
+        } else {
+          throw err;
+        }
+      }
+      result = generateResult.res;
+      tracker = generateResult.tracker;
+      geminiRanToolCalls = generateResult.ranToolCalls;
+    }
 
     const usage = result.totalUsage ?? result.usage;
     const costUsd =
@@ -244,14 +303,14 @@ export async function runMastraAgent(
       costUsd: Math.round(costUsd * 10000) / 10000,
     });
     endGenerate({
-      steps: result.steps.length,
+      steps: multiStepStep ? 1 : result.steps.length,
       toolCalls: tracker.allCalls.length,
       promptTokens: usage?.inputTokens ?? 0,
       completionTokens: usage?.outputTokens ?? 0,
       costUsd,
     });
 
-    const adaptedSteps = result.steps.map(adaptMastraStep);
+    const adaptedSteps = multiStepStep ? [multiStepStep] : result.steps.map(adaptMastraStep);
     const adaptedResult = { text: result.text ?? "", steps: adaptedSteps };
 
     const endProcess = span("mastra:processResult", traceId);
@@ -267,7 +326,6 @@ export async function runMastraAgent(
       .map((c) => c.toolName);
     const confirmDraft = draftToolNames.length > 0;
 
-    const lastUserText = getLastUserText(messages);
     let { messages: flexMessages, suppressText } = buildFlexFromToolResults(adaptedResult, tz, {
       userText: lastUserText,
     });
@@ -287,9 +345,10 @@ export async function runMastraAgent(
       }
     }
 
+    const isMultiStep = multiStepStep !== undefined;
     const modelText = result.text?.trim() ?? "";
     let finalText =
-      suppressText && modelText.length > 0 && !processed.authNeeded && !processed.hadUnrelayedToolError
+      suppressText && !isMultiStep && modelText.length > 0 && !processed.authNeeded && !processed.hadUnrelayedToolError
         ? ""
         : text;
     let extraToolCalls = tracker.allCalls;

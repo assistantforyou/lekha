@@ -37,9 +37,6 @@ async function main() {
     settings,
     hint: undefined,
     traceId: `test-${Date.now()}`,
-    // Force the model to use tools so the multi-step chain is deterministic.
-    toolChoice: "required",
-    maxSteps: 1,
   });
 
   console.log("\n=== FINAL REPLY ===\n");
