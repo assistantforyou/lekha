@@ -23,14 +23,120 @@ export type ToolResult = { tool: string; input: unknown; output: unknown };
 const MAX_RETRIES = 2;
 
 /**
+ * Words/phrases that imply the user wants a tool action. Used to detect
+ * natural-language multi-step requests (e.g. "check the weather and search
+ * the news") without requiring numbered lists.
+ */
+const ACTION_WORDS = new Set([
+  "check",
+  "search",
+  "find",
+  "get",
+  "show",
+  "tell",
+  "give",
+  "convert",
+  "add",
+  "remember",
+  "remind",
+  "summarize",
+  "summary",
+  "read",
+  "describe",
+  "explain",
+  "look up",
+  "lookup",
+  "look at",
+  "weather",
+  "forecast",
+  "temperature",
+  "temp",
+  "news",
+  "rate",
+  "price",
+  "stock",
+  "crypto",
+  "fx",
+  "task",
+  "todo",
+  "reminder",
+  "event",
+  "calendar",
+  "schedule",
+  "meeting",
+  "email",
+  "mail",
+  "send",
+  "draft",
+  "gmail",
+  "document",
+  "pdf",
+  "file",
+  "image",
+  "photo",
+  "picture",
+  "video",
+  "audio",
+  "voice",
+  "contact",
+  "call",
+  "drive",
+  "upload",
+  // Thai action markers
+  "อากาศ",
+  "แลก",
+  "ค้นหา",
+  "หา",
+  "จำ",
+  "จดจำ",
+  "งาน",
+  "เตือน",
+  "อีเมล",
+  "ส่ง",
+  "อ่าน",
+  "สรุป",
+  "ข่าว",
+  "ราคา",
+  "หุ้น",
+  "คริปโต",
+  "ปฏิทิน",
+  "นัดหมาย",
+  "ติดต่อ",
+  "โทร",
+  "อัปโหลด",
+  "ไฟล์",
+  "รูป",
+  "วิดีโอ",
+  "เสียง",
+  "ดู",
+  "เช็ค",
+]);
+
+function hasActionWords(text: string): boolean {
+  const lower = text.toLowerCase();
+  for (const word of ACTION_WORDS) {
+    if (lower.includes(word)) return true;
+  }
+  return false;
+}
+
+function splitIntoClauses(text: string): string[] {
+  return text
+    .split(/(?:และ|แล้วก็|พร้อมกับ)|\b(?:and|also|plus)\b|\n+|,\s+|;\s+/i)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
+
+/**
  * Conservative heuristic for messages that contain multiple independent requests.
- * Catches numbered lists, bulleted lists, and explicit multi-part language.
+ * Catches numbered lists, bulleted lists, explicit multi-part language, and
+ * natural conjunctions of action clauses.
  */
 export function looksMultiStep(userText: string): boolean {
   const t = userText.trim();
   // Numbered or lettered list with at least two items, e.g. "1) ... 2) ...", "(1) ... (2) ...", "a. ... b. ..."
   if (
-    /(?:\(\s*\d+\s*[.)]\s*|\b\d+[.)]\s+|\b\w[.)]\s+)\S+[\s\S]*?(?:\n|\s+(?:and|also|plus)\s+|\s*,\s*)(?:\(\s*\d+\s*[.)]\s*|\b\d+[.)]\s+|\b\w[.)]\s+)\S+/is.test(
+    /(?:\(\s*\d+\s*[.)]\s*|\b\d+[.)]\s+|\b\w[.)]\s+)\S+[\s\S]{0,200}?(?:\(\s*\d+\s*[.)]\s*|\b\d+[.)]\s+|\b\w[.)]\s+)\S+/is.test(
       t,
     )
   ) {
@@ -40,13 +146,25 @@ export function looksMultiStep(userText: string): boolean {
   if (/\bplease\s*[:;]\s*(?:\S+\s*(?:,|;|\n)\s*){2,}\S+/i.test(t)) {
     return true;
   }
-  // Multiple distinct action clauses joined by and/or/plus
+  // Multiple distinct action clauses joined by and/or/plus after ? or .
   if (
     /(?:\?|\.)\s+(?:and|also|plus)\s+(?:can you|could you|please|check|search|find|add|remember|tell|give)/i.test(
       t,
     )
   ) {
     return true;
+  }
+  // Natural conjunction of two or more action clauses, e.g.
+  // "check the weather and search the news", "show me the rate plus add a task"
+  const clauses = splitIntoClauses(t);
+  if (clauses.length >= 2) {
+    let actionClauses = 0;
+    for (const c of clauses) {
+      if (hasActionWords(c)) {
+        actionClauses++;
+        if (actionClauses >= 2) return true;
+      }
+    }
   }
   return false;
 }
@@ -80,17 +198,19 @@ function formatResultForSynthesis(result: unknown): string {
 async function planCalls(
   userText: string,
   tools: ToolSet,
-  context: { timezone: string; language?: string | null; displayName?: string },
+  context: { timezone: string; language?: string | null; displayName?: string; location?: string | null },
   priorErrors?: string[],
 ): Promise<PlannedCall[]> {
   const catalog = buildToolCatalog(tools);
   const timeContext = buildTimeContext(context.timezone);
+  const locationLine = context.location ? `User's default location: ${context.location}.` : "No default location is set.";
   const lang = context.language && context.language !== "en" ? `Reply in ${context.language}.` : "Reply in English.";
 
   const system = `You are Lekha's planner. The user sent a message with multiple independent requests.
 
 Current context:
 ${timeContext}
+${locationLine}
 
 Available tools:
 ${catalog}
@@ -101,7 +221,7 @@ Rules:
 - Use exact tool names from the catalog.
 - For each tool, use its Input JSON schema to construct the input object. EVERY required field must have a value.
 - NEVER return an empty input object ({}).
-- For weather, include { "location": "<city>" }.
+- For weather, include { "location": "<city>" }. If the user did not specify a city, use their default location above.
 - For web_search/news_search, include { "query": "<search query>" }.
 - For remember, include { "fact": "<fact text>", "category": "<category>" }.
 - For add_task, include { "title": "<task title>" }.
@@ -172,7 +292,7 @@ async function executeCalls(calls: PlannedCall[], tools: ToolSet): Promise<ToolR
 async function synthesizeReply(
   userText: string,
   results: ToolResult[],
-  context: { timezone: string; language?: string | null; displayName?: string },
+  context: { timezone: string; language?: string | null; displayName?: string; location?: string | null },
 ): Promise<string> {
   const timeContext = buildTimeContext(context.timezone);
   const lang = context.language && context.language !== "en" ? `Reply in ${context.language}.` : "Reply in English.";
@@ -227,7 +347,7 @@ function validateCalls(calls: PlannedCall[], tools: ToolSet): { valid: PlannedCa
 export async function runMultiStep(
   userText: string,
   tools: ToolSet,
-  context: { timezone: string; language?: string | null; displayName?: string },
+  context: { timezone: string; language?: string | null; displayName?: string; location?: string | null },
 ): Promise<{ text: string; toolCalls: PlannedCall[]; toolResults: ToolResult[] }> {
   let calls = await planCalls(userText, tools, context);
   let { valid: callsToRun, errors } = validateCalls(calls, tools);

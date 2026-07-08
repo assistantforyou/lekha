@@ -157,6 +157,7 @@ export async function runMastraAgent(
     const tz = settings.timezone ?? "Asia/Bangkok";
     lang = settings.language ?? null;
     const displayName = settings.personaPreferredName?.trim() || profile.displayName;
+    const location = settings.location ?? null;
     const factsBlock = factsToPromptBlock(facts, factLimitForHint(opts.hint ?? undefined));
     const system = buildSystemPrompt(factsBlock, { displayName }, {
       ...settings,
@@ -231,6 +232,7 @@ export async function runMastraAgent(
           timezone: tz,
           language: lang,
           displayName,
+          location,
         });
       } catch (err) {
         console.warn("[mastra] multi-step handler failed, falling back to agent", err);
