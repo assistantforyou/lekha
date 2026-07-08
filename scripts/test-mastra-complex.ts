@@ -11,8 +11,10 @@ const userId = `U_test_${Date.now()}`;
 const profile = { displayName: "Test User" };
 
 const prompt =
-  "I'm in Bangkok. Please: (1) check today's weather, (2) search the web for the latest AI news, " +
-  "(3) list my open tasks, (4) remember that I prefer Thai iced tea with less sugar, and " +
+  "I'm in Bangkok. Please: (1) check today's weather, " +
+  "(2) search the web for the latest AI news, " +
+  "(3) remember that I prefer Thai iced tea with less sugar, " +
+  "(4) add a task to buy snacks for the office, and " +
   "(5) give me a quick USD/THB exchange rate.";
 
 async function main() {
@@ -35,6 +37,9 @@ async function main() {
     settings,
     hint: undefined,
     traceId: `test-${Date.now()}`,
+    // Force the model to use tools so the multi-step chain is deterministic.
+    toolChoice: "required",
+    maxSteps: 1,
   });
 
   console.log("\n=== FINAL REPLY ===\n");
@@ -45,8 +50,31 @@ async function main() {
     console.log(`- ${call.toolName}:`, JSON.stringify(call.input).slice(0, 300));
   }
 
-  console.log("\n=== HINTS ===");
-  console.log(result.hints);
+  console.log("\n=== FLEX MESSAGES ===");
+  console.log(result.hints.flexMessages?.map((m) => m.type).join(", ") || "none");
+
+  console.log("\n=== FOLLOW-UPS ===");
+  console.log(result.hints.followUps?.map((f) => f.label).join(", ") || "none");
+
+  const calledNames = new Set((result.toolCalls ?? []).map((c) => c.toolName));
+  const requiredGroups = [
+    ["weather"],
+    ["web_search", "news_search"],
+    ["remember"],
+    ["add_task"],
+    ["fx_rate"],
+  ];
+  const missing = requiredGroups
+    .filter((group) => !group.some((name) => calledNames.has(name)))
+    .map((group) => group.join("/"));
+  const hasOutput = result.text.trim().length > 0 || (result.hints.flexMessages?.length ?? 0) > 0;
+
+  if (missing.length > 0 || !hasOutput) {
+    console.error("\n❌ Complex test failed:", { missing, hasOutput });
+    process.exit(1);
+  }
+
+  console.log("\n✅ Complex multi-step test passed");
 }
 
 main().catch((e) => {

@@ -21,8 +21,8 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.80",
-    "@mastra/core": "^1.50.0",
-    "@mastra/memory": "^1.22.1",
+    "@mastra/core": "^1.50.1",
+    "@mastra/memory": "^1.22.2",
     "@mastra/pg": "^1.15.1",
     "@mastra/upstash": "^1.2.2",
     "@tailwindcss/postcss": "^4.3.0",

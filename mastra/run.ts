@@ -30,6 +30,7 @@ import {
 } from "@/lib/llm/agent-helpers";
 import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
 import { factsToPromptBlock, type UserFacts } from "@/lib/memory/facts";
+import { historyForPrompt, appendTurn, type StoredTurn } from "@/lib/memory/history";
 import { appendAuditEntry, type AuditToolCall } from "@/lib/memory/audit-log";
 import { buildFlexFromToolResults, buildFollowUps, buildDraftFlexCards } from "@/lib/llm/agent-flex";
 import { HELP_TEXT } from "@/lib/tools/help";
@@ -37,6 +38,7 @@ import { unwrapAuthRequired } from "@/lib/errors";
 import { span, tick, withTimeout } from "@/lib/timing";
 import { t } from "@/lib/i18n";
 import { GEMINI_PROVIDER_OPTIONS, AGENT_TIMEOUT_MS } from "@/lib/llm/provider";
+import { env } from "@/lib/env";
 
 export type MastraRunOptions = {
   userId: string;
@@ -65,6 +67,10 @@ export type MastraRunOptions = {
   groupContext?: ModelMessage[];
   timeoutMs?: number;
   traceId?: string;
+  /** Force at least one tool call (useful for deterministic multi-step tests). */
+  toolChoice?: "auto" | "required" | "none";
+  /** Override the default tool-step budget. */
+  maxSteps?: number;
 };
 
 type InternalStep = {
@@ -181,29 +187,51 @@ export async function runMastraAgent(
     requestContext.set("timezone", tz);
     requestContext.set("language", lang);
 
-    const tracker = createStepTracker(traceId);
+    const historyMessages = await historyForPrompt(userId);
+    const conversationMessages: ModelMessage[] = [
+      ...historyMessages,
+      ...timePrefix,
+      ...(opts.groupContext ?? []),
+      ...messages,
+    ];
 
-    const agent = getLekhaAgent();
+    async function attemptGenerate(tier: "free" | "paid") {
+      const agent = getLekhaAgent(tier);
+      const localTracker = createStepTracker(traceId);
+      let localRanToolCalls = false;
+      const res = await withTimeout(
+        agent.generate(conversationMessages as any, {
+          instructions: system,
+          requestContext,
+          maxSteps: opts.maxSteps ?? 8,
+          providerOptions: { google: { ...GEMINI_PROVIDER_OPTIONS.google, temperature: 0.6 } } as any,
+          toolChoice: (opts.toolChoice ?? "auto") as any,
+          onStepFinish: (step) => {
+            if (step.toolCalls.length > 0) localRanToolCalls = true;
+            localTracker.record(adaptMastraStep(step));
+          },
+        }),
+        opts.timeoutMs ?? AGENT_TIMEOUT_MS,
+      );
+      return { res, tracker: localTracker, ranToolCalls: localRanToolCalls };
+    }
+
     const endGenerate = span("mastra:generate", traceId);
-
-    const result = await withTimeout(
-      agent.generate(messages as any, {
-        instructions: system,
-        context: [...timePrefix, ...(opts.groupContext ?? [])] as any,
-        requestContext,
-        memory: {
-          resource: userId,
-          thread: opts.isGroupChat && opts.conversationId ? opts.conversationId : userId,
-        },
-        maxSteps: 8,
-        providerOptions: { google: { ...GEMINI_PROVIDER_OPTIONS.google, temperature: 0.6 } } as any,
-        onStepFinish: (step) => {
-          if (step.toolCalls.length > 0) geminiRanToolCalls = true;
-          tracker.record(adaptMastraStep(step));
-        },
-      }),
-      opts.timeoutMs ?? AGENT_TIMEOUT_MS,
-    );
+    let generateResult: Awaited<ReturnType<typeof attemptGenerate>>;
+    try {
+      generateResult = await attemptGenerate("free");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const e = env();
+      const canFallback = Boolean(e.GEMINI_API_KEY_FREE && e.GEMINI_API_KEY);
+      if (canFallback && /RESOURCE_EXHAUSTED|rate limit|429|quota|exceeded|spending cap/i.test(msg)) {
+        console.warn("[mastra] free Gemini key quota hit, falling back to paid key", { userId, msg: msg.slice(0, 200) });
+        generateResult = await attemptGenerate("paid");
+      } else {
+        throw err;
+      }
+    }
+    const { res: result, tracker, ranToolCalls: geminiRanToolCalls } = generateResult;
 
     const usage = result.totalUsage ?? result.usage;
     const costUsd =
@@ -259,7 +287,11 @@ export async function runMastraAgent(
       }
     }
 
-    let finalText = suppressText && !processed.authNeeded && !processed.hadUnrelayedToolError ? "" : text;
+    const modelText = result.text?.trim() ?? "";
+    let finalText =
+      suppressText && modelText.length > 0 && !processed.authNeeded && !processed.hadUnrelayedToolError
+        ? ""
+        : text;
     let extraToolCalls = tracker.allCalls;
 
     const looksBlankOrUnhelpful =
@@ -343,6 +375,13 @@ export async function runMastraAgent(
     }).catch((e) => console.error("[audit] append failed", e));
 
     const historyText = finalText.trim().length > 0 ? finalText : text.trim().length > 0 ? text : "Done.";
+
+    // Persist this turn to Redis-backed rolling history.
+    const userTurn: StoredTurn = { role: "user", content: getLastUserText(messages), ts: Date.now() };
+    const assistantTurn: StoredTurn = { role: "assistant", content: historyText, ts: Date.now() };
+    appendTurn(userId, userTurn).catch((e) => console.warn("[history] append user failed", e));
+    appendTurn(userId, assistantTurn).catch((e) => console.warn("[history] append assistant failed", e));
+
     return { text: finalText, hints, toolCalls: extraToolCalls, historyText };
   } catch (err) {
     const errText = await handleAgentError(err, opts.userId, lang, opts.userId);

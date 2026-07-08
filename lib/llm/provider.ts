@@ -29,6 +29,24 @@ export function chatModelForTier(tier: "free" | "paid") {
 }
 
 /**
+ * Agentic model with tiered key selection.
+ * The agent path uses the free key first and falls back to the paid key on
+ * quota/rate-limit errors (see runMastraAgent retry logic). Non-agent callers
+ * should use chatModel() / chatModelForTier() directly.
+ */
+export function agentModel(tier: "free" | "paid" = "free") {
+  const e = env();
+  if (tier === "free") {
+    const key = e.GEMINI_API_KEY_FREE ?? e.GEMINI_API_KEY ?? e.AI_GATEWAY_API_KEY;
+    if (!key) throw new Error("No Gemini API key configured");
+    return createGoogleGenerativeAI({ apiKey: key })("gemini-2.5-flash");
+  }
+  const key = e.GEMINI_API_KEY ?? e.AI_GATEWAY_API_KEY;
+  if (!key) throw new Error("No paid Gemini API key configured");
+  return createGoogleGenerativeAI({ apiKey: key })("gemini-2.5-flash");
+}
+
+/**
  * Main chat model — Gemini 2.5 Flash. Full Flash is required for reliable
  * agentic tool use; Flash Lite caused blank/panicked replies.
  *

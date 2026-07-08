@@ -1,45 +1,20 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { UpstashVector } from "@mastra/upstash";
-import { googleClient } from "@/lib/llm/provider";
+import { agentModel } from "@/lib/llm/provider";
 import { env } from "@/lib/env";
 import { buildLekhaTools, lekhaRequestContextSchema } from "../tools";
 import { getStorage } from "../storage";
 
 function createMemory() {
-  const e = env();
-  const storage = getStorage();
-
-  if (!storage) {
-    return undefined;
-  }
-
-  if (!e.UPSTASH_VECTOR_REST_URL || !e.UPSTASH_VECTOR_REST_TOKEN) {
-    return undefined;
-  }
-
-  return new Memory({
-    storage,
-    vector: new UpstashVector({
-      id: "lekha-vector",
-      url: e.UPSTASH_VECTOR_REST_URL,
-      token: e.UPSTASH_VECTOR_REST_TOKEN,
-    }),
-    embedder: googleClient().textEmbeddingModel("gemini-embedding-001"),
-    embedderOptions: { providerOptions: { google: { outputDimensionality: 768 } } },
-    options: {
-      lastMessages: 35,
-      semanticRecall: {
-        topK: 3,
-        messageRange: 2,
-        scope: "thread",
-      },
-      workingMemory: { enabled: true, scope: "resource" },
-    },
-  });
+  // Mastra Memory is disabled for now. The agent runtime uses Redis-backed
+  // rolling history (lib/memory/history.ts) loaded into the prompt directly.
+  // This avoids a Mastra 1.50 bug where agent.generate returns an empty reply
+  // when memory + the full Lekha system prompt are used together.
+  return undefined;
 }
 
-function buildAgent() {
+function buildAgent(tier: "free" | "paid" = "free") {
   return new Agent({
     id: "lekha",
     name: "Lekha",
@@ -47,7 +22,7 @@ function buildAgent() {
       "You are Lekha, a personal AI assistant living in LINE. " +
       "You help the user with tasks, reminders, email, calendar, memory, web search, " +
       "weather, finance, news, and documents. Be concise, helpful, and accurate.",
-    model: googleClient()("gemini-2.5-flash"),
+    model: agentModel(tier),
     memory: createMemory(),
     maxRetries: 3,
     requestContextSchema: lekhaRequestContextSchema,
@@ -60,10 +35,10 @@ function buildAgent() {
 
 type LekhaAgent = ReturnType<typeof buildAgent>;
 
-let agent: LekhaAgent | undefined;
+const agents: Partial<Record<"free" | "paid", LekhaAgent>> = {};
 
 /** Lazy agent singleton — avoids validating env / instantiating memory at import time. */
-export function getLekhaAgent(): LekhaAgent {
-  if (!agent) agent = buildAgent();
-  return agent;
+export function getLekhaAgent(tier: "free" | "paid" = "free"): LekhaAgent {
+  if (!agents[tier]) agents[tier] = buildAgent(tier);
+  return agents[tier]!;
 }
