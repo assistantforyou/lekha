@@ -68,16 +68,24 @@ export async function extractStructuredDocument(
   const text = r.text.trim();
   const jsonText = extractJsonBlock(text);
   let doc: StructuredDoc;
+  let parseFailed = false;
   try {
     const parsed = JSON.parse(jsonText);
     doc = StructuredDocSchema.parse(parsed);
   } catch (err) {
     console.error("[doc-intel] structured parse failed", err, "raw:", text.slice(0, 500));
-    // Graceful degradation: store empty result so we don't retry endlessly.
+    // Graceful degradation: return empty result, but don't cache it for 30 days.
+    // A transient model failure should be retryable on the next ask.
+    parseFailed = true;
     doc = { items: [] };
   }
 
-  await setStructuredDocument(userId, messageId, doc);
+  if (!parseFailed) {
+    await setStructuredDocument(userId, messageId, doc);
+  } else {
+    // Cache failures for only 1 hour so a bad model response isn't locked in.
+    await redis().set(key(userId, messageId), JSON.stringify(doc), { ex: 60 * 60 });
+  }
 
   // Index rows for semantic search so the user can ask about them later.
   const rowsText = doc.items

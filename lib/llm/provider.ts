@@ -80,14 +80,38 @@ export async function withGeminiFallback<T>(fn: (model: ReturnType<typeof chatMo
   }
 }
 
+function buildExtractorModel(tier: "free" | "paid") {
+  const e = env();
+  const key = tier === "free" ? e.GEMINI_API_KEY_FREE : (e.GEMINI_API_KEY ?? e.AI_GATEWAY_API_KEY);
+  if (!key) throw new Error(`No ${tier} Gemini API key configured`);
+  return createGoogleGenerativeAI({ apiKey: key })("gemini-2.5-flash-lite");
+}
+
 /** Background extraction / summarization model. Flash-Lite is sufficient for
  *  generateObject (structured output, no tool use) and costs ~6× less on output.
  *  Prefers the free key so background tasks don't burn paid quota. */
 export function extractorModel() {
+  return buildExtractorModel(hasFreeKey() ? "free" : "paid");
+}
+
+/**
+ * Run a background extraction/summarization call with free→paid fallback.
+ * Background fact extraction and history summarization must not hard-fail when
+ * the free tier quota is exhausted.
+ */
+export async function withExtractorFallback<T>(fn: (model: ReturnType<typeof buildExtractorModel>) => Promise<T>): Promise<T> {
   const e = env();
-  const freeKey = e.GEMINI_API_KEY_FREE;
-  const client = freeKey ? createGoogleGenerativeAI({ apiKey: freeKey }) : googleClient();
-  return client("gemini-2.5-flash-lite");
+  const canFallback = Boolean(e.GEMINI_API_KEY_FREE && (e.GEMINI_API_KEY ?? e.AI_GATEWAY_API_KEY));
+  try {
+    return await fn(buildExtractorModel("free"));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (canFallback && /RESOURCE_EXHAUSTED|rate limit|429|quota|exceeded|spending cap|UNAVAILABLE|DeadlineExceeded|503|maxRetriesExceeded/i.test(msg)) {
+      console.warn("[provider] free extractor quota/unavailable, falling back to paid key");
+      return await fn(buildExtractorModel("paid"));
+    }
+    throw err;
+  }
 }
 
 /**

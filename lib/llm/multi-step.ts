@@ -195,22 +195,54 @@ function formatResultForSynthesis(result: unknown): string {
   return String(result).slice(0, 800);
 }
 
+type PlannerContext = {
+  timezone: string;
+  language?: string | null;
+  displayName?: string;
+  location?: string | null;
+  factsBlock?: string;
+  personaTone?: string;
+  personaAddressing?: string;
+  personaPreferredName?: string | null;
+  activeEmail?: string | null;
+  accounts?: string[];
+  staged?: string;
+  isGroupChat?: boolean;
+  groupContext?: string;
+};
+
+function buildPlannerContext(ctx: PlannerContext): string {
+  const parts: string[] = [];
+  parts.push(buildTimeContext(ctx.timezone));
+  if (ctx.location) parts.push(`User's default location: ${ctx.location}.`);
+  if (ctx.personaPreferredName) parts.push(`User's preferred name: ${ctx.personaPreferredName}.`);
+  else if (ctx.displayName) parts.push(`User's display name: ${ctx.displayName}.`);
+  if (ctx.personaTone) parts.push(`Tone: ${ctx.personaTone}.`);
+  if (ctx.personaAddressing) parts.push(`Addressing style: ${ctx.personaAddressing}.`);
+  if (ctx.accounts?.length) {
+    parts.push(`Connected Google accounts: ${ctx.accounts.join(", ")}${ctx.activeEmail ? ` (active: ${ctx.activeEmail})` : ""}.`);
+  }
+  if (ctx.staged) parts.push(ctx.staged);
+  if (ctx.factsBlock) parts.push(ctx.factsBlock);
+  if (ctx.isGroupChat) parts.push("This is a group chat.");
+  if (ctx.groupContext) parts.push(`Recent group context:\n${ctx.groupContext}`);
+  return parts.filter(Boolean).join("\n");
+}
+
 async function planCalls(
   userText: string,
   tools: ToolSet,
-  context: { timezone: string; language?: string | null; displayName?: string; location?: string | null },
+  context: PlannerContext,
   priorErrors?: string[],
 ): Promise<PlannedCall[]> {
   const catalog = buildToolCatalog(tools);
-  const timeContext = buildTimeContext(context.timezone);
-  const locationLine = context.location ? `User's default location: ${context.location}.` : "No default location is set.";
+  const ctxBlock = buildPlannerContext(context);
   const lang = context.language && context.language !== "en" ? `Reply in ${context.language}.` : "Reply in English.";
 
   const system = `You are Lekha's planner. The user sent a message with multiple independent requests.
 
 Current context:
-${timeContext}
-${locationLine}
+${ctxBlock}
 
 Available tools:
 ${catalog}
@@ -227,6 +259,7 @@ Rules:
 - For add_task, include { "title": "<task title>" }.
 - For fx_rate, include { "from": "USD", "to": "THB" }.
 - Do not include tools that require user confirmation (drafts are fine; do NOT call sendEmail or create_calendar_event directly).
+- If the user refers to "this file" / "this image" / "this document" and staged media is listed above, use the appropriate media tool with the correct index.
 
 Example input schema:
 - weather: { "location": "string" }
@@ -292,9 +325,9 @@ async function executeCalls(calls: PlannedCall[], tools: ToolSet): Promise<ToolR
 async function synthesizeReply(
   userText: string,
   results: ToolResult[],
-  context: { timezone: string; language?: string | null; displayName?: string; location?: string | null },
+  context: PlannerContext,
 ): Promise<string> {
-  const timeContext = buildTimeContext(context.timezone);
+  const ctxBlock = buildPlannerContext(context);
   const lang = context.language && context.language !== "en" ? `Reply in ${context.language}.` : "Reply in English.";
   const resultBlock = results
     .map((r) => `## ${r.tool}\nInput: ${JSON.stringify(r.input)}\nResult: ${formatResultForSynthesis(r.output)}`)
@@ -302,9 +335,11 @@ async function synthesizeReply(
 
   const system = `You are Lekha, a warm, concise personal secretary in the user's LINE chat.
 
-${timeContext}
+${ctxBlock}
 
 The user asked several things at once. You have already gathered the results below. Write ONE concise, friendly reply that addresses every request. Cite sources and timestamps for live data (weather, rates, search). Use LINE formatting: short paragraphs, • bullets, emoji where helpful. Avoid markdown (*, **, #, leading -).
+
+If the user asked about a staged file/image/document, reference it directly using any information the tool returned.
 
 IMPORTANT: ${lang}`;
 
@@ -347,7 +382,7 @@ function validateCalls(calls: PlannedCall[], tools: ToolSet): { valid: PlannedCa
 export async function runMultiStep(
   userText: string,
   tools: ToolSet,
-  context: { timezone: string; language?: string | null; displayName?: string; location?: string | null },
+  context: PlannerContext,
 ): Promise<{ text: string; toolCalls: PlannedCall[]; toolResults: ToolResult[] }> {
   let calls = await planCalls(userText, tools, context);
   let { valid: callsToRun, errors } = validateCalls(calls, tools);
@@ -368,3 +403,5 @@ export async function runMultiStep(
   const text = await synthesizeReply(userText, results, context);
   return { text, toolCalls: callsToRun, toolResults: results };
 }
+
+export type { PlannerContext };

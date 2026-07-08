@@ -519,7 +519,9 @@ async function resolveStagedItem(
   for (let i = staged.length - 1; i >= 0; i--) {
     if (staged[i]!.kind === expectedKind) return staged[i]!;
   }
-  return staged[staged.length - 1] ?? null;
+  // No item of the expected kind — don't silently send the wrong media type.
+  const kindLabel = expectedKind === "file" ? "document" : expectedKind;
+  return { error: `No staged ${kindLabel} found. Send the ${kindLabel} first, or use an index.` };
 }
 
 function docGeminiError(err: unknown, mediaType: string) {

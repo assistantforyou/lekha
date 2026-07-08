@@ -2,9 +2,16 @@ import { describe, it, expect } from "vitest";
 import { classify } from "@/lib/confirm";
 
 describe("classify", () => {
-  const YES_CASES = ["yes", "Yes", "YES", "y", "Y", "yeah", "yep", "yup", "sure", "ok", "okay", "k", "kk", "send", "send it", "do it", "go", "confirm", "confirmed"];
-  const NO_CASES = ["no", "No", "NO", "n", "nope", "cancel", "stop", "abort", "nvm", "nevermind", "never mind"];
-  const NEITHER_CASES = ["remind me tomorrow", "search for coffee", "", "   ", "maybe", "yes please send it"];
+  const YES_CASES = [
+    "yes", "Yes", "YES", "y", "Y", "yeah", "yep", "yup", "sure", "ok", "okay", "k", "kk", "send", "send it",
+    "do it", "go", "confirm", "confirmed", "yes please", "go ahead", "yes please send it", "ok ส่งเลย",
+    "ตกลง", "ตกลงครับ", "ได้", "โอเค", "ยืนยัน", "ส่งเลย", "ใช่", "เอา",
+  ];
+  const NO_CASES = [
+    "no", "No", "NO", "n", "nope", "cancel", "stop", "abort", "nvm", "nevermind", "never mind", "ไม่",
+    "ยกเลิก", "ไม่เอา", "ไม่ส่ง",
+  ];
+  const NEITHER_CASES = ["remind me tomorrow", "search for coffee", "", "   ", "maybe"];
 
   for (const input of YES_CASES) {
     it(`classifies "${input}" as yes`, () => {

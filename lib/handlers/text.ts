@@ -97,7 +97,15 @@ export async function respondToText(
     userContent = userText;
   }
 
-  const messages: ModelMessage[] = [{ role: "user", content: userContent }];
+  const messages: ModelMessage[] = [
+    {
+      role: "user",
+      content:
+        opts?.groupContext && typeof userContent === "string"
+          ? `[${opts.groupContext.speakerName}]: ${userContent}`
+          : userContent,
+    },
+  ];
 
   const result = await runMastraAgent(messages, {
     userId,

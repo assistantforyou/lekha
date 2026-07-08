@@ -1,6 +1,6 @@
 import { generateObject, generateText } from "ai";
 import { z } from "zod";
-import { extractorModel } from "./provider";
+import { extractorModel, withExtractorFallback } from "./provider";
 import {
   loadFacts,
   saveFacts,
@@ -71,12 +71,14 @@ export async function extractAndMergeFacts(userId: string, recent: StoredTurn[])
 
   let result;
   try {
-    result = await generateObject({
-      model: extractorModel(),
-      schema: Schema,
-      system: FACT_EXTRACTION_PROMPT,
-      prompt: `Conversation:\n${transcript}${existingBlock}`,
-    });
+    result = await withExtractorFallback((model) =>
+      generateObject({
+        model,
+        schema: Schema,
+        system: FACT_EXTRACTION_PROMPT,
+        prompt: `Conversation:\n${transcript}${existingBlock}`,
+      }),
+    );
   } catch (err) {
     console.warn("[facts] extraction failed", err);
     return;
@@ -105,12 +107,14 @@ export async function extractAndMergeFacts(userId: string, recent: StoredTurn[])
 
   // Long-term archive: 2-4 sentence summary distilled from the chunk.
   try {
-    const r = await generateText({
-      model: extractorModel(),
-      system:
-        "Summarize this conversation chunk between a user and their assistant in 2–4 sentences. Capture topics, decisions, commitments, and anything worth being able to recall in weeks. Be concrete (names, dates, places). Output the summary only.",
-      prompt: transcript,
-    });
+    const r = await withExtractorFallback((model) =>
+      generateText({
+        model,
+        system:
+          "Summarize this conversation chunk between a user and their assistant in 2–4 sentences. Capture topics, decisions, commitments, and anything worth being able to recall in weeks. Be concrete (names, dates, places). Output the summary only.",
+        prompt: transcript,
+      }),
+    );
     const summary = r.text.trim();
     if (summary.length > 30) {
       await appendArchive(userId, {

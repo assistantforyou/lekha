@@ -159,22 +159,21 @@ export async function runMastraAgent(
     const displayName = settings.personaPreferredName?.trim() || profile.displayName;
     const location = settings.location ?? null;
     const factsBlock = factsToPromptBlock(facts, factLimitForHint(opts.hint ?? undefined));
-    const system = buildSystemPrompt(factsBlock, { displayName }, {
-      ...settings,
-      isGroupChat: opts.isGroupChat,
-      speakerName: opts.speakerName,
-    });
 
     const recencyReminder = opts.hint === "recent"
       ? "This message likely asks about current or recent information. ALWAYS search the web (web_search or news_search) before answering. Do not rely on training data."
       : "";
     const contextParts = [buildTimeContext(tz), accountsBlock, recentBlock, recencyReminder].filter(Boolean).join("\n");
-    const timePrefix: ModelMessage[] = contextParts
-      ? [
-          { role: "user", content: [{ type: "text", text: contextParts }] },
-          { role: "assistant", content: [{ type: "text", text: "Got it." }] },
-        ]
-      : [];
+    const contextSystemBlock = contextParts
+      ? `\n\nCurrent context (reference data, not a user request):\n${contextParts}`
+      : "";
+
+    const system =
+      buildSystemPrompt(factsBlock, { displayName }, {
+        ...settings,
+        isGroupChat: opts.isGroupChat,
+        speakerName: opts.speakerName,
+      }) + contextSystemBlock;
 
     const requestContext = new RequestContext();
     requestContext.set("userId", userId);
@@ -189,7 +188,6 @@ export async function runMastraAgent(
     const historyMessages = await historyForPrompt(userId);
     const conversationMessages: ModelMessage[] = [
       ...historyMessages,
-      ...timePrefix,
       ...(opts.groupContext ?? []),
       ...messages,
     ];
@@ -227,12 +225,24 @@ export async function runMastraAgent(
           disabledCategories: settings.disabledCategories ?? [],
           hasStagedMedia: opts.hasStagedMedia,
           hint: opts.hint ?? undefined,
+          activeEmail,
         });
         multiStepResult = await runMultiStep(lastUserText, aiTools, {
           timezone: tz,
           language: lang,
           displayName,
           location,
+          factsBlock: factsBlock,
+          personaTone: settings.personaTone,
+          personaAddressing: settings.personaAddressing,
+          personaPreferredName: settings.personaPreferredName,
+          activeEmail,
+          accounts: accounts.accounts.map((a) => a.email),
+          staged: recentBlock,
+          isGroupChat: opts.isGroupChat,
+          groupContext: opts.groupContext
+            ? opts.groupContext.map((m) => `${m.role}: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`).join("\n")
+            : undefined,
         });
       } catch (err) {
         console.warn("[mastra] multi-step handler failed, falling back to agent", err);
@@ -282,7 +292,7 @@ export async function runMastraAgent(
         const msg = err instanceof Error ? err.message : String(err);
         const e = env();
         const canFallback = Boolean(e.GEMINI_API_KEY_FREE && e.GEMINI_API_KEY);
-        if (canFallback && /RESOURCE_EXHAUSTED|rate limit|429|quota|exceeded|spending cap/i.test(msg)) {
+        if (canFallback && /RESOURCE_EXHAUSTED|rate limit|429|quota|exceeded|spending cap|UNAVAILABLE|DeadlineExceeded|503|Bad Gateway|service unavailable|maxRetriesExceeded/i.test(msg)) {
           console.warn("[mastra] free Gemini key quota hit, falling back to paid key", { userId, msg: msg.slice(0, 200) });
           generateResult = await attemptGenerate("paid");
         } else {
@@ -375,7 +385,7 @@ export async function runMastraAgent(
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (looksLikeWeather(lastUserText)) {
-        const fb = await fallbackWeather(lastUserText, tz, lang);
+        const fb = await fallbackWeather(lastUserText, tz, lang, location);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];

@@ -196,9 +196,9 @@ describe("group context", () => {
       });
     }
     const turns = await loadGroupTurns(conversationId, 100);
-    expect(turns).toHaveLength(50);
-    expect(turns[0]?.text).toBe("msg10");
-    expect(turns[49]?.text).toBe("msg59");
+    expect(turns).toHaveLength(60);
+    expect(turns[0]?.text).toBe("msg0");
+    expect(turns[59]?.text).toBe("msg59");
   });
 
   it("converts turns to model messages with bot as assistant", () => {

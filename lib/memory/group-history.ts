@@ -12,8 +12,9 @@ export type GroupTurn = {
   mentionsBot?: boolean;
 };
 
-const MAX_TURNS = 50;
-const CONTEXT_TURNS = 20;
+const MAX_TURNS = 60;
+const CONTEXT_TURNS = 40;
+const CONTEXT_TOKEN_BUDGET = 2500;
 const HISTORY_TTL_SEC = 60 * 60 * 24 * 30;
 const PROFILE_TTL_SEC = 60 * 60 * 24;
 
@@ -81,11 +82,48 @@ export function groupTurnsToMessages(turns: GroupTurn[], botUserId: string | und
   return out;
 }
 
+function estimateTurnTokens(turn: GroupTurn): number {
+  // Weighted estimate: CJK/Thai ~1.5 chars/token, Latin ~4 chars/token.
+  const text = `${turn.displayName}: ${turn.text}`;
+  let cjkThai = 0;
+  let latin = 0;
+  for (const ch of text) {
+    const cp = ch.codePointAt(0) ?? 0;
+    if (
+      (cp >= 0x4e00 && cp <= 0x9fff) ||
+      (cp >= 0x3400 && cp <= 0x4dbf) ||
+      (cp >= 0xac00 && cp <= 0xd7af) ||
+      (cp >= 0x0e00 && cp <= 0x0e7f) ||
+      (cp >= 0x3040 && cp <= 0x309f) ||
+      (cp >= 0x30a0 && cp <= 0x30ff)
+    ) {
+      cjkThai++;
+    } else {
+      latin++;
+    }
+  }
+  return Math.ceil(cjkThai / 1.5) + Math.ceil(latin / 4) + 4;
+}
+
+function capTurnsByTokens(turns: GroupTurn[], budget: number): GroupTurn[] {
+  let tokens = 0;
+  const out: GroupTurn[] = [];
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const turn = turns[i]!;
+    const t = estimateTurnTokens(turn);
+    if (tokens + t > budget && out.length > 0) break;
+    tokens += t;
+    out.unshift(turn);
+  }
+  return out;
+}
+
 export async function groupContextForPrompt(
   conversationId: string,
   botUserId: string | undefined,
   limit = CONTEXT_TURNS,
 ): Promise<ModelMessage[]> {
   const turns = await loadGroupTurns(conversationId, limit);
-  return groupTurnsToMessages(turns, botUserId);
+  const capped = capTurnsByTokens(turns, CONTEXT_TOKEN_BUDGET);
+  return groupTurnsToMessages(capped, botUserId);
 }

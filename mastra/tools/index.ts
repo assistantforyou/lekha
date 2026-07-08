@@ -33,6 +33,7 @@ export async function buildLekhaTools(ctx: LekhaRequestContext) {
     disabledCategories: ctx.disabledCategories ?? [],
     hasStagedMedia: ctx.hasStagedMedia,
     hint: ctx.hint,
+    activeEmail: ctx.activeEmail,
   });
 
   const out: Record<string, ReturnType<typeof wrapAiTool>> = {};

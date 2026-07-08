@@ -122,7 +122,7 @@ For internals you need when modifying the code, see **[CLAUDE.md](./CLAUDE.md)**
               │ For each event (text / image / video / audio / │
               │ file / sticker / follow):                      │
               │  • dedup by webhookEventId                     │
-              │  • per-user rate-limit (Upstash sliding 30/hr) │
+              │  • per-user rate-limit (Upstash sliding 500/hr) │
               │  • if pending action queue not empty:          │
               │     classify YES/NO → execute or discard       │
               │  • else: respond via the agent                 │
@@ -286,7 +286,7 @@ Five layers, all keyed by LINE `userId`:
 
 1. **Profile** (`user:{userId}:profile`) — `{ displayName, joinedAt }`.
 2. **Settings** (`user:{userId}:settings`) — `{ timezone, location, language, morningBriefingTime, preMeetingMinutes, … }`. Injected into every system prompt.
-3. **Rolling history** (`user:{userId}:history`) — last 20 turns. Fed verbatim every turn.
+3. **Rolling history** (`user:{userId}:history`) — last 35 turns. Fed verbatim every turn.
 4. **Extracted facts** (`user:{userId}:facts`) — durable bullets, capped ~4KB. Every 10th turn, an extractor LLM call updates them. User can also `remember` / `update_memory` / `forget_memory` directly.
 5. **Long-term archive** (`user:{userId}:archive`) — every 10 turns, the same extractor pass also writes a 2–4 sentence chunk summary. Capped at 200 chunks (~years of conversation). Searchable via `search_archived_memory`. Cheap substring match — good enough at personal-bot scale.
 
@@ -446,7 +446,7 @@ In all four cases the model gets text in its prompt explaining the staged item (
 | OAuth state CSRF / replay | Signed (HMAC) connect-link tokens, server-side nonce in Redis with 10-min TTL, single-use |
 | Refresh tokens at rest | AES-256-GCM with `TOKEN_ENCRYPTION_KEY` (32 bytes) |
 | LLM jailbreaking the user's identity | `userId` is bound from the verified webhook, never from tool args. Tools that send things use that bound `userId` to fetch tokens — bot can never send as a user who didn't authorize |
-| Free quota burn | Per-user sliding-window rate limit (30/hr) via `@upstash/ratelimit` |
+| Free quota burn | Per-user sliding-window rate limit (500/hr) via `@upstash/ratelimit` |
 | Webhook replay | Each event de-duped by `webhookEventId` for 10 min |
 | Confirmation gate | Drafts are queued, executed only on explicit YES — bot won't send the wrong email even if it misreads your intent |
 

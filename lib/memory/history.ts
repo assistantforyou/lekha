@@ -1,7 +1,7 @@
 import { redis } from "./redis";
 import { createTtlCache } from "./cache";
 import { generateText } from "ai";
-import { extractorModel } from "@/lib/llm/provider";
+import { extractorModel, withExtractorFallback } from "@/lib/llm/provider";
 import type { ModelMessage } from "ai";
 import { createHash } from "crypto";
 import { span } from "@/lib/timing";
@@ -177,11 +177,13 @@ async function summarizeOldest(oldest: StoredTurn[]): Promise<string | null> {
     const transcript = oldest
       .map((t) => `${t.role === "user" ? "User" : "Assistant"}: ${t.content}`)
       .join("\n");
-    const r = await generateText({
-      model: extractorModel(),
-      system: `Summarize the earlier portion of a conversation between a user and their assistant in roughly ${SUMMARY_TARGET_TOKENS} tokens (~150 words). Capture: ongoing tasks, decisions, commitments, important entities (people/places/dates). Be concrete. Output the summary only — no preamble.`,
-      prompt: transcript,
-    });
+    const r = await withExtractorFallback((model) =>
+      generateText({
+        model,
+        system: `Summarize the earlier portion of a conversation between a user and their assistant in roughly ${SUMMARY_TARGET_TOKENS} tokens (~150 words). Capture: ongoing tasks, decisions, commitments, important entities (people/places/dates). Be concrete. Output the summary only — no preamble.`,
+        prompt: transcript,
+      }),
+    );
     const s = r.text.trim();
     return s.length > 30 ? s : null;
   } catch (err) {

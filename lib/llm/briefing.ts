@@ -303,10 +303,20 @@ export async function buildMorningBriefing(
             "https://www.googleapis.com/auth/gmail.readonly",
           ]);
           const gmail = google.gmail({ version: "v1", auth: client });
+
+          // Surface every inbox message since yesterday midnight in the user's timezone,
+          // not just unread ones. Capped at 25 to keep API calls and the card readable.
+          const yesterday = new Date(
+            new Date().toLocaleDateString("en-US", { timeZone: opts.timezone }),
+          );
+          yesterday.setDate(yesterday.getDate() - 1);
+          const after = yesterday.toISOString().slice(0, 10).replace(/-/g, "/");
+
           const list = await gmail.users.messages.list({
             userId: "me",
-            q: "newer_than:1d is:unread -category:promotions -category:social",
-            maxResults: 50,
+            q: `after:${after} in:inbox -category:promotions`,
+            labelIds: ["INBOX"],
+            maxResults: 25,
           });
           const ids = (list.data.messages ?? []).map((m) => m.id ?? "").filter(Boolean);
           if (!ids.length) return [];

@@ -16,6 +16,38 @@ import { classify, clearPending, getPending } from "@/lib/confirm";
 import { executePendingAll } from "@/lib/pending-runner";
 import { registerUser } from "@/lib/memory/user-registry";
 import { dispatchShortcut } from "@/lib/shortcuts";
+import { redis } from "@/lib/memory/redis";
+
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const DEV_CHAT_HOURLY_LIMIT = 100;
+
+function rateLimitKey(userId: string) {
+  return `ratelimit:dev-chat:${userId}`;
+}
+
+async function checkDevRateLimit(userId: string): Promise<{ ok: boolean; retryAfterSec: number }> {
+  const key = rateLimitKey(userId);
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const multi = redis().multi();
+  multi.zremrangebyscore(key, 0, now - windowMs);
+  multi.zcard(key);
+  multi.zadd(key, { score: now, member: `${now}:${crypto.randomUUID()}` });
+  multi.pexpire(key, windowMs);
+  const [, count] = (await multi.exec()) as [unknown, number, unknown, unknown];
+  if (count >= DEV_CHAT_HOURLY_LIMIT) {
+    return { ok: false, retryAfterSec: Math.ceil(windowMs / 1000) };
+  }
+  return { ok: true, retryAfterSec: 0 };
+}
+
+function estimatedBase64Bytes(base64: string): number {
+  // base64 length * 3/4 minus padding
+  const len = base64.length;
+  const padding = (base64.match(/=+$/)?.[0] ?? "").length;
+  return Math.floor((len * 3) / 4) - padding;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,17 +134,29 @@ export async function POST(req: NextRequest) {
   const { userId, text, imageBase64, imageMediaType, fileBase64, fileName } = parsed.data;
 
   // Restrict to the single known dev userId — prevents impersonating arbitrary users
-  // if DEV_CHAT_SECRET is ever compromised.
+  // if DEV_CHAT_SECRET is ever compromised. Fail closed: DEV_LINE_USER_ID is required.
   const allowedUserId = process.env.DEV_LINE_USER_ID;
-  if (allowedUserId && userId !== allowedUserId) {
+  if (!allowedUserId) {
+    return NextResponse.json({ error: "DEV_LINE_USER_ID not configured" }, { status: 503 });
+  }
+  if (userId !== allowedUserId) {
     return NextResponse.json({ error: "userId not permitted" }, { status: 403 });
   }
+
+  const rl = await checkDevRateLimit(userId);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate limit exceeded", retryAfterSec: rl.retryAfterSec }, { status: 429 });
+  }
+
   registerUser(userId).catch(() => {});
   const traceId = `dev_${userId}_${Date.now().toString(36)}`;
   const endRequest = span("dev:chat", traceId);
 
   // ── IMAGE PATH ──────────────────────────────────────────────────────────
   if (imageBase64) {
+    if (estimatedBase64Bytes(imageBase64) > MAX_IMAGE_BYTES) {
+      return NextResponse.json({ error: "Image exceeds 20 MB limit" }, { status: 413 });
+    }
     const endImage = span("dev:image", traceId);
     try {
       const bytes = Uint8Array.from(Buffer.from(imageBase64, "base64"));

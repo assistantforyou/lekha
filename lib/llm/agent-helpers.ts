@@ -363,8 +363,29 @@ export function looksLikeWeather(text: string): boolean {
   return /\b(weather|forecast|temperature|temp)\b/i.test(text);
 }
 
-export function looksLikeFinance(text: string): { type: "crypto"; coin: string } | { type: "stock"; ticker: string } | null {
-  // Trading pairs: "btc/usdt", "eth/usd"
+export type FinanceQuery =
+  | { type: "crypto"; coin: string }
+  | { type: "stock"; ticker: string }
+  | { type: "fx"; from: string; to: string; amount: number };
+
+export function looksLikeFinance(text: string): FinanceQuery | null {
+  const lower = text.toLowerCase();
+
+  // FX: "100 USD to THB", "usd/thb", "convert eur to jpy"
+  const fxMatch1 = text.match(/(\d+(?:\.\d+)?)\s*(USD|EUR|GBP|JPY|THB|CNY|SGD|AUD|CAD|CHF|HKD|KRW|INR)\s*(?:to|into|=)\s*(USD|EUR|GBP|JPY|THB|CNY|SGD|AUD|CAD|CHF|HKD|KRW|INR)\b/i);
+  if (fxMatch1) {
+    return { type: "fx", from: fxMatch1[2]!.toUpperCase(), to: fxMatch1[3]!.toUpperCase(), amount: parseFloat(fxMatch1[1]!) };
+  }
+  const fxMatch2 = text.match(/\b(USD|EUR|GBP|JPY|THB|CNY|SGD|AUD|CAD|CHF|HKD|KRW|INR)\s*\/\s*(USD|EUR|GBP|JPY|THB|CNY|SGD|AUD|CAD|CHF|HKD|KRW|INR)\b/i);
+  if (fxMatch2) {
+    return { type: "fx", from: fxMatch2[1]!.toUpperCase(), to: fxMatch2[2]!.toUpperCase(), amount: 1 };
+  }
+  const fxMatch3 = text.match(/(?:convert|exchange)\s+(\d+(?:\.\d+)?)?\s*(USD|EUR|GBP|JPY|THB|CNY|SGD|AUD|CAD|CHF|HKD|KRW|INR)\s+(?:to|into|for)\s+(USD|EUR|GBP|JPY|THB|CNY|SGD|AUD|CAD|CHF|HKD|KRW|INR)\b/i);
+  if (fxMatch3) {
+    return { type: "fx", from: fxMatch3[2]!.toUpperCase(), to: fxMatch3[3]!.toUpperCase(), amount: fxMatch3[1] ? parseFloat(fxMatch3[1]) : 1 };
+  }
+
+  // Crypto trading pairs: "btc/usdt", "eth/usd"
   const pairMatch = text.match(/\b(btc|eth|sol|bnb|xrp|doge|ada|dot|link|avax)\s*\/\s*\w+\b/i);
   if (pairMatch?.[1]) return { type: "crypto", coin: pairMatch[1] };
   // "price of btc", "price of bitcoin"
@@ -373,28 +394,84 @@ export function looksLikeFinance(text: string): { type: "crypto"; coin: string }
   // "btc price", "bitcoin price"
   const coinPriceMatch = text.match(/\b(btc|eth|sol|bnb|xrp|doge|bitcoin|ethereum|solana)\s+(price|value|worth)\b/i);
   if (coinPriceMatch?.[1]) return { type: "crypto", coin: coinPriceMatch[1] };
+
+  // Stock: "AAPL price", "TSLA stock", "what's NVDA at?", "ราคาหุ้น AAPL"
+  const stockMatch1 = text.match(/\b([A-Z]{1,5})\s+(?:stock|price|share|share price)\b/i);
+  if (stockMatch1?.[1]) return { type: "stock", ticker: stockMatch1[1].toUpperCase() };
+  const stockMatch2 = text.match(/\b(?:stock|price)\s+(?:of\s+)?([A-Z]{1,5})\b/i);
+  if (stockMatch2?.[1]) return { type: "stock", ticker: stockMatch2[1].toUpperCase() };
+  const stockMatch3 = text.match(/\b(?:หุ้น|ราคาหุ้น)\s+([A-Z]{1,5})\b/i);
+  if (stockMatch3?.[1]) return { type: "stock", ticker: stockMatch3[1].toUpperCase() };
+  // Generic "what's AAPL?" — only if uppercase ticker and finance context
+  if (/\b(price|stock|rate|finance|หุ้น|ราคา)\b/i.test(text)) {
+    const generic = text.match(/\b([A-Z]{1,5})\b/);
+    if (generic?.[1]) return { type: "stock", ticker: generic[1].toUpperCase() };
+  }
+
   return null;
 }
 
 export async function fallbackFinance(query: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const finInfo = looksLikeFinance(query);
-  if (!finInfo || finInfo.type !== "crypto") return { text: "I couldn't look that up right now.", toolCalls: [] };
-  const coin = finInfo.coin;
+  if (!finInfo) return { text: "I couldn't look that up right now.", toolCalls: [] };
+
   const fTools = buildFinanceTools();
+
+  if (finInfo.type === "crypto") {
+    const coin = finInfo.coin;
+    try {
+      const result = await fTools.crypto_price.execute!({ coin }, { toolCallId: "fallback", messages: [] });
+      const val = extractToolValue(result) as CryptoResult | null;
+      if (val && typeof val === "object" && val.ok) {
+        return {
+          text: "",
+          flexMessages: [buildCryptoFlex(val)],
+          toolCalls: [{ toolName: "crypto_price", input: { coin } }],
+        };
+      }
+      const err = (val as unknown as { error?: string })?.error;
+      return { text: err ?? "Couldn't fetch that crypto price right now.", toolCalls: [{ toolName: "crypto_price", input: { coin } }] };
+    } catch {
+      return { text: "Couldn't fetch that crypto price right now. Try again shortly.", toolCalls: [{ toolName: "crypto_price", input: { coin } }] };
+    }
+  }
+
+  if (finInfo.type === "stock") {
+    const ticker = finInfo.ticker;
+    try {
+      const result = await fTools.stock_price.execute!({ ticker }, { toolCallId: "fallback", messages: [] });
+      const val = extractToolValue(result) as StockResult | null;
+      if (val && typeof val === "object" && val.ok) {
+        return {
+          text: "",
+          flexMessages: [buildStockFlex(val)],
+          toolCalls: [{ toolName: "stock_price", input: { ticker } }],
+        };
+      }
+      const err = (val as unknown as { error?: string })?.error;
+      return { text: err ?? "Couldn't fetch that stock price right now.", toolCalls: [{ toolName: "stock_price", input: { ticker } }] };
+    } catch {
+      return { text: "Couldn't fetch that stock price right now. Try again shortly.", toolCalls: [{ toolName: "stock_price", input: { ticker } }] };
+    }
+  }
+
+  // FX
+  const { from, to, amount } = finInfo;
   try {
-    const result = await fTools.crypto_price.execute!({ coin }, { toolCallId: "fallback", messages: [] });
-    const val = extractToolValue(result) as CryptoResult | null;
+    const result = await fTools.fx_rate.execute!({ from, to, amount }, { toolCallId: "fallback", messages: [] });
+    const val = extractToolValue(result) as { ok: true; from: string; to: string; rate: number; amount: number; converted: number; source: string; asOf: string | null } | null;
     if (val && typeof val === "object" && val.ok) {
-      return {
-        text: "",
-        flexMessages: [buildCryptoFlex(val)],
-        toolCalls: [{ toolName: "crypto_price", input: { coin } }],
-      };
+      const lines = [
+        `💱 ${val.amount.toLocaleString()} ${val.from} = ${val.converted.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${val.to}`,
+        `Rate: 1 ${val.from} = ${val.rate.toFixed(4)} ${val.to}`,
+        `Source: ${val.source}${val.asOf ? ` • ${val.asOf}` : ""}`,
+      ];
+      return { text: lines.join("\n"), toolCalls: [{ toolName: "fx_rate", input: { from, to, amount } }] };
     }
     const err = (val as unknown as { error?: string })?.error;
-    return { text: err ?? "Couldn't fetch that price right now.", toolCalls: [{ toolName: "crypto_price", input: { coin } }] };
+    return { text: err ?? "Couldn't fetch that FX rate right now.", toolCalls: [{ toolName: "fx_rate", input: { from, to, amount } }] };
   } catch {
-    return { text: "Couldn't fetch that price right now. Try again shortly.", toolCalls: [{ toolName: "crypto_price", input: { coin } }] };
+    return { text: "Couldn't fetch that FX rate right now. Try again shortly.", toolCalls: [{ toolName: "fx_rate", input: { from, to, amount } }] };
   }
 }
 
@@ -430,9 +507,10 @@ export async function fallbackWeather(
   query: string,
   _timezone = "Asia/Bangkok",
   language?: string | null,
+  defaultLocation?: string | null,
 ): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
   const locationMatch = query.match(/\b(?:in|at|for)\s+(.{2,80}?)\s*(?:\?|$)/i);
-  const location = locationMatch?.[1]?.trim() ?? "Bangkok";
+  const location = locationMatch?.[1]?.trim() ?? defaultLocation ?? "Bangkok";
   const wTools = buildWeatherTools();
   try {
     const result = await wTools.weather.execute!({ location }, { toolCallId: "fallback", messages: [] });

@@ -48,7 +48,7 @@ type Entry = {
   needs?: Need[];
   category?: string;
   /** Only register when the user has staged LINE media (image/audio/file). */
-  alwaysWithStagedMedia?: boolean;
+  requiresStagedMedia?: boolean;
   /**
    * fastClassify intents that include this tool.
    * Entries without hints are universal — always included regardless of intent.
@@ -61,7 +61,7 @@ type Entry = {
  * Declarative tool registry. Add a tool by adding one row.
  * needs: env/user prerequisites — omits the tool if unmet.
  * category: user-disableable surface (tasks, reminders, calendar, email, drive).
- * alwaysWithStagedMedia: include even when hasStagedMedia is false.
+ * requiresStagedMedia: only include when the user has staged LINE media.
  * hints: fastClassify intent strings; omit for universal tools.
  */
 const REGISTRY: Entry[] = [
@@ -84,8 +84,8 @@ const REGISTRY: Entry[] = [
   { build: (u) => buildTaskTools(u), category: "tasks", hints: ["task", "calendar", "media"] },
   { build: (u) => buildExportTools(u),           hints: ["memory"] },
   { build: (u) => buildSentHistoryTools(u),      hints: ["email", "search"] },
-  { build: (u) => buildMediaAiTools(u),  alwaysWithStagedMedia: true, hints: ["media", "receipts"] },
-  { build: (u) => buildReceiptTools(u),  alwaysWithStagedMedia: true, hints: ["media", "receipts"] },
+  { build: (u) => buildMediaAiTools(u),  requiresStagedMedia: true, hints: ["media", "receipts"] },
+  { build: (u) => buildReceiptTools(u),  requiresStagedMedia: true, hints: ["media", "receipts"] },
   { build: (u) => buildReminderTools(u), needs: ["qstash"], category: "reminders", hints: ["reminder", "calendar"] },
   // Feature tools: only for users who have actually connected Google.
   { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email", hints: ["email", "media"] },
@@ -128,7 +128,7 @@ function buildTools(
     const ok = (entry.needs ?? []).every((n) => envHas(n, userHasGoogle));
     if (!ok) continue;
     if (entry.category && disabled.includes(entry.category)) continue;
-    if (!hasStagedMedia && entry.alwaysWithStagedMedia) continue;
+    if (!hasStagedMedia && entry.requiresStagedMedia) continue;
     // Narrow tool set when a hint is active: skip entries that don't match the hint.
     // Entries with no hints field are universal and always included.
     if (hint && entry.hints && !entry.hints.includes(hint)) continue;
@@ -144,24 +144,27 @@ function buildTools(
  */
 export async function toolsForUser(
   userId: string,
-  opts?: { userHasGoogle?: boolean; disabledCategories?: string[]; hasStagedMedia?: boolean; hint?: string },
+  opts?: { userHasGoogle?: boolean; disabledCategories?: string[]; hasStagedMedia?: boolean; hint?: string; activeEmail?: string | null },
 ): Promise<ToolSet> {
+  const accounts = hasGoogleOAuth()
+    ? await listAccounts(userId)
+    : { accounts: [] as Array<{ email: string }>, activeEmail: null as string | null };
   const userHasGoogle =
     opts?.userHasGoogle !== undefined
       ? opts.userHasGoogle
-      : hasGoogleOAuth()
-        ? (await listAccounts(userId)).accounts.length > 0
-        : false;
+      : accounts.accounts.length > 0;
 
   const disabled = opts?.disabledCategories ?? [];
   const hasStagedMedia = opts?.hasStagedMedia;
   const hint = opts?.hint;
+  const activeEmail = opts?.activeEmail ?? accounts.activeEmail;
   const disabledKey = disabled.sort().join(",");
   const googleKey = userHasGoogle ? "g1" : "g0";
   const stagedKey = hasStagedMedia ? "staged" : "nostaged";
   const hintKey = hint ?? "all";
-  // v6: hint-based narrowing via fastClassify.
-  const cacheKey = `v6:${userId}:${disabledKey}:${googleKey}:${stagedKey}:${hintKey}`;
+  const emailKey = activeEmail ?? "noemail";
+  // v7: includes activeEmail so account switches invalidate the cache.
+  const cacheKey = `v7:${userId}:${disabledKey}:${googleKey}:${stagedKey}:${hintKey}:${emailKey}`;
   const cached = toolCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     return cached.tools;

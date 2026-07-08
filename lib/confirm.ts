@@ -1,6 +1,6 @@
 import { redis } from "@/lib/memory/redis";
 
-const TTL_SEC = 5 * 60;
+const TTL_SEC = 60 * 60;
 
 export type SendEmailAction = {
   kind: "send_email";
@@ -75,18 +75,33 @@ export async function clearPending(userId: string): Promise<void> {
 
 const AFFIRMATIVE = new Set([
   "yes", "y", "yeah", "yep", "yup", "sure", "send", "send it", "send them", "do it",
-  "go", "go ahead", "confirm", "confirmed", "ok", "okay", "k", "kk",
-  "ครับ", "ค่ะ", "ใช่", "ส่ง", "ส่งเลย",
+  "go", "go ahead", "confirm", "confirmed", "ok", "okay", "k", "kk", "yes please",
+  "ครับ", "ค่ะ", "ใช่", "ส่ง", "ส่งเลย", "ได้", "โอเค", "ตกลง", "ยืนยัน", "เอา",
+  "เยส", "ยินยอม",
 ]);
 const NEGATIVE = new Set([
   "no", "n", "nope", "cancel", "stop", "abort", "nvm", "nevermind", "never mind",
-  "ไม่", "ยกเลิก",
+  "ไม่", "ยกเลิก", "ไม่เอา", "ไม่ส่ง",
 ]);
+
+/** Affirmative Thai/English tokens that can appear mixed with other text,
+ *  e.g. "ok ส่งเลย", "ตกลงครับ", "yes please send it". */
+const THAI_AFFIRMATIVE = /(?:^|[\s\p{P}])(ครับ|ค่ะ|ใช่|ส่ง|ส่งเลย|ได้|โอเค|ตกลง|ยืนยัน|เอา|เยส|ยินยอม|จัดไป)(?:ครับ|ค่ะ)?(?:$|[\s\p{P}])/iu;
+const THAI_NEGATIVE = /(?:^|[\s\p{P}])(ไม่|ยกเลิก|ไม่เอา|ไม่ส่ง)(?:$|[\s\p{P}])/iu;
+const ENGLISH_AFFIRMATIVE = /\b(yes|yep|yeah|ok|okay|sure|go|send|confirm|confirmed|do it)\b/i;
+const ENGLISH_NEGATIVE = /\b(no|nope|cancel|stop|abort|nevermind)\b/i;
 
 export type AffirmDecision = "yes" | "no" | "neither";
 export function classify(text: string): AffirmDecision {
   const t = text.trim().toLowerCase();
   if (AFFIRMATIVE.has(t)) return "yes";
   if (NEGATIVE.has(t)) return "no";
+
+  // Mixed/natural replies: "ok ส่งเลย", "ตกลงครับ", "yes please", etc.
+  const hasAffirm = ENGLISH_AFFIRMATIVE.test(t) || THAI_AFFIRMATIVE.test(t);
+  const hasNeg = ENGLISH_NEGATIVE.test(t) || THAI_NEGATIVE.test(t);
+  if (hasAffirm && !hasNeg) return "yes";
+  if (hasNeg && !hasAffirm) return "no";
+
   return "neither";
 }

@@ -88,9 +88,10 @@ describe("deterministic fallbacks", () => {
     expect(looksLikeMemoryRecall("show my tasks")).toBe(false);
   });
 
-  it("detects crypto fallback queries", () => {
+  it("detects finance fallback queries", () => {
     expect(looksLikeFinance("btc price")).toEqual({ type: "crypto", coin: "btc" });
-    expect(looksLikeFinance("NVDA stock price")).toBeNull();
+    expect(looksLikeFinance("NVDA stock price")).toEqual({ type: "stock", ticker: "NVDA" });
+    expect(looksLikeFinance("100 USD to THB")).toEqual({ type: "fx", from: "USD", to: "THB", amount: 100 });
     expect(looksLikeFinance("what's the weather")).toBeNull();
   });
 });
