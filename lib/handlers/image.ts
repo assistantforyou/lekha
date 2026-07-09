@@ -15,6 +15,7 @@ export async function respondToImage(
   messageId: string,
   mode: "normal" | "stage_only" = "normal",
   traceId?: string,
+  chatId?: string,
 ): Promise<void> {
   const endHandler = span("image:respondToImage", traceId);
 
@@ -41,7 +42,7 @@ export async function respondToImage(
     batchCount > 1
       ? t(settings.language, "imagesAck", { count: String(batchCount) })
       : t(settings.language, "imageAck");
-  await replyOrPush(userId, replyToken, [textMsg(ack)]);
+  await replyOrPush(chatId ?? userId, replyToken, [textMsg(ack)]);
   await appendTurn(userId, { role: "user", content: "[sent an image]", ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: ack, ts: Date.now() });
   endHandler({ mode: "normal" });

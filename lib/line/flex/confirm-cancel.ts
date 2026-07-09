@@ -1,4 +1,5 @@
 import type { FlexMessage } from "@/lib/line/client";
+import { t, uiLang } from "@/lib/i18n";
 
 /**
  * Confirm/Cancel bubble for a pending action queue. Two postback buttons:
@@ -9,13 +10,17 @@ import type { FlexMessage } from "@/lib/line/client";
  * from `renderDraftsBlock`). LINE renders this inside the bubble; we trim
  * for the altText fallback.
  */
-export function confirmCancelFlex(summary: string, opts?: { yesLabel?: string; noLabel?: string }): FlexMessage {
-  const yesLabel = opts?.yesLabel ?? "Yes, send";
-  const noLabel = opts?.noLabel ?? "Cancel";
+export function confirmCancelFlex(
+  summary: string,
+  opts?: { yesLabel?: string; noLabel?: string; language?: string | null },
+): FlexMessage {
+  const lang = uiLang(opts?.language);
+  const yesLabel = opts?.yesLabel ?? t(lang, "confirmYesSend");
+  const noLabel = opts?.noLabel ?? t(lang, "cancel");
   const trimmed = summary.length > 1000 ? summary.slice(0, 990) + "…" : summary;
   return {
     type: "flex",
-    altText: `Confirm? ${summary.slice(0, 200)}`,
+    altText: `${t(lang, "confirmQuestion")} ${summary.slice(0, 200)}`,
     contents: {
       type: "bubble",
       size: "mega",
@@ -24,7 +29,7 @@ export function confirmCancelFlex(summary: string, opts?: { yesLabel?: string; n
         layout: "vertical",
         spacing: "md",
         contents: [
-          { type: "text", text: "Confirm?", weight: "bold", size: "lg" },
+          { type: "text", text: t(lang, "confirmQuestion"), weight: "bold", size: "lg" },
           {
             type: "text",
             text: trimmed,

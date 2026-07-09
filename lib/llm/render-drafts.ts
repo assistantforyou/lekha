@@ -101,7 +101,7 @@ export function renderDraftsBlock(
     }
   }
   if (!parts.length) return null;
-  return `${parts.join("\n\n———\n\n")}\n\nReply YES to send/create/schedule all of the above (or describe edits).`;
+  return `${parts.join("\n\n———\n\n")}\n\nReply YES to send/create/schedule all of the above, or NO to cancel.`;
 }
 
 function fmtRange(start?: string, end?: string, timezone?: string): string {

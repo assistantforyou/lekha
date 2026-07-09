@@ -9,7 +9,7 @@ export { briefingFlex } from "./briefing";
 export { newsFlex, type NewsRow } from "./news";
 export { taskCheckinFlex, type CheckInRow } from "./task-checkin";
 export { pendingUsersFlex, type PendingUserRow } from "./pending-users";
-export { helpFlex, curatedDemoAnswer, HELP_CATEGORIES, type HelpCategory } from "./help";
+export { helpFlex, curatedDemoAnswer, helpCategories, type HelpCategory } from "./help";
 export { factsListFlex, type FactsListItem } from "./facts-list";
 export { groupsListFlex } from "./groups-list";
 

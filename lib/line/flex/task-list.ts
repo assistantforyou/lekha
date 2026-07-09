@@ -1,4 +1,5 @@
 import type { FlexMessage } from "@/lib/line/client";
+import { t, uiLang, dateLocale } from "@/lib/i18n";
 
 export type TaskRow = {
   id: string;
@@ -7,11 +8,11 @@ export type TaskRow = {
   dueAt?: number;
 };
 
-function formatDueDate(ts: number, timezone = "Asia/Bangkok"): string {
+function formatDueDate(ts: number, timezone = "Asia/Bangkok", locale = "en-US"): string {
   const due = new Date(ts);
   const now = new Date();
   const fmtDate = (d: Date) =>
-    new Intl.DateTimeFormat("en-US", {
+    new Intl.DateTimeFormat(locale, {
       timeZone: timezone,
       year: "numeric",
       month: "short",
@@ -20,28 +21,29 @@ function formatDueDate(ts: number, timezone = "Asia/Bangkok"): string {
 
   const dueDate = fmtDate(due);
   const nowDate = fmtDate(now);
-  if (dueDate === nowDate) return "Today";
+  if (dueDate === nowDate) return t(uiLang(locale === "th-TH" ? "th" : "en"), "dueToday");
 
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  if (fmtDate(tomorrow) === dueDate) return "Tomorrow";
+  if (fmtDate(tomorrow) === dueDate) return t(uiLang(locale === "th-TH" ? "th" : "en"), "dueTomorrow");
 
   const isOverdue = due < now && !dueDate.includes(nowDate);
 
-  const currentYear = new Intl.DateTimeFormat("en-US", {
+  const currentYear = new Intl.DateTimeFormat(locale, {
     timeZone: timezone,
     year: "numeric",
   }).format(now);
-  const dueYear = new Intl.DateTimeFormat("en-US", {
+  const dueYear = new Intl.DateTimeFormat(locale, {
     timeZone: timezone,
     year: "numeric",
   }).format(due);
 
   const label = dueYear === currentYear
-    ? new Intl.DateTimeFormat("en-US", { timeZone: timezone, month: "short", day: "numeric" }).format(due)
+    ? new Intl.DateTimeFormat(locale, { timeZone: timezone, month: "short", day: "numeric" }).format(due)
     : dueDate;
 
-  return isOverdue ? `Overdue · ${label}` : label;
+  const overduePrefix = t(uiLang(locale === "th-TH" ? "th" : "en"), "taskOverduePrefix");
+  return isOverdue ? `${overduePrefix}${label}` : label;
 }
 
 /**
@@ -50,16 +52,18 @@ function formatDueDate(ts: number, timezone = "Asia/Bangkok"): string {
  */
 export function taskListFlex(
   tasks: TaskRow[],
-  opts?: { title?: string; timezone?: string },
+  opts?: { title?: string; timezone?: string; language?: string | null },
 ): FlexMessage {
-  const title = opts?.title ?? "Your tasks";
+  const lang = uiLang(opts?.language);
+  const locale = dateLocale(opts?.language);
+  const title = opts?.title ?? t(lang, "tasksTitle");
   const timezone = opts?.timezone ?? "Asia/Bangkok";
   const rows = tasks.slice(0, 10);
 
   if (rows.length === 0) {
     return {
       type: "flex",
-      altText: "No tasks — none left. 🎉",
+      altText: t(lang, "noTasks"),
       contents: {
         type: "bubble",
         size: "mega",
@@ -69,7 +73,7 @@ export function taskListFlex(
           backgroundColor: "#00B894",
           paddingAll: "16px",
           contents: [
-            { type: "text", text: "✅ Tasks", color: "#ffffff", weight: "bold", size: "md" },
+            { type: "text", text: t(lang, "taskHeader"), color: "#ffffff", weight: "bold", size: "md" },
           ],
         },
         body: {
@@ -77,7 +81,7 @@ export function taskListFlex(
           layout: "vertical",
           paddingAll: "20px",
           contents: [
-            { type: "text", text: "Nothing on your list. 🎉", size: "sm", color: "#888888", align: "center" },
+            { type: "text", text: t(lang, "noTasks"), size: "sm", color: "#888888", align: "center" },
           ],
         },
       },
@@ -85,7 +89,9 @@ export function taskListFlex(
   }
 
   const open = rows.filter((r) => !r.done).length;
-  const headerTitle = open > 0 ? `${open} open  ·  ${rows.length - open} done` : "All done 🎉";
+  const headerTitle = open > 0
+    ? t(lang, "taskOpenCount", { open: String(open), done: String(rows.length - open) })
+    : t(lang, "taskAllDone");
 
   const taskRows: object[] = [];
   rows.forEach((row, i) => {
@@ -93,8 +99,8 @@ export function taskListFlex(
       taskRows.push({ type: "separator", color: "#f2f2f2" });
     }
 
-    const dueText = row.dueAt ? formatDueDate(row.dueAt, timezone) : null;
-    const isOverdue = dueText?.startsWith("Overdue") ?? false;
+    const dueText = row.dueAt ? formatDueDate(row.dueAt, timezone, locale) : null;
+    const isOverdue = dueText?.startsWith(t(lang, "taskOverduePrefix").trim()) ?? false;
 
     taskRows.push({
       type: "box",
@@ -140,11 +146,11 @@ export function taskListFlex(
           color: row.done ? undefined : "#00B894",
           action: {
             type: "postback",
-            label: row.done ? "Reopen" : "Done",
+            label: row.done ? t(lang, "taskReopenBtn") : t(lang, "taskDoneBtn"),
             data: `task:${row.done ? "reopen" : "done"}:${row.id}`,
             displayText: row.done
-              ? `Reopen "${row.title.slice(0, 30)}"`
-              : `Done: ${row.title.slice(0, 30)}`,
+              ? `${t(lang, "taskReopenBtn")} "${row.title.slice(0, 30)}"`
+              : `${t(lang, "taskDoneBtn")}: ${row.title.slice(0, 30)}`,
           },
         },
       ],
@@ -163,7 +169,7 @@ export function taskListFlex(
         backgroundColor: "#00B894",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "✅  Tasks", color: "#ffffff", weight: "bold", size: "md" },
+          { type: "text", text: t(lang, "taskHeader"), color: "#ffffff", weight: "bold", size: "md" },
           { type: "text", text: headerTitle, color: "#CCCCCC", size: "xs", margin: "xs" },
         ],
       },

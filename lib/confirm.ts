@@ -91,14 +91,27 @@ const THAI_NEGATIVE = /(?:^|[\s\p{P}])(ไม่|ยกเลิก|ไม่เ
 const ENGLISH_AFFIRMATIVE = /\b(yes|yep|yeah|ok|okay|sure|go|send|confirm|confirmed|do it)\b/i;
 const ENGLISH_NEGATIVE = /\b(no|nope|cancel|stop|abort|nevermind)\b/i;
 
+/**
+ * Hedging/edit words that turn a casual agreement into a revision request.
+ * "ok but change the time" / "ได้ แต่ขอแก้เวลา" must NOT be treated as yes.
+ */
+const EDIT_INTENT = /\b(but|however|except|change|edit|update|modify|fix|make it|different)\b|(?:^|[\s\p{P}])(แต่|เปลี่ยน|แก้|ปรับ|ใหม่|หมายถึง|อื่น|เปลี่ยนแปลง)(?:$|[\s\p{P}]|[\u0E00-\u0E7F])/iu;
+
 export type AffirmDecision = "yes" | "no" | "neither";
+
+export function hasEditIntent(text: string): boolean {
+  return EDIT_INTENT.test(text.trim());
+}
+
 export function classify(text: string): AffirmDecision {
   const t = text.trim().toLowerCase();
   if (AFFIRMATIVE.has(t)) return "yes";
   if (NEGATIVE.has(t)) return "no";
 
   // Mixed/natural replies: "ok ส่งเลย", "ตกลงครับ", "yes please", etc.
-  const hasAffirm = ENGLISH_AFFIRMATIVE.test(t) || THAI_AFFIRMATIVE.test(t);
+  // But ignore anything that also asks for an edit, e.g. "ok but change..."
+  const hasEdit = hasEditIntent(t);
+  const hasAffirm = !hasEdit && (ENGLISH_AFFIRMATIVE.test(t) || THAI_AFFIRMATIVE.test(t));
   const hasNeg = ENGLISH_NEGATIVE.test(t) || THAI_NEGATIVE.test(t);
   if (hasAffirm && !hasNeg) return "yes";
   if (hasNeg && !hasAffirm) return "no";

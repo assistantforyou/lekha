@@ -14,6 +14,7 @@ import {
 import { buildPlacesFlex, type PlaceItem } from "@/lib/line/places-flex";
 import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
 import { buildStockFlex, buildCryptoFlex, type StockResult, type CryptoResult } from "@/lib/line/finance-flex";
+import { dateLocale } from "@/lib/i18n";
 import { extractToolValue } from "@/lib/llm/agent-helpers";
 
 type StepLike = {
@@ -58,10 +59,10 @@ function stripMetaPrefix(s: string): string {
     .trim();
 }
 
-function fmtDateTime(isoOrMs: string | number, tz = "UTC"): string {
+function fmtDateTime(isoOrMs: string | number, tz = "UTC", locale = "en-US"): string {
   const d = typeof isoOrMs === "number" ? new Date(isoOrMs) : new Date(String(isoOrMs));
   if (isNaN(d.getTime())) return String(isoOrMs).slice(0, 16).replace("T", " ");
-  return d.toLocaleString("en-US", {
+  return d.toLocaleString(locale, {
     timeZone: tz,
     month: "short",
     day: "numeric",
@@ -581,8 +582,8 @@ function draftFieldRow(label: string, value: string, bold = false): object {
   };
 }
 
-function draftFmtDate(iso: string, timezone?: string): string {
-  return new Date(iso).toLocaleString("en-US", {
+function draftFmtDate(iso: string, timezone?: string, locale = "en-US"): string {
+  return new Date(iso).toLocaleString(locale, {
     timeZone: timezone ?? "UTC",
     weekday: "short",
     month: "short",
@@ -593,17 +594,17 @@ function draftFmtDate(iso: string, timezone?: string): string {
   });
 }
 
-function draftFmtRange(start?: string, end?: string, timezone?: string): string {
+function draftFmtRange(start?: string, end?: string, timezone?: string, locale?: string): string {
   try {
-    const s = start ? draftFmtDate(start, timezone) : "?";
-    const e = end ? draftFmtDate(end, timezone) : "?";
+    const s = start ? draftFmtDate(start, timezone, locale) : "?";
+    const e = end ? draftFmtDate(end, timezone, locale) : "?";
     return `${s} → ${e}`;
   } catch {
     return `${start ?? "?"} → ${end ?? "?"}`;
   }
 }
 
-function buildEmailDraftFlex(input: unknown, tz: string): LineMessage {
+function buildEmailDraftFlex(input: unknown, tz: string, _locale?: string): LineMessage {
   const args = input as {
     to?: string[]; cc?: string[]; bcc?: string[];
     subject?: string; body?: string; fromEmail?: string;
@@ -668,13 +669,13 @@ function buildEmailDraftFlex(input: unknown, tz: string): LineMessage {
   } as LineMessage;
 }
 
-function buildCalendarDraftFlex(input: unknown, tz: string): LineMessage {
+function buildCalendarDraftFlex(input: unknown, tz: string, locale?: string): LineMessage {
   const args = input as {
     summary?: string; startISO?: string; endISO?: string;
     location?: string; attendees?: string[]; description?: string; fromEmail?: string;
   };
   const title = args.summary ?? "(no title)";
-  const when = draftFmtRange(args.startISO, args.endISO, tz);
+  const when = draftFmtRange(args.startISO, args.endISO, tz, locale);
 
   const rows: object[] = [
     {
@@ -733,14 +734,14 @@ function buildCalendarDraftFlex(input: unknown, tz: string): LineMessage {
   } as LineMessage;
 }
 
-function buildScheduledEmailDraftFlex(input: unknown, tz: string): LineMessage {
+function buildScheduledEmailDraftFlex(input: unknown, tz: string, locale?: string): LineMessage {
   const args = input as {
     to?: string[]; cc?: string[];
     subject?: string; body?: string; sendAt?: string; fromEmail?: string;
   };
   const to = (args.to ?? []).join(", ") || "(missing)";
   const subject = args.subject ?? "(no subject)";
-  const sendAt = args.sendAt ? draftFmtDate(args.sendAt, tz) : "(unknown)";
+  const sendAt = args.sendAt ? draftFmtDate(args.sendAt, tz, locale) : "(unknown)";
   const bodyText = (args.body ?? "").trim();
   const bodyPreview = bodyText.slice(0, 180);
 
@@ -804,13 +805,15 @@ function buildScheduledEmailDraftFlex(input: unknown, tz: string): LineMessage {
 export function buildDraftFlexCards(
   calls: ReadonlyArray<{ toolName: string; input: unknown }>,
   timezone?: string,
+  opts?: { language?: string | null },
 ): LineMessage[] {
   const tz = timezone ?? "UTC";
+  const locale = dateLocale(opts?.language);
   return calls.flatMap((call) => {
     try {
-      if (call.toolName === "draft_email") return [buildEmailDraftFlex(call.input, tz)];
-      if (call.toolName === "draft_calendar_event") return [buildCalendarDraftFlex(call.input, tz)];
-      if (call.toolName === "schedule_email") return [buildScheduledEmailDraftFlex(call.input, tz)];
+      if (call.toolName === "draft_email") return [buildEmailDraftFlex(call.input, tz, locale)];
+      if (call.toolName === "draft_calendar_event") return [buildCalendarDraftFlex(call.input, tz, locale)];
+      if (call.toolName === "schedule_email") return [buildScheduledEmailDraftFlex(call.input, tz, locale)];
     } catch { /* skip malformed */ }
     return [];
   });
@@ -824,7 +827,7 @@ export function buildDraftFlexCards(
 export function buildFlexFromToolResults(
   result: { steps?: StepLike[] },
   timezone?: string,
-  opts?: { userText?: string },
+  opts?: { userText?: string; language?: string | null },
 ): {
   messages: LineMessage[];
   suppressText: boolean;
@@ -834,6 +837,8 @@ export function buildFlexFromToolResults(
   let suppressText = false;
   const userText = opts?.userText ?? "";
   const tz = timezone ?? "UTC";
+  const lang = opts?.language ?? null;
+  const locale = dateLocale(lang);
 
   // Build a map of toolCallId → call input so result handlers can access the call's input.
   const callInputMap = new Map<string, unknown>();
@@ -948,7 +953,7 @@ export function buildFlexFromToolResults(
       // text reply, which is dead/unselectable inside a Flex text bubble.
       // Render a real tappable button instead and suppress the model's text.
       if (toolName === "connect_google_account" && typeof value.url === "string") {
-        out.push(googleConnectFlex(value.url));
+        out.push(googleConnectFlex(value.url, { language: lang }));
         suppressText = true;
         seen.add(toolName);
         continue;
@@ -963,7 +968,7 @@ export function buildFlexFromToolResults(
         const inbox = Array.isArray(value.inbox)
           ? (value.inbox as Array<{ id: string; from: string; subject: string; snippet: string }>)
           : [];
-        if (text) out.push(briefingFlex("morning", text));
+        if (text) out.push(briefingFlex("morning", text, { language: lang }));
         if (news.length > 0) out.push(newsFlex(news, "📰 Today's news"));
         if (inbox.length > 0) out.push(gmailResultsFlex(inbox.map((m) => ({ ...m, unread: true }))));
         suppressText = true;
@@ -977,7 +982,7 @@ export function buildFlexFromToolResults(
         const news = Array.isArray(value.news)
           ? (value.news as Array<{ title: string; url: string; source: string }>)
           : [];
-        if (text) out.push(briefingFlex("evening", text));
+        if (text) out.push(briefingFlex("evening", text, { language: lang }));
         if (news.length > 0) out.push(newsFlex(news, "📰 Today's news"));
         suppressText = true;
         seen.add(toolName);
@@ -989,7 +994,7 @@ export function buildFlexFromToolResults(
         const task = value.task as Record<string, unknown> | undefined;
         const title = String(task?.title ?? "");
         if (title) {
-          const dueAt = typeof task?.dueAt === "number" ? fmtDateTime(task.dueAt, tz) : null;
+          const dueAt = typeof task?.dueAt === "number" ? fmtDateTime(task.dueAt, tz, locale) : null;
           out.push(buildSimpleCardFlex("✅ Task Added", "#00B894", [
             { primary: title, secondary: dueAt ?? undefined },
           ]));
@@ -1004,7 +1009,7 @@ export function buildFlexFromToolResults(
         const input = callInput as { message?: string; text?: string; cron?: string } | undefined;
         const msg = String(input?.message ?? input?.text ?? "");
         const fireAt = typeof value.fireAt === "string" ? value.fireAt : null;
-        const fireText = fireAt ? fmtDateTime(fireAt, tz) : input?.cron ? `Recurring: ${input.cron}` : null;
+        const fireText = fireAt ? fmtDateTime(fireAt, tz, locale) : input?.cron ? `Recurring: ${input.cron}` : null;
         if (msg) {
           out.push(buildSimpleCardFlex("🔔 Reminder Set", "#E17055", [
             { primary: msg, secondary: fireText ?? undefined },
@@ -1023,7 +1028,7 @@ export function buildFlexFromToolResults(
           done: Boolean(t.doneAt),
           dueAt: typeof t.dueAt === "number" ? t.dueAt : undefined,
         }));
-        out.push(taskListFlex(tasks, { timezone: tz }));
+        out.push(taskListFlex(tasks, { timezone: tz, language: lang }));
         suppressText = true;
         seen.add(toolName);
         continue;
@@ -1091,7 +1096,7 @@ export function buildFlexFromToolResults(
         const items = reminders.map((r) => ({
           primary: String(r.text ?? r.message ?? ""),
           secondary: r.fireAt
-            ? fmtDateTime(String(r.fireAt), tz)
+            ? fmtDateTime(String(r.fireAt), tz, locale)
             : r.recurring
               ? "Recurring"
               : undefined,
@@ -1123,7 +1128,7 @@ export function buildFlexFromToolResults(
       if (toolName === "calendar_find_free_time" && Array.isArray(value.slots)) {
         const slots = value.slots as Array<Record<string, unknown>>;
         const items = slots.map((s) => ({
-          primary: fmtDateTime(String(s.startISO ?? ""), tz),
+          primary: fmtDateTime(String(s.startISO ?? ""), tz, locale),
           secondary: typeof s.minutes === "number" ? `${s.minutes} min available` : undefined,
         }));
         out.push(buildSimpleCardFlex("🕐 Free Time Slots", "#00B894", items, "No free slots found."));
@@ -1255,7 +1260,7 @@ export function buildFlexFromToolResults(
         const scheduled = value.scheduled as Array<Record<string, unknown>>;
         const items = scheduled.map((s) => {
           const to = Array.isArray(s.to) ? (s.to as string[]).join(", ") : String(s.to ?? "");
-          const sendAt = s.sendAt ? fmtDateTime(String(s.sendAt), tz) : null;
+          const sendAt = s.sendAt ? fmtDateTime(String(s.sendAt), tz, locale) : null;
           return {
             primary: String(s.subject ?? "(no subject)"),
             secondary: [to ? `To: ${to}` : null, sendAt].filter(Boolean).join("  ·  ") || undefined,
@@ -1276,7 +1281,7 @@ export function buildFlexFromToolResults(
           const kind = String(e.kind ?? "unknown");
           return {
             primary: subject ? `${kind}: ${subject}` : kind,
-            secondary: e.ts ? fmtDateTime(e.ts as number, tz) : undefined,
+            secondary: e.ts ? fmtDateTime(e.ts as number, tz, locale) : undefined,
           };
         });
         out.push(buildSimpleCardFlex("📬 Sent History", "#636E72", items, "No sent items found."));
@@ -1290,7 +1295,7 @@ export function buildFlexFromToolResults(
         const results = value.results as Array<Record<string, unknown>>;
         const items = results.map((r) => ({
           primary: String(r.summary ?? r.text ?? "").slice(0, 120),
-          secondary: r.ts ? fmtDateTime(r.ts as number, tz) : undefined,
+          secondary: r.ts ? fmtDateTime(r.ts as number, tz, locale) : undefined,
         }));
         out.push(buildSimpleCardFlex("📚 Memory Archive", "#6C5CE7", items, "No matching memories."));
         suppressText = true;
@@ -1303,7 +1308,7 @@ export function buildFlexFromToolResults(
         const chunks = value.chunks as Array<Record<string, unknown>>;
         const items = chunks.map((c) => ({
           primary: String(c.summary ?? "").slice(0, 120),
-          secondary: c.ts ? fmtDateTime(c.ts as number, tz) : undefined,
+          secondary: c.ts ? fmtDateTime(c.ts as number, tz, locale) : undefined,
         }));
         out.push(buildSimpleCardFlex("📚 Memory Archive", "#6C5CE7", items, "No archived memories yet."));
         suppressText = true;

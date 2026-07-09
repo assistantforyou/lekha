@@ -1,4 +1,5 @@
 import type { FlexMessage } from "@/lib/line/client";
+import { t, uiLang, type UiLang } from "@/lib/i18n";
 
 export type HelpCategory = {
   id: string;
@@ -8,87 +9,34 @@ export type HelpCategory = {
   demoAnswer: string;
 };
 
-export const HELP_CATEGORIES: HelpCategory[] = [
-  {
-    id: "memory",
-    icon: "🧠",
-    title: "Memory",
-    description: "remember facts, recall what I know, update memories",
-    demoAnswer: "I can remember your preferences, routines, and important details so I don't have to ask twice. Try telling me anything — I'll store it.",
-  },
-  {
-    id: "tasks",
-    icon: "✅",
-    title: "Tasks",
-    description: "add tasks, mark done, list open work",
-    demoAnswer: "Here's what I'd do: add a task 'call the plumber'. ✅\n\n(Demo only — no task was created.)",
-  },
-  {
-    id: "reminders",
-    icon: "⏰",
-    title: "Reminders",
-    description: "one-shot or recurring LINE pushes",
-    demoAnswer: "I'd set a reminder: stretch in 5 minutes. ⏰\n\n(Demo only — no reminder was set.)",
-  },
-  {
-    id: "lists",
-    icon: "📋",
-    title: "Lists",
-    description: "grocery, packing, or any named list",
-    demoAnswer: "I'd add milk to your grocery list. 🥛\n\n(Demo only — list unchanged.)",
-  },
-  {
-    id: "email",
-    icon: "📧",
-    title: "Email & Inbox",
-    description: "draft/send/search Gmail (Google needed)",
-    demoAnswer: "With Google connected, I can search your inbox, draft replies, and send emails. Say 'connect google' to link an account.",
-  },
-  {
-    id: "calendar",
-    icon: "📅",
-    title: "Calendar",
-    description: "schedule events, list upcoming (Google needed)",
-    demoAnswer: "With Google connected, I can check your schedule and draft events. I can also warn you before meetings if you want.",
-  },
-  {
-    id: "drive",
-    icon: "📁",
-    title: "Drive & Docs",
-    description: "search, upload, read files (Google needed)",
-    demoAnswer: "I can search Drive, get share links, read text files, and upload photos or documents you send me.",
-  },
-  {
-    id: "media",
-    icon: "📷",
-    title: "Media",
-    description: "photos, voice notes, PDFs, Office files",
-    demoAnswer: "Send me a photo and I'll read text or describe it. Send a PDF and I'll summarize it. Voice notes work too.",
-  },
-  {
-    id: "receipts",
-    icon: "🧾",
-    title: "Receipts",
-    description: "scan, list, search expense receipts",
-    demoAnswer: "Send a receipt photo and say 'scan this'. I'll save the merchant, amount, date, and items so you can search them later. 🧾",
-  },
-  {
-    id: "search",
-    icon: "🌐",
-    title: "Search & Info",
-    description: "web search, weather, stocks, news",
-    demoAnswer: "I can search the web, check weather, look up stocks/crypto, and get news. I always cite sources with a timestamp.",
-  },
-  {
-    id: "settings",
-    icon: "⚙️",
-    title: "Settings",
-    description: "timezone, location, language, briefings",
-    demoAnswer: "I'd set your timezone to Asia/Bangkok. 🌏\n\n(Demo only — settings unchanged.)",
-  },
-];
+function cat(id: string, icon: string, titleKey: string, descKey: string, demoKey: string, lang: UiLang): HelpCategory {
+  return {
+    id,
+    icon,
+    title: t(lang, titleKey as never),
+    description: t(lang, descKey as never),
+    demoAnswer: t(lang, demoKey as never),
+  };
+}
 
-function categoryRow(cat: HelpCategory): object {
+export function helpCategories(language?: string | null): HelpCategory[] {
+  const lang = uiLang(language);
+  return [
+    cat("memory", "🧠", "helpCatMemoryTitle", "helpCatMemoryDesc", "helpCatMemoryDemo", lang),
+    cat("tasks", "✅", "helpCatTasksTitle", "helpCatTasksDesc", "helpCatTasksDemo", lang),
+    cat("reminders", "⏰", "helpCatRemindersTitle", "helpCatRemindersDesc", "helpCatRemindersDemo", lang),
+    cat("lists", "📋", "helpCatListsTitle", "helpCatListsDesc", "helpCatListsDemo", lang),
+    cat("email", "📧", "helpCatEmailTitle", "helpCatEmailDesc", "helpCatEmailDemo", lang),
+    cat("calendar", "📅", "helpCatCalendarTitle", "helpCatCalendarDesc", "helpCatCalendarDemo", lang),
+    cat("drive", "📁", "helpCatDriveTitle", "helpCatDriveDesc", "helpCatDriveDemo", lang),
+    cat("media", "📷", "helpCatMediaTitle", "helpCatMediaDesc", "helpCatMediaDemo", lang),
+    cat("receipts", "🧾", "helpCatReceiptsTitle", "helpCatReceiptsDesc", "helpCatReceiptsDemo", lang),
+    cat("search", "🌐", "helpCatSearchTitle", "helpCatSearchDesc", "helpCatSearchDemo", lang),
+    cat("settings", "⚙️", "helpCatSettingsTitle", "helpCatSettingsDesc", "helpCatSettingsDemo", lang),
+  ];
+}
+
+function categoryRow(cat: HelpCategory, lang: UiLang): object {
   return {
     type: "box",
     layout: "horizontal",
@@ -127,7 +75,7 @@ function categoryRow(cat: HelpCategory): object {
         flex: 0,
         action: {
           type: "postback",
-          label: "Try it",
+          label: t(lang, "helpTryIt"),
           data: `help-demo:${cat.id}`,
           displayText: cat.title,
         },
@@ -136,25 +84,26 @@ function categoryRow(cat: HelpCategory): object {
   };
 }
 
-export function helpFlex(): FlexMessage {
+export function helpFlex(opts?: { language?: string | null }): FlexMessage {
+  const lang = uiLang(opts?.language);
   const bodyContents: object[] = [
     {
       type: "text",
-      text: "Here's what I can do. Tap a green button to see how I reply:",
+      text: t(lang, "helpHint"),
       size: "sm",
       color: "#555555",
       wrap: true,
     },
   ];
 
-  for (const cat of HELP_CATEGORIES) {
+  for (const c of helpCategories(opts?.language)) {
     bodyContents.push({ type: "separator", margin: "md", color: "#f2f2f2" });
-    bodyContents.push(categoryRow(cat));
+    bodyContents.push(categoryRow(c, lang));
   }
 
   return {
     type: "flex",
-    altText: "Lekha help: memory, tasks, reminders, lists, email, calendar, drive, media, receipts, search, settings. Tap a category to see a demo reply.",
+    altText: `${t(lang, "helpTitle")}: ${helpCategories(opts?.language).map((c) => c.title).join(", ").slice(0, 200)}`,
     contents: {
       type: "bubble",
       size: "mega",
@@ -163,7 +112,7 @@ export function helpFlex(): FlexMessage {
         layout: "vertical",
         backgroundColor: "#5B6FF0",
         paddingAll: "14px",
-        contents: [{ type: "text", text: "Lekha Help", color: "#FFFFFF", weight: "bold", size: "lg" }],
+        contents: [{ type: "text", text: t(lang, "helpTitle"), color: "#FFFFFF", weight: "bold", size: "lg" }],
       },
       body: {
         type: "box",
@@ -177,7 +126,7 @@ export function helpFlex(): FlexMessage {
 }
 
 /** Return the curated static demo answer for a help category, or null if unknown. */
-export function curatedDemoAnswer(id: string): string | null {
-  const cat = HELP_CATEGORIES.find((c) => c.id === id);
+export function curatedDemoAnswer(id: string, language?: string | null): string | null {
+  const cat = helpCategories(language).find((c) => c.id === id);
   return cat?.demoAnswer ?? null;
 }

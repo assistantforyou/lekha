@@ -138,6 +138,7 @@ export async function respondToText(
       replyText,
       hints,
       accounts.accounts.map((a) => a.email),
+      settings.language,
     ).slice(0, 5),
     opts?.onQuoteTokens,
   );

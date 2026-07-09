@@ -5,21 +5,29 @@ import { createCalendarEvent } from "@/lib/tools/calendar";
 import { executeScheduleEmail } from "@/lib/tools/scheduled-email";
 import type { PendingAction } from "@/lib/confirm";
 import { logSent } from "@/lib/memory/sent-log";
+import { text as textMsg, type LineMessage } from "@/lib/line/client";
+import { getSettings } from "@/lib/memory/settings";
 
-/** Execute a queue of previously-confirmed pending actions in order. Returns user-facing reply. */
+/** Execute a queue of previously-confirmed pending actions in order. Returns LINE messages. */
 export async function executePendingAll(
   userId: string,
   actions: PendingAction[],
-): Promise<string> {
-  if (!actions.length) return "Nothing to confirm.";
-  const lines: string[] = [];
+): Promise<LineMessage[]> {
+  if (!actions.length) return [textMsg("Nothing to confirm.")];
+  const settings = await getSettings(userId).catch(() => null);
+  const lang = settings?.language;
+  const messages: LineMessage[] = [];
   for (const action of actions) {
-    lines.push(await executeOne(userId, action));
+    messages.push(...(await executeOne(userId, action, lang)));
   }
-  return lines.join("\n");
+  return messages;
 }
 
-async function executeOne(userId: string, action: PendingAction): Promise<string> {
+async function executeOne(
+  userId: string,
+  action: PendingAction,
+  language: string | null | undefined,
+): Promise<LineMessage[]> {
   if (action.kind === "send_email") {
     try {
       const r = await sendEmail(userId, action);
@@ -43,14 +51,14 @@ async function executeOne(userId: string, action: PendingAction): Promise<string
           attachmentCount: (action.attachments?.length ?? 0) + (action.attachRecentMedia || action.attachRecentMediaIndexes?.length ? 1 : 0),
         },
       });
-      return `✅ Sent to ${recipients} (from ${r.from})${att}.`;
+      return [textMsg(`✅ Sent to ${recipients} (from ${r.from})${att}.`)];
     } catch (err) {
       if (unwrapAuthRequired(err)) {
         console.warn("[send] Google auth expired/revoked for user", userId, "—", errorMessage(err));
-        return await formatReconnectPrompt(userId);
+        return await formatReconnectPrompt(userId, language ?? undefined);
       }
       console.error("[send] failed", err);
-      return `I couldn't send the email: ${errorMessage(err)}`;
+      return [textMsg(`I couldn't send the email: ${errorMessage(err)}`)];
     }
   }
   if (action.kind === "create_calendar_event") {
@@ -71,28 +79,28 @@ async function executeOne(userId: string, action: PendingAction): Promise<string
       });
       const intro = `✅ Added to ${r.from}'s calendar.`;
       const hint = `(open the link below while signed into Google as ${r.from} — otherwise Google will say "event not found")`;
-      return r.htmlLink ? `${intro}\n${hint}\n${r.htmlLink}` : intro;
+      return [textMsg(r.htmlLink ? `${intro}\n${hint}\n${r.htmlLink}` : intro)];
     } catch (err) {
       if (unwrapAuthRequired(err)) {
         console.warn("[calendar] Google auth expired/revoked for user", userId, "—", errorMessage(err));
-        return await formatReconnectPrompt(userId);
+        return await formatReconnectPrompt(userId, language ?? undefined);
       }
       console.error("[calendar] failed", err);
-      return `I couldn't create the calendar event: ${errorMessage(err)}`;
+      return [textMsg(`I couldn't create the calendar event: ${errorMessage(err)}`)];
     }
   }
   if (action.kind === "schedule_email") {
     try {
       const r = await executeScheduleEmail(userId, action);
-      return `✅ Scheduled email "${action.subject}" for ${r.sendAt}.`;
+      return [textMsg(`✅ Scheduled email "${action.subject}" for ${r.sendAt}.`)];
     } catch (err) {
       if (unwrapAuthRequired(err)) {
         console.warn("[schedule_email] Google auth expired/revoked for user", userId, "—", errorMessage(err));
-        return await formatReconnectPrompt(userId);
+        return await formatReconnectPrompt(userId, language ?? undefined);
       }
       console.error("[schedule_email] failed", err);
-      return `I couldn't schedule the email: ${errorMessage(err)}`;
+      return [textMsg(`I couldn't schedule the email: ${errorMessage(err)}`)];
     }
   }
-  return "Done.";
+  return [textMsg("Done.")];
 }

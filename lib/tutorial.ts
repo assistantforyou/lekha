@@ -6,6 +6,7 @@ import { loadFacts, saveFacts, _internalNewFact } from "@/lib/memory/facts";
 import { TRIAL_DAILY_LIMIT } from "@/lib/trial-constants";
 import type { FlexMessage } from "@/lib/line/client";
 import { t } from "@/lib/i18n";
+import { parseTimeInput, resolveTimezone } from "@/lib/time-utils";
 
 const ACCENT = "#5B6FF0";
 const TEXT = "#333333";
@@ -232,65 +233,8 @@ const T = {
 };
 
 // Map common English / Thai inputs to IANA timezones.
-const TIMEZONE_ALIASES: Record<string, string> = {
-  bangkok: "Asia/Bangkok",
-  กรุงเทพ: "Asia/Bangkok",
-  กรุงเทพมหานคร: "Asia/Bangkok",
-  thailand: "Asia/Bangkok",
-  ไทย: "Asia/Bangkok",
-  singapore: "Asia/Singapore",
-  สิงคโปร์: "Asia/Singapore",
-  tokyo: "Asia/Tokyo",
-  โตเกียว: "Asia/Tokyo",
-  japan: "Asia/Tokyo",
-  ญี่ปุ่น: "Asia/Tokyo",
-  london: "Europe/London",
-  ลอนดอน: "Europe/London",
-  uk: "Europe/London",
-  england: "Europe/London",
-  "new york": "America/New_York",
-  นิวยอร์ก: "America/New_York",
-  nyc: "America/New_York",
-  "los angeles": "America/Los_Angeles",
-  แอลเอ: "America/Los_Angeles",
-  la: "America/Los_Angeles",
-  sydney: "Australia/Sydney",
-  ซิดนีย์: "Australia/Sydney",
-  hong: "Asia/Hong_Kong",
-  "hong kong": "Asia/Hong_Kong",
-  ฮ่องกง: "Asia/Hong_Kong",
-  dubai: "Asia/Dubai",
-  ดูไบ: "Asia/Dubai",
-  paris: "Europe/Paris",
-  ปารีส: "Europe/Paris",
-  berlin: "Europe/Berlin",
-  เบอร์ลิน: "Europe/Berlin",
-};
-
 function tutorialLang(settings: UserSettings): Lang {
   return settings.language === "th" ? "th" : "en";
-}
-
-function resolveTimezone(input: string): string | null {
-  const key = input.trim().toLowerCase();
-  if (TIMEZONE_ALIASES[key]) return TIMEZONE_ALIASES[key];
-  const normalized = key.replace(/_/g, "/").replace(/-/g, "/");
-  if (normalized.includes("/") && !normalized.startsWith("/")) return normalized;
-  return null;
-}
-
-function parseCustomTime(input: string): string | null {
-  const t = input.trim().toLowerCase();
-  const m = t.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i);
-  if (!m) return null;
-  let h = Number(m[1]);
-  const min = m[2] ? Number(m[2]) : 0;
-  const amp = m[3]?.toLowerCase();
-  if (Number.isNaN(h) || h < 1 || h > 12) return null;
-  if (Number.isNaN(min) || min < 0 || min > 59) return null;
-  if (amp === "pm" && h !== 12) h += 12;
-  if (amp === "am" && h === 12) h = 0;
-  return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
 }
 
 function tutorialBubble(lang: Lang, step: number, total: number, title: string, description: string, contents: object[]): FlexMessage {
@@ -751,7 +695,7 @@ async function handleCustomInput(userId: string, replyToken: string, field: Wait
     if (loc.length >= 2) value = loc;
     else error = t.locationError;
   } else if (field === "morning" || field === "evening" || field === "checkin") {
-    const time = parseCustomTime(input);
+    const time = parseTimeInput(input);
     if (time) value = time;
     else error = t.timeError;
   } else if (field === "preferredName") {

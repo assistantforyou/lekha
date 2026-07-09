@@ -1,4 +1,5 @@
 import type { FlexMessage } from "@/lib/line/client";
+import { t, uiLang } from "@/lib/i18n";
 
 /**
  * Connect-Google bubble with a real `uri` action button. A raw URL pasted
@@ -7,11 +8,12 @@ import type { FlexMessage } from "@/lib/line/client";
  * is long enough that manual copy/paste corrupts it. A button carries the
  * URL programmatically instead.
  */
-export function googleConnectFlex(url: string, opts?: { reason?: string }): FlexMessage {
-  const reason = opts?.reason ?? "Connect your Google account for email, calendar, and Drive.";
+export function googleConnectFlex(url: string, opts?: { reason?: string; language?: string | null }): FlexMessage {
+  const lang = uiLang(opts?.language);
+  const reason = opts?.reason ?? t(lang, "googleConnectDefaultReason");
   return {
     type: "flex",
-    altText: "Tap to connect your Google account",
+    altText: t(lang, "googleConnectDefaultReason"),
     contents: {
       type: "bubble",
       size: "kilo",
@@ -21,9 +23,9 @@ export function googleConnectFlex(url: string, opts?: { reason?: string }): Flex
         spacing: "md",
         paddingAll: "20px",
         contents: [
-          { type: "text", text: "Google Connect", weight: "bold", size: "lg", color: "#e7c88d" },
+          { type: "text", text: t(lang, "googleConnectTitle"), weight: "bold", size: "lg", color: "#e7c88d" },
           { type: "text", text: reason, wrap: true, size: "sm", color: "#555555" },
-          { type: "text", text: "Link expires in 10 minutes.", wrap: true, size: "xs", color: "#999999" },
+          { type: "text", text: t(lang, "googleConnectExpires"), wrap: true, size: "xs", color: "#999999" },
         ],
       },
       footer: {
@@ -36,7 +38,7 @@ export function googleConnectFlex(url: string, opts?: { reason?: string }): Flex
             style: "primary",
             color: "#06C755",
             height: "sm",
-            action: { type: "uri", label: "Connect Google Account", uri: url },
+            action: { type: "uri", label: t(lang, "googleConnectButton"), uri: url },
           },
         ],
       },

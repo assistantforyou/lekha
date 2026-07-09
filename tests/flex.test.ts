@@ -49,7 +49,7 @@ describe("taskListFlex", () => {
   it("renders empty state with a meaningful altText", () => {
     const msg = taskListFlex([]);
     expect(msg.type).toBe("flex");
-    expect(msg.altText).toMatch(/none/i);
+    expect(msg.altText).toMatch(/nothing|none/i);
   });
 
   it("emits done postback for open tasks and reopen for done", () => {
@@ -166,7 +166,7 @@ describe("taskCheckinFlex", () => {
   it("emits done:all footer button", () => {
     const msg = taskCheckinFlex([{ id: "t1", title: "Task A" }]);
     const json = JSON.stringify(msg.contents);
-    expect(json).toContain('"data":"checkin:done:all"');
+    expect(json).toContain('"data":"checkin:confirm-all"');
   });
 
   it("caps rows at 10", () => {

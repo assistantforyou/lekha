@@ -1,10 +1,12 @@
 import type { FlexMessage } from "@/lib/line/client";
+import { t, uiLang } from "@/lib/i18n";
 
-export function newGroupAdminFlex(groupId: string): FlexMessage {
+export function newGroupAdminFlex(groupId: string, opts?: { language?: string | null }): FlexMessage {
+  const lang = uiLang(opts?.language);
   const shortId = `${groupId.slice(0, 16)}…`;
   return {
     type: "flex",
-    altText: `Bot added to group ${shortId}`,
+    altText: `${t(lang, "newGroupAdminTitle")} ${shortId}`,
     contents: {
       type: "bubble",
       size: "kilo",
@@ -14,7 +16,7 @@ export function newGroupAdminFlex(groupId: string): FlexMessage {
         spacing: "sm",
         paddingAll: "16px",
         contents: [
-          { type: "text", text: "Bot added to a group", weight: "bold", size: "md" },
+          { type: "text", text: t(lang, "newGroupAdminTitle"), weight: "bold", size: "md" },
           { type: "text", text: groupId, size: "xs", wrap: true, color: "#333333" },
           { type: "text", text: shortId, size: "xs", color: "#888888" },
         ],
@@ -31,9 +33,9 @@ export function newGroupAdminFlex(groupId: string): FlexMessage {
             height: "sm",
             action: {
               type: "postback",
-              label: "🗑 Ignore",
+              label: t(lang, "newGroupAdminIgnore"),
               data: `group:remove:${groupId}`,
-              displayText: `Ignore group ${shortId}`,
+              displayText: `${t(lang, "newGroupAdminIgnore")} ${shortId}`,
             },
           },
           {
@@ -43,9 +45,9 @@ export function newGroupAdminFlex(groupId: string): FlexMessage {
             color: "#06C755",
             action: {
               type: "postback",
-              label: "✓ Allow",
+              label: t(lang, "newGroupAdminAllow"),
               data: `group:allow:${groupId}`,
-              displayText: `Allow group ${shortId}`,
+              displayText: `${t(lang, "newGroupAdminAllow")} ${shortId}`,
             },
           },
         ],
@@ -54,10 +56,11 @@ export function newGroupAdminFlex(groupId: string): FlexMessage {
   };
 }
 
-export function groupGateFlex(baseUrl: string): FlexMessage {
+export function groupGateFlex(baseUrl: string, opts?: { language?: string | null }): FlexMessage {
+  const lang = uiLang(opts?.language);
   return {
     type: "flex",
-    altText: "Lekha Team plan required for group chat.",
+    altText: t(lang, "groupGateBody"),
     contents: {
       type: "bubble",
       size: "mega",
@@ -69,14 +72,14 @@ export function groupGateFlex(baseUrl: string): FlexMessage {
         contents: [
           {
             type: "text",
-            text: "Lekha in groups",
+            text: t(lang, "groupGateTitle"),
             weight: "bold",
             size: "xl",
             color: "#FFFFFF",
           },
           {
             type: "text",
-            text: "A Team plan is needed to use Lekha inside group chats.",
+            text: t(lang, "groupGateBody"),
             wrap: true,
             size: "sm",
             color: "#AABBDD",
@@ -97,7 +100,7 @@ export function groupGateFlex(baseUrl: string): FlexMessage {
             height: "sm",
             action: {
               type: "uri",
-              label: "Team Monthly — ฿800/mo",
+              label: t(lang, "groupGateMonthly"),
               uri: `${baseUrl}/signup?plan=team_monthly`,
             },
           },
@@ -107,7 +110,7 @@ export function groupGateFlex(baseUrl: string): FlexMessage {
             height: "sm",
             action: {
               type: "uri",
-              label: "Team Yearly — ฿8,000/yr",
+              label: t(lang, "groupGateYearly"),
               uri: `${baseUrl}/signup?plan=team_yearly`,
             },
           },

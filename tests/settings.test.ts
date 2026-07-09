@@ -237,7 +237,7 @@ describe("settings Flex menus", () => {
     expect(json).toContain("21:00");
     expect(json).toContain("16:00");
     expect(json).toContain("19:00");
-    expect(json).toContain("LINE chat sends the briefing here");
+    expect(json).toContain("Briefings are sent here in LINE chat");
   });
 
   it("persona menu validates and shows all addressing options", () => {
@@ -315,8 +315,9 @@ describe("settings postback handlers", () => {
     expect(msgs.length).toBe(1);
     const q = msgs[0] as { type: string; buttons: { label: string }[] };
     expect(q.type).toBe("quick");
-    expect(q.buttons.length).toBe(13);
+    expect(q.buttons.length).toBe(14);
     expect(q.buttons[0]!.label).toBe("17:00");
+    expect(q.buttons[13]!.label).toBe("Cancel");
   });
 
   it("deletes a fact", async () => {

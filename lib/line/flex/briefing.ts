@@ -1,4 +1,5 @@
 import type { FlexMessage } from "@/lib/line/client";
+import { t, uiLang } from "@/lib/i18n";
 
 type Section = { header: string; items: string[] };
 
@@ -28,8 +29,10 @@ function parseSections(text: string): { greeting: string; sections: Section[] } 
 export function briefingFlex(
   kind: "morning" | "evening",
   bodyText: string,
+  opts?: { language?: string | null },
 ): FlexMessage {
-  const title = kind === "morning" ? "☀️  Morning briefing" : "🌙  Evening summary";
+  const lang = uiLang(opts?.language);
+  const title = t(lang, kind === "morning" ? "morningBriefingTitle" : "eveningSummaryTitle");
   const { greeting, sections } = parseSections(bodyText);
 
   const bodyContents: unknown[] = [
@@ -101,19 +104,19 @@ export function briefingFlex(
             type: "button",
             style: "primary",
             height: "sm",
-            action: { type: "message", label: "What's on my calendar?", text: "what's on my calendar today" },
+            action: { type: "message", label: t(lang, "morningCalendarBtn"), text: t(lang, "morningCalendarAction") },
           },
           {
             type: "button",
             style: "secondary",
             height: "sm",
-            action: { type: "message", label: "Show my tasks", text: "list my tasks" },
+            action: { type: "message", label: t(lang, "morningTasksBtn"), text: t(lang, "morningTasksAction") },
           },
           {
             type: "button",
             style: "secondary",
             height: "sm",
-            action: { type: "message", label: "Check my inbox", text: "summarize my recent unread email" },
+            action: { type: "message", label: t(lang, "morningInboxBtn"), text: t(lang, "morningInboxAction") },
           },
         ],
       },

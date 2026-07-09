@@ -11,7 +11,11 @@ export function buildEveningSummaryTool(userId: string) {
       inputSchema: z.object({}),
       execute: async () => {
         const s = await getSettings(userId);
-        const summary = await buildEveningSummary(userId, { timezone: s.timezone });
+        const summary = await buildEveningSummary(userId, {
+          timezone: s.timezone,
+          briefingLanguage: s.briefingLanguage,
+          language: s.language,
+        });
         if (!summary) return { ok: true, briefingType: "evening" as const, empty: true };
         return {
           ok: true,

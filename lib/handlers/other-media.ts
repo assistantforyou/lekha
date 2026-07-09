@@ -27,6 +27,7 @@ export async function respondToOtherMedia(
   fileSize: number | undefined,
   durationMs: number | undefined,
   mode: "normal" | "stage_only" = "normal",
+  chatId?: string,
 ): Promise<void> {
   // Stage immediately with guessed type so a concurrent text follow-up can find
   // this media without a race. The HEAD probe below refines the type but must
@@ -103,7 +104,7 @@ export async function respondToOtherMedia(
           transcript && transcript !== "No speech detected."
             ? t(settings.language, "voiceMemoAck", { duration: durationHint })
             : t(settings.language, "voiceMemoNoSpeech", { duration: durationHint });
-        await replyOrPush(userId, replyToken, [textMsg(reply)]);
+        await replyOrPush(chatId ?? userId, replyToken, [textMsg(reply)]);
         await appendTurn(userId, {
           role: "user",
           content: transcript && transcript !== "No speech detected."
@@ -141,7 +142,7 @@ export async function respondToOtherMedia(
     ack = t(lang, "genericMediaAck", { kind, name: fileName ?? "" });
   }
 
-  await replyOrPush(userId, replyToken, [textMsg(ack)]);
+  await replyOrPush(chatId ?? userId, replyToken, [textMsg(ack)]);
   await appendTurn(userId, {
     role: "user",
     content: `[sent a ${kind}${fileName ? `: ${fileName}` : ""}]`,

@@ -10,6 +10,10 @@ export function uiLang(language: string | null | undefined): UiLang {
   return language === "th" ? "th" : "en";
 }
 
+export function dateLocale(language: string | null | undefined): "th-TH" | "en-US" {
+  return uiLang(language) === "th" ? "th-TH" : "en-US";
+}
+
 const UI = {
   en: {
     fallbackNoCatch: "I didn't catch that — could you rephrase?",
@@ -154,6 +158,155 @@ const UI = {
 
     // Reminders
     reminderScheduleError: "Couldn't schedule the reminder right now. Please try again in a moment.",
+
+    // Briefings
+    morningGreeting: "Good morning! ☀️ {date}",
+    eveningGreeting: "Good evening. Here's your wrap-up: {date}",
+    today: "Today",
+    tomorrow: "Tomorrow",
+    overdueTitle: "⚠️ Overdue",
+    agendaTitle: "🗓 Your agenda",
+    agendaEmpty: "• Nothing scheduled for today or tomorrow.",
+    otherTasksTitle: "📋 Other tasks ({count})",
+    otherTasksEmpty: "• No open tasks without a due date.",
+    recommendationsTitle: "💡 Recommendations",
+    recOverdueOne: '⚠️ "{title}" is overdue — tackle it first.',
+    recOverdueMany: "⚠️ Overdue: {names}{more}. Start with the oldest.",
+    recDueTodayOne: '📋 "{title}" is due today.',
+    recDueTodayTwo: '📋 Due today: "{title0}" and "{title1}".',
+    recDueTodayMany: "📋 {count} tasks due today: {names}{more}. Start with the hardest.",
+    recCalendarOne: '📅 You have "{title}" on the calendar today — any prep needed?',
+    recCalendarMany: "📅 Busy schedule: {names}{more}. Block buffer time between meetings.",
+    recReminderOne: '⏰ Reminder: "{title}".',
+    recReminderMany: "⏰ Reminders today: {names}{more}. Bundle them into one block.",
+    recClearOne: '💡 Clear day — perfect time to knock out "{title}".',
+    recClearMany: '💡 Nothing scheduled today. How about "{title}"?',
+    recFiller: '💡 No due tasks today, but you have "{title}" open. Good filler between events.',
+    recPacked: "🔥 Packed day. Consider deferring non-urgent items.",
+    doneTodayTitle: "✅ Done today",
+    doneTodayEmpty: "• Nothing completed today.",
+    stillOpenTitle: "📋 Still open",
+    stillOpenEmpty: "• All clear — nothing left.",
+    aheadTitle: "🗓 Tomorrow & ahead",
+    overdueItemLabel: "[overdue]",
+    duePrefix: "due {when}",
+    evRecNoDone: "No tasks completed today. Start tomorrow with your highest-priority item.",
+    evRecOverdue: "You still have {count} overdue task(s). Address them first thing tomorrow.",
+    evRecBusy: "Tomorrow looks busy. Prep tonight so you start ahead.",
+    evRecLight: "Tomorrow looks light. Use the morning to clear your open tasks.",
+    evRecManyOpen: "{count} tasks still open. Review which ones actually matter this week.",
+    evRecMeetingsNoTasks: "Lots of meetings tomorrow but no tasks due. Add any prep or follow-ups.",
+
+    // Flex surfaces
+    morningBriefingTitle: "☀️  Morning briefing",
+    eveningSummaryTitle: "🌙  Evening summary",
+    morningCalendarBtn: "What's on my calendar?",
+    morningTasksBtn: "Show my tasks",
+    morningInboxBtn: "Check my inbox",
+    morningCalendarAction: "what's on my calendar today",
+    morningTasksAction: "list my tasks",
+    morningInboxAction: "summarize my recent unread email",
+
+    taskCheckinTitle: "✅  Quick check-in",
+    taskCheckinSubtitle: "Which of these did you finish today?",
+    taskCheckinDoneAll: "Done all",
+    taskCheckinDoneAllDisplay: "Done all — confirm first",
+    doneAllConfirmTitle: "Mark all {count} open tasks done?",
+    doneAllConfirmHint: "This cannot be undone.",
+    yesDoneAll: "Yes, done all",
+    yesMarkAllDone: "Yes, mark all done",
+
+    tasksTitle: "Your tasks",
+    taskHeader: "✅  Tasks",
+    taskAllDone: "All done 🎉",
+    taskDoneBtn: "Done",
+    taskReopenBtn: "Reopen",
+    taskOpenCount: "{open} open  ·  {done} done",
+    taskOverduePrefix: "Overdue · ",
+
+    helpTitle: "Lekha Help",
+    helpHint: "Here's what I can do. Tap a green button to see how I reply:",
+    helpTryIt: "Try it",
+
+    googleConnectTitle: "Google Connect",
+    googleConnectDefaultReason: "Connect your Google account for email, calendar, and Drive.",
+    googleConnectButton: "Connect Google Account",
+    googleConnectExpires: "Link expires in 10 minutes.",
+
+    confirmQuestion: "Confirm?",
+    confirmYesSend: "Yes, send",
+    cancel: "Cancel",
+
+    groupGateTitle: "Lekha in groups",
+    groupGateBody: "A Team plan is needed to use Lekha inside group chats.",
+    groupGateMonthly: "Team Monthly — ฿800/mo",
+    groupGateYearly: "Team Yearly — ฿8,000/yr",
+    newGroupAdminTitle: "Bot added to a group",
+    newGroupAdminIgnore: "🗑 Ignore",
+    newGroupAdminAllow: "✓ Allow",
+
+    groupWelcome:
+      "Hi everyone! I'm Lekha 👋\n\nMention me (@Lekha) or reply to my messages when you want my help. I can answer questions, search the web, check weather and stocks, read photos, and more.",
+
+    briefingChannelHint: "Briefings are sent here in LINE chat. Email delivery coming soon.",
+
+    unknownPostback: "I didn't understand that button. Try typing your request instead.",
+
+    // Help categories
+    helpCatMemoryTitle: "Memory",
+    helpCatMemoryDesc: "remember facts, recall what I know, update memories",
+    helpCatMemoryDemo:
+      "I can remember your preferences, routines, and important details so I don't have to ask twice. Try telling me anything — I'll store it.",
+    helpCatTasksTitle: "Tasks",
+    helpCatTasksDesc: "add tasks, mark done, list open work",
+    helpCatTasksDemo:
+      "Here's what I'd do: add a task 'call the plumber'. ✅\n\n(Demo only — no task was created.)",
+    helpCatRemindersTitle: "Reminders",
+    helpCatRemindersDesc: "one-shot or recurring LINE pushes",
+    helpCatRemindersDemo:
+      "I'd set a reminder: stretch in 5 minutes. ⏰\n\n(Demo only — no reminder was set.)",
+    helpCatListsTitle: "Lists",
+    helpCatListsDesc: "grocery, packing, or any named list",
+    helpCatListsDemo:
+      "I'd add milk to your grocery list. 🥛\n\n(Demo only — list unchanged.)",
+    helpCatEmailTitle: "Email & Inbox",
+    helpCatEmailDesc: "draft/send/search Gmail (Google needed)",
+    helpCatEmailDemo:
+      "With Google connected, I can search your inbox, draft replies, and send emails. Say 'connect google' to link an account.",
+    helpCatCalendarTitle: "Calendar",
+    helpCatCalendarDesc: "schedule events, list upcoming (Google needed)",
+    helpCatCalendarDemo:
+      "With Google connected, I can check your schedule and draft events. I can also warn you before meetings if you want.",
+    helpCatDriveTitle: "Drive & Docs",
+    helpCatDriveDesc: "search, upload, read files (Google needed)",
+    helpCatDriveDemo:
+      "I can search Drive, get share links, read text files, and upload photos or documents you send me.",
+    helpCatMediaTitle: "Media",
+    helpCatMediaDesc: "photos, voice notes, PDFs, Office files",
+    helpCatMediaDemo:
+      "Send me a photo and I'll read text or describe it. Send a PDF and I'll summarize it. Voice notes work too.",
+    helpCatReceiptsTitle: "Receipts",
+    helpCatReceiptsDesc: "scan, list, search expense receipts",
+    helpCatReceiptsDemo:
+      "Send a receipt photo and say 'scan this'. I'll save the merchant, amount, date, and items so you can search them later. 🧾",
+    helpCatSearchTitle: "Search & Info",
+    helpCatSearchDesc: "web search, weather, stocks, news",
+    helpCatSearchDemo:
+      "I can search the web, check weather, look up stocks/crypto, and get news. I always cite sources with a timestamp.",
+    helpCatSettingsTitle: "Settings",
+    helpCatSettingsDesc: "timezone, location, language, briefings",
+    helpCatSettingsDemo:
+      "I'd set your timezone to Asia/Bangkok. 🌏\n\n(Demo only — settings unchanged.)",
+
+    // Fact categories
+    factCategoryPreferences: "preferences",
+    factCategoryPeople: "people",
+    factCategoryHabits: "habits",
+    factCategoryDeadlines: "deadlines",
+    factCategoryContext: "context",
+    factCategoryHealth: "health",
+    factCategoryWork: "work",
+    factCategoryOther: "other",
   },
 
   th: {
@@ -299,6 +452,155 @@ const UI = {
 
     // Reminders
     reminderScheduleError: "ตั้งเตือนความจำไม่ได้ตอนนี้ ลองใหม่ในอีกสักครู่",
+
+    // Briefings
+    morningGreeting: "อรุณสวัสดีค่ะ! ☀️ {date}",
+    eveningGreeting: "สวัสดีตอนเย็นค่ะ นี่คือสรุปของคุณ: {date}",
+    today: "วันนี้",
+    tomorrow: "พรุ่งนี้",
+    overdueTitle: "⚠️ เลยกำหนด",
+    agendaTitle: "🗓 กำหนดการของคุณ",
+    agendaEmpty: "• ไม่มีกำหนดการวันนี้และพรุ่งนี้",
+    otherTasksTitle: "📋 งานอื่น ๆ ({count})",
+    otherTasksEmpty: "• ไม่มีงานค้างที่ไม่มีกำหนดส่ง",
+    recommendationsTitle: "💡 คำแนะนำ",
+    recOverdueOne: '⚠️ "{title}" เลยกำหนดแล้ว — จัดการอันนี้ก่อนนะคะ',
+    recOverdueMany: "⚠️ เลยกำหนด: {names}{more} เริ่มจากรายการเก่าสุดก่อนค่ะ",
+    recDueTodayOne: '📋 "{title}" กำหนดวันนี้',
+    recDueTodayTwo: '📋 กำหนดวันนี้: "{title0}" และ "{title1}"',
+    recDueTodayMany: "📋 มี {count} งานกำหนดวันนี้: {names}{more} เริ่มจากงานยากก่อนค่ะ",
+    recCalendarOne: '📅 วันนี้คุณมี "{title}" ในปฏิทิน — ต้องเตรียมอะไรไหมคะ',
+    recCalendarMany: "📅 ตารางแน่น: {names}{more} เว้นช่วงพักระหว่างประชุมนะคะ",
+    recReminderOne: '⏰ เตือนความจำ: "{title}"',
+    recReminderMany: "⏰ เตือนความจำวันนี้: {names}{more} รวมไว้ในช่วงเดียวกันเลยค่ะ",
+    recClearOne: '💡 วันนี้ว่าง — เหมาะจะจัดการ "{title}"',
+    recClearMany: '💡 วันนี้ไม่มีกำหนดการ ลองทำ "{title}" ไหมคะ',
+    recFiller: '💡 วันนี้ไม่มีงานกำหนดส่ง แต่คุณยังมี "{title}" ค้างอยู่ เหมาะทำช่วงว่างระหว่างนัดหมายค่ะ',
+    recPacked: "🔥 วันนี้แน่นมาก พิจารณาเลื่อนรายการที่ไม่เร่งด่วนนะคะ",
+    doneTodayTitle: "✅ เสร็จแล้ววันนี้",
+    doneTodayEmpty: "• วันนี้ยังไม่มีงานที่เสร็จ",
+    stillOpenTitle: "📋 ยังค้างอยู่",
+    stillOpenEmpty: "• โล่งแล้ว — ไม่เหลืออะไรค่ะ",
+    aheadTitle: "🗓 พรุ่งนี้และต่อไป",
+    overdueItemLabel: "[เลยกำหนด]",
+    duePrefix: "กำหนด {when}",
+    evRecNoDone: "วันนี้ยังไม่ได้ทำงานเลย เริ่มพรุ่งนี้ด้วยงานที่สำคัญที่สุดก่อนนะคะ",
+    evRecOverdue: "คุณยังมี {count} งานที่เลยกำหนด จัดการก่อนเป็นอันดับแรกพรุ่งนี้เลยค่ะ",
+    evRecBusy: "พรุ่งนี้ดูแน่น เตรียมตัวค่ำนี้เพื่อให้เริ่มต้นได้ดี",
+    evRecLight: "พรุ่งนี้ว่าง ใช้เช้าจัดการงานค้างให้หมดเลยค่ะ",
+    evRecManyOpen: "ยังมี {count} งานค้างอยู่ ทบทวนว่าอันไหนสำคัญจริง ๆ ในสัปดาห์นี้",
+    evRecMeetingsNoTasks: "พรุ่งนี้มีประชุมเยอะ แต่ไม่มีงานกำหนดส่ง เพิ่มรายการเตรียมตัวหรือติดตามผลได้ค่ะ",
+
+    // Flex surfaces
+    morningBriefingTitle: "☀️  สรุปประจำเช้า",
+    eveningSummaryTitle: "🌙  สรุปประจำเย็น",
+    morningCalendarBtn: "ปฏิทินวันนี้มีอะไร?",
+    morningTasksBtn: "แสดงงานของฉัน",
+    morningInboxBtn: "เช็คอีเมล",
+    morningCalendarAction: "ปฏิทินวันนี้มีอะไร",
+    morningTasksAction: "แสดงงานของฉัน",
+    morningInboxAction: "สรุปอีเมลที่ยังไม่ได้อ่านล่าสุด",
+
+    taskCheckinTitle: "✅  เช็คงานวันนี้",
+    taskCheckinSubtitle: "อันไหนที่ทำเสร็จแล้วคะ",
+    taskCheckinDoneAll: "เสร็จทั้งหมด",
+    taskCheckinDoneAllDisplay: "เสร็จทั้งหมด — ยืนยันก่อน",
+    doneAllConfirmTitle: "ทำเครื่องหมาย {count} งานค้างว่าเสร็จ?",
+    doneAllConfirmHint: "ทำแล้วย้อนกลับไม่ได้",
+    yesDoneAll: "ใช่ เสร็จทั้งหมด",
+    yesMarkAllDone: "ใช่ ทำเครื่องหมายทั้งหมด",
+
+    tasksTitle: "งานของคุณ",
+    taskHeader: "✅  งาน",
+    taskAllDone: "เสร็จหมดแล้ว 🎉",
+    taskDoneBtn: "เสร็จ",
+    taskReopenBtn: "เปิดใหม่",
+    taskOpenCount: "ค้าง {open} · เสร็จ {done}",
+    taskOverduePrefix: "เลยกำหนด · ",
+
+    helpTitle: "ความช่วยเหลือ Lekha",
+    helpHint: "นี่คือสิ่งที่ฉันทำได้ แตะปุ่มสีเขียวเพื่อดูตัวอย่างคำตอบ:",
+    helpTryIt: "ลองเลย",
+
+    googleConnectTitle: "เชื่อมต่อ Google",
+    googleConnectDefaultReason: "เชื่อมบัญชี Google เพื่อใช้อีเมล ปฏิทิน และไดรฟ์",
+    googleConnectButton: "เชื่อมบัญชี Google",
+    googleConnectExpires: "ลิงก์หมดอายุใน 10 นาที",
+
+    confirmQuestion: "ยืนยัน?",
+    confirmYesSend: "ใช่ ส่งเลย",
+    cancel: "ยกเลิก",
+
+    groupGateTitle: "Lekha ในกลุ่ม",
+    groupGateBody: "ต้องใช้แผน Team เพื่อใช้ Lekha ในแชทกลุ่ม",
+    groupGateMonthly: "Team รายเดือน — ฿800/เดือน",
+    groupGateYearly: "Team รายปี — ฿8,000/ปี",
+    newGroupAdminTitle: "บอทถูกเพิ่มในกลุ่ม",
+    newGroupAdminIgnore: "🗑 ละเว้น",
+    newGroupAdminAllow: "✓ อนุญาต",
+
+    groupWelcome:
+      "สวัสดีทุกคน ฉันคือ Lekha 👋\n\nพิมพ์ @Lekha หรือตอบข้อความฉันเมื่อต้องการให้ช่วยเหลือ ฉันสามารถตอบคำถาม ค้นหา ตรวจสอบสภาพอากาศและหุ้น อ่านรูปภาพ และอื่น ๆ ได้",
+
+    briefingChannelHint: "สรุปประจำวันจะส่งที่นี่ในแชท LINE การส่งทางอีเมลจะมาเร็ว ๆ นี้",
+
+    unknownPostback: "ฉันไม่เข้าใจปุ่มนั้น ลองพิมพ์คำขอของคุณแทนนะคะ",
+
+    // Help categories
+    helpCatMemoryTitle: "ความจำ",
+    helpCatMemoryDesc: "จำข้อเท็จจริง เรียกคืนสิ่งที่รู้ อัปเดตความจำ",
+    helpCatMemoryDemo:
+      "ฉันจำความชอบ กิจวัตร และรายละเอียดสำคัญของคุณได้ เพื่อไม่ต้องถามซ้ำ บอกอะไรมาก็ได้ — ฉันจะจำไว้",
+    helpCatTasksTitle: "งาน",
+    helpCatTasksDesc: "เพิ่มงาน ทำเครื่องหมายเสร็จ ดูงานค้าง",
+    helpCatTasksDemo:
+      "ฉันจะเพิ่มงาน 'โทรหาช่างประปา' ✅\n\n(ตัวอย่างเท่านั้น — ยังไม่ได้สร้างงานจริง)",
+    helpCatRemindersTitle: "การแจ้งเตือน",
+    helpCatRemindersDesc: "แจ้งเตือนครั้งเดียวหรือซ้ำใน LINE",
+    helpCatRemindersDemo:
+      "ฉันจะตั้งเตือน: ยืดเส้นยืดสายใน 5 นาที ⏰\n\n(ตัวอย่างเท่านั้น — ยังไม่ได้ตั้งเตือนจริง)",
+    helpCatListsTitle: "รายการ",
+    helpCatListsDesc: "รายการซื้อของ ของใช้ หรือรายการที่ตั้งชื่อเอง",
+    helpCatListsDemo:
+      "ฉันจะเพิ่มนมในรายการซื้อของ 🥛\n\n(ตัวอย่างเท่านั้น — รายการยังไม่เปลี่ยน)",
+    helpCatEmailTitle: "อีเมลและกล่องจดหมาย",
+    helpCatEmailDesc: "เขียน/ส่ง/ค้นหา Gmail (ต้องใช้ Google)",
+    helpCatEmailDemo:
+      "เมื่อเชื่อม Google แล้ว ฉันสามารถค้นหากล่องจดหมาย เขียนตอบกลับ และส่งอีเมลได้ พิมพ์ 'connect google' เพื่อเชื่อมบัญชี",
+    helpCatCalendarTitle: "ปฏิทิน",
+    helpCatCalendarDesc: "จัดกำหนดการ ดูนัดหมายที่จะถึง (ต้องใช้ Google)",
+    helpCatCalendarDemo:
+      "เมื่อเชื่อม Google แล้ว ฉันสามารถตรวจสอบตารางและร่างกำหนดการได้ หากต้องการ ฉันยังเตือนก่อนประชุมได้",
+    helpCatDriveTitle: "ไดรฟ์และเอกสาร",
+    helpCatDriveDesc: "ค้นหา อัปโหลด อ่านไฟล์ (ต้องใช้ Google)",
+    helpCatDriveDemo:
+      "ฉันสามารถค้นหาไดรฟ์ รับลิงก์แชร์ อ่านไฟล์ข้อความ และอัปโหลดรูปหรือเอกสารที่คุณส่งมา",
+    helpCatMediaTitle: "สื่อ",
+    helpCatMediaDesc: "รูปภาพ ข้อความเสียง PDF ไฟล์ Office",
+    helpCatMediaDemo:
+      "ส่งรูปมาให้อ่านตัวอักษรหรืออธิบายได้ ส่ง PDF มาสรุปให้ได้ ข้อความเสียงก็ได้ค่ะ",
+    helpCatReceiptsTitle: "ใบเสร็จ",
+    helpCatReceiptsDesc: "สแกน ดู ค้นหาใบเสร็จค่าใช้จ่าย",
+    helpCatReceiptsDemo:
+      "ส่งรูปใบเสร็จแล้วพิมพ์ 'scan this' ฉันจะบันทึกร้านค้า จำนวนเงิน วันที่ และรายการ เพื่อให้ค้นหาทีหลังได้ 🧾",
+    helpCatSearchTitle: "ค้นหาและข้อมูล",
+    helpCatSearchDesc: "ค้นหาเว็บ สภาพอากาศ หุ้น ข่าว",
+    helpCatSearchDemo:
+      "ฉันสามารถค้นหาเว็บ เช็คสภาพอากาศ เช็คราคาหุ้น/คริปโต และหาข่าวได้ ฉันอ้างอิงแหล่งที่มาพร้อมเวลาเสมอ",
+    helpCatSettingsTitle: "ตั้งค่า",
+    helpCatSettingsDesc: "เขตเวลา สถานที่ ภาษา สรุปประจำวัน",
+    helpCatSettingsDemo:
+      "ฉันจะตั้งเขตเวลาเป็น Asia/Bangkok 🌏\n\n(ตัวอย่างเท่านั้น — การตั้งค่ายังไม่เปลี่ยน)",
+
+    // Fact categories
+    factCategoryPreferences: "ความชอบ",
+    factCategoryPeople: "คน",
+    factCategoryHabits: "กิจวัตร",
+    factCategoryDeadlines: "กำหนดส่ง",
+    factCategoryContext: "บริบท",
+    factCategoryHealth: "สุขภาพ",
+    factCategoryWork: "งาน",
+    factCategoryOther: "อื่น ๆ",
   },
 };
 

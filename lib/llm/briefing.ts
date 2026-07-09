@@ -5,6 +5,7 @@ import { listReminders, type StoredReminder } from "@/lib/tools/reminders";
 import { env } from "@/lib/env";
 import { fetchCachedNews, type NewsStory } from "@/lib/news-cache";
 import { fetchWeather } from "@/lib/tools/weather-shared";
+import { t, dateLocale, uiLang } from "@/lib/i18n";
 
 
 type WeatherResult = {
@@ -34,6 +35,24 @@ export type BriefingResult = {
   inbox: BriefingInboxItem[] | null;
 };
 
+function briefingLang(
+  pref?: "English" | "ไทย" | "EN + ไทย" | null,
+  fallback?: string | null,
+): "en" | "th" {
+  if (pref === "ไทย") return "th";
+  if (pref === "English") return "en";
+  if (pref === "EN + ไทย") return uiLang(fallback) === "th" ? "th" : "en";
+  return uiLang(fallback);
+}
+
+function andWord(lang: "en" | "th"): string {
+  return lang === "th" ? "และ" : "and";
+}
+
+function moreTasks(count: number, lang: "en" | "th"): string {
+  return lang === "th" ? ` และอีก ${count} รายการ` : ` and ${count} more`;
+}
+
 // ─── Agenda helpers ───
 
 type AgendaItem = {
@@ -53,20 +72,21 @@ function toDayKey(ts: number, tz: string): string {
   return new Date(ts).toLocaleDateString("en-CA", { timeZone: tz });
 }
 
-function formatAgendaItem(item: AgendaItem, tz: string): string {
+function formatAgendaItem(item: AgendaItem, tz: string, lang: "en" | "th"): string {
   const icon = item.type === "calendar" ? "📅" : item.type === "reminder" ? "⏰" : "📋";
+  const locale = dateLocale(lang);
   if (item.overdue) {
-    const dateStr = new Date(item.ts).toLocaleDateString("en-US", {
+    const dateStr = new Date(item.ts).toLocaleDateString(locale, {
       timeZone: tz,
       month: "short",
       day: "numeric",
     });
-    return `• ${icon} ⚠️ ${item.text} (was due ${dateStr})`;
+    return `• ${icon} ⚠️ ${item.text} (${t(lang, "duePrefix", { when: dateStr })})`;
   }
   if (item.isAllDay) {
     return `• ${icon} ${item.text}`;
   }
-  const timeStr = new Date(item.ts).toLocaleTimeString("en-US", {
+  const timeStr = new Date(item.ts).toLocaleTimeString(locale, {
     timeZone: tz,
     hour: "numeric",
     minute: "2-digit",
@@ -129,16 +149,17 @@ function buildAgenda(
   return map;
 }
 
-function dayLabel(dayKey: string, tz: string, todayDateStr: string): string {
-  if (dayKey === OVERDUE_KEY) return "⚠️ Overdue";
-  if (dayKey === todayDateStr) return "Today";
+function dayLabel(dayKey: string, tz: string, todayDateStr: string, lang: "en" | "th"): string {
+  if (dayKey === OVERDUE_KEY) return t(lang, "overdueTitle");
+  if (dayKey === todayDateStr) return t(lang, "today");
+  const locale = dateLocale(lang);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowKey = tomorrow.toLocaleDateString("en-CA", { timeZone: tz });
-  if (dayKey === tomorrowKey) return "Tomorrow";
+  if (dayKey === tomorrowKey) return t(lang, "tomorrow");
   const d = new Date(dayKey + "T12:00:00");
-  const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
-  const monthDay = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const weekday = d.toLocaleDateString(locale, { weekday: "long" });
+  const monthDay = d.toLocaleDateString(locale, { month: "short", day: "numeric" });
   return `${weekday}, ${monthDay}`;
 }
 
@@ -148,6 +169,7 @@ function buildRecommendations(
   todayDateStr: string,
   now: number,
   endOfToday: number,
+  lang: "en" | "th",
 ): string[] {
   const recs: string[] = [];
   const todayItems = agenda.get(todayDateStr) ?? [];
@@ -159,58 +181,59 @@ function buildRecommendations(
   const remindersToday = todayItems.filter((i) => i.type === "reminder");
   const tasksToday = todayItems.filter((i) => i.type === "task");
 
+  const joinNames = (items: { title?: string; text?: string }[], limit: number, sep: string) =>
+    items.slice(0, limit).map((i) => `"${i.title ?? i.text ?? ""}"`).join(sep);
+
   // ── Overdue ──────────────────────────────────────────────────────────
   if (overdue.length === 1) {
-    recs.push(`⚠️ "${overdue[0]!.title}" is overdue — tackle it first.`);
+    recs.push(t(lang, "recOverdueOne", { title: overdue[0]!.title }));
   } else if (overdue.length > 1) {
-    const names = overdue.slice(0, 3).map((t) => `"${t.title}"`).join(", ");
-    const more = overdue.length > 3 ? ` and ${overdue.length - 3} more` : "";
-    recs.push(`⚠️ Overdue: ${names}${more}. Start with the oldest.`);
+    const names = joinNames(overdue, 3, ", ");
+    const more = overdue.length > 3 ? moreTasks(overdue.length - 3, lang) : "";
+    recs.push(t(lang, "recOverdueMany", { names, more }));
   }
 
   // ── Due today ────────────────────────────────────────────────────────
   if (dueToday.length === 1) {
-    recs.push(`📋 "${dueToday[0]!.title}" is due today.`);
+    recs.push(t(lang, "recDueTodayOne", { title: dueToday[0]!.title }));
   } else if (dueToday.length === 2) {
-    recs.push(`📋 Due today: "${dueToday[0]!.title}" and "${dueToday[1]!.title}".`);
+    recs.push(t(lang, "recDueTodayTwo", { title0: dueToday[0]!.title, title1: dueToday[1]!.title }));
   } else if (dueToday.length >= 3) {
-    const names = dueToday.slice(0, 3).map((t) => `"${t.title}"`).join(", ");
-    const more = dueToday.length > 3 ? ` (+${dueToday.length - 3} more)` : "";
-    recs.push(`📋 ${dueToday.length} tasks due today: ${names}${more}. Start with the hardest.`);
+    const names = joinNames(dueToday, 3, ", ");
+    const more = dueToday.length > 3 ? ` (+${dueToday.length - 3})` : "";
+    recs.push(t(lang, "recDueTodayMany", { count: String(dueToday.length), names, more }));
   }
 
   // ── Calendar events ──────────────────────────────────────────────────
   if (calToday.length === 1) {
-    recs.push(`📅 You have "${calToday[0]!.text}" on the calendar today — any prep needed?`);
+    recs.push(t(lang, "recCalendarOne", { title: calToday[0]!.text }));
   } else if (calToday.length >= 2) {
-    const names = calToday.slice(0, 2).map((i) => `"${i.text}"`).join(" and ");
-    const more = calToday.length > 2 ? ` (+${calToday.length - 2} more)` : "";
-    recs.push(`📅 Busy schedule: ${names}${more}. Block buffer time between meetings.`);
+    const names = joinNames(calToday, 2, ` ${andWord(lang)} `);
+    const more = calToday.length > 2 ? ` (+${calToday.length - 2})` : "";
+    recs.push(t(lang, "recCalendarMany", { names, more }));
   }
 
   // ── Reminders ────────────────────────────────────────────────────────
   if (remindersToday.length === 1) {
-    recs.push(`⏰ Reminder: "${remindersToday[0]!.text}".`);
+    recs.push(t(lang, "recReminderOne", { title: remindersToday[0]!.text }));
   } else if (remindersToday.length >= 2) {
-    const names = remindersToday.slice(0, 2).map((i) => `"${i.text}"`).join(" and ");
-    const more = remindersToday.length > 2 ? ` (+${remindersToday.length - 2} more)` : "";
-    recs.push(`⏰ Reminders today: ${names}${more}. Bundle them into one block.`);
+    const names = joinNames(remindersToday, 2, ` ${andWord(lang)} `);
+    const more = remindersToday.length > 2 ? ` (+${remindersToday.length - 2})` : "";
+    recs.push(t(lang, "recReminderMany", { names, more }));
   }
 
   // ── No-due-date tasks ────────────────────────────────────────────────
   if (todayCount === 0 && noDueDate.length === 1) {
-    recs.push(`💡 Clear day — perfect time to knock out "${noDueDate[0]!.title}".`);
+    recs.push(t(lang, "recClearOne", { title: noDueDate[0]!.title }));
   } else if (todayCount === 0 && noDueDate.length >= 2) {
-    const pick = noDueDate[0]!;
-    recs.push(`💡 Nothing scheduled today. How about "${pick.title}"?`);
+    recs.push(t(lang, "recClearMany", { title: noDueDate[0]!.title }));
   } else if (todayCount > 0 && noDueDate.length >= 1 && tasksToday.length === 0) {
-    // They have calendar events but no due tasks — suggest a no-due task to fill gaps
-    recs.push(`💡 No due tasks today, but you have "${noDueDate[0]!.title}" open. Good filler between events.`);
+    recs.push(t(lang, "recFiller", { title: noDueDate[0]!.title }));
   }
 
   // ── Density-based ────────────────────────────────────────────────────
   if (todayCount >= 6) {
-    recs.push("🔥 Packed day. Consider deferring non-urgent items.");
+    recs.push(t(lang, "recPacked"));
   }
 
   return recs;
@@ -244,12 +267,15 @@ export async function buildMorningBriefing(
     briefingTopicSources?: Record<string, string[]>;
     briefingLength?: "Headlines" | "Bullets" | "Full";
     briefingLanguage?: "English" | "ไทย" | "EN + ไทย";
+    language?: string | null;
   },
 ): Promise<BriefingResult> {
   const sections: string[] = [];
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
   const length = opts.briefingLength ?? "Bullets";
+  const lang = briefingLang(opts.briefingLanguage, opts.language);
+  const locale = dateLocale(lang);
 
   const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone });
   const endOfToday = new Date(`${todayDateStr}T23:59:59`).getTime();
@@ -395,16 +421,16 @@ export async function buildMorningBriefing(
     const agendaLines: string[] = [];
     for (const day of daysToShow) {
       const items = agenda.get(day) ?? [];
-      agendaLines.push(`${dayLabel(day, opts.timezone, todayDateStr)} (${items.length})`);
+      agendaLines.push(`${dayLabel(day, opts.timezone, todayDateStr, lang)} (${items.length})`);
       if (length !== "Headlines") {
         for (const item of items) {
-          agendaLines.push(formatAgendaItem(item, opts.timezone));
+          agendaLines.push(formatAgendaItem(item, opts.timezone, lang));
         }
       }
     }
-    sections.push(`🗓 Your agenda\n${agendaLines.join("\n")}`);
+    sections.push(`${t(lang, "agendaTitle")}\n${agendaLines.join("\n")}`);
   } else {
-    sections.push("🗓 Your agenda\n• Nothing scheduled for today or tomorrow.");
+    sections.push(`${t(lang, "agendaTitle")}\n${t(lang, "agendaEmpty")}`);
   }
 
   // Quick tasks — no due date
@@ -412,13 +438,13 @@ export async function buildMorningBriefing(
   if (noDueDate.length > 0) {
     const taskLimit = length === "Headlines" ? 0 : length === "Full" ? noDueDate.length : 5;
     const lines = taskLimit > 0 ? noDueDate.slice(0, taskLimit).map((t) => `• ${t.title}`) : [];
-    sections.push(`📋 Other tasks (${noDueDate.length})${lines.length ? "\n" + lines.join("\n") : ""}`);
+    sections.push(`${t(lang, "otherTasksTitle", { count: String(noDueDate.length) })}${lines.length ? "\n" + lines.join("\n") : ""}`);
   } else {
-    sections.push("📋 Other tasks\n• No open tasks without a due date.");
+    sections.push(`${t(lang, "otherTasksTitle", { count: "0" })}\n${t(lang, "otherTasksEmpty")}`);
   }
 
   // Recommendations
-  const recs = buildRecommendations(agenda, openTasks, todayDateStr, now, endOfToday);
+  const recs = buildRecommendations(agenda, openTasks, todayDateStr, now, endOfToday, lang);
   const recLimit = length === "Headlines" ? 1 : length === "Full" ? recs.length : recs.length;
   if (recs.length > 0) {
     sections.push(`💡 Recommendations\n${recs.slice(0, recLimit).map((r) => `• ${r}`).join("\n")}`);
@@ -446,14 +472,14 @@ export async function buildMorningBriefing(
   const inbox = inboxRaw && inboxRaw.length > 0 ? (inboxRaw as BriefingInboxItem[]) : null;
 
   // Date header in user's timezone
-  const dateHeader = new Date().toLocaleDateString("en-US", {
+  const dateHeader = new Date().toLocaleDateString(locale, {
     timeZone: opts.timezone,
     weekday: "long",
     month: "long",
     day: "numeric",
   });
 
-  const text = `Good morning! ☀️ ${dateHeader}\n\n${sections.join("\n\n")}`;
+  const text = `${t(lang, "morningGreeting", { date: dateHeader })}\n\n${sections.join("\n\n")}`;
 
   return { text, news, inbox };
 }

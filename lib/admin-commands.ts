@@ -303,8 +303,9 @@ export async function handleAdminCommand(
           briefingTopicSources: settings.briefingTopicSources,
           briefingLength: settings.briefingLength,
           briefingLanguage: settings.briefingLanguage,
+          language: settings.language,
         });
-        const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
+        const msgs: LineMessage[] = [briefingFlex("morning", briefing.text, { language: settings.language })];
         if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
         if (briefing.inbox && briefing.inbox.length > 0) {
           msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
@@ -312,12 +313,16 @@ export async function handleAdminCommand(
         const ok = await replyOrPush(target, "", msgs);
         await replyOrPush(userId, replyToken, [textMsg(ok === "failed" ? `❌ Push failed for ${target}` : `✅ Morning briefing sent to ${target}.`)]);
       } else {
-        const summary = await buildEveningSummary(target, { timezone: settings.timezone });
+        const summary = await buildEveningSummary(target, {
+          timezone: settings.timezone,
+          briefingLanguage: settings.briefingLanguage,
+          language: settings.language,
+        });
         if (!summary) {
           await replyOrPush(userId, replyToken, [textMsg(`⚠️ No evening summary generated for ${target}.`)]);
           return true;
         }
-        const msgs: LineMessage[] = [briefingFlex("evening", summary.text)];
+        const msgs: LineMessage[] = [briefingFlex("evening", summary.text, { language: settings.language })];
         if (summary.news.length > 0) msgs.push(newsFlex(summary.news, "📰 Evening news"));
         const ok = await replyOrPush(target, "", msgs);
         await replyOrPush(userId, replyToken, [textMsg(ok === "failed" ? `❌ Push failed for ${target}` : `✅ Evening summary sent to ${target}.`)]);

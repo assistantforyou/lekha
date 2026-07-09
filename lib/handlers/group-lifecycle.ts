@@ -13,20 +13,25 @@ import {
 import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { groupGateFlex, newGroupAdminFlex } from "@/lib/line/flex/group-gate";
 import { clearGroupHistory, clearGroupProfiles } from "@/lib/memory/group-history";
+import { getSettings } from "@/lib/memory/settings";
+import { t } from "@/lib/i18n";
 import type { JoinEvent, LeaveEvent, MemberJoinedEvent, MemberLeftEvent } from "@/lib/line/types";
 
-const WELCOME_TEXT =
-  "Hi everyone! I'm Lekha 👋\n\nMention me (@Lekha) or reply to my messages when you want my help. I can answer questions, search the web, check weather and stocks, read photos, and more.";
+async function groupWelcomeText(groupId: string): Promise<string> {
+  const settings = await getSettings(groupId).catch(() => null);
+  return t(settings?.language, "groupWelcome");
+}
 
 export async function handleJoin(event: JoinEvent, gate: Gate): Promise<boolean> {
   const groupId = rawGroupId(event.source);
   if (!groupId) return false;
 
   await registerDiscoveredGroup(groupId);
+  const welcome = await groupWelcomeText(groupId);
 
   if (await isGroupAllowed(groupId)) {
     if (event.replyToken) {
-      await replyOrPush(groupId, event.replyToken, [textMsg(WELCOME_TEXT)]);
+      await replyOrPush(groupId, event.replyToken, [textMsg(welcome)]);
     }
     return true;
   }
@@ -35,7 +40,7 @@ export async function handleJoin(event: JoinEvent, gate: Gate): Promise<boolean>
   if (inviterId && gate.isAdmin(inviterId)) {
     await addAllowedGroup(groupId);
     if (event.replyToken) {
-      await replyOrPush(groupId, event.replyToken, [textMsg(WELCOME_TEXT)]);
+      await replyOrPush(groupId, event.replyToken, [textMsg(welcome)]);
     }
     return true;
   }
@@ -44,7 +49,7 @@ export async function handleJoin(event: JoinEvent, gate: Gate): Promise<boolean>
   await notifyAdminsNewGroup(groupId);
 
   if (event.replyToken) {
-    await replyOrPush(groupId, event.replyToken, [groupGateFlex(env().APP_BASE_URL)]);
+    await replyOrPush(groupId, event.replyToken, [groupGateFlex(env().APP_BASE_URL, { language: inviterId ? await getSettings(inviterId).then(s => s.language).catch(() => null) : null })]);
   }
   return true;
 }
@@ -71,18 +76,20 @@ export async function handleMemberJoined(event: MemberJoinedEvent, gate: Gate): 
   await registerDiscoveredGroup(groupId);
 
   const inviterId = event.source.userId;
+  const inviterLang = inviterId ? await getSettings(inviterId).then(s => s.language).catch(() => null) : null;
+  const welcome = t(inviterLang, "groupWelcome");
   const wasAllowed = await isGroupAllowed(groupId);
   if (inviterId && gate.isAdmin(inviterId)) {
     await addAllowedGroup(groupId);
     if (event.replyToken && !wasAllowed) {
-      await replyOrPush(groupId, event.replyToken, [textMsg(WELCOME_TEXT)]);
+      await replyOrPush(groupId, event.replyToken, [textMsg(welcome)]);
     }
     return true;
   }
 
   if (wasAllowed) {
     if (event.replyToken) {
-      await replyOrPush(groupId, event.replyToken, [textMsg(WELCOME_TEXT)]);
+      await replyOrPush(groupId, event.replyToken, [textMsg(welcome)]);
     }
     return true;
   }
@@ -91,7 +98,7 @@ export async function handleMemberJoined(event: MemberJoinedEvent, gate: Gate): 
   await notifyAdminsNewGroup(groupId);
 
   if (event.replyToken) {
-    await replyOrPush(groupId, event.replyToken, [groupGateFlex(env().APP_BASE_URL)]);
+    await replyOrPush(groupId, event.replyToken, [groupGateFlex(env().APP_BASE_URL, { language: inviterLang })]);
   }
   return true;
 }
@@ -117,8 +124,9 @@ async function notifyAdminsNewGroup(groupId: string): Promise<void> {
   const adminGroupIds = getAdminGroupIds();
   // Don't notify for admin-owned groups — they're already allowed implicitly.
   if (adminGroupIds.has(groupId)) return;
-  const msg = newGroupAdminFlex(groupId);
   for (const adminId of adminIds) {
+    const lang = await getSettings(adminId).then(s => s.language).catch(() => null);
+    const msg = newGroupAdminFlex(groupId, { language: lang });
     await replyOrPush(adminId, "", [msg]).catch(() => {});
   }
 }

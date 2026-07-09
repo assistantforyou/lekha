@@ -11,7 +11,18 @@ describe("classify", () => {
     "no", "No", "NO", "n", "nope", "cancel", "stop", "abort", "nvm", "nevermind", "never mind", "ไม่",
     "ยกเลิก", "ไม่เอา", "ไม่ส่ง",
   ];
-  const NEITHER_CASES = ["remind me tomorrow", "search for coffee", "", "   ", "maybe"];
+  const NEITHER_CASES = [
+    "remind me tomorrow",
+    "search for coffee",
+    "",
+    "   ",
+    "maybe",
+    "ok but change the time",
+    "okay, but update the subject",
+    "ได้ แต่ขอแก้เวลา",
+    "โอเค แต่เปลี่ยนวันที่",
+    "yes, but make it different",
+  ];
 
   for (const input of YES_CASES) {
     it(`classifies "${input}" as yes`, () => {

@@ -4,6 +4,9 @@ import { LruMap } from "@/lib/lru-cache";
 import { encrypt, decrypt, hmac, safeEqual } from "@/lib/memory/crypto";
 import { env, hasGoogleOAuth } from "@/lib/env";
 import { GoogleAuthRequired } from "@/lib/errors";
+import { googleConnectFlex } from "@/lib/line/flex/google-connect";
+import { t } from "@/lib/i18n";
+import type { LineMessage } from "@/lib/line/client";
 
 export const SCOPES = [
   "openid",
@@ -72,12 +75,17 @@ export async function buildConnectUrl(userId: string): Promise<string> {
   return `${env().APP_BASE_URL}/connect/${token}`;
 }
 
-export async function formatReconnectPrompt(userId: string): Promise<string> {
-  // Not embedding the raw connect URL: it renders as dead text inside a text
-  // bubble (Flex `text` components aren't auto-linkified). Send the user
-  // back through the "connect google" shortcut, which replies with a real
-  // tappable button (see lib/shortcuts.ts + lib/line/flex/google-connect.ts).
-  return `Your Google account needs to be reconnected (the authorization token has expired or been revoked). Type "connect google" and I'll send you a button to reconnect.`;
+export async function formatReconnectPrompt(
+  userId: string,
+  language?: string | null,
+): Promise<LineMessage[]> {
+  const url = await buildConnectUrl(userId);
+  return [
+    googleConnectFlex(url, {
+      reason: t(language, "connectGoogleReauth"),
+      language,
+    }),
+  ];
 }
 
 /**

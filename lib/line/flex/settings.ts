@@ -282,10 +282,8 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
         separator(),
         wrap(
           { type: "text", text: t(lang, "channelsLabel"), weight: "bold", size: "sm", color: TEXT, wrap: true },
-          hint("LINE chat sends the briefing here. Email sends it to your connected Gmail address."),
+          hint(t(lang, "briefingChannelHint")),
           toggleRow(t(lang, "lineChat"), settings.briefingChannels.line, "settings:briefing:set:briefingChannel:line:true", "settings:briefing:set:briefingChannel:line:false", lang),
-          toggleRow(t(lang, "emailChannel"), settings.briefingChannels.email, "settings:briefing:set:briefingChannel:email:true", "settings:briefing:set:briefingChannel:email:false", lang),
-          toggleRow(t(lang, "pushAlert"), settings.briefingChannels.push, "settings:briefing:set:briefingChannel:push:true", "settings:briefing:set:briefingChannel:push:false", lang),
         ),
         separator(),
         wrap({ type: "text", text: t(lang, "dailyTopics"), weight: "bold", size: "sm", color: TEXT, wrap: true }, ...topicRows),
@@ -435,6 +433,11 @@ export function settingsMemoryFlex(settings: UserSettings): FlexMessage {
   };
 }
 
+function factCategoryLabel(lang: UiLang, category: string): string {
+  const key = `factCategory${category.charAt(0).toUpperCase() + category.slice(1)}`;
+  return t(lang, key as never);
+}
+
 export function settingsFactsFlex(facts: Fact[], language?: string | null): FlexMessage {
   const lang = uiLang(language);
   const rows = facts.map((f) => ({
@@ -449,7 +452,7 @@ export function settingsFactsFlex(facts: Fact[], language?: string | null): Flex
         layout: "vertical",
         flex: 1,
         contents: [
-          { type: "text", text: `[${f.category}] ${f.content}`, size: "xs", color: TEXT, wrap: true },
+          { type: "text", text: `[${factCategoryLabel(lang, f.category)}] ${f.content}`, size: "xs", color: TEXT, wrap: true },
         ],
       },
       postbackButton("Delete", `settings:facts:del:${f.id}`, "secondary"),

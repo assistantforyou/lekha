@@ -47,9 +47,9 @@ export async function GET(req: NextRequest) {
   try {
     const pending = await getPending(userId);
     if (pending.length > 0) {
-      const replyText = await executePendingAll(userId, pending);
+      const replyMessages = await executePendingAll(userId, pending);
       await clearPending(userId);
-      await push(userId, [textMsg(replyText)]);
+      await push(userId, replyMessages);
       resumed = true;
     }
   } catch (err) {

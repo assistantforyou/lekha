@@ -18,6 +18,8 @@ import { checkRateLimit } from "@/lib/ratelimit";
 import { markUserActive } from "@/lib/sweep";
 import { registerUser } from "@/lib/memory/user-registry";
 import { respondToText } from "@/lib/handlers/text";
+import { respondToImage } from "@/lib/handlers/image";
+import { respondToOtherMedia } from "@/lib/handlers/other-media";
 import type { LineMessageEvent, LineTextMessage } from "@/lib/line/types";
 import { redis } from "@/lib/memory/redis";
 
@@ -27,13 +29,17 @@ export async function handleGroupMessage(
   event: LineMessageEvent,
   gate: Gate,
   traceId?: string,
+  mode: "normal" | "stage_only" = "normal",
 ): Promise<boolean> {
   const userId = event.source.userId;
   const groupId = rawGroupId(event.source);
   const conversationId = getConversationId(event.source);
   const chatId = groupId;
   if (!userId || !groupId || !conversationId || !chatId) return false;
-  if (event.message.type !== "text") return true;
+
+  if (event.message.type !== "text") {
+    return await handleGroupMedia(event, userId, chatId, gate, traceId, mode);
+  }
 
   const textMessage = event.message as LineTextMessage;
   const userText = textMessage.text.trim();
@@ -99,6 +105,61 @@ export async function handleGroupMessage(
       recordBotQuoteTokens(conversationId, tokens).catch(() => {});
     },
   });
+
+  return true;
+}
+
+async function handleGroupMedia(
+  event: LineMessageEvent,
+  userId: string,
+  chatId: string,
+  gate: Gate,
+  traceId?: string,
+  mode: "normal" | "stage_only" = "normal",
+): Promise<boolean> {
+  const message = event.message;
+  // Only respond to media that is explicitly a reply to a recent bot message.
+  const quoteToken = "quoteToken" in message && typeof message.quoteToken === "string" ? message.quoteToken : undefined;
+  const isReply = quoteToken ? await isReplyToBotQuote(getConversationId(event.source)!, quoteToken) : false;
+  if (!isReply) return true;
+
+  const allowed = await hasGroupAccess({ userId, groupId: chatId, gate });
+  if (!allowed) {
+    await sendGroupGateNotice(chatId, event.replyToken, chatId);
+    return true;
+  }
+
+  const rl = await checkRateLimit(userId);
+  if (!rl.ok) {
+    await replyOrPush(chatId, event.replyToken, [
+      textMsg(`Easy there — give me a sec. Try again in ~${rl.retryAfterSec}s.`),
+    ]);
+    return true;
+  }
+
+  if (message.type === "image" && "id" in message && typeof message.id === "string") {
+    await respondToImage(event.replyToken, userId, { displayName: "" }, message.id, mode, traceId, chatId);
+    return true;
+  }
+
+  if (
+    (message.type === "video" || message.type === "audio" || message.type === "file") &&
+    "id" in message &&
+    typeof message.id === "string"
+  ) {
+    await respondToOtherMedia(
+      event.replyToken,
+      userId,
+      message.id,
+      message.type,
+      "fileName" in message && typeof message.fileName === "string" ? message.fileName : undefined,
+      "fileSize" in message && typeof message.fileSize === "number" ? message.fileSize : undefined,
+      "duration" in message && typeof message.duration === "number" ? message.duration : undefined,
+      mode,
+      chatId,
+    );
+    return true;
+  }
 
   return true;
 }

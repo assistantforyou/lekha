@@ -56,7 +56,8 @@ const SHORTCUTS: Shortcut[] = [
     name: "help",
     match: (t) => helpTrigger.test(t),
     async run({ userId, replyToken, userText }) {
-      await replyOrPush(userId, replyToken, [helpFlex()]);
+      const settings = await getSettings(userId).catch(() => null);
+      await replyOrPush(userId, replyToken, [helpFlex({ language: settings?.language })]);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: HELP_TEXT, ts: Date.now() });
     },
@@ -65,9 +66,12 @@ const SHORTCUTS: Shortcut[] = [
     name: "connect-google",
     match: (t) => /^connect\s+google$/i.test(t),
     async run({ userId, replyToken }) {
-      const url = await buildConnectUrl(userId).catch(() => null);
+      const [url, settings] = await Promise.all([
+        buildConnectUrl(userId).catch(() => null),
+        getSettings(userId).catch(() => null),
+      ]);
       const msg = url
-        ? googleConnectFlex(url)
+        ? googleConnectFlex(url, { language: settings?.language })
         : textMsg("Couldn't generate a connect link — make sure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.");
       await replyOrPush(userId, replyToken, [msg]);
     },
@@ -84,8 +88,11 @@ const SHORTCUTS: Shortcut[] = [
         includeInbox: settings.inboxBriefingEnabled,
         briefingTopics: settings.briefingTopics,
         briefingTopicSources: settings.briefingTopicSources,
+        briefingLength: settings.briefingLength,
+        briefingLanguage: settings.briefingLanguage,
+        language: settings.language,
       });
-      const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
+      const msgs: LineMessage[] = [briefingFlex("morning", briefing.text, { language: settings.language })];
       if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
       if (briefing.inbox && briefing.inbox.length > 0) {
         msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
@@ -101,9 +108,13 @@ const SHORTCUTS: Shortcut[] = [
     async run({ userId, replyToken, userText }) {
       showLoading(userId, 25).catch(() => {});
       const settings = await getSettings(userId);
-      const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
+      const summary = await buildEveningSummary(userId, {
+        timezone: settings.timezone,
+        briefingLanguage: settings.briefingLanguage,
+        language: settings.language,
+      });
       const out = summary?.text ?? "Nothing to show in your evening summary right now.";
-      await replyOrPush(userId, replyToken, [briefingFlex("evening", out)]);
+      await replyOrPush(userId, replyToken, [briefingFlex("evening", out, { language: settings.language })]);
       await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
       await appendTurn(userId, { role: "assistant", content: out, ts: Date.now() });
     },

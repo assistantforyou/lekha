@@ -12,6 +12,7 @@ import {
   settingsLocaleFlex,
 } from "@/lib/line/flex/settings";
 import { t, uiLang } from "@/lib/i18n";
+import { parseTimeInput, resolveTimezone } from "@/lib/time-utils";
 
 const VALID_SECTIONS = new Set([
   "briefing",
@@ -80,8 +81,8 @@ function parseBool(s: string | undefined): boolean | null {
   return null;
 }
 
-function isValidTime(s: string): boolean {
-  return /^(?:[0-9]|0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(s);
+function normalizeTimeValue(s: string): string | null {
+  return parseTimeInput(s);
 }
 
 function parseCompact(s: string): number | null {
@@ -141,7 +142,12 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
   } else if (key === "language" && value) {
     patch.language = normalizeLanguage(value);
   } else if (key === "timezone" && value) {
-    patch.timezone = value;
+    const tz = resolveTimezone(value);
+    if (!tz) {
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "unknownSetting", { key: "timezone" }))]);
+      return;
+    }
+    patch.timezone = tz;
   } else if (key === "location" && value) {
     patch.location = value;
   } else if (key === "briefingLength" && value) {
@@ -172,23 +178,23 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
       patch.disabledCategories = deriveDisabledCategories(nextTools);
     }
   } else if (key === "morningTime" && value) {
-    const timeStr = args.slice(3).join(":");
-    if (!isValidTime(timeStr)) {
+    const timeStr = normalizeTimeValue(args.slice(3).join(":"));
+    if (!timeStr) {
       await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
       return;
     }
     patch.morningBriefingTime = timeStr;
   } else if (key === "eveningTime" && value) {
-    const timeStr = args.slice(3).join(":");
-    if (!isValidTime(timeStr)) {
+    const timeStr = normalizeTimeValue(args.slice(3).join(":"));
+    if (!timeStr) {
       await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
       return;
     }
     patch.eveningSummaryEnabled = true;
     patch.eveningSummaryTime = timeStr;
   } else if (key === "checkinTime" && value) {
-    const timeStr = args.slice(3).join(":");
-    if (!isValidTime(timeStr)) {
+    const timeStr = normalizeTimeValue(args.slice(3).join(":"));
+    if (!timeStr) {
       await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
       return;
     }
@@ -271,14 +277,19 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
       evening: ["17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00"],
       checkin: ["15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00"],
     };
+    const cancelButton = { label: t(settings.language, "cancelled") === "ยกเลิกแล้ว" ? "ยกเลิก" : "Cancel", text: "cancel" };
     if (timeSlots[key]) {
       await replyOrPush(
         userId,
         replyToken,
-        [withQuickReplies(t(settings.language, "pickTimePrompt"), timeSlots[key]!.map((time) => ({ label: time, text: time })))],
+        [withQuickReplies(t(settings.language, "pickTimePrompt"), [...timeSlots[key]!.map((time) => ({ label: time, text: time })), cancelButton])],
       );
     } else {
-      await replyOrPush(userId, replyToken, [textMsg(textPrompts[key] ?? t(settings.language, "customPromptFallback"))]);
+      await replyOrPush(
+        userId,
+        replyToken,
+        [withQuickReplies(textPrompts[key] ?? t(settings.language, "customPromptFallback"), [cancelButton])],
+      );
     }
     return;
   }
@@ -321,7 +332,12 @@ async function applyTypedSet(userId: string, replyToken: string, rawKey: string,
   let returnSection: Section = "main";
 
   if (key === "timezone" || key === "tz") {
-    patch.timezone = value;
+    const tz = resolveTimezone(value);
+    if (!tz) {
+      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "unknownSetting", { key: "timezone" }))]);
+      return;
+    }
+    patch.timezone = tz;
     returnSection = "locale";
   } else if (key === "location" || key === "loc") {
     patch.location = value;
@@ -332,33 +348,39 @@ async function applyTypedSet(userId: string, replyToken: string, rawKey: string,
   } else if (key === "morning") {
     if (value.toLowerCase() === "off") {
       patch.morningBriefingTime = null;
-    } else if (isValidTime(value)) {
-      patch.morningBriefingTime = value;
     } else {
-      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
-      return;
+      const timeStr = normalizeTimeValue(value);
+      if (!timeStr) {
+        await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
+        return;
+      }
+      patch.morningBriefingTime = timeStr;
     }
     returnSection = "briefing";
   } else if (key === "evening") {
     if (value.toLowerCase() === "off") {
       patch.eveningSummaryEnabled = false;
-    } else if (isValidTime(value)) {
-      patch.eveningSummaryEnabled = true;
-      patch.eveningSummaryTime = value;
     } else {
-      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
-      return;
+      const timeStr = normalizeTimeValue(value);
+      if (!timeStr) {
+        await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
+        return;
+      }
+      patch.eveningSummaryEnabled = true;
+      patch.eveningSummaryTime = timeStr;
     }
     returnSection = "briefing";
   } else if (key === "checkin") {
     if (value.toLowerCase() === "off") {
       patch.taskCheckInEnabled = false;
-    } else if (isValidTime(value)) {
-      patch.taskCheckInEnabled = true;
-      patch.taskCheckInTime = value;
     } else {
-      await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
-      return;
+      const timeStr = normalizeTimeValue(value);
+      if (!timeStr) {
+        await replyOrPush(userId, replyToken, [textMsg(t(settings.language, "timeFormatError"))]);
+        return;
+      }
+      patch.taskCheckInEnabled = true;
+      patch.taskCheckInTime = timeStr;
     }
     returnSection = "briefing";
   } else if (key === "compact" || key === "compactat" || key === "memorycompactat") {

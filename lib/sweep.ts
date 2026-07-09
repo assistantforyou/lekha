@@ -38,8 +38,9 @@ export async function sweepTaskCheckIn(
   try {
     const open = await listTasks(userId, "open");
     if (open.length === 0) return;
+    const settings = await getSettings(userId);
     const rows = open.slice(0, 10).map((t) => ({ id: t.id, title: t.title }));
-    await push(userId, [taskCheckinFlex(rows)]);
+    await push(userId, [taskCheckinFlex(rows, { language: settings.language })]);
     stats.taskCheckIns++;
   } catch (err) {
     console.warn("[sweep] task check-in failed", userId, err);
@@ -106,8 +107,9 @@ export async function runSweepForUser(userId: string): Promise<void> {
         briefingTopicSources: settings.briefingTopicSources,
         briefingLength: settings.briefingLength,
         briefingLanguage: settings.briefingLanguage,
+        language: settings.language,
       });
-      const msgs: LineMessage[] = [briefingFlex("morning", briefing.text)];
+      const msgs: LineMessage[] = [briefingFlex("morning", briefing.text, { language: settings.language })];
       if (briefing.news.length > 0) msgs.push(newsFlex(briefing.news, "📰 Today's news"));
       if (briefing.inbox && briefing.inbox.length > 0) {
         msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
@@ -141,9 +143,13 @@ export async function runSweepForUser(userId: string): Promise<void> {
   );
   if (eveningShouldFire) {
     try {
-      const summary = await buildEveningSummary(userId, { timezone: settings.timezone });
+      const summary = await buildEveningSummary(userId, {
+        timezone: settings.timezone,
+        briefingLanguage: settings.briefingLanguage,
+        language: settings.language,
+      });
       if (summary) {
-        const msgs: LineMessage[] = [briefingFlex("evening", summary.text)];
+        const msgs: LineMessage[] = [briefingFlex("evening", summary.text, { language: settings.language })];
         if (summary.news.length > 0) msgs.push(newsFlex(summary.news, "📰 Evening news"));
         const ok = await push(userId, msgs);
         if (ok) await updateSettings(userId, { lastEveningSummaryTs: Date.now() });

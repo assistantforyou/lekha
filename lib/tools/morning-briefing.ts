@@ -19,6 +19,7 @@ export function buildMorningBriefingTool(userId: string) {
           briefingTopicSources: s.briefingTopicSources,
           briefingLength: s.briefingLength,
           briefingLanguage: s.briefingLanguage,
+          language: s.language,
         });
         // Return structured data so buildFlexFromToolResults can render Flex carousels.
         // The model receives this as a JSON object — it should just say "here's your briefing".

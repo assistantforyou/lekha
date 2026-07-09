@@ -1,5 +1,6 @@
 import { withQuickReplies, text as textMsg, type LineMessage } from "@/lib/line/client";
 import { confirmCancelFlex } from "@/lib/line/flex";
+import { t } from "@/lib/i18n";
 import type { AgentHints } from "@/lib/llm/agent-helpers";
 
 /**
@@ -16,6 +17,7 @@ export function enrichReply(
   replyText: string,
   hints: AgentHints,
   accountEmails: string[],
+  language?: string | null,
 ): LineMessage[] {
   const followUps = hints.followUps ?? [];
   const flex = hints.flexMessages ?? [];
@@ -33,7 +35,7 @@ export function enrichReply(
 
   if (hints.needsGoogleConnect) {
     return [
-      withQuickReplies(replyText, [{ label: "Connect Google", text: "connect google" }]),
+      withQuickReplies(replyText, [{ label: t(language, "googleConnectButton"), text: "connect google" }]),
       ...flex,
     ];
   }
@@ -48,7 +50,7 @@ export function enrichReply(
       followUps.length > 0
         ? withQuickReplies(replyText, followUps.slice(0, 13))
         : textMsg(replyText);
-    return [textPart, confirmCancelFlex(replyText), ...flex];
+    return [textPart, confirmCancelFlex(replyText, { language }), ...flex];
   }
 
   // When text is empty (suppressed for display tools), just send the Flex messages.

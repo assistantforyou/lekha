@@ -1,4 +1,5 @@
 import type { FlexMessage } from "@/lib/line/client";
+import { t, uiLang } from "@/lib/i18n";
 
 export type CheckInRow = {
   id: string;
@@ -11,11 +12,13 @@ export type CheckInRow = {
  *   - "Not yet"  → postback "checkin:skip:<id>"
  * Footer has "Done all" → "checkin:done:all"
  */
-export function taskCheckinFlex(tasks: CheckInRow[]): FlexMessage {
+export function taskCheckinFlex(tasks: CheckInRow[], opts?: { language?: string | null }): FlexMessage {
+  const lang = uiLang(opts?.language);
   const rows = tasks.slice(0, 10);
+  const titles = rows.map((r) => r.title).join(", ").slice(0, 340);
   return {
     type: "flex",
-    altText: `Quick check-in: ${rows.map((r) => r.title).join(", ").slice(0, 340)} — did you finish these today?`,
+    altText: `${t(lang, "taskCheckinTitle")}: ${titles} — ${t(lang, "taskCheckinSubtitle")}`,
     contents: {
       type: "bubble",
       size: "mega",
@@ -25,8 +28,8 @@ export function taskCheckinFlex(tasks: CheckInRow[]): FlexMessage {
         backgroundColor: "#1a7fe0",
         paddingAll: "12px",
         contents: [
-          { type: "text", text: "✅  Quick check-in", weight: "bold", size: "lg", color: "#FFFFFF" },
-          { type: "text", text: "Which of these did you finish today?", size: "sm", color: "#DDEEFF", margin: "sm" },
+          { type: "text", text: t(lang, "taskCheckinTitle"), weight: "bold", size: "lg", color: "#FFFFFF" },
+          { type: "text", text: t(lang, "taskCheckinSubtitle"), size: "sm", color: "#DDEEFF", margin: "sm" },
         ],
       },
       body: {
@@ -62,7 +65,7 @@ export function taskCheckinFlex(tasks: CheckInRow[]): FlexMessage {
                     type: "postback" as const,
                     label: "✓",
                     data: `checkin:done:${row.id}`.slice(0, 300),
-                    displayText: `Done: ${row.title.slice(0, 40)}`,
+                    displayText: `${t(lang, "taskDoneBtn")}: ${row.title.slice(0, 40)}`,
                   },
                 },
                 {
@@ -74,7 +77,7 @@ export function taskCheckinFlex(tasks: CheckInRow[]): FlexMessage {
                     type: "postback" as const,
                     label: "✗",
                     data: `checkin:skip:${row.id}`.slice(0, 300),
-                    displayText: `Not yet: ${row.title.slice(0, 40)}`,
+                    displayText: `${t(lang, "taskReopenBtn")}: ${row.title.slice(0, 40)}`,
                   },
                 },
               ],
@@ -92,10 +95,56 @@ export function taskCheckinFlex(tasks: CheckInRow[]): FlexMessage {
             height: "sm",
             action: {
               type: "postback",
-              label: "Done all",
-              data: "checkin:done:all",
-              displayText: "Done all — mark everything complete",
+              label: t(lang, "taskCheckinDoneAll"),
+              data: "checkin:confirm-all",
+              displayText: t(lang, "taskCheckinDoneAllDisplay"),
             },
+          },
+        ],
+      },
+    },
+  };
+}
+
+/**
+ * Two-tap confirmation for the destructive "Done all" action.
+ */
+export function doneAllConfirmFlex(count: number, opts?: { language?: string | null }): FlexMessage {
+  const lang = uiLang(opts?.language);
+  const summary = t(lang, "doneAllConfirmTitle", { count: String(count), s: count === 1 ? "" : "s" });
+  return {
+    type: "flex",
+    altText: summary,
+    contents: {
+      type: "bubble",
+      size: "kilo",
+      body: {
+        type: "box",
+        layout: "vertical",
+        paddingAll: "20px",
+        contents: [
+          { type: "text", text: summary, weight: "bold", size: "md", wrap: true },
+          { type: "text", text: t(lang, "doneAllConfirmHint"), size: "xs", color: "#888888", margin: "sm", wrap: true },
+        ],
+      },
+      footer: {
+        type: "box",
+        layout: "horizontal",
+        spacing: "sm",
+        paddingAll: "16px",
+        contents: [
+          {
+            type: "button",
+            style: "secondary",
+            height: "sm",
+            action: { type: "postback", label: t(lang, "cancel"), data: "checkin:cancel-all", displayText: t(lang, "cancel") },
+          },
+          {
+            type: "button",
+            style: "primary",
+            color: "#06C755",
+            height: "sm",
+            action: { type: "postback", label: t(lang, "yesDoneAll"), data: "checkin:done:all", displayText: t(lang, "yesMarkAllDone") },
           },
         ],
       },

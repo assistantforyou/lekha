@@ -167,7 +167,7 @@ async function handleEvent(
 
   if (isGroupEvent(event)) {
     const { handleGroupMessage } = await import("@/lib/handlers/group-message");
-    const r = await handleGroupMessage(event as LineMessageEvent, gate, traceId);
+    const r = await handleGroupMessage(event as LineMessageEvent, gate, traceId, mode);
     endEvent({ type: "group-message" });
     return r;
   }
@@ -220,9 +220,9 @@ async function handleEvent(
         const result = await executePendingAll(userId, pending);
         await clearPending(userId);
         endPending({ actions: pending.length });
-        await replyOrPush(userId, event.replyToken, [textMsg(result)]);
+        await replyOrPush(userId, event.replyToken, result);
         await appendTurn(userId, { role: "user", content: userText, ts: Date.now() });
-        await appendTurn(userId, { role: "assistant", content: result, ts: Date.now() });
+        await appendTurn(userId, { role: "assistant", content: "Pending actions executed", ts: Date.now() });
         endEvent({ type: "pending-yes", actions: pending.length });
         return true;
       }

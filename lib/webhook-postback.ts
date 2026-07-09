@@ -1,4 +1,5 @@
-import { replyOrPush, text as textMsg, getProfile } from "@/lib/line/client";
+import { replyOrPush, text as textMsg, getProfile, type LineMessage } from "@/lib/line/client";
+import { doneAllConfirmFlex } from "@/lib/line/flex/task-checkin";
 import { parsePostbackData, curatedDemoAnswer } from "@/lib/line/flex";
 import { handleSettingsPostback } from "@/lib/settings-menu";
 import { isOnboarded, startOnboarding } from "@/lib/onboarding";
@@ -15,6 +16,8 @@ import { google } from "googleapis";
 import type { LineEvent } from "@/lib/line/types";
 import { buildGate } from "@/lib/gate";
 import { approvePending, denyPending, isAllowed } from "@/lib/memory/allowlist";
+import { getSettings } from "@/lib/memory/settings";
+import { t } from "@/lib/i18n";
 import { addAllowedGroup, removeAllowedGroup, getAdminGroupIds } from "@/lib/group-access";
 import { isOnTrial, startTrial } from "@/lib/trial";
 
@@ -46,9 +49,10 @@ async function handleConfirm({ userId, replyToken, args }: Ctx): Promise<void> {
     }
     const result = await executePendingAll(userId, pending);
     await clearPending(userId);
-    await reply(result);
+    await replyOrPush(userId, replyToken, result);
     await appendTurn(userId, { role: "user", content: "(tapped Yes)", ts: Date.now() });
-    await appendTurn(userId, { role: "assistant", content: result, ts: Date.now() });
+    const historyText = result.map((m: LineMessage) => (m.type === "flex" ? m.altText : "")).filter(Boolean).join(" ") || "Pending actions executed";
+    await appendTurn(userId, { role: "assistant", content: historyText, ts: Date.now() });
     return;
   }
   if (action === "no") {
@@ -87,6 +91,19 @@ async function handleCheckin({ userId, replyToken, args }: Ctx): Promise<void> {
   const id = args[1];
   const dateStr = new Date().toISOString().slice(0, 10);
   const reply = mkReply(userId, replyToken);
+  if (action === "confirm-all") {
+    const open = await listTasks(userId, "open");
+    if (open.length === 0) {
+      await reply("All clear — no open tasks! 🎉");
+      return;
+    }
+    await replyOrPush(userId, replyToken, [doneAllConfirmFlex(open.length)]);
+    return;
+  }
+  if (action === "cancel-all") {
+    await reply("Cancelled — your tasks are still open.");
+    return;
+  }
   if (action === "done" && id === "all") {
     const completed = await completeAllOpenTasks(userId);
     if (completed.length > 0) {
@@ -346,6 +363,7 @@ export async function handlePostback(event: LineEvent): Promise<void> {
     await handler({ userId, replyToken: event.replyToken, args });
   } else {
     console.warn("[postback] unhandled verb", { verb, args });
-    await mkReply(userId, event.replyToken)("I didn't understand that button. Try typing your request instead.");
+    const settings = await getSettings(userId).catch(() => null);
+    await mkReply(userId, event.replyToken)(t(settings?.language, "unknownPostback"));
   }
 }

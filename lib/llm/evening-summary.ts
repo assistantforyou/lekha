@@ -5,11 +5,22 @@ import { listReminders, type StoredReminder } from "@/lib/tools/reminders";
 import { redis } from "@/lib/memory/redis";
 import { env } from "@/lib/env";
 import { fetchCachedNews, type NewsStory } from "@/lib/news-cache";
+import { t, dateLocale, uiLang } from "@/lib/i18n";
 
 export type EveningSummaryResult = {
   text: string;
   news: { title: string; url: string; source: string }[];
 };
+
+function eveningLang(
+  pref?: "English" | "ไทย" | "EN + ไทย" | null,
+  fallback?: string | null,
+): "en" | "th" {
+  if (pref === "ไทย") return "th";
+  if (pref === "English") return "en";
+  if (pref === "EN + ไทย") return uiLang(fallback) === "th" ? "th" : "en";
+  return uiLang(fallback);
+}
 
 // ─── Agenda helpers ───
 
@@ -24,12 +35,13 @@ function toDayKey(ts: number, tz: string): string {
   return new Date(ts).toLocaleDateString("en-CA", { timeZone: tz });
 }
 
-function formatAgendaItem(item: AgendaItem, tz: string): string {
+function formatAgendaItem(item: AgendaItem, tz: string, lang: "en" | "th"): string {
   const icon = item.type === "calendar" ? "📅" : item.type === "reminder" ? "⏰" : "📋";
   if (item.isAllDay) {
     return `• ${icon} ${item.text}`;
   }
-  const timeStr = new Date(item.ts).toLocaleTimeString("en-US", {
+  const locale = dateLocale(lang);
+  const timeStr = new Date(item.ts).toLocaleTimeString(locale, {
     timeZone: tz,
     hour: "numeric",
     minute: "2-digit",
@@ -90,15 +102,16 @@ function buildAgenda(
   return map;
 }
 
-function dayLabel(dayKey: string, tz: string, todayDateStr: string): string {
-  if (dayKey === todayDateStr) return "Today";
+function dayLabel(dayKey: string, tz: string, todayDateStr: string, lang: "en" | "th"): string {
+  if (dayKey === todayDateStr) return t(lang, "today");
+  const locale = dateLocale(lang);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowKey = tomorrow.toLocaleDateString("en-CA", { timeZone: tz });
-  if (dayKey === tomorrowKey) return "Tomorrow";
+  if (dayKey === tomorrowKey) return t(lang, "tomorrow");
   const d = new Date(dayKey + "T12:00:00");
-  const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
-  const monthDay = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const weekday = d.toLocaleDateString(locale, { weekday: "long" });
+  const monthDay = d.toLocaleDateString(locale, { month: "short", day: "numeric" });
   return `${weekday}, ${monthDay}`;
 }
 
@@ -107,6 +120,7 @@ function buildEveningRecommendations(
   openTasks: Task[],
   tz: string,
   doneTodayCount: number,
+  lang: "en" | "th",
 ): string[] {
   const recs: string[] = [];
   const tomorrow = new Date();
@@ -116,25 +130,25 @@ function buildEveningRecommendations(
   const overdue = openTasks.filter((t) => t.dueAt && t.dueAt < Date.now());
 
   if (doneTodayCount === 0 && openTasks.length > 0) {
-    recs.push("No tasks completed today. Start tomorrow with your highest-priority item.");
+    recs.push(t(lang, "evRecNoDone"));
   }
 
   if (overdue.length > 0) {
-    recs.push(`You still have ${overdue.length} overdue task${overdue.length > 1 ? "s" : ""}. Address them first thing tomorrow.`);
+    recs.push(t(lang, "evRecOverdue", { count: String(overdue.length) }));
   }
 
   if (tomorrowItems.length > 5) {
-    recs.push("Tomorrow looks busy. Prep tonight so you start ahead.");
+    recs.push(t(lang, "evRecBusy"));
   } else if (tomorrowItems.length === 0 && openTasks.length > 0) {
-    recs.push("Tomorrow looks light. Use the morning to clear your open tasks.");
+    recs.push(t(lang, "evRecLight"));
   }
 
   if (openTasks.length > 5) {
-    recs.push(`${openTasks.length} tasks still open. Review which ones actually matter this week.`);
+    recs.push(t(lang, "evRecManyOpen", { count: String(openTasks.length) }));
   }
 
   if (tomorrowItems.filter((i) => i.type === "calendar").length > 3 && openTasks.filter((t) => t.dueAt && toDayKey(t.dueAt, tz) === tomorrowKey).length === 0) {
-    recs.push("Lots of meetings tomorrow but no tasks due. Add any prep or follow-ups.");
+    recs.push(t(lang, "evRecMeetingsNoTasks"));
   }
 
   return recs;
@@ -149,8 +163,14 @@ function buildEveningRecommendations(
  */
 export async function buildEveningSummary(
   userId: string,
-  opts: { timezone: string },
+  opts: {
+    timezone: string;
+    briefingLanguage?: "English" | "ไทย" | "EN + ไทย";
+    language?: string | null;
+  },
 ): Promise<EveningSummaryResult | null> {
+  const lang = eveningLang(opts.briefingLanguage, opts.language);
+  const locale = dateLocale(lang);
   const todayDateStr = new Date().toLocaleDateString("en-CA", { timeZone: opts.timezone });
   const now = Date.now();
   const apiKey = env().TAVILY_API_KEY;
@@ -204,9 +224,9 @@ export async function buildEveningSummary(
   const doneToday = allDone.filter((t) => t.doneAt && t.doneAt >= startOfToday.getTime());
   if (doneToday.length) {
     const lines = doneToday.map((t) => `• ✓ ${t.title}`);
-    sections.push(`✅ Done today\n${lines.join("\n")}`);
+    sections.push(`${t(lang, "doneTodayTitle")}\n${lines.join("\n")}`);
   } else {
-    sections.push("✅ Done today\n• Nothing completed today.");
+    sections.push(`${t(lang, "doneTodayTitle")}\n${t(lang, "doneTodayEmpty")}`);
   }
 
   // 2. Leftover open tasks
@@ -214,26 +234,26 @@ export async function buildEveningSummary(
   const overdue = tasks
     .filter((t) => t.dueAt && t.dueAt < now)
     .slice(0, 5)
-    .map((t) => `• [overdue] ${t.title}`);
+    .map((task) => `• ${t(lang, "overdueItemLabel")} ${task.title}`);
   const remaining = tasks
     .filter((t) => !t.dueAt || t.dueAt >= now)
     .slice(0, 5)
-    .map((t) => {
-      if (t.dueAt) {
-        const when = new Date(t.dueAt).toLocaleDateString("en-US", {
+    .map((task) => {
+      if (task.dueAt) {
+        const when = new Date(task.dueAt).toLocaleDateString(locale, {
           timeZone: opts.timezone,
           month: "short",
           day: "numeric",
         });
-        return `• ${t.title} (due ${when})`;
+        return `• ${task.title} (${t(lang, "duePrefix", { when })})`;
       }
-      return `• ${t.title}`;
+      return `• ${task.title}`;
     });
   const taskLines = [...overdue, ...remaining];
   sections.push(
     taskLines.length
-      ? `📋 Still open\n${taskLines.join("\n")}`
-      : "📋 Still open\n• All clear — nothing left.",
+      ? `${t(lang, "stillOpenTitle")}\n${taskLines.join("\n")}`
+      : `${t(lang, "stillOpenTitle")}\n${t(lang, "stillOpenEmpty")}`,
   );
 
   // 3. Tomorrow & ahead — unified agenda
@@ -255,18 +275,18 @@ export async function buildEveningSummary(
     const agendaLines: string[] = [];
     for (const day of daysToShow) {
       const items = agenda.get(day) ?? [];
-      agendaLines.push(`${dayLabel(day, opts.timezone, todayDateStr)} (${items.length})`);
+      agendaLines.push(`${dayLabel(day, opts.timezone, todayDateStr, lang)} (${items.length})`);
       for (const item of items) {
-        agendaLines.push(formatAgendaItem(item, opts.timezone));
+        agendaLines.push(formatAgendaItem(item, opts.timezone, lang));
       }
     }
-    sections.push(`🗓 Tomorrow & ahead\n${agendaLines.join("\n")}`);
+    sections.push(`${t(lang, "aheadTitle")}\n${agendaLines.join("\n")}`);
   }
 
   // 4. Recommendations
-  const recs = buildEveningRecommendations(agenda, tasks, opts.timezone, doneToday.length);
+  const recs = buildEveningRecommendations(agenda, tasks, opts.timezone, doneToday.length, lang);
   if (recs.length > 0) {
-    sections.push(`💡 Recommendations\n${recs.map((r) => `• ${r}`).join("\n")}`);
+    sections.push(`${t(lang, "recommendationsTitle")}\n${recs.map((r) => `• ${r}`).join("\n")}`);
   }
 
   // 5. News (returned separately for Flex carousel — no URLs in text)
@@ -280,7 +300,13 @@ export async function buildEveningSummary(
     ...poly.slice(0, 2).map((s) => ({ title: s.title, url: s.url, source: "Polymarket" })),
   ];
 
-  const text = `Good evening. Here's your wrap-up:\n\n${sections.join("\n\n")}`;
+  const dateHeader = new Date().toLocaleDateString(locale, {
+    timeZone: opts.timezone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+  const text = `${t(lang, "eveningGreeting", { date: dateHeader })}\n\n${sections.join("\n\n")}`;
   return { text, news };
 }
 

@@ -303,10 +303,10 @@ export async function POST(req: NextRequest) {
     if (decision === "yes") {
       const result = await executePendingAll(userId, pending);
       await clearPending(userId);
-      const msgs: import("@/lib/line/client").LineMessage[] = [textMsg(result)];
-      push(userId, msgs).catch(() => {});
-      endRequest({ replyLength: result.length, pendingExecuted: pending.length });
-      return NextResponse.json({ reply: result, hints: { confirmDraft: false } });
+      const replyText = result.map((m) => m.altText).join(" / ");
+      push(userId, result).catch(() => {});
+      endRequest({ replyLength: replyText.length, pendingExecuted: pending.length });
+      return NextResponse.json({ reply: replyText, hints: { confirmDraft: false } });
     }
     if (decision === "no") {
       await clearPending(userId);
