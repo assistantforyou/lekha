@@ -228,7 +228,7 @@ describe("settings Flex menus", () => {
     assertNoBoxWrap(msg.contents);
   });
 
-  it("briefing menu includes evening/check-in presets and channel hint", () => {
+  it("briefing menu includes evening/check-in presets, lead times, and channels", () => {
     const msg = settingsBriefingFlex(fullSettings());
     const v = validateFlexMessage(msg);
     expect(v.ok).toBe(true);
@@ -237,7 +237,12 @@ describe("settings Flex menus", () => {
     expect(json).toContain("21:00");
     expect(json).toContain("16:00");
     expect(json).toContain("19:00");
-    expect(json).toContain("Briefings are sent here in LINE chat");
+    expect(json).toContain("Meeting alerts");
+    expect(json).toContain("15 min");
+    expect(json).toContain("1 hour");
+    expect(json).toContain("1 day");
+    expect(json).toContain("Choose where daily briefings are delivered");
+    expect(json).toContain("Email");
   });
 
   it("persona menu validates and shows all addressing options", () => {
@@ -328,6 +333,47 @@ describe("settings postback handlers", () => {
     await handleSettingsPostback("U1", "token", ["facts", "del", id]);
     const after = await loadFacts("U1");
     expect(after.facts.length).toBe(0);
+  });
+
+  it("toggles pre-meeting lead times", async () => {
+    await handleSettingsPostback("U1", "token", ["briefing", "set", "preMeetingLead", "15", "true"]);
+    let s = await getSettings("U1");
+    expect(s.preMeetingLeads).toContain(15);
+
+    await handleSettingsPostback("U1", "token", ["briefing", "set", "preMeetingLead", "60", "true"]);
+    s = await getSettings("U1");
+    expect(s.preMeetingLeads).toContain(60);
+
+    await handleSettingsPostback("U1", "token", ["briefing", "set", "preMeetingLead", "15", "false"]);
+    s = await getSettings("U1");
+    expect(s.preMeetingLeads).not.toContain(15);
+    expect(s.preMeetingLeads).toContain(60);
+  });
+
+  it("expands a tool and toggles a sub-setting", async () => {
+    await handleSettingsPostback("U1", "token", ["tools", "expand", "todo"]);
+    const flex1 = firstFlex();
+    expect(JSON.stringify(flex1)).toContain("Follow-up nudges");
+
+    await handleSettingsPostback("U1", "token", ["tools", "set", "todo", "followup", "false"]);
+    const s = await getSettings("U1");
+    expect(s.toolSettings.todo?.followup).toBe(false);
+  });
+
+  it("syncs reminders preempt to preMeetingLeads", async () => {
+    await handleSettingsPostback("U1", "token", ["tools", "set", "reminders", "preempt", "30"]);
+    const s = await getSettings("U1");
+    expect(s.toolSettings.reminders?.preempt).toBe(30);
+    expect(s.preMeetingLeads).toContain(30);
+    expect(s.preMeetingLeads).toContain(60);
+    expect(s.preMeetingLeads).toContain(1440);
+  });
+
+  it("collapses expanded tool when tool is turned off", async () => {
+    await handleSettingsPostback("U1", "token", ["tools", "expand", "email"]);
+    await handleSettingsPostback("U1", "token", ["tools", "set", "tool", "email", "false"]);
+    const flex = firstFlex();
+    expect(JSON.stringify(flex)).not.toContain("Email tone");
   });
 });
 

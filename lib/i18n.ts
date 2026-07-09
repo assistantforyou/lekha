@@ -119,6 +119,11 @@ const UI = {
     emailChannel: "Email",
     pushAlert: "Push alert",
     dailyTopics: "Daily briefing topics",
+    preMeetingAlertsTitle: "⏰ Meeting alerts",
+    preMeetingAlertsHint: "How far ahead to warn you before calendar events.",
+    lead15min: "15 min",
+    lead1hour: "1 hour",
+    lead1day: "1 day",
     timezoneLabel: "Timezone",
     locationLabel: "Location",
     replyLanguageLabel: "Reply language",
@@ -138,6 +143,17 @@ const UI = {
     toolCalendar: "Calendar",
     toolEmail: "Email",
     toolDrive: "Drive",
+    toolExpand: "Options",
+    toolCollapse: "Hide",
+    emailToneLabel: "Email tone",
+    emailSignoffLabel: "Sign-off",
+    emailAutosendLabel: "Auto-send",
+    reminderPreemptLabel: "Pre-meeting warning",
+    calendarPrebriefLabel: "Pre-meeting prep",
+    todoFollowupLabel: "Follow-up nudges",
+    autosendAlwaysConfirm: "Always confirm",
+    autosendConfirmOnce: "Confirm first time only",
+    autosendAlwaysSend: "Always send",
 
     toneWarm: "Warm",
     toneProfessional: "Professional",
@@ -256,7 +272,7 @@ const UI = {
     groupWelcome:
       "Hi everyone! I'm Lekha 👋\n\nMention me (@Lekha) or reply to my messages when you want my help. I can answer questions, search the web, check weather and stocks, read photos, and more.",
 
-    briefingChannelHint: "Briefings are sent here in LINE chat. Email delivery coming soon.",
+    briefingChannelHint: "Choose where daily briefings are delivered.",
 
     unknownPostback: "I didn't understand that button. Try typing your request instead.",
 
@@ -413,6 +429,11 @@ const UI = {
     emailChannel: "Email",
     pushAlert: "แจ้งเตือน",
     dailyTopics: "หัวข้อสรุปรายวัน",
+    preMeetingAlertsTitle: "⏰ แจ้งเตือนก่อนประชุม",
+    preMeetingAlertsHint: "ต้องการเตือนล่วงหน้าก่อนถึงนัดหมายในระยะเวลาเท่าใด",
+    lead15min: "15 นาที",
+    lead1hour: "1 ชั่วโมง",
+    lead1day: "1 วัน",
     timezoneLabel: "เขตเวลา",
     locationLabel: "สถานที่",
     replyLanguageLabel: "ภาษาตอบกลับ",
@@ -432,6 +453,17 @@ const UI = {
     toolCalendar: "ปฏิทิน",
     toolEmail: "อีเมล",
     toolDrive: "ไดรฟ์",
+    toolExpand: "ตัวเลือก",
+    toolCollapse: "ซ่อน",
+    emailToneLabel: "โทนอีเมล",
+    emailSignoffLabel: "คำลงท้าย",
+    emailAutosendLabel: "ส่งอัตโนมัติ",
+    reminderPreemptLabel: "เตือนก่อนประชุม",
+    calendarPrebriefLabel: "เตรียมตัวก่อนประชุม",
+    todoFollowupLabel: "เตือนติดตามงาน",
+    autosendAlwaysConfirm: "ยืนยันทุกครั้ง",
+    autosendConfirmOnce: "ยืนยันครั้งแรก",
+    autosendAlwaysSend: "ส่งเลยทุกครั้ง",
 
     toneWarm: "เป็นกันเอง",
     toneProfessional: "ทางการ",
@@ -550,7 +582,7 @@ const UI = {
     groupWelcome:
       "สวัสดีทุกคน ฉันคือ Lekha 👋\n\nพิมพ์ @Lekha หรือตอบข้อความฉันเมื่อต้องการให้ช่วยเหลือ ฉันสามารถตอบคำถาม ค้นหา ตรวจสอบสภาพอากาศและหุ้น อ่านรูปภาพ และอื่น ๆ ได้",
 
-    briefingChannelHint: "สรุปประจำวันจะส่งที่นี่ในแชท LINE การส่งทางอีเมลจะมาเร็ว ๆ นี้",
+    briefingChannelHint: "เลือกช่องทางส่งสรุปประจำวัน",
 
     unknownPostback: "ฉันไม่เข้าใจปุ่มนั้น ลองพิมพ์คำขอของคุณแทนนะคะ",
 

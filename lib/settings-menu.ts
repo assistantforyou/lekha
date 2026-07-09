@@ -26,6 +26,7 @@ const VALID_SECTIONS = new Set([
 type Section = "main" | "briefing" | "tools" | "persona" | "memory" | "facts" | "locale";
 
 const PROMPT_KEY = (userId: string) => `settings:prompt:${userId}`;
+const EXPANDED_TOOL_KEY = (userId: string) => `settings:expanded_tool:${userId}`;
 
 async function getPendingPrompt(userId: string): Promise<string | null> {
   return (await redis().get<string>(PROMPT_KEY(userId))) ?? null;
@@ -39,6 +40,15 @@ function clearPendingPrompt(userId: string): Promise<number> {
   return redis().del(PROMPT_KEY(userId));
 }
 
+async function getExpandedTool(userId: string): Promise<string | null> {
+  return (await redis().get<string>(EXPANDED_TOOL_KEY(userId))) ?? null;
+}
+
+async function setExpandedTool(userId: string, toolId: string | null): Promise<void> {
+  if (toolId) await redis().set(EXPANDED_TOOL_KEY(userId), toolId, { ex: 60 * 60 });
+  else await redis().del(EXPANDED_TOOL_KEY(userId));
+}
+
 async function sendMenu(userId: string, replyToken: string, section: Section): Promise<void> {
   clearPendingPrompt(userId).catch(() => {});
 
@@ -46,7 +56,10 @@ async function sendMenu(userId: string, replyToken: string, section: Section): P
   const settings = await getSettings(userId);
   let messages = [settingsMainFlex(settings)];
   if (section === "briefing") messages = [settingsBriefingFlex(settings)];
-  if (section === "tools") messages = [settingsToolsFlex(settings)];
+  if (section === "tools") {
+    const expandedTool = await getExpandedTool(userId);
+    messages = [settingsToolsFlex(settings, expandedTool ?? undefined)];
+  }
   if (section === "persona") messages = [settingsPersonaFlex(settings)];
   if (section === "memory") messages = [settingsMemoryFlex(settings)];
   if (section === "facts") {
@@ -169,6 +182,16 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
     if (b !== null) {
       patch.briefingChannels = { ...settings.briefingChannels, [ch]: b };
     }
+  } else if (key === "preMeetingLead" && value && args[4]) {
+    const lead = Number(value);
+    if (Number.isFinite(lead) && Number.isInteger(lead) && lead > 0 && lead <= 525600) {
+      const b = parseBool(args[4]);
+      if (b === true) {
+        patch.preMeetingLeads = Array.from(new Set([...settings.preMeetingLeads, lead])).sort((a, b) => a - b);
+      } else if (b === false) {
+        patch.preMeetingLeads = settings.preMeetingLeads.filter((l) => l !== lead);
+      }
+    }
   } else if (key === "tool" && value && args[4]) {
     const toolId = value;
     const b = parseBool(args[4]);
@@ -176,6 +199,42 @@ async function handleSet(userId: string, replyToken: string, args: string[]): Pr
       const nextTools = { ...settings.tools, [toolId]: b };
       patch.tools = nextTools;
       patch.disabledCategories = deriveDisabledCategories(nextTools);
+      // Collapse options when a tool is turned off.
+      if (!b) await setExpandedTool(userId, null);
+    }
+  } else if (key && value && args[4] && ["todo", "reminders", "calendar", "email", "drive"].includes(key)) {
+    const toolId = key as keyof UserSettings["tools"];
+    const field = value;
+    const rawValue = args[4];
+    const current = settings.toolSettings[toolId] ?? {};
+    let nextToolSettings: Record<string, Record<string, unknown>> = { ...settings.toolSettings };
+
+    if (field === "followup" || field === "prebrief") {
+      const b = parseBool(rawValue);
+      if (b !== null) {
+        nextToolSettings = { ...nextToolSettings, [toolId]: { ...current, [field]: b } };
+      }
+    } else if (field === "preempt") {
+      const n = Number(rawValue);
+      if (Number.isFinite(n) && Number.isInteger(n) && n >= 0 && n <= 525600) {
+        nextToolSettings = { ...nextToolSettings, [toolId]: { ...current, [field]: n } };
+        // Mirror reminders preempt into preMeetingLeads, keeping 1d and 1h.
+        const base: number[] = settings.preMeetingLeads.filter((l) => l === 1440 || l === 60);
+        if (n > 0) base.push(n);
+        patch.preMeetingLeads = Array.from(new Set(base)).sort((a, b) => a - b);
+      }
+    } else if (field === "tone") {
+      if (["Warm", "Professional", "Playful"].includes(rawValue)) {
+        nextToolSettings = { ...nextToolSettings, [toolId]: { ...current, [field]: rawValue } };
+      }
+    } else if (field === "autosend") {
+      if (["Always confirm", "Confirm first time only", "Always send"].includes(rawValue)) {
+        nextToolSettings = { ...nextToolSettings, [toolId]: { ...current, [field]: rawValue } };
+      }
+    }
+
+    if (nextToolSettings[toolId] && JSON.stringify(nextToolSettings) !== JSON.stringify(settings.toolSettings)) {
+      patch.toolSettings = nextToolSettings;
     }
   } else if (key === "morningTime" && value) {
     const timeStr = normalizeTimeValue(args.slice(3).join(":"));
@@ -299,6 +358,12 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
     return;
   }
 
+  if (first === "tools" && (args[1] === "expand" || args[1] === "collapse")) {
+    const toolId = args[1] === "expand" && args[2] ? args[2] : null;
+    await setExpandedTool(userId, toolId);
+    await sendMenu(userId, replyToken, "tools");
+    return;
+  }
 
   if (first === "toggle") {
     await handleToggle(userId, replyToken, args);
@@ -315,7 +380,7 @@ export async function handleSettingsPostback(userId: string, replyToken: string,
 }
 
 function sectionForKey(key: string): Section {
-  if (["morningBriefingTime", "eveningSummaryEnabled", "eveningSummaryTime", "taskCheckInEnabled", "taskCheckInTime", "inboxBriefingEnabled", "briefingTopics", "briefingLength", "briefingLanguage", "briefingChannels"].includes(key)) return "briefing";
+  if (["morningBriefingTime", "eveningSummaryEnabled", "eveningSummaryTime", "taskCheckInEnabled", "taskCheckInTime", "inboxBriefingEnabled", "briefingTopics", "briefingLength", "briefingLanguage", "briefingChannels", "preMeetingLeads"].includes(key)) return "briefing";
   if (["tools", "disabledCategories"].includes(key)) return "tools";
   if (["personaTone", "personaAddressing", "personaPrimaryLang", "personaVoiceMatch"].includes(key)) return "persona";
   if (["memoryEnabled", "memoryCompactAt"].includes(key)) return "memory";

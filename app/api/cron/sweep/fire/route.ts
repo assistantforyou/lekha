@@ -155,8 +155,13 @@ export async function POST(req: NextRequest) {
             msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
           }
           const ok = await push(userId, msgs);
-          if (ok) await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
-          else console.warn("[sweep] morning briefing push failed", userId);
+          if (ok) {
+            await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
+            if (settings.briefingChannels?.email) {
+              const { sendBriefingEmail } = await import("@/lib/sweep");
+              await sendBriefingEmail(userId, briefing, { timezone: settings.timezone });
+            }
+          } else console.warn("[sweep] morning briefing push failed", userId);
         }
       } catch (err) {
         console.error("[sweep] morning briefing failed", userId, err);

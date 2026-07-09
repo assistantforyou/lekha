@@ -156,6 +156,7 @@ function makeDefaultState(displayName: string, userId?: string) {
       addressing: "First name" as "First name" | "Khun" | "Sir / Madam" | "No address",
       primaryLang: "English" as "English" | "Thai",
       voiceMatch: true,
+      preferredName: null as string | null,
     },
     displayName: firstName,
     googleAccounts: [] as Array<{ email: string; addedAt: number }>,
@@ -989,6 +990,27 @@ const MemoryView = ({ state, set }: { state: State; set: (patch: Partial<State>)
               <div className="field-label">Match your writing voice</div>
               <div className="field-control"><Toggle on={state.persona.voiceMatch} onChange={(v) => set({ persona: { ...state.persona, voiceMatch: v } })}/></div>
             </div>
+            <div className="field">
+              <div className="field-label">Preferred name</div>
+              <div className="field-control">
+                <input
+                  type="text"
+                  className="sched-time-input"
+                  placeholder={state.displayName || "LINE display name"}
+                  value={state.persona.preferredName ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    set({
+                      persona: {
+                        ...state.persona,
+                        preferredName: v.trim() || null,
+                      },
+                    });
+                  }}
+                />
+              </div>
+              <span className="field-help">What Lekha should call you in chat.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1292,6 +1314,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
                 addressing: s.personaAddressing ?? prev.persona.addressing,
                 primaryLang: s.personaPrimaryLang ?? prev.persona.primaryLang,
                 voiceMatch: s.personaVoiceMatch ?? prev.persona.voiceMatch,
+                preferredName: s.personaPreferredName ?? prev.persona.preferredName,
               },
               displayName: data.displayName ?? prev.displayName,
               memories: data.facts
@@ -1360,6 +1383,7 @@ export default function DashboardClient({ userId, displayName }: { userId: strin
         personaAddressing: snapshot.persona.addressing,
         personaPrimaryLang: snapshot.persona.primaryLang,
         personaVoiceMatch: snapshot.persona.voiceMatch,
+        personaPreferredName: snapshot.persona.preferredName?.trim() || null,
       };
 
       if (abortCtrl.current) abortCtrl.current.abort();

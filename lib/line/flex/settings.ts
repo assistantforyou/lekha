@@ -264,6 +264,20 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
         timePresetRow(t(lang, "eveningLabel"), settings.eveningSummaryEnabled ? settings.eveningSummaryTime : null, "evening", lang),
         timePresetRow(t(lang, "checkinLabel"), settings.taskCheckInEnabled ? (settings.taskCheckInTime ?? deriveCheckInTime(settings.eveningSummaryTime)) : null, "checkin", lang),
         separator(),
+        wrap(
+          { type: "text", text: t(lang, "preMeetingAlertsTitle"), weight: "bold", size: "sm", color: TEXT, wrap: true },
+          hint(t(lang, "preMeetingAlertsHint")),
+          chipRow(
+            "",
+            [
+              { label: t(lang, "lead15min"), data: "settings:briefing:set:preMeetingLead:15:true", on: settings.preMeetingLeads.includes(15) },
+              { label: t(lang, "lead1hour"), data: "settings:briefing:set:preMeetingLead:60:true", on: settings.preMeetingLeads.includes(60) },
+              { label: t(lang, "lead1day"), data: "settings:briefing:set:preMeetingLead:1440:true", on: settings.preMeetingLeads.includes(1440) },
+            ],
+            3,
+          ),
+        ),
+        separator(),
         toggleRow(t(lang, "includeUnreadGmail"), settings.inboxBriefingEnabled, "settings:briefing:set:inboxBriefingEnabled:true", "settings:briefing:set:inboxBriefingEnabled:false", lang),
         chipRow(t(lang, "lengthLabel"), [
           { label: "Headlines", data: "settings:briefing:set:briefingLength:Headlines", on: settings.briefingLength === "Headlines" },
@@ -284,6 +298,7 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
           { type: "text", text: t(lang, "channelsLabel"), weight: "bold", size: "sm", color: TEXT, wrap: true },
           hint(t(lang, "briefingChannelHint")),
           toggleRow(t(lang, "lineChat"), settings.briefingChannels.line, "settings:briefing:set:briefingChannel:line:true", "settings:briefing:set:briefingChannel:line:false", lang),
+          toggleRow(t(lang, "emailChannel"), settings.briefingChannels.email, "settings:briefing:set:briefingChannel:email:true", "settings:briefing:set:briefingChannel:email:false", lang),
         ),
         separator(),
         wrap({ type: "text", text: t(lang, "dailyTopics"), weight: "bold", size: "sm", color: TEXT, wrap: true }, ...topicRows),
@@ -300,7 +315,101 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
   };
 }
 
-export function settingsToolsFlex(settings: UserSettings): FlexMessage {
+function toolRow(
+  label: string,
+  on: boolean,
+  toolId: string,
+  expanded: boolean,
+  lang: UiLang,
+): object {
+  const toggleDataOn = `settings:tools:set:tool:${toolId}:true`;
+  const toggleDataOff = `settings:tools:set:tool:${toolId}:false`;
+  const expandData = `settings:tools:expand:${toolId}`;
+  const collapseData = `settings:tools:collapse:${toolId}`;
+  return {
+    type: "box",
+    layout: "horizontal",
+    margin: "md",
+    alignItems: "center",
+    spacing: "sm",
+    contents: [
+      {
+        type: "box",
+        layout: "vertical",
+        flex: 1,
+        contents: [
+          { type: "text", text: label, weight: "bold", size: "sm", color: TEXT, wrap: true, adjustMode: "shrink-to-fit" },
+          { type: "text", text: on ? t(lang, "on") : t(lang, "off"), size: "xs", color: on ? OK : MUTED },
+        ],
+      },
+      ...(on
+        ? [
+            postbackButton(expanded ? t(lang, "toolCollapse") : t(lang, "toolExpand"), expanded ? collapseData : expandData, "secondary"),
+            postbackButton(t(lang, "turnOff"), toggleDataOff, "secondary"),
+          ]
+        : [postbackButton(t(lang, "turnOn"), toggleDataOn, "primary", OK)]),
+    ],
+  };
+}
+
+function toolSettingsRows(toolId: string, settings: UserSettings, lang: UiLang): object[] {
+  const ts = settings.toolSettings[toolId] ?? {};
+  if (toolId === "todo") {
+    return [
+      toggleRow(
+        t(lang, "todoFollowupLabel"),
+        !!ts.followup,
+        `settings:tools:set:todo:followup:true`,
+        `settings:tools:set:todo:followup:false`,
+        lang,
+      ),
+    ];
+  }
+  if (toolId === "reminders") {
+    const preempt = (ts.preempt as number) ?? 15;
+    return [
+      chipRow(t(lang, "reminderPreemptLabel"), [
+        { label: "15", data: "settings:tools:set:reminders:preempt:15", on: preempt === 15 },
+        { label: "30", data: "settings:tools:set:reminders:preempt:30", on: preempt === 30 },
+        { label: "60", data: "settings:tools:set:reminders:preempt:60", on: preempt === 60 },
+      ]),
+    ];
+  }
+  if (toolId === "calendar") {
+    return [
+      toggleRow(
+        t(lang, "calendarPrebriefLabel"),
+        !!ts.prebrief,
+        `settings:tools:set:calendar:prebrief:true`,
+        `settings:tools:set:calendar:prebrief:false`,
+        lang,
+      ),
+    ];
+  }
+  if (toolId === "email") {
+    const tone = (ts.tone as string) ?? "Warm";
+    const autosend = (ts.autosend as string) ?? "Always confirm";
+    return [
+      chipRow(t(lang, "emailToneLabel"), [
+        { label: t(lang, "toneWarm"), data: "settings:tools:set:email:tone:Warm", on: tone === "Warm" },
+        { label: t(lang, "toneProfessional"), data: "settings:tools:set:email:tone:Professional", on: tone === "Professional" },
+        { label: t(lang, "tonePlayful"), data: "settings:tools:set:email:tone:Playful", on: tone === "Playful" },
+      ]),
+      chipRow(
+        t(lang, "emailAutosendLabel"),
+        [
+          { label: t(lang, "autosendAlwaysConfirm"), data: "settings:tools:set:email:autosend:Always confirm", on: autosend === "Always confirm" },
+          { label: t(lang, "autosendConfirmOnce"), data: "settings:tools:set:email:autosend:Confirm first time only", on: autosend === "Confirm first time only" },
+          { label: t(lang, "autosendAlwaysSend"), data: "settings:tools:set:email:autosend:Always send", on: autosend === "Always send" },
+        ],
+        1,
+      ),
+    ];
+  }
+  return [];
+}
+
+export function settingsToolsFlex(settings: UserSettings, expandedTool?: string): FlexMessage {
   const lang = uiLang(settings.language);
   const toolOrder = [
     { id: "todo", icon: "✅", key: "toolTodo" as const },
@@ -310,10 +419,23 @@ export function settingsToolsFlex(settings: UserSettings): FlexMessage {
     { id: "drive", icon: "📁", key: "toolDrive" as const },
   ];
 
-  const rows = toolOrder.map((tool) => {
+  const contents: object[] = [];
+  for (const tool of toolOrder) {
     const on = !!settings.tools[tool.id];
-    return toggleRow(`${tool.icon} ${t(lang, tool.key)}`, on, `settings:tools:set:tool:${tool.id}:true`, `settings:tools:set:tool:${tool.id}:false`, lang);
-  });
+    contents.push(toolRow(`${tool.icon} ${t(lang, tool.key)}`, on, tool.id, expandedTool === tool.id, lang));
+    if (expandedTool === tool.id && on) {
+      contents.push(
+        {
+          type: "box",
+          layout: "vertical",
+          margin: "sm",
+          paddingStart: "lg",
+          spacing: "sm",
+          contents: toolSettingsRows(tool.id, settings, lang),
+        },
+      );
+    }
+  }
 
   return {
     type: "flex",
@@ -324,7 +446,7 @@ export function settingsToolsFlex(settings: UserSettings): FlexMessage {
       header: header(t(lang, "toolsTitle")),
       body: body([
         hint(t(lang, "toolsHint")),
-        ...rows,
+        ...contents,
         separator(),
         {
           type: "box",

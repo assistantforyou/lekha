@@ -359,6 +359,23 @@ describe("setup tutorial", () => {
     expect(JSON.stringify(nextFlex!.messages[0])).toContain("Daily Briefings");
   });
 
+  it("toggles pre-meeting lead times in briefing step", async () => {
+    await startTutorial("U1", "token");
+    await handleTutorialPostback("U1", "token", ["set", "language", "en"]);
+    await handleTutorialPostback("U1", "token", ["set", "timezone", "Asia/Bangkok"]);
+    await handleTutorialPostback("U1", "token", ["next"]);
+    await handleTutorialPostback("U1", "token", ["set", "morning", "08:00"]);
+
+    // Defaults include 15/60/1440, so the first tap toggles off.
+    await handleTutorialPostback("U1", "token", ["set", "preMeetingLead", "15"]);
+    let s = await getSettings("U1");
+    expect(s.preMeetingLeads).not.toContain(15);
+
+    await handleTutorialPostback("U1", "token", ["set", "preMeetingLead", "15"]);
+    s = await getSettings("U1");
+    expect(s.preMeetingLeads).toContain(15);
+  });
+
   it("covers all settings sections", () => {
     expect(TUTORIAL_SECTIONS).toEqual(["language", "locale", "briefing", "tools", "persona", "memory"]);
   });

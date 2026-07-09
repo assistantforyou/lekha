@@ -55,6 +55,10 @@ function separator(): object {
   return { type: "separator", margin: "md", color: "#f2f2f2" };
 }
 
+function wrap(...contents: object[]): object {
+  return { type: "box", layout: "vertical", spacing: "sm", contents };
+}
+
 function postbackButton(
   label: string,
   data: string,
@@ -118,6 +122,11 @@ const T = {
     eveningSummary: "Evening summary",
     taskCheckIn: "Task check-in",
     off: "Off",
+    preMeetingTitle: "⏰ Meeting alerts",
+    preMeetingHint: "How far ahead should I warn you before meetings?",
+    lead15min: "15 min",
+    lead1hour: "1 hour",
+    lead1day: "1 day",
     toolsTitle: "🛠 Tools",
     toolsDescription: "Choose what I can help you with. You can change this anytime in settings.",
     toolsAll: "✅ All 5 tools",
@@ -186,6 +195,11 @@ const T = {
     eveningSummary: "สรุปตอนเย็น",
     taskCheckIn: "เช็คงาน",
     off: "ปิด",
+    preMeetingTitle: "⏰ แจ้งเตือนก่อนประชุม",
+    preMeetingHint: "ต้องการเตือนล่วงหน้าก่อนถึงนัดหมายระยะเท่าใด",
+    lead15min: "15 นาที",
+    lead1hour: "1 ชั่วโมง",
+    lead1day: "1 วัน",
     toolsTitle: "🛠 เครื่องมือ",
     toolsDescription: "เลือกสิ่งที่ฉันช่วยคุณได้ คุณสามารถเปลี่ยนได้ทุกเมื่อในการตั้งค่า",
     toolsAll: "✅ 5 เครื่องมือทั้งหมด",
@@ -362,6 +376,20 @@ async function briefingStep(settings: UserSettings): Promise<FlexMessage> {
         optionButton(t.off, "tutorial:set:checkin:off", !settings.taskCheckInEnabled),
       ],
       2,
+    ),
+    separator(),
+    wrap(
+      { type: "text", text: t.preMeetingTitle, weight: "bold", size: "sm", color: TEXT, wrap: true },
+      hint(t.preMeetingHint),
+      chipRow(
+        "",
+        [
+          optionButton(t.lead15min, "tutorial:set:preMeetingLead:15", settings.preMeetingLeads.includes(15)),
+          optionButton(t.lead1hour, "tutorial:set:preMeetingLead:60", settings.preMeetingLeads.includes(60)),
+          optionButton(t.lead1day, "tutorial:set:preMeetingLead:1440", settings.preMeetingLeads.includes(1440)),
+        ],
+        3,
+      ),
     ),
     navRow(lang, true),
   ]);
@@ -617,6 +645,17 @@ async function applyTutorialSetting(
     } else {
       patch.taskCheckInEnabled = true;
       patch.taskCheckInTime = value;
+    }
+  } else if (key === "preMeetingLead") {
+    const lead = Number(value);
+    if (Number.isFinite(lead) && Number.isInteger(lead) && lead > 0 && lead <= 525600) {
+      const current = new Set(settings.preMeetingLeads);
+      if (current.has(lead)) {
+        current.delete(lead);
+      } else {
+        current.add(lead);
+      }
+      patch.preMeetingLeads = Array.from(current).sort((a, b) => a - b);
     }
   } else if (key === "tools") {
     const toolPresets: Record<string, Record<string, boolean>> = {

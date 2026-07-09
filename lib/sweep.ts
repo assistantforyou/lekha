@@ -10,6 +10,9 @@ import { buildMorningBriefing, shouldFireBriefingNow } from "@/lib/llm/briefing"
 import { buildEveningSummary, shouldFireEveningSummaryNow } from "@/lib/llm/evening-summary";
 import { deriveCheckInTime } from "@/lib/time-utils";
 import { registerUser, REGISTRY_KEY } from "@/lib/memory/user-registry";
+import { sendEmail } from "@/lib/tools/email";
+import { listAccounts } from "@/lib/tools/google-auth";
+import { logSent } from "@/lib/memory/sent-log";
 
 const ACTIVE_WINDOW_MS = 10 * 60 * 1000; // 10 min
 
@@ -64,6 +67,52 @@ function localTimeStr(timezone: string): string {
   });
 }
 
+function localDateStr(timezone: string): string {
+  const now = new Date();
+  return now.toLocaleDateString("en-US", {
+    timeZone: timezone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export async function sendBriefingEmail(
+  userId: string,
+  briefing: { text: string; news?: Array<{ title: string; url?: string }> },
+  opts: { subject?: string; timezone: string },
+): Promise<{ from: string } | null> {
+  const accounts = await listAccounts(userId);
+  const to = accounts.activeEmail;
+  if (!to) {
+    console.log(`[sweep] ${userId.slice(0, 12)}… skipping briefing email — no Gmail connected`);
+    return null;
+  }
+
+  let body = briefing.text;
+  if (briefing.news && briefing.news.length > 0) {
+    body += "\n\n📰 Top stories\n" + briefing.news.map((n) => `• ${n.title}${n.url ? ` — ${n.url}` : ""}`).join("\n");
+  }
+
+  try {
+    const result = await sendEmail(userId, {
+      kind: "send_email",
+      to: [to],
+      subject: opts.subject ?? `Morning briefing — ${localDateStr(opts.timezone)}`,
+      body,
+    });
+    await logSent(userId, {
+      kind: "email",
+      summary: `[briefing] ${opts.subject ?? "Morning briefing"} → ${to}`,
+      detail: { to: [to], subject: opts.subject },
+    });
+    return result;
+  } catch (err) {
+    console.error(`[sweep] ${userId.slice(0, 12)}… briefing email failed`, err);
+    return null;
+  }
+}
+
 /** Master sweep for a single user — morning briefing, evening summary, task check-in. */
 /** True if the user should receive proactive pushes: admins always, others only if allowlisted. */
 export async function isAllowedForProactive(userId: string): Promise<boolean> {
@@ -115,8 +164,12 @@ export async function runSweepForUser(userId: string): Promise<void> {
         msgs.push(gmailResultsFlex(briefing.inbox.map((m) => ({ ...m, unread: true }))));
       }
       const ok = await push(userId, msgs);
-      if (ok) await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
-      else console.warn("[sweep] morning briefing push failed", userId);
+      if (ok) {
+        await updateSettings(userId, { lastMorningBriefingTs: Date.now() });
+        if (settings.briefingChannels?.email) {
+          await sendBriefingEmail(userId, briefing, { timezone: settings.timezone });
+        }
+      } else console.warn("[sweep] morning briefing push failed", userId);
     } catch (err) {
       console.error("[sweep] morning briefing failed", userId, err);
     }
