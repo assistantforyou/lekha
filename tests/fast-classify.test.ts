@@ -40,6 +40,14 @@ describe("fastClassify", () => {
     expect(fastClassify("what's in this image", { hasStagedMedia: true })).toBe("media");
   });
 
+  it("lets explicit email intent win over staged-media reference", () => {
+    expect(
+      fastClassify("Write an email to jamyangperenchio@gmail.com sending this image", { hasStagedMedia: true }),
+    ).toBe("email");
+    expect(fastClassify("send this image to my email", { hasStagedMedia: true })).toBe("email");
+    expect(fastClassify("forward that file", { hasStagedMedia: true })).toBe("email");
+  });
+
   it("classifies google account queries as 'connect' for both singular and plural phrasing", () => {
     // Regression: \b doesn't match mid-word, so "google\s+account\b" alone
     // never matched the plural "accounts" — the query fell through to the

@@ -52,7 +52,13 @@ export async function respondToText(
       /\b(ip\s+address|mac\s+address|serial|version|password|wifi|qr|barcode|text|code|error|screen|monitor|display)\b/i.test(userText)
     : false;
 
-  const imagePromise = freshImage && imageLooksReferenced
+  // If the user wants to use the image in an action (email, draft, upload),
+  // don't preload it into the prompt. The staged-media list + attach_recent_media
+  // is the correct path, and preloading adds a restrictive "answer only from the
+  // image" instruction that confuses the model.
+  const isActionOnImage = /\b(send|email|e-mail|forward|attach|upload|draft)\b/i.test(userText);
+
+  const imagePromise = freshImage && imageLooksReferenced && !isActionOnImage
     ? timed(
         "text:getMessageContent",
         traceId,

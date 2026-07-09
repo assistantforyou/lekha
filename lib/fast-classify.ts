@@ -71,6 +71,9 @@ const KEYWORD_MAP: Array<{ intent: string; patterns: RegExp[] }> = [
     intent: "email",
     patterns: [
       /\b(emails?|gmail|draft\s+an?\s+email|send\s+an?\s+email|inbox|unread\s+(emails?|messages?)|reply\s+to)\b/i,
+      // "send/forward/email this (image/file)" — explicit action on staged media
+      /\b(send|forward|email|e-mail)\s+(this|that|the|it|me|us|him|her|them)\b/i,
+      /\b(send|forward)\s+.{0,40}\s+(image|photo|picture|file|pdf|doc(?:ument)?)\b/i,
     ],
   },
   {
@@ -163,14 +166,6 @@ export function fastClassify(
   const trimmed = text.trim();
   if (!trimmed) return undefined;
 
-  // Staged media reference → media tools (regardless of other content)
-  if (
-    opts?.hasStagedMedia &&
-    /\b(this|that|the\s+(file|pdf|doc(?:ument)?|image|photo|picture|video|audio))\b/i.test(trimmed)
-  ) {
-    return "media";
-  }
-
   // Exact casual utterances → no narrowing (gives all tools so follow-up
   // requests in the same message like "hi, what's the weather?" still work)
   if (CASUAL_TRIGGERS.some((re) => re.test(trimmed))) return undefined;
@@ -181,5 +176,15 @@ export function fastClassify(
   }
 
   // Single clear intent → narrow. Multiple or zero → all tools.
-  return matched.length === 1 ? matched[0] : undefined;
+  if (matched.length === 1) return matched[0];
+
+  // Staged media reference with no stronger intent → media tools.
+  if (
+    opts?.hasStagedMedia &&
+    /\b(this|that|the\s+(file|pdf|doc(?:ument)?|image|photo|picture|video|audio))\b/i.test(trimmed)
+  ) {
+    return "media";
+  }
+
+  return undefined;
 }
