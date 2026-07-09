@@ -617,19 +617,29 @@ function draftFmtRange(start?: string, end?: string, timezone?: string, locale?:
   }
 }
 
-function buildEmailDraftFlex(input: unknown, tz: string, _locale?: string): LineMessage {
+function buildEmailDraftFlex(
+  input: unknown,
+  tz: string,
+  _locale?: string,
+  activeEmail?: string | null,
+  staged?: Array<{ kind: string; fileName?: string; contentType?: string }>,
+): LineMessage {
   const args = input as {
     to?: string[]; cc?: string[]; bcc?: string[];
     subject?: string; body?: string; fromEmail?: string;
+    attach_recent_media?: boolean;
+    attach_recent_media_indexes?: number[];
+    attachments?: Array<{ fileId: string }>;
   };
   const to = (args.to ?? []).join(", ") || "(missing)";
   const subject = args.subject ?? "(no subject)";
   const bodyText = (args.body ?? "").trim();
   const bodyPreview = bodyText.slice(0, 220);
+  const from = args.fromEmail ?? activeEmail ?? null;
 
   const rows: object[] = [];
-  if (args.fromEmail) {
-    rows.push(draftFieldRow("From", args.fromEmail));
+  if (from) {
+    rows.push(draftFieldRow("From", from));
     rows.push({ type: "separator", color: "#f0f0f0" });
   }
   rows.push(draftFieldRow("To", to));
@@ -639,6 +649,19 @@ function buildEmailDraftFlex(input: unknown, tz: string, _locale?: string): Line
   }
   rows.push({ type: "separator", color: "#f0f0f0" });
   rows.push(draftFieldRow("Subject", subject, true));
+
+  const mediaCount = args.attach_recent_media
+    ? (staged?.length ?? 0)
+    : (args.attach_recent_media_indexes?.length ?? 0);
+  const driveCount = args.attachments?.length ?? 0;
+  if (mediaCount > 0 || driveCount > 0) {
+    const mediaLabel = mediaCount === 1 && driveCount === 0 ? "1 LINE file" : `${mediaCount} LINE file(s)`;
+    const driveLabel = driveCount > 0 ? `${driveCount} Drive file(s)` : "";
+    const label = driveCount > 0 ? `${mediaLabel}, ${driveLabel}` : mediaLabel;
+    rows.push({ type: "separator", color: "#f0f0f0" });
+    rows.push(draftFieldRow("Attachments", label));
+  }
+
   if (bodyPreview) {
     rows.push({ type: "separator", color: "#f0f0f0" });
     rows.push({
@@ -759,27 +782,50 @@ function buildCalendarDraftFlex(input: unknown, tz: string, locale?: string): Li
   } as LineMessage;
 }
 
-function buildScheduledEmailDraftFlex(input: unknown, tz: string, locale?: string): LineMessage {
+function buildScheduledEmailDraftFlex(
+  input: unknown,
+  tz: string,
+  locale?: string,
+  activeEmail?: string | null,
+  staged?: Array<{ kind: string; fileName?: string; contentType?: string }>,
+): LineMessage {
   const args = input as {
     to?: string[]; cc?: string[];
     subject?: string; body?: string; sendAt?: string; fromEmail?: string;
+    attach_recent_media?: boolean;
+    attach_recent_media_indexes?: number[];
+    attachments?: Array<{ fileId: string }>;
   };
   const to = (args.to ?? []).join(", ") || "(missing)";
   const subject = args.subject ?? "(no subject)";
   const sendAt = args.sendAt ? draftFmtDate(args.sendAt, tz, locale) : "(unknown)";
   const bodyText = (args.body ?? "").trim();
   const bodyPreview = bodyText.slice(0, 180);
+  const from = args.fromEmail ?? activeEmail ?? null;
 
   const rows: object[] = [];
-  if (args.fromEmail) {
-    rows.push(draftFieldRow("From", args.fromEmail));
+  if (from) {
+    rows.push(draftFieldRow("From", from));
     rows.push({ type: "separator", color: "#f0f0f0" });
   }
   rows.push(draftFieldRow("To", to));
   rows.push({ type: "separator", color: "#f0f0f0" });
   rows.push(draftFieldRow("Subject", subject, true));
   rows.push({ type: "separator", color: "#f0f0f0" });
-  rows.push(draftFieldRow("📅 Send at", sendAt));
+  rows.push(draftFieldRow("Send at", sendAt));
+
+  const mediaCount = args.attach_recent_media
+    ? (staged?.length ?? 0)
+    : (args.attach_recent_media_indexes?.length ?? 0);
+  const driveCount = args.attachments?.length ?? 0;
+  if (mediaCount > 0 || driveCount > 0) {
+    const mediaLabel = mediaCount === 1 && driveCount === 0 ? "1 LINE file" : `${mediaCount} LINE file(s)`;
+    const driveLabel = driveCount > 0 ? `${driveCount} Drive file(s)` : "";
+    const label = driveCount > 0 ? `${mediaLabel}, ${driveLabel}` : mediaLabel;
+    rows.push({ type: "separator", color: "#f0f0f0" });
+    rows.push(draftFieldRow("Attachments", label));
+  }
+
   if (bodyPreview) {
     rows.push({ type: "separator", color: "#f0f0f0" });
     rows.push({
@@ -836,15 +882,23 @@ function buildScheduledEmailDraftFlex(input: unknown, tz: string, locale?: strin
 export function buildDraftFlexCards(
   calls: ReadonlyArray<{ toolName: string; input: unknown }>,
   timezone?: string,
-  opts?: { language?: string | null },
+  opts?: {
+    language?: string | null;
+    activeEmail?: string | null;
+    staged?: Array<{ kind: string; fileName?: string; contentType?: string }>;
+  },
 ): LineMessage[] {
   const tz = timezone ?? "UTC";
   const locale = dateLocale(opts?.language);
   return calls.flatMap((call) => {
     try {
-      if (call.toolName === "draft_email") return [buildEmailDraftFlex(call.input, tz, locale)];
+      if (call.toolName === "draft_email") {
+        return [buildEmailDraftFlex(call.input, tz, locale, opts?.activeEmail, opts?.staged)];
+      }
       if (call.toolName === "draft_calendar_event") return [buildCalendarDraftFlex(call.input, tz, locale)];
-      if (call.toolName === "schedule_email") return [buildScheduledEmailDraftFlex(call.input, tz, locale)];
+      if (call.toolName === "schedule_email") {
+        return [buildScheduledEmailDraftFlex(call.input, tz, locale, opts?.activeEmail, opts?.staged)];
+      }
     } catch { /* skip malformed */ }
     return [];
   });

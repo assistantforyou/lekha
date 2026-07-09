@@ -392,7 +392,7 @@ export async function runMastraAgent(
         c.toolName === "draft_calendar_event" ||
         c.toolName === "schedule_email",
       );
-      const draftCards = buildDraftFlexCards(draftCalls, tz, { language: lang });
+      const draftCards = buildDraftFlexCards(draftCalls, tz, { language: lang, activeEmail, staged });
       if (draftCards.length > 0) {
         flexMessages = [...draftCards, ...flexMessages];
         suppressText = true;
