@@ -336,4 +336,25 @@ describe("structured facts", () => {
     const f = await loadFacts("U1");
     expect(f.facts[0]!.priority).toBe(1);
   });
+
+  it("loadFacts tolerates object values from auto-deserializing Redis clients", async () => {
+    const fact = {
+      id: "obj1",
+      category: "context",
+      content: "from object",
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    getHash("user:U1:facts:h").set("obj1", fact as any);
+    getZset("user:U1:facts:order").set("obj1", 1);
+    const f = await loadFacts("U1");
+    expect(f.facts.map((x) => x.content)).toContain("from object");
+  });
+
+  it("loadFacts skips corrupted string entries instead of crashing", async () => {
+    getHash("user:U1:facts:h").set("bad1", "[object Object]");
+    getZset("user:U1:facts:order").set("bad1", 1);
+    const f = await loadFacts("U1");
+    expect(f.facts.some((x) => x.id === "bad1")).toBe(false);
+  });
 });

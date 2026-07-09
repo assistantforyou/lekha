@@ -23,7 +23,7 @@ import { buildGate, passesGate } from "@/lib/gate";
 import { isAllowed } from "@/lib/memory/allowlist";
 import { isOnTrial, checkTrialDailyQuota, trialQuotaMessage, startTrial } from "@/lib/trial";
 import { getSettings } from "@/lib/memory/settings";
-import { t } from "@/lib/i18n";
+import { t, detectMessageLanguage } from "@/lib/i18n";
 
 import { maybeExtractFacts } from "@/lib/maybe-extract";
 import { span, withTimeout } from "@/lib/timing";
@@ -395,11 +395,20 @@ export async function POST(req: NextRequest) {
             const uid = event.source?.userId;
             const rt = "replyToken" in event ? event.replyToken : undefined;
             if (uid && rt) {
+              const detectedLang =
+                event.type === "message" &&
+                "message" in event &&
+                event.message.type === "text" &&
+                "text" in event.message &&
+                typeof event.message.text === "string"
+                  ? detectMessageLanguage(event.message.text)
+                  : null;
               const langSettings = await getSettings(uid).catch((e) => {
                 logWarn("webhook", "getSettings failed in event error fallback", { error: e });
                 return null;
               });
-              replyOrPush(uid, rt, [textMsg(t(langSettings?.language, "agentErrGeneric"))]).catch((e) =>
+              const replyLang = detectedLang ?? langSettings?.language ?? "en";
+              replyOrPush(uid, rt, [textMsg(t(replyLang, "agentErrGeneric"))]).catch((e) =>
                 logWarn("webhook", "error-reply fallback failed", { error: e }),
               );
             }

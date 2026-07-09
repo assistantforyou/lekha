@@ -8,6 +8,7 @@ import { getSettings } from "@/lib/memory/settings";
 import { listAccounts } from "@/lib/tools/google-auth";
 import { fastClassify } from "@/lib/fast-classify";
 import { enrichReply } from "../enrich-reply";
+import { detectMessageLanguage } from "@/lib/i18n";
 import { span, timed } from "@/lib/timing";
 import { handleTutorialText } from "@/lib/tutorial";
 import { getBotUserId } from "@/lib/group";
@@ -78,6 +79,10 @@ export async function respondToText(
     imagePromise,
   ]);
 
+  const detectedLang = detectMessageLanguage(userText);
+  const replyLang = detectedLang ?? settings.language ?? "en";
+  const turnSettings = { ...settings, language: replyLang };
+
   endPreload({
     facts: facts.facts.length,
     staged: staged.length,
@@ -114,7 +119,7 @@ export async function respondToText(
     accounts,
     staged,
     hasStagedMedia,
-    settings,
+    settings: turnSettings,
     hint,
     imageBundled: !!imageData,
     isGroupChat: Boolean(opts?.groupContext),
@@ -138,7 +143,7 @@ export async function respondToText(
       replyText,
       hints,
       accounts.accounts.map((a) => a.email),
-      settings.language,
+      replyLang,
     ).slice(0, 5),
     opts?.onQuoteTokens,
   );

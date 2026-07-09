@@ -14,6 +14,14 @@ export function dateLocale(language: string | null | undefined): "th-TH" | "en-U
   return uiLang(language) === "th" ? "th-TH" : "en-US";
 }
 
+/** Detect the language of an incoming message so replies match the asker. */
+export function detectMessageLanguage(text: string): "th" | "en" | null {
+  if (typeof text !== "string") return null;
+  if (/[\u0E00-\u0E7F]/.test(text)) return "th";
+  if (/[a-zA-Z]/.test(text)) return "en";
+  return null;
+}
+
 const UI = {
   en: {
     fallbackNoCatch: "I didn't catch that — could you rephrase?",

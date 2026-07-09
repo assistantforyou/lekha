@@ -70,11 +70,35 @@ function isCategory(s: unknown): s is FactCategory {
   return typeof s === "string" && (FACT_CATEGORIES as string[]).includes(s);
 }
 
-function parseFacts(raw: Record<string, string>): Fact[] {
+function isFactLike(v: unknown): v is Fact {
+  if (!v || typeof v !== "object") return false;
+  const f = v as Record<string, unknown>;
+  return (
+    typeof f.id === "string" &&
+    isCategory(f.category) &&
+    typeof f.content === "string" &&
+    typeof f.createdAt === "number" &&
+    typeof f.updatedAt === "number"
+  );
+}
+
+function parseFacts(raw: Record<string, unknown>): Fact[] {
   const facts: Fact[] = [];
-  for (const value of Object.values(raw)) {
-    const parsed = JSON.parse(value) as Fact;
-    if (isCategory(parsed.category)) facts.push(parsed);
+  for (const [id, value] of Object.entries(raw)) {
+    let parsed: unknown;
+    if (typeof value === "string") {
+      try {
+        parsed = JSON.parse(value);
+      } catch (err) {
+        console.warn("[facts] skipping corrupted fact entry", id, err);
+        continue;
+      }
+    } else if (value && typeof value === "object") {
+      parsed = value;
+    } else {
+      continue;
+    }
+    if (isFactLike(parsed)) facts.push(parsed);
   }
   return facts;
 }
@@ -105,12 +129,12 @@ export async function loadFacts(
     };
   }
 
-  const raw = await redis().hgetall<Record<string, string>>(hashKey(userId));
+  const raw = await redis().hgetall<Record<string, unknown>>(hashKey(userId));
   let facts: Fact[];
   if (!raw || Object.keys(raw).length === 0) {
     const migrated = await migrateLegacyFacts(userId);
     if (migrated) {
-      const refreshed = await redis().hgetall<Record<string, string>>(
+      const refreshed = await redis().hgetall<Record<string, unknown>>(
         hashKey(userId),
       );
       facts = refreshed ? parseFacts(refreshed) : [];
@@ -145,7 +169,7 @@ export async function saveFacts(
     content: f.content.slice(0, MAX_CONTENT),
   }));
 
-  const currentHash = await redis().hgetall<Record<string, string>>(hashKey(userId));
+  const currentHash = await redis().hgetall<Record<string, unknown>>(hashKey(userId));
   const currentIds = Object.keys(currentHash ?? {});
   const desiredIds = new Set(list.map((f) => f.id));
   const removedIds = currentIds.filter((id) => !desiredIds.has(id));
@@ -170,7 +194,7 @@ export async function saveFacts(
   // Remove hash fields whose ids were evicted from the sorted set.
   const [remaining, refreshedHash] = await Promise.all([
     redis().zrange<string[]>(orderKey(userId), 0, -1),
-    redis().hgetall<Record<string, string>>(hashKey(userId)),
+    redis().hgetall<Record<string, unknown>>(hashKey(userId)),
   ]);
   const remainingSet = new Set(remaining);
   const evicted = Object.keys(refreshedHash ?? {}).filter(

@@ -15,6 +15,7 @@ import { getOrCreateProfile } from "@/lib/memory/profile";
 import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { groupGateFlex } from "@/lib/line/flex/group-gate";
 import { checkRateLimit } from "@/lib/ratelimit";
+import { detectMessageLanguage, t } from "@/lib/i18n";
 import { markUserActive } from "@/lib/sweep";
 import { registerUser } from "@/lib/memory/user-registry";
 import { respondToText } from "@/lib/handlers/text";
@@ -43,6 +44,7 @@ export async function handleGroupMessage(
 
   const textMessage = event.message as LineTextMessage;
   const userText = textMessage.text.trim();
+  const replyLang = detectMessageLanguage(userText) ?? "en";
 
   markUserActive(userId).catch(() => {});
   registerUser(userId).catch(() => {});
@@ -80,14 +82,14 @@ export async function handleGroupMessage(
 
   const allowed = await hasGroupAccess({ userId, groupId, gate });
   if (!allowed) {
-    await sendGroupGateNotice(chatId, event.replyToken, groupId);
+    await sendGroupGateNotice(chatId, event.replyToken, groupId, replyLang);
     return true;
   }
 
   const rl = await checkRateLimit(userId);
   if (!rl.ok) {
     await replyOrPush(chatId, event.replyToken, [
-      textMsg(`Easy there — give me a sec. Try again in ~${rl.retryAfterSec}s.`),
+      textMsg(t(replyLang, "rateLimitMessage", { sec: String(rl.retryAfterSec) })),
     ]);
     return true;
   }
@@ -125,14 +127,14 @@ async function handleGroupMedia(
 
   const allowed = await hasGroupAccess({ userId, groupId: chatId, gate });
   if (!allowed) {
-    await sendGroupGateNotice(chatId, event.replyToken, chatId);
+    await sendGroupGateNotice(chatId, event.replyToken, chatId, "en");
     return true;
   }
 
   const rl = await checkRateLimit(userId);
   if (!rl.ok) {
     await replyOrPush(chatId, event.replyToken, [
-      textMsg(`Easy there — give me a sec. Try again in ~${rl.retryAfterSec}s.`),
+      textMsg(t("en", "rateLimitMessage", { sec: String(rl.retryAfterSec) })),
     ]);
     return true;
   }
@@ -164,9 +166,9 @@ async function handleGroupMedia(
   return true;
 }
 
-async function sendGroupGateNotice(chatId: string, replyToken: string, groupId: string): Promise<void> {
+async function sendGroupGateNotice(chatId: string, replyToken: string, groupId: string, language = "en"): Promise<void> {
   const key = `group:gate_notice:${groupId}`;
   const fresh = await redis().set(key, 1, { ex: 60 * 60 * 24, nx: true });
   if (fresh === null) return;
-  await replyOrPush(chatId, replyToken, [groupGateFlex(env().APP_BASE_URL)]);
+  await replyOrPush(chatId, replyToken, [groupGateFlex(env().APP_BASE_URL, { language })]);
 }
