@@ -642,13 +642,19 @@ function buildEmailDraftFlex(input: unknown, tz: string, _locale?: string): Line
   if (bodyPreview) {
     rows.push({ type: "separator", color: "#f0f0f0" });
     rows.push({
-      type: "text",
-      text: bodyText.length > 220 ? bodyPreview + " …" : bodyPreview,
-      size: "sm",
-      color: "#555555",
-      wrap: true,
+      type: "box",
+      layout: "vertical",
       paddingTop: "10px",
       paddingBottom: "10px",
+      contents: [
+        {
+          type: "text",
+          text: bodyText.length > 220 ? bodyPreview + " …" : bodyPreview,
+          size: "sm",
+          color: "#555555",
+          wrap: true,
+        },
+      ],
     });
   }
 
@@ -692,14 +698,20 @@ function buildCalendarDraftFlex(input: unknown, tz: string, locale?: string): Li
 
   const rows: object[] = [
     {
-      type: "text",
-      text: title,
-      size: "lg",
-      weight: "bold",
-      color: "#111111",
-      wrap: true,
+      type: "box",
+      layout: "vertical",
       paddingTop: "14px",
       paddingBottom: "10px",
+      contents: [
+        {
+          type: "text",
+          text: title,
+          size: "lg",
+          weight: "bold",
+          color: "#111111",
+          wrap: true,
+        },
+      ],
     },
     { type: "separator", color: "#f0f0f0" },
     draftFieldRow("🕐", when),
@@ -771,13 +783,19 @@ function buildScheduledEmailDraftFlex(input: unknown, tz: string, locale?: strin
   if (bodyPreview) {
     rows.push({ type: "separator", color: "#f0f0f0" });
     rows.push({
-      type: "text",
-      text: bodyText.length > 180 ? bodyPreview + " …" : bodyPreview,
-      size: "sm",
-      color: "#555555",
-      wrap: true,
+      type: "box",
+      layout: "vertical",
       paddingTop: "10px",
       paddingBottom: "10px",
+      contents: [
+        {
+          type: "text",
+          text: bodyText.length > 180 ? bodyPreview + " …" : bodyPreview,
+          size: "sm",
+          color: "#555555",
+          wrap: true,
+        },
+      ],
     });
   }
 

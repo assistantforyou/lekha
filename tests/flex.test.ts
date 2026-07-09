@@ -273,4 +273,27 @@ describe("validateFlexMessage", () => {
     expect(JSON.stringify(v.message.contents)).not.toContain('"wrap"');
     expect(v.errors.some((e) => e.includes("wrap"))).toBe(true);
   });
+
+  it("strips invalid padding properties from text components", () => {
+    const msg = {
+      type: "flex",
+      altText: "Test",
+      contents: {
+        type: "bubble",
+        body: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            { type: "text", text: "hello", paddingTop: "10px", paddingBottom: "10px" },
+          ],
+        },
+      },
+    };
+    const v = validateFlexMessage(msg);
+    expect(v.ok).toBe(true);
+    const json = JSON.stringify(v.message.contents);
+    expect(json).not.toContain('"paddingTop"');
+    expect(json).not.toContain('"paddingBottom"');
+    expect(v.errors.some((e) => e.includes("paddingTop"))).toBe(true);
+  });
 });

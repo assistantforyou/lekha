@@ -88,6 +88,13 @@ function sanitizeContents(contents: Record<string, unknown>, errors: string[]): 
       (contents as Record<string, unknown>).text = text.slice(0, 5000);
       errors.push("text node truncated");
     }
+    // Padding properties are only valid on box components, not text.
+    for (const key of ["paddingTop", "paddingBottom", "paddingAll", "paddingStart", "paddingEnd"]) {
+      if (key in contents) {
+        delete (contents as Record<string, unknown>)[key];
+        errors.push(`removed invalid '${key}' from text`);
+      }
+    }
   }
 }
 
