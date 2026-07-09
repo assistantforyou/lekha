@@ -16,6 +16,7 @@ import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
 import { buildStockFlex, buildCryptoFlex, type StockResult, type CryptoResult } from "@/lib/line/finance-flex";
 import { dateLocale } from "@/lib/i18n";
 import { extractToolValue } from "@/lib/llm/agent-helpers";
+import { mediaProxyUrl } from "@/lib/line/media-url";
 
 type StepLike = {
   toolResults?: { toolCallId?: string; toolName?: string; output?: unknown }[];
@@ -622,7 +623,8 @@ function buildEmailDraftFlex(
   tz: string,
   _locale?: string,
   activeEmail?: string | null,
-  staged?: Array<{ kind: string; fileName?: string; contentType?: string }>,
+  staged?: Array<{ kind: string; messageId?: string; fileName?: string; contentType?: string }>,
+  userId?: string,
 ): LineMessage {
   const args = input as {
     to?: string[]; cc?: string[]; bcc?: string[];
@@ -681,6 +683,24 @@ function buildEmailDraftFlex(
     });
   }
 
+  const hero =
+    mediaCount === 1 && userId
+      ? (() => {
+          const item = args.attach_recent_media
+            ? staged?.[0]
+            : staged?.[(args.attach_recent_media_indexes?.[0] ?? 1) - 1];
+          if (item?.messageId && item.kind === "image") {
+            return {
+              type: "image" as const,
+              url: mediaProxyUrl(item.messageId, userId),
+              size: "fullWidth" as const,
+              aspectMode: "fit" as const,
+            };
+          }
+          return undefined;
+        })()
+      : undefined;
+
   return {
     type: "flex",
     altText: `Draft email to ${to} — ${subject}`,
@@ -696,6 +716,7 @@ function buildEmailDraftFlex(
           { type: "text", text: "📧  EMAIL DRAFT", size: "xs", color: "#C0C0C0", weight: "bold", letterSpacing: undefined },
         ],
       },
+      ...(hero ? { hero } : {}),
       body: {
         type: "box",
         layout: "vertical",
@@ -787,7 +808,7 @@ function buildScheduledEmailDraftFlex(
   tz: string,
   locale?: string,
   activeEmail?: string | null,
-  staged?: Array<{ kind: string; fileName?: string; contentType?: string }>,
+  staged?: Array<{ kind: string; messageId?: string; fileName?: string; contentType?: string }>,
 ): LineMessage {
   const args = input as {
     to?: string[]; cc?: string[];
@@ -885,7 +906,8 @@ export function buildDraftFlexCards(
   opts?: {
     language?: string | null;
     activeEmail?: string | null;
-    staged?: Array<{ kind: string; fileName?: string; contentType?: string }>;
+    userId?: string;
+    staged?: Array<{ kind: string; messageId?: string; fileName?: string; contentType?: string }>;
   },
 ): LineMessage[] {
   const tz = timezone ?? "UTC";
@@ -893,7 +915,7 @@ export function buildDraftFlexCards(
   return calls.flatMap((call) => {
     try {
       if (call.toolName === "draft_email") {
-        return [buildEmailDraftFlex(call.input, tz, locale, opts?.activeEmail, opts?.staged)];
+        return [buildEmailDraftFlex(call.input, tz, locale, opts?.activeEmail, opts?.staged, opts?.userId)];
       }
       if (call.toolName === "draft_calendar_event") return [buildCalendarDraftFlex(call.input, tz, locale)];
       if (call.toolName === "schedule_email") {

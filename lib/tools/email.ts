@@ -298,7 +298,12 @@ function buildRawMime(opts: {
 
   for (const att of opts.attachments) {
     parts.push(`--${boundary}`);
-    parts.push(`Content-Type: ${att.mimeType}; name="${escapeMimeHeaderValue(att.filename)}"`);
+    // Force downloadable attachment on mobile clients that otherwise inline/crop
+    // image and video parts. The real filename extension is preserved so the
+    // recipient's OS still opens it with the right app.
+    const forceAttachment = att.mimeType.toLowerCase().startsWith("image/");
+    const contentType = forceAttachment ? "application/octet-stream" : att.mimeType;
+    parts.push(`Content-Type: ${contentType}; name="${escapeMimeHeaderValue(att.filename)}"`);
     parts.push("Content-Transfer-Encoding: base64");
     parts.push(
       `Content-Disposition: attachment; filename="${escapeMimeHeaderValue(att.filename)}"`,
