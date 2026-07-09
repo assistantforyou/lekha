@@ -1,6 +1,8 @@
 import { replyOrPush, text as textMsg } from "@/lib/line/client";
-import { appendTurn } from "@/lib/memory/history";
+import { appendTurn, loadHistory } from "@/lib/memory/history";
 import { appendRecentMedia, listRecentMedia } from "@/lib/memory/recent-media";
+import { getSettings } from "@/lib/memory/settings";
+import { detectMessageLanguage, t } from "@/lib/i18n";
 import { span } from "@/lib/timing";
 
 /** Items staged within this window count as "sent together" for ack wording. */
@@ -35,8 +37,19 @@ export async function respondToImage(
 
   const staged = await listRecentMedia(userId);
   const batchCount = staged.filter((m) => Date.now() - m.ts < BATCH_WINDOW_MS).length;
-  // Language-neutral ack — the user's next text will set the reply language.
-  const ack = batchCount > 1 ? `Got ${batchCount} items 👍` : "Got it 👍";
+
+  // Match the ack language to the last user text we have, falling back to settings.
+  const settings = await getSettings(userId);
+  const history = await loadHistory(userId);
+  const lastUserText = [...history]
+    .reverse()
+    .find((h) => h.role === "user" && typeof h.content === "string" && !h.content.startsWith("["))
+    ?.content as string | undefined;
+  const ackLang = detectMessageLanguage(lastUserText ?? "") ?? settings.language ?? "en";
+  const ack =
+    batchCount > 1
+      ? t(ackLang, "imagesAck", { count: String(batchCount) })
+      : t(ackLang, "imageAck");
   await replyOrPush(chatId ?? userId, replyToken, [textMsg(ack)]);
   await appendTurn(userId, { role: "user", content: "[sent an image]", ts: Date.now() });
   await appendTurn(userId, { role: "assistant", content: ack, ts: Date.now() });
