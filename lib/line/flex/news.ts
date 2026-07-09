@@ -71,7 +71,7 @@ export function newsFlex(stories: NewsRow[], headerLabel?: string): FlexMessage 
                 ? [
                     {
                       type: "text" as const,
-                      text: s.snippet.slice(0, 140),
+                      text: s.snippet.slice(0, 300),
                       size: "xs" as const,
                       color: "#666666",
                       wrap: true,

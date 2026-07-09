@@ -34,7 +34,7 @@ function cleanSnippet(s: string): string {
     .replace(/\n+/g, " ")
     .replace(/\s{2,}/g, " ")
     .trim()
-    .slice(0, 140);
+    .slice(0, 300);
 }
 
 function stripMarkdown(s: string): string {
@@ -288,9 +288,10 @@ function buildDriveFilesFlex(files: Array<Record<string, unknown>>): LineMessage
   } as LineMessage;
 }
 
-/** Web search card — synthesized answer + numbered source list. */
+/** Web search card — full synthesized answer + clickable source links. */
 function buildWebSearchFlex(value: Record<string, unknown>, userText: string): LineMessage {
-  const answer = typeof value.answer === "string" ? value.answer.trim().slice(0, 900) : null;
+  const rawAnswer = typeof value.answer === "string" ? value.answer.trim() : null;
+  const answer = rawAnswer ? stripMetaPrefix(stripMarkdown(rawAnswer)).slice(0, 3000) : null;
   const results = (Array.isArray(value.results) ? value.results : []) as Array<Record<string, unknown>>;
 
   const bodyContents: object[] = [];
@@ -307,15 +308,27 @@ function buildWebSearchFlex(value: Record<string, unknown>, userText: string): L
       color: "#888888",
       margin: answer ? "lg" : "none",
     });
-    results.slice(0, 5).forEach((r, i) => {
-      bodyContents.push({
-        type: "text",
-        text: `${i + 1}. ${String(r.title ?? "").slice(0, 90)}`,
-        size: "xs",
-        wrap: true,
-        color: "#555555",
-        margin: "sm",
-      });
+    results.slice(0, 5).forEach((r) => {
+      const url = typeof r.url === "string" && r.url ? r.url : null;
+      const title = String(r.title ?? "").trim() || "Source";
+      if (url) {
+        bodyContents.push({
+          type: "button",
+          style: "link",
+          height: "sm",
+          margin: "sm",
+          action: { type: "uri", label: title.slice(0, 40), uri: url },
+        });
+      } else {
+        bodyContents.push({
+          type: "text",
+          text: title.slice(0, 90),
+          size: "xs",
+          wrap: true,
+          color: "#555555",
+          margin: "sm",
+        });
+      }
     });
   }
   if (bodyContents.length === 0) {

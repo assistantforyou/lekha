@@ -214,4 +214,35 @@ describe("buildFlexFromToolResults places consolidation", () => {
     const json = JSON.stringify(messages);
     expect(json).toContain("Paris");
   });
+
+  it("renders web_search sources as clickable URI buttons", () => {
+    const result = {
+      steps: [
+        {
+          toolResults: [
+            {
+              toolName: "web_search",
+              output: {
+                ok: true,
+                answer: "Legal grounds include defamation and fraud.",
+                results: [
+                  { title: "OWASP LLM09:2025", url: "https://owasp.org/llm09" },
+                  { title: "MisLC paper", url: "https://example.com/mislc" },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const { messages, suppressText } = buildFlexFromToolResults(result, "Asia/Bangkok", {
+      userText: "legal grounds for misinformation",
+    });
+    expect(messages.length).toBeGreaterThan(0);
+    expect(suppressText).toBe(true);
+    const json = JSON.stringify(messages);
+    expect(json).toContain("https://owasp.org/llm09");
+    expect(json).toContain('"type":"uri"');
+    expect(json).toContain("OWASP LLM09:2025");
+  });
 });
