@@ -2,7 +2,7 @@ import { z } from "zod";
 import { tool } from "ai";
 import { google } from "googleapis";
 import { getGoogleClient } from "./google-auth";
-import { withGoogleClient, guardGoogleApiCall } from "./with-google";
+import { withGoogleClient, guardGoogleApiCall, type AuthRequiredResult, type ApiDisabledResult, type GoogleErrorResult } from "./with-google";
 import { withGoogleCache } from "@/lib/memory/cache";
 import { appendPending, type CreateCalendarEventAction } from "@/lib/confirm";
 import { getSettings } from "@/lib/memory/settings";
@@ -423,5 +423,36 @@ export async function createCalendarEvent(
       }
     }
     return { htmlLink: r.data.htmlLink ?? null, from, eventId };
+  });
+}
+
+/** Direct helper for the "what's on my calendar today" shortcut. */
+export async function listCalendarToday(
+  userId: string,
+  fromEmail?: string,
+): Promise<
+  | { ok: true; events: Array<{ id: string; summary: string; start: string; end: string; location: string | null; attendees: string[]; htmlLink: string | null }> }
+  | AuthRequiredResult
+  | ApiDisabledResult
+  | GoogleErrorResult
+> {
+  return withGoogleClient(userId, fromEmail, [CAL_READ_SCOPE], async ({ client, email }) => {
+    return withGoogleCache(userId, email, "calendar:today", {}, 60, async () => {
+      const calendar = google.calendar({ version: "v3", auth: client });
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const end = new Date();   end.setHours(23, 59, 59, 999);
+      const r = await calendar.events.list({
+        calendarId: "primary",
+        timeMin: start.toISOString(),
+        timeMax: end.toISOString(),
+        singleEvents: true,
+        orderBy: "startTime",
+        maxResults: 25,
+      });
+      return {
+        ok: true as const,
+        events: r.data.items?.map(briefWithId) ?? [],
+      };
+    });
   });
 }

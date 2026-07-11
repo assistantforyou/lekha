@@ -167,6 +167,12 @@ const UI = {
     noTasks: "Nothing on your list. 🎉",
     noFactsYet: "Nothing saved yet.",
 
+    // Reminders
+    remindersTitle: "Your reminders",
+    remindersHeader: "⏰  Reminders",
+    noReminders: "No open reminders. 🎉",
+    reminderCancelBtn: "Cancel",
+
     // Tasks
     taskAddError: "Couldn't save the task right now. Please try again in a moment.",
     taskUpdateError: "Couldn't update the task right now. Please try again in a moment.",
@@ -476,6 +482,12 @@ const UI = {
     // Empty states
     noTasks: "ไม่มีรายการค้าง 🎉",
     noFactsYet: "ยังไม่มีข้อมูล",
+
+    // Reminders
+    remindersTitle: "การแจ้งเตือนของคุณ",
+    remindersHeader: "⏰  การแจ้งเตือน",
+    noReminders: "ไม่มีการแจ้งเตือนค้าง 🎉",
+    reminderCancelBtn: "ยกเลิก",
 
     // Tasks
     taskAddError: "บันทึกงานไม่ได้ตอนนี้ ลองใหม่ในอีกสักครู่",

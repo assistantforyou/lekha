@@ -4,12 +4,13 @@ import { chatModelForTier, hasFreeKey, hasPaidKey, AGENT_TIMEOUT_MS, GEMINI_PROV
 import { buildSystemPrompt, buildTimeContext } from "@/lib/llm/prompts";
 import { factsToPromptBlock, loadFacts, displayOrder } from "@/lib/memory/facts";
 import { listTasks } from "@/lib/memory/tasks";
+import { listReminders } from "@/lib/tools/reminders";
 import { renderDraftsBlock } from "@/lib/llm/render-drafts";
 import { buildConnectUrl } from "@/lib/tools/google-auth";
 import { GoogleAuthRequired, NeedsConfirmation, RateLimited, unwrapCause, unwrapAuthRequired } from "@/lib/errors";
 import type { LineMessage } from "@/lib/line/client";
 import { buildFlexFromToolResults, buildFollowUps, buildSimpleCardFlex, buildDraftFlexCards } from "@/lib/llm/agent-flex";
-import { taskListFlex, newsFlex, factsListFlex, type FactsListItem } from "@/lib/line/flex";
+import { taskListFlex, newsFlex, factsListFlex, type FactsListItem, reminderListFlex } from "@/lib/line/flex";
 import { buildWeatherFlex, type WeatherResult } from "@/lib/line/weather-flex";
 import { span, tick, withTimeout, AgentTimeoutError } from "@/lib/timing";
 import { stripMarkdown } from "@/lib/format";
@@ -404,6 +405,37 @@ export function looksLikeTaskList(text: string): boolean {
   if (/\bwhat\s+do\s+i\s+need\s+to\s+do\b/.test(lower)) return true;
   if (/\boverdue\s+(tasks?|todo)\b/.test(lower)) return true;
   return false;
+}
+
+export function looksLikeReminderList(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  // Thai reminder-list phrases
+  if (/มีการแจ้งเตือน|การแจ้งเตือนที่ต้องทำ|รายการแจ้งเตือน|แจ้งเตือนค้าง|แจ้งเตือนของ(ฉัน|ผม|ดิฉัน)|แสดงการแจ้งเตือน/.test(text)) return true;
+  // English reminder-list phrases (broader than isReminderQuery)
+  if (/\b(my\s+)?(reminders?)(\s+(list|please|now|today|tomorrow))?\b/.test(lower)) return true;
+  if (/\bwhat\s+reminders?\s+(do\s+i\s+have|are\s+(there|scheduled)|left)\b/.test(lower)) return true;
+  if (/\bshow\s+(me\s+)?my\s+reminders?\b/.test(lower)) return true;
+  if (/\bopen\s+(my\s+)?reminders?\b/.test(lower)) return true;
+  if (/\bmy\s+(open|pending|upcoming)\s+reminders?\b/.test(lower)) return true;
+  return false;
+}
+
+export async function fallbackListReminders(
+  userId: string,
+  timezone = "Asia/Bangkok",
+  language?: string | null,
+): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {
+  const all = await listReminders(userId);
+  return {
+    text: "",
+    flexMessages: [
+      reminderListFlex(
+        all.map((r) => ({ id: r.id, message: r.message, fireAt: r.fireAt })),
+        { timezone, language },
+      ),
+    ],
+    toolCalls: [{ toolName: "list_reminders", input: {} }],
+  };
 }
 
 export async function fallbackListMemories(userId: string, _displayName: string): Promise<{ text: string; flexMessages?: LineMessage[]; toolCalls: { toolName: string; input: unknown }[] }> {

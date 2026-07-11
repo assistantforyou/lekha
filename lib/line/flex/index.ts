@@ -1,6 +1,7 @@
 export { confirmCancelFlex } from "./confirm-cancel";
 export { googleConnectFlex } from "./google-connect";
 export { taskListFlex, type TaskRow } from "./task-list";
+export { reminderListFlex, type ReminderRow } from "./reminder-list";
 export { signupGateFlex } from "./signup-gate";
 export { listItemsFlex } from "./list-items";
 export { gmailResultsFlex, type GmailRow } from "./gmail-results";

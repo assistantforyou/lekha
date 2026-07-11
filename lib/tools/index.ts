@@ -90,9 +90,9 @@ const REGISTRY: Entry[] = [
   // Feature tools: only for users who have actually connected Google.
   { build: (u) => buildEmailTools(u), needs: ["google_user_connected"], category: "email", hints: ["email", "media"] },
   { build: (u) => buildCalendarTools(u), needs: ["google_user_connected"], category: "calendar", hints: ["calendar", "task", "reminder"] },
-  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive", hints: ["email", "search", "media"] },
+  { build: (u) => buildDriveTools(u), needs: ["google_user_connected"], category: "drive", hints: ["drive", "email", "search", "media"] },
   { build: (u) => buildGmailInboxTools(u), needs: ["google_user_connected"], category: "email", hints: ["email", "media"] },
-  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email", hints: ["email", "calendar"] },
+  { build: (u) => buildContactsTools(u), needs: ["google_user_connected"], category: "email", hints: ["contacts", "email", "calendar"] },
   { build: (u) => buildScheduledEmailTools(u), needs: ["google_user_connected", "qstash"], category: "email", hints: ["email"] },
   { build: (u) => buildListTools(u), hints: ["lists"] },
   { build: (u) => buildDocumentMemoryTools(u), needs: ["upstash_vector"], hints: ["media", "memory"] },

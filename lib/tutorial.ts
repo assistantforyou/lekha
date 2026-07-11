@@ -768,6 +768,19 @@ export async function handleTutorialText(userId: string, replyToken: string, use
   const step = await getTutorialStep(userId);
   if (step < 0) return false;
 
+  // Allow exiting the tutorial with common cancel words. This prevents users
+  // from getting trapped if they accidentally started setup.
+  if (lower === "/exit" || lower === "/cancel" || ["cancel", "exit", "stop", "skip", "ยกเลิก", "ข้าม", "ออก"].includes(lower)) {
+    await clearTutorialStep(userId);
+    await setTutorialWaiting(userId, null);
+    const settings = await getSettings(userId);
+    const lang = tutorialLang(settings);
+    await replyOrPush(userId, replyToken, [
+      textMsg(lang === "th" ? "ออกจากการตั้งค่าแล้ว พิมพ์ /settings เพื่อเปิดเมนู หรือ /tutorial เพื่อเริ่มใหม่" : "Setup exited. Type /settings to open the menu or /tutorial to start over."),
+    ]);
+    return true;
+  }
+
   const waiting = await getTutorialWaiting(userId);
   if (waiting && ["timezone", "location", "morning", "evening", "checkin", "preferredName"].includes(waiting)) {
     await handleCustomInput(userId, replyToken, waiting as WaitingField, userText);

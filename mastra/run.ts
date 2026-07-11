@@ -14,6 +14,7 @@ import {
   estimatePromptTokens,
   looksLikeMemoryRecall,
   looksLikeTaskList,
+  looksLikeReminderList,
   looksLikeWeather,
   looksLikeFinance,
   looksLikeMediaQuery,
@@ -22,6 +23,7 @@ import {
   looksLikeFactualQuery,
   fallbackListMemories,
   fallbackListTasks,
+  fallbackListReminders,
   fallbackWeather,
   fallbackFinance,
   fallbackSummarizeDocument,
@@ -424,6 +426,11 @@ export async function runMastraAgent(
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
       } else if (looksLikeTaskList(lastUserText)) {
         const fb = await fallbackListTasks(userId, displayName, tz, lang);
+        finalText = fb.text;
+        extraToolCalls = fb.toolCalls;
+        if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];
+      } else if (looksLikeReminderList(lastUserText)) {
+        const fb = await fallbackListReminders(userId, tz, lang);
         finalText = fb.text;
         extraToolCalls = fb.toolCalls;
         if (fb.flexMessages?.length) flexMessages = [...flexMessages, ...fb.flexMessages];

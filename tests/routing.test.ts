@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { BASE_PERSONALITY } from "@/lib/llm/prompts";
-import { isTaskQuery } from "@/lib/shortcuts";
+import { isTaskQuery, isReminderQuery, isCalendarQuery } from "@/lib/shortcuts";
 
 describe("prompt routing rules", () => {
   it("does not tell the model to lean toward searching for every question", () => {
@@ -44,5 +44,25 @@ describe("shortcut routing", () => {
     expect(isTaskQuery("what do i need to do today")).toBe(true);
     expect(isTaskQuery("what do i have to do today")).toBe(true);
     expect(isTaskQuery("What do i have to do today")).toBe(true);
+  });
+
+  it("matches reminder list queries and rejects add/set intents", () => {
+    expect(isReminderQuery("Open Reminders")).toBe(true);
+    expect(isReminderQuery("my reminders")).toBe(true);
+    expect(isReminderQuery("list my reminders")).toBe(true);
+    expect(isReminderQuery("what reminders do i have")).toBe(true);
+    expect(isReminderQuery("show my reminders")).toBe(true);
+    expect(isReminderQuery("add a reminder")).toBe(false);
+    expect(isReminderQuery("set reminder call mom")).toBe(false);
+  });
+
+  it("matches calendar today queries and rejects add/schedule intents", () => {
+    expect(isCalendarQuery("what's on my calendar today")).toBe(true);
+    expect(isCalendarQuery("what's on my calendar")).toBe(true);
+    expect(isCalendarQuery("my calendar today")).toBe(true);
+    expect(isCalendarQuery("my schedule")).toBe(true);
+    expect(isCalendarQuery("anything on my calendar today")).toBe(true);
+    expect(isCalendarQuery("add to my calendar")).toBe(false);
+    expect(isCalendarQuery("schedule a meeting tomorrow")).toBe(false);
   });
 });

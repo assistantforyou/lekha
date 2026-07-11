@@ -379,4 +379,16 @@ describe("setup tutorial", () => {
   it("covers all settings sections", () => {
     expect(TUTORIAL_SECTIONS).toEqual(["language", "locale", "briefing", "tools", "persona", "memory"]);
   });
+
+  it("exits the tutorial on cancel/exit/skip words", async () => {
+    await startTutorial("U1", "token");
+    expect(await getTutorialStep("U1")).toBe(0);
+    const exited = await handleTutorialText("U1", "token", "cancel");
+    expect(exited).toBe(true);
+    expect(await getTutorialStep("U1")).toBe(-1);
+    expect(sent[sent.length - 1]!.messages[0]).toMatchObject({
+      type: "text",
+      text: expect.stringContaining("Setup exited"),
+    });
+  });
 });
