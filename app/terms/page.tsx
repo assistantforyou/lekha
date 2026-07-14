@@ -63,7 +63,7 @@ Access to the Service is granted through your LINE account identity. You do not 
 You may optionally connect third-party accounts (e.g. Google) to the Service. By doing so, you authorise us to access and act on data within those accounts on your behalf, subject to the permissions you grant. You are responsible for ensuring that your use of connected third-party services complies with their own terms of service.
 
 4.3 Access restrictions
-Access to the Service is currently by invitation or approved request only. We reserve the right to grant or deny access at our discretion. Approved users may be subject to a waitlist process.
+Access to the Service is self-serve. You may start a limited free trial, purchase a Subscription through Stripe, or redeem a valid promo code. We reserve the right to suspend or terminate access for violations of this Agreement or for operational, legal, or security reasons.
 
 4.4 Account security
 You are solely responsible for maintaining the confidentiality of your connected accounts and for any activity conducted through the Service on your behalf. You must notify us immediately at assistantforyou999@gmail.com if you become aware of any unauthorised access to or use of your account.`,
