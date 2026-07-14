@@ -27,7 +27,7 @@ const UI = {
     fallbackNoCatch: "I didn't catch that — could you rephrase?",
 
     docAck: "Got your document ({name}) — reading it now. What would you like to know?",
-    pdfParsedAck: "Got ‘{title}’ ({pageCount} pages). What would you like to know?",
+    pdfParsedAck: "Got ‘{title}’. Reading it now. What would you like to know?",
     docsAck: "Got your {count} files. Ask me what you'd like to do with them.",
     imageAck: "Got your image. Ask me to read text from it, describe it, or scan it as a receipt.",
     imagesAck: "Got your {count} images. Ask me to read text from them, describe them, or scan them as receipts.",
@@ -70,7 +70,7 @@ const UI = {
     agentErrUnavailable: "Temporarily unavailable — please try again in a moment.",
     agentErrQuota:
       "I'm out of LLM quota for the moment (monthly spending cap hit). Please check the Gemini project spend cap, or try again later.",
-    agentErrGeneric: "Something went wrong. Try again in a moment.",
+    agentErrGeneric: "I'm not sure what you'd like me to do — could you rephrase or tell me more?",
 
     done: "Done.",
 
@@ -78,7 +78,7 @@ const UI = {
     pendingCancelledOne: "Cancelled that.",
     pendingCancelledMany: "Cancelled all {count}.",
     stickerReply: "Cute sticker. Send me text, a photo, or a file if you'd like me to do something with it.",
-    unknownMessageType: "I didn't recognize that message type. Try text, a photo, video, audio, or a file.",
+    unknownMessageType: "I'm not sure what to do with that. Send me text, a photo, video, audio, or a file and let me know what you need.",
 
     // Settings flex
     settingsTitle: "⚙️ Settings",
@@ -344,7 +344,7 @@ const UI = {
     fallbackNoCatch: "ฉันไม่เข้าใจ ช่วยพูดใหม่ได้ไหมคะ",
 
     docAck: "ได้เอกสาร ({name}) แล้ว กำลังอ่านอยู่ อยากรู้อะไรคะ",
-    pdfParsedAck: "ได้ ‘{title}’ ({pageCount} หน้า) แล้ว อยากรู้อะไรคะ",
+    pdfParsedAck: "ได้ ‘{title}’ แล้ว กำลังอ่านอยู่ อยากรู้อะไรคะ",
     docsAck: "ได้ไฟล์ {count} ไฟล์แล้ว บอกฉันว่าอยากทำอะไร",
     imageAck: "ได้รูปแล้ว ให้ฉันอ่านตัวอักษร อธิบาย หรือสแกนใบเสร็จคะ",
     imagesAck: "ได้รูป {count} รูปแล้ว ให้ฉันอ่านตัวอักษร อธิบาย หรือสแกนใบเสร็จคะ",
@@ -387,7 +387,7 @@ const UI = {
     agentErrUnavailable: "ชั่วคราวไม่พร้อมใช้งาน ลองใหม่ในอีกสักครู่",
     agentErrQuota:
       "LLM quota หมดชั่วคราว (spending cap เดือนนี้) กรุณาตรวจสอบ spend cap ของโปรเจกต์ Gemini หรือลองใหม่ภายหลัง",
-    agentErrGeneric: "มีบางอย่างผิดพลาด ลองใหม่ในอีกสักครู่",
+    agentErrGeneric: "ฉันไม่แน่ใจว่าคุณต้องการให้ทำอะไร ช่วยพูดใหม่หรือบอกรายละเอียดเพิ่มได้ไหมคะ",
 
     done: "เสร็จแล้ว",
 
@@ -395,7 +395,7 @@ const UI = {
     pendingCancelledOne: "ยกเลิกรายการนั้นแล้ว",
     pendingCancelledMany: "ยกเลิกทั้ง {count} รายการแล้ว",
     stickerReply: "สติกเกอร์น่ารัก ส่งข้อความ รูป หรือไฟล์มาได้เลยค่ะ",
-    unknownMessageType: "ฉันไม่รู้จักประเภทข้อความนี้ ลองส่งข้อความ รูป วิดีโอ เสียง หรือไฟล์ค่ะ",
+    unknownMessageType: "ฉันไม่แน่ใจว่าจะช่วยอะไรได้ ส่งข้อความ รูป วิดีโอ เสียง หรือไฟล์ พร้อมบอกว่าต้องการอะไรได้เลยค่ะ",
 
     // Settings flex
     settingsTitle: "⚙️ ตั้งค่า",
