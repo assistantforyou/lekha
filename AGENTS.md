@@ -1,6 +1,6 @@
 # Lekha — repo guide for AI coding agents
 
-A personal AI assistant living in LINE. **Private bot** (allowlist-gated with self-serve signup queue), per-user state, agentic tool use, proactive layer (morning briefings, pre-meeting alerts, evening summaries, task check-ins).
+A personal AI assistant living in LINE. **Self-serve access** via Stripe subscription or promo code, with optional admin controls, per-user state, agentic tool use, proactive layer (morning briefings, pre-meeting alerts, evening summaries, task check-ins).
 
 ## Stack at a glance
 
@@ -238,12 +238,17 @@ Idempotency is via `claimPushLock()` (`pushlock:{userId}:{type}:{YYYY-MM-DD}` wi
 ### 14. Email body is base64-encoded
 For Thai/UTF-8 fidelity. `Content-Transfer-Encoding: base64` on the text body part. Some MTAs corrupt non-ASCII under `7bit`.
 
-### 15. Private allowlist + self-serve pending queue
-The bot is private by default. Every event hits the gate before any other logic. Admin (`ADMIN_LINE_USER_ID`, comma-separated for multiple) always passes. Others must be in the `users:allowed` Redis set.
+### 15. Self-serve access (Stripe + promo codes)
+Every event hits the gate before any other logic. A user passes if they are:
+- an admin (`ADMIN_LINE_USER_ID`, comma-separated for multiple; optional),
+- in the `users:allowed` Redis set (paid via Stripe or granted via promo code),
+- in the `users:trial` Redis set (free trial: 15 messages/day, Google tools disabled).
 
-**Self-serve signup:** non-allowed, non-admin users are silently added to `users:pending` (set) with profile metadata at `pending:{userId}` hash. They receive a friendly "you're in the queue" reply. The admin is push-notified about new requests, rate-limited 1/min/user.
+For rejected users, the bot sends a paywall Flex message with a free-trial button and Stripe subscription links.
 
-**Admin commands:** `/allow <id>`, `/remove <id>`, `/users` (direct allowlist), `/pending` (list queue), `/approve <id>` (move pending→allowed + send welcome), `/deny <id>` (remove from pending). Anyone can `/myid` to get their own LINE userId.
+**Self-serve signup:** non-entitled users can start a free trial, subscribe via Stripe Checkout, or redeem a promo code with `/promo <code>`. No admin approval is required. `ADMIN_LINE_USER_ID` can be left empty for a fully self-serve deployment; if set, those admins retain override access and can still run admin commands.
+
+**Admin commands (optional):** `/allow <id>`, `/remove <id>`, `/users`, `/pending`, `/approve <id>`, `/deny <id>`, `/promo create ...`, `/promos`, `/promo delete <code>`. Anyone can `/myid` to get their own LINE userId.
 
 ### 16. Single LLM provider — Gemini 2.5 Flash, 30s timeout
 No cascade, no fallback. The Mastra agent (`mastra/agents/lekha-agent.ts`) uses full Flash (not Flash Lite) for agentic tool use because Flash Lite blanked/panicked under the full tool registry. Paid tier RPM (1,000+) absorbs the agentic turn burst. On Gemini outage the bot returns an error — that tradeoff is intentional for a personal bot. `AGENT_TIMEOUT_MS` is 55s (in `lib/llm/provider.ts`) — long enough for multi-step tool turns without burning function time on real hangs. `maxSteps` is dynamic via `computeMaxSteps()` in `lib/llm/agent-helpers.ts` (media/multi-step → 10, focused hints → 8, default → 6, clamped [4, 12]) to cap cost/latency while still allowing multi-step turns.
