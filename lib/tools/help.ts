@@ -13,7 +13,7 @@ const HELP_TEXT = `Here's what I can do:
 - /set <key> <value> — quick setting change (e.g. /set timezone Asia/Bangkok, /set language th, /set morning 07:30, /set morning off)
 - /remember <fact> — save a fact to memory
 - /tutorial — restart onboarding
-- /promo <code> — redeem a free-access code (e.g. /promo FREETRIAL100)
+- /promo <code> — redeem a free-access code
 - /myid — get your LINE user ID
 - /help — show this help
 
@@ -81,13 +81,7 @@ const HELP_TEXT = `Here's what I can do:
 🔌 *Google Accounts*
 - "connect my Google account"
 - "list my Google accounts" / "use my work account"
-
-🛠 *Admin commands* (admin users only)
-- /allow <userId> / /remove <userId>
-- /users / /pending / /approve <userId> / /deny <userId>
-- /allowgroup <groupId> / /removegroup <groupId> / /groups
-- /promo create <code> [allowed|team] [uses] [days] / /promos / /promo delete <code>
-- /status <userId> / /audit <userId> [n] / /force-briefing <userId> [morning|evening]`;
+`;
 
 export function buildHelpTools() {
   return {

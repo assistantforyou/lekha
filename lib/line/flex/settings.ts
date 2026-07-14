@@ -270,9 +270,9 @@ export function settingsBriefingFlex(settings: UserSettings): FlexMessage {
           chipRow(
             "",
             [
-              { label: t(lang, "lead15min"), data: "settings:briefing:set:preMeetingLead:15:true", on: settings.preMeetingLeads.includes(15) },
-              { label: t(lang, "lead1hour"), data: "settings:briefing:set:preMeetingLead:60:true", on: settings.preMeetingLeads.includes(60) },
-              { label: t(lang, "lead1day"), data: "settings:briefing:set:preMeetingLead:1440:true", on: settings.preMeetingLeads.includes(1440) },
+              { label: t(lang, "lead15min"), data: `settings:briefing:set:preMeetingLead:15:${settings.preMeetingLeads.includes(15) ? "false" : "true"}`, on: settings.preMeetingLeads.includes(15) },
+              { label: t(lang, "lead1hour"), data: `settings:briefing:set:preMeetingLead:60:${settings.preMeetingLeads.includes(60) ? "false" : "true"}`, on: settings.preMeetingLeads.includes(60) },
+              { label: t(lang, "lead1day"), data: `settings:briefing:set:preMeetingLead:1440:${settings.preMeetingLeads.includes(1440) ? "false" : "true"}`, on: settings.preMeetingLeads.includes(1440) },
             ],
             3,
           ),
