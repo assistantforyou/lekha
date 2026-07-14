@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 let staged: { kind: string; messageId: string; contentType: string; fileName?: string; sizeBytes?: number; ts: number }[] = [];
 const prereadCalls: { userId: string; messageId: string; fileName?: string; token: string }[] = [];
+const prepareCalls: { userId: string; messageId: string; fileName?: string }[] = [];
 const replies: { userId: string; messages: unknown[] }[] = [];
 
 vi.mock("@/lib/env", () => ({
@@ -51,12 +52,21 @@ vi.mock("@/lib/llm/preread-doc", () => ({
   }),
 }));
 
+vi.mock("@/lib/tools/media-ai", () => ({
+  autoProcessAudio: vi.fn(async () => ({ transcript: "" })),
+  prepareDocumentForQa: vi.fn(async (userId: string, messageId: string, fileName: string | undefined) => {
+    prepareCalls.push({ userId, messageId, fileName });
+    return { ok: true as const, title: "Test Doc", pageCount: 1 };
+  }),
+}));
+
 import { respondToOtherMedia } from "@/lib/handlers/other-media";
 
 describe("other-media handler", () => {
   beforeEach(() => {
     staged = [];
     prereadCalls.length = 0;
+    prepareCalls.length = 0;
     replies.length = 0;
     vi.restoreAllMocks();
     global.fetch = vi.fn().mockResolvedValue({
@@ -66,21 +76,21 @@ describe("other-media handler", () => {
     } as unknown as Response);
   });
 
-  it("pre-reads a standalone readable document", async () => {
+  it("pre-parses a standalone PDF", async () => {
     await respondToOtherMedia("rt", "U1", "M1", "file", "report.pdf", undefined, undefined);
-    expect(prereadCalls).toHaveLength(1);
-    expect(prereadCalls[0]!.messageId).toBe("M1");
+    expect(prepareCalls).toHaveLength(1);
+    expect(prepareCalls[0]!.messageId).toBe("M1");
   });
 
-  it("pre-reads a small document even when batched", async () => {
+  it("pre-parses a small PDF even when batched", async () => {
     staged.push({ kind: "file", messageId: "M0", contentType: "application/pdf", fileName: "a.pdf", sizeBytes: 1000, ts: Date.now() - 5000 });
     await respondToOtherMedia("rt", "U1", "M1", "file", "report.pdf", 5 * 1024 * 1024, undefined);
-    expect(prereadCalls).toHaveLength(1);
+    expect(prepareCalls).toHaveLength(1);
   });
 
-  it("skips pre-read for a large/unknown-size document sent in a batch", async () => {
+  it("skips pre-parse for a large/unknown-size PDF sent in a batch", async () => {
     staged.push({ kind: "file", messageId: "M0", contentType: "application/pdf", fileName: "a.pdf", sizeBytes: 1000, ts: Date.now() - 5000 });
     await respondToOtherMedia("rt", "U1", "M1", "file", "huge.pdf", undefined, undefined);
-    expect(prereadCalls).toHaveLength(0);
+    expect(prepareCalls).toHaveLength(0);
   });
 });

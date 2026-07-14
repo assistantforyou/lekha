@@ -2,7 +2,7 @@ import { replyOrPush, text as textMsg } from "@/lib/line/client";
 import { env } from "@/lib/env";
 import { appendTurn } from "@/lib/memory/history";
 import { appendRecentMedia, listRecentMedia } from "@/lib/memory/recent-media";
-import { autoProcessAudio } from "@/lib/tools/media-ai";
+import { autoProcessAudio, prepareDocumentForQa } from "@/lib/tools/media-ai";
 import { maybeExtractFacts } from "@/lib/maybe-extract";
 import { getSettings } from "@/lib/memory/settings";
 import { t } from "@/lib/i18n";
@@ -10,6 +10,11 @@ import { logWarn } from "@/lib/log";
 
 /** Items staged within this window count as "sent together" for ack wording. */
 const BATCH_WINDOW_MS = 10_000;
+const PARSE_ACK_TIMEOUT_MS = 8_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([promise, new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))]).catch(() => null);
+}
 import {
   guessMimeFromFilename,
   defaultMimeForKind,
@@ -69,10 +74,13 @@ export async function respondToOtherMedia(
     .catch((e) => logWarn("line", "content-type HEAD probe failed", { error: e }));
 
   const isDoc = isReadableDoc(contentType, fileName);
+  const isPdf = contentType === "application/pdf" || fileName?.toLowerCase().endsWith(".pdf");
 
-  // For readable docs: kick off background pre-read so the first question answers instantly.
-  // Skip expensive pre-read for large/unknown-size docs sent as part of a batch; the text
-  // handler will read on demand when the user asks about a specific file.
+  // For readable docs: kick off background parsing/pre-read so the first question answers instantly.
+  // PDFs go through the local parser + vector index (cheap text-only parse). Other docs fall back
+  // to a Gemini pre-read. Skip expensive work for large/unknown-size docs sent as part of a batch;
+  // the text handler will read on demand when the user asks about a specific file.
+  let preparePromise: Promise<{ ok: true; title: string; pageCount: number } | { ok: false; error: string }> | undefined;
   if (isDoc) {
     const MAX_PREREAD_BYTES = 10 * 1024 * 1024;
     const recentlyStaged = (await listRecentMedia(userId)).filter(
@@ -81,9 +89,14 @@ export async function respondToOtherMedia(
     const shouldPreread =
       (fileSize !== undefined && fileSize <= MAX_PREREAD_BYTES) || recentlyStaged.length === 0;
     if (shouldPreread) {
-      prereadDoc(userId, messageId, fileName, env().LINE_CHANNEL_ACCESS_TOKEN).catch((e) =>
-        logWarn("preread", "prereadDoc failed", { error: e }),
-      );
+      if (isPdf) {
+        preparePromise = prepareDocumentForQa(userId, messageId, fileName);
+        preparePromise.catch((e) => logWarn("preread", "prepareDocumentForQa failed", { error: e }));
+      } else {
+        prereadDoc(userId, messageId, fileName, env().LINE_CHANNEL_ACCESS_TOKEN).catch((e) =>
+          logWarn("preread", "prereadDoc failed", { error: e }),
+        );
+      }
     }
   }
 
@@ -134,6 +147,16 @@ export async function respondToOtherMedia(
     ack = t(lang, "docsAck", { count: String(batchCount) });
   } else if (isArchive(contentType, fileName)) {
     ack = t(lang, "zipAck", { name: fileName ?? "" });
+  } else if (isPdf && preparePromise) {
+    const parsed = await withTimeout(preparePromise, PARSE_ACK_TIMEOUT_MS);
+    if (parsed?.ok) {
+      ack = t(lang, "pdfParsedAck", {
+        title: parsed.title || (fileName ?? "PDF"),
+        pageCount: String(parsed.pageCount),
+      });
+    } else {
+      ack = t(lang, "docAck", { name: fileName ?? "" });
+    }
   } else if (isDoc) {
     ack = t(lang, "docAck", { name: fileName ?? "" });
   } else if (kind === "audio") {

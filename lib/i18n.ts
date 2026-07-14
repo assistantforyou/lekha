@@ -27,6 +27,7 @@ const UI = {
     fallbackNoCatch: "I didn't catch that — could you rephrase?",
 
     docAck: "Got your document ({name}) — reading it now. What would you like to know?",
+    pdfParsedAck: "Got ‘{title}’ ({pageCount} pages). What would you like to know?",
     docsAck: "Got your {count} files. Ask me what you'd like to do with them.",
     imageAck: "Got your image. Ask me to read text from it, describe it, or scan it as a receipt.",
     imagesAck: "Got your {count} images. Ask me to read text from them, describe them, or scan them as receipts.",
@@ -343,6 +344,7 @@ const UI = {
     fallbackNoCatch: "ฉันไม่เข้าใจ ช่วยพูดใหม่ได้ไหมคะ",
 
     docAck: "ได้เอกสาร ({name}) แล้ว กำลังอ่านอยู่ อยากรู้อะไรคะ",
+    pdfParsedAck: "ได้ ‘{title}’ ({pageCount} หน้า) แล้ว อยากรู้อะไรคะ",
     docsAck: "ได้ไฟล์ {count} ไฟล์แล้ว บอกฉันว่าอยากทำอะไร",
     imageAck: "ได้รูปแล้ว ให้ฉันอ่านตัวอักษร อธิบาย หรือสแกนใบเสร็จคะ",
     imagesAck: "ได้รูป {count} รูปแล้ว ให้ฉันอ่านตัวอักษร อธิบาย หรือสแกนใบเสร็จคะ",

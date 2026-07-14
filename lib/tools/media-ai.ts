@@ -6,9 +6,11 @@ import { getMessageContent } from "@/lib/line/client";
 import { env } from "@/lib/env";
 import { fetchCachedWebSearch } from "@/lib/search-cache";
 import { getDocContent, setDocContent } from "@/lib/memory/doc-cache";
-import { indexDocument } from "@/lib/memory/documents";
+import { indexDocument, indexParsedDocument, getParsedDocument } from "@/lib/memory/documents";
 import { appendFact } from "@/lib/memory/facts";
 import { extractStructuredDocument } from "@/lib/document-intelligence";
+import { parseDocument } from "@/lib/document-parser";
+import { planDocumentResearch, formatResearchReport } from "@/lib/research-planner";
 import { createHash } from "crypto";
 
 // Lazy-load heavy conversion/parser modules so cold starts without media don't pay.
@@ -56,10 +58,10 @@ export function buildMediaAiTools(userId: string) {
 
     summarize_document: tool({
       description:
-        "Summarize or answer a SPECIFIC question about a PDF or document the user sent (e.g. 'how many shares do I have per this doc', 'what's the deadline'). Pass `question` whenever the user asked something specific — omitting it only gives a generic summary, not an answer to their actual question. Uses the strong model for charts, tables, and dense documents.",
+        "Answer a SPECIFIC question about a PDF or document the user sent, or summarize it ONLY when the user explicitly asks for a summary (e.g. 'how many shares do I have per this doc', 'what's the deadline', 'summarize this'). Do NOT call this just because a document is staged — if the user only uploaded the file, ask what they'd like to know instead.",
       inputSchema: z.object({
         index: z.number().int().min(1).optional(),
-        question: z.string().max(500).optional().describe("The user's specific question about the document. Omit only for a generic 'summarize this' request."),
+        question: z.string().max(500).optional().describe("The user's specific question or explicit 'summarize this' request."),
       }),
       execute: async ({ index, question }) =>
         runDocPrompt(
@@ -181,6 +183,57 @@ export function buildMediaAiTools(userId: string) {
       },
     }),
 
+    extract_tables: tool({
+      description:
+        "Extract all tables from a PDF or document the user sent as structured Markdown/JSON. Use when the user asks for tables, price lists, schedules, or catalog data.",
+      inputSchema: z.object({ index: z.number().int().min(1).optional() }),
+      execute: async ({ index }) => {
+        const parsed = await ensureParsedDocument(userId, index);
+        if ("error" in parsed) return { ok: false as const, error: parsed.error };
+        return {
+          ok: true as const,
+          tables: parsed.tables.map((t) => ({
+            page: t.page,
+            title: t.title,
+            headers: t.headers,
+            rows: t.rows,
+            markdown: t.markdown,
+          })),
+        };
+      },
+    }),
+
+    extract_charts: tool({
+      description:
+        "Extract all charts/graphs from a PDF or document the user sent as structured data. Use when the user asks about charts, trends, or figures.",
+      inputSchema: z.object({ index: z.number().int().min(1).optional() }),
+      execute: async ({ index }) => {
+        const parsed = await ensureParsedDocument(userId, index);
+        if ("error" in parsed) return { ok: false as const, error: parsed.error };
+        return { ok: true as const, charts: parsed.charts };
+      },
+    }),
+
+    deep_research_document: tool({
+      description:
+        "Research a PDF or document against the web. Use when the user asks to 'research this document', 'verify this report', 'compare to online sources', or 'fact-check'. Extracts key claims and runs parallel web searches.",
+      inputSchema: z.object({
+        index: z.number().int().min(1).optional(),
+        question: z.string().min(2).max(500).describe("What the user wants to research about the document."),
+      }),
+      execute: async ({ index, question }) => {
+        const parsed = await ensureParsedDocument(userId, index);
+        if ("error" in parsed) return { ok: false as const, error: parsed.error };
+        try {
+          const report = await planDocumentResearch(parsed, question);
+          return { ok: true as const, report: formatResearchReport(report), queries: report.queries };
+        } catch (err) {
+          console.error("[media-ai] deep_research_document failed", err);
+          return { ok: false as const, error: err instanceof Error ? err.message : "Research failed." };
+        }
+      },
+    }),
+
     transcribe_audio: tool({
       description:
         "Transcribe speech from a voice message or audio file the user sent in LINE. Returns the verbatim transcript.",
@@ -197,6 +250,68 @@ export function buildMediaAiTools(userId: string) {
         runMediaPrompt(userId, index, "audio", "Listen carefully and summarize what was said in 2-4 sentences. Capture the main topic, key points, and any action items or requests. If it's a question, state the question clearly.", { model: "chat" }),
     }),
   };
+}
+
+/**
+ * Parse a staged document (or return cached parsed doc) and index it for recall.
+ */
+async function ensureParsedDocument(
+  userId: string,
+  index: number | undefined,
+): Promise<import("@/lib/document-parser/types").ParsedDocument | { error: string }> {
+  const item = await resolveStagedItem(userId, index, "file");
+  if (!item || "error" in item) return { error: item?.error ?? "No staged document." };
+
+  const cached = await getParsedDocument(userId, item.messageId);
+  if (cached) return cached;
+
+  touchRecentMedia(userId).catch(() => {});
+
+  try {
+    const fetched = await getMessageContent(item.messageId, userId);
+    const parsed = await parseDocument(fetched.bytes, item.fileName ?? "document");
+    await indexParsedDocument(userId, item.messageId, item.fileName ?? "document", parsed);
+    return parsed;
+  } catch (err) {
+    console.error("[media-ai] ensureParsedDocument failed", err);
+    return { error: `Couldn't parse document: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+/**
+ * Cheap background preparation for a PDF: text/layout parse (no vision) + index.
+ * Called when a PDF is uploaded so the user's first question can be answered
+ * from the parsed doc instead of re-reading the whole file.
+ */
+export async function prepareDocumentForQa(
+  userId: string,
+  messageId: string,
+  fileName: string | undefined,
+): Promise<{ ok: true; title: string; pageCount: number } | { ok: false; error: string }> {
+  const cached = await getParsedDocument(userId, messageId);
+  if (cached) {
+    return { ok: true, title: cached.title, pageCount: cached.pageCount };
+  }
+
+  try {
+    const fetched = await getMessageContent(messageId, userId);
+    const normalized = normalizeMediaTypeFromBytes(
+      fetched.bytes,
+      fetched.contentType,
+      fileName,
+      "file",
+    );
+    if (normalized !== "application/pdf") {
+      return { ok: false, error: "Only PDFs are prepared automatically." };
+    }
+
+    const parsed = await parseDocument(fetched.bytes, fileName ?? "document", { skipVisual: true });
+    await indexParsedDocument(userId, messageId, fileName ?? "document", parsed);
+    return { ok: true, title: parsed.title, pageCount: parsed.pageCount };
+  } catch (err) {
+    console.warn("[media-ai] prepareDocumentForQa failed", { userId, messageId, fileName, err });
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 async function generateComparisonReport(
